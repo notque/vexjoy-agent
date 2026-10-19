@@ -110,7 +110,7 @@ def load_registered_hooks(
                     continue
                 cmd = entry.get("command", "")
                 # Extract python3 script path
-                m = re.search(r'python3\s+"?([^"\s]+\.py)"?', cmd)
+                m = re.search(r'(?:python3|"\$p")\s+"?([^"\s]+\.py)"?', cmd)
                 if not m:
                     continue
                 script_path = Path(m.group(1).replace("$HOME", str(Path.home())))

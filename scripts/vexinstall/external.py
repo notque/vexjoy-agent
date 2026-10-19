@@ -4,7 +4,7 @@
 |----------|--------------------------|---------------------------------------------------------|
 | codex    | ``hooks.json``           | ``scripts/codex-hooks-allowlist.txt`` via generate-codex-hooks-json.py |
 | codex    | ``config.toml``          | ensure-codex-feature-flag.py (hooks + subagent routing) |
-| factory  | ``settings.json`` hooks  | repo ``.claude/settings.json`` hooks, ``~/.claude/`` -> ``~/.factory/`` |
+| factory  | ``settings.json`` hooks  | repo ``.claude/settings.json`` hooks, launcher -> bare ``python3``, ``~/.claude/`` -> ``~/.factory/`` |
 | reasonix | ``settings.json`` hooks  | ``scripts/reasonix-hooks-allowlist.txt`` via generate-reasonix-settings-hooks.py |
 
 Builders come from the generator scripts as imported functions; the engine does
@@ -25,6 +25,7 @@ from types import ModuleType
 
 from .common import SETTINGS_BACKUPS_KEEP, utc_ts
 from .fsops import Guard, atomic_write_bytes, mkdirs
+from .interp import strip_launchers
 from .profile import Profile, filter_settings_hooks
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
@@ -129,7 +130,8 @@ def _factory(root: Path, source_root: Path, profile: Profile) -> list[ExternalFi
     if not repo:
         f.error = "repo .claude/settings.json missing or invalid"
         return [f]
-    text = json.dumps(repo.get("hooks", {}))
+    # Factory's hook shell is unverified, so its commands keep bare python3; the in-file guard covers <3.10.
+    text = json.dumps(strip_launchers(repo.get("hooks", {})))
     for form in ("$HOME", "${HOME}", "~"):
         text = text.replace(f"{form}/.claude/", f"{form}/.factory/")
     merged = _read_json(f.path)

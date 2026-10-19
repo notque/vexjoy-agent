@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .common import SETTINGS_BACKUPS_KEEP, is_inside, realpath, utc_ts
 from .fsops import Guard, atomic_write_bytes, mkdirs
+from .interp import strip_launcher
 from .legacy import is_legacy_hook_path
 
 _VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
@@ -37,8 +38,11 @@ def expand_vars(text: str, home: Path, extra: dict[str, str] | None = None) -> s
 
 
 def first_path_token(command: str, home: Path) -> str | None:
-    """First shell token of *command* that is a path (contains '/')."""
-    expanded = expand_vars(command, home)
+    """First shell token of *command* that is a path (contains '/').
+
+    The interpreter launcher prefix is skipped, so a launcher command yields its hook path.
+    """
+    expanded = expand_vars(strip_launcher(command), home)
     try:
         tokens = shlex.split(expanded)
     except ValueError:

@@ -8,6 +8,15 @@ Opt-in: requires CLAUDE_KAIROS_ENABLED=true environment variable.
 Graceful degradation: always exits 0, never blocks session start.
 """
 
+import sys  # vexjoy-pyguard
+
+if sys.version_info < (3, 10):  # vexjoy-pyguard advisory
+    sys.stderr.write(
+        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); rerun ./install.sh in vexjoy-agent\n"
+        % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)
+    )
+    sys.exit(0)
+
 import os
 import sys
 import time

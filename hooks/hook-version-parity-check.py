@@ -25,6 +25,15 @@ Design (advisory check, per docs/PHILOSOPHY.md):
 - ADR: adr/hook-version-parity-check.md
 """
 
+import sys  # vexjoy-pyguard
+
+if sys.version_info < (3, 10):  # vexjoy-pyguard advisory
+    sys.stderr.write(
+        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); rerun ./install.sh in vexjoy-agent\n"
+        % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)
+    )
+    sys.exit(0)
+
 import os
 import re
 import sys

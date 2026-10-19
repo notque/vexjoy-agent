@@ -19,6 +19,15 @@ Design Principles:
 - CLAUDE_HOOKS_DEBUG=1 logs errors to stderr
 """
 
+import sys  # vexjoy-pyguard
+
+if sys.version_info < (3, 10):  # vexjoy-pyguard advisory
+    sys.stderr.write(
+        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); rerun ./install.sh in vexjoy-agent\n"
+        % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)
+    )
+    sys.exit(0)
+
 import os
 import sys
 from pathlib import Path

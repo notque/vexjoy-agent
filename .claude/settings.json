@@ -17,112 +17,112 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
             "description": "Sync agents/skills/hooks/commands to ~/.claude",
             "timeout": 20000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/afk-mode.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/afk-mode.py\"",
             "description": "Inject autonomous behavioral posture for SSH/tmux/headless sessions",
             "timeout": 1000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-context.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-context.py\"",
             "description": "Inject the pre-built overnight dream payload and dream notice (ADR-147)",
             "timeout": 5000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/cross-repo-agents.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/cross-repo-agents.py\"",
             "description": "Discover custom agents in working directory",
             "timeout": 3000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/fish-shell-detector.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/fish-shell-detector.py\"",
             "description": "Auto-detect Fish shell users and inject shell-config skill",
             "timeout": 1000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/zsh-shell-detector.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/zsh-shell-detector.py\"",
             "description": "Auto-detect Zsh shell users and inject shell-config skill",
             "timeout": 1000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
             "description": "Auto-detect SAP CC Go projects and inject go-patterns skill",
             "timeout": 1000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/operator-context-detector.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/operator-context-detector.py\"",
             "description": "Detect operator context (pipeline session, ADR session) and inject context",
             "timeout": 2000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-github-briefing.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-github-briefing.py\"",
             "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
             "timeout": 2000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-adr-health-check.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-adr-health-check.py\"",
             "description": "Warn if .adr-session.json is orphaned (referenced ADR file missing); silent when no session exists",
             "timeout": 2000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/team-config-loader.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/team-config-loader.py\"",
             "description": "Load optional team-config.yaml into session context; silent when no config file exists",
             "timeout": 2000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/rules-distill-injector.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/rules-distill-injector.py\"",
             "description": "Inject pending rules-distillation candidates at session start (ADR-114); silent when none pending",
             "timeout": 2000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/hook-version-parity-check.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/hook-version-parity-check.py\"",
             "description": "Warn-only: compare deployed ~/.claude/hooks hook-version headers against the repo checkout; silent on parity",
             "timeout": 3000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-manifest-cache.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-manifest-cache.py\"",
             "description": "Hash-gated /do routing-manifest cache: verify ~/.claude/cache/routing-manifest.txt, regenerate only when INDEX inputs changed (ADR router-improvement-program C5)",
             "timeout": 20000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
             "description": "Report session state to herdr sidebar (no-op when herdr absent)",
             "timeout": 2000,
             "once": true
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-task-registry.py\"",
             "description": "Inject incomplete tasks from previous sessions at session start",
             "timeout": 3000,
             "once": true
@@ -135,43 +135,43 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pending-advisory-injector-userprompt.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pending-advisory-injector-userprompt.py\"",
             "description": "Inject advisories deferred by Stop hooks (replaces async rewakes)",
             "timeout": 2000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
             "description": "Detect pipeline creation requests and inject pipeline context",
             "timeout": 2000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/review-false-positive-capture.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/review-false-positive-capture.py\"",
             "description": "Capture review false-positive signals when a user disputes a code-review finding",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/codex-auto-review.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/codex-auto-review.py\"",
             "description": "Auto-inject Codex cross-model review for PR review operations",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/prompt-capture.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/prompt-capture.py\"",
             "description": "Capture user prompts as voice samples (git repos only)",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-finalizer.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/routing-outcome-finalizer.py\"",
             "description": "Finalize routing-decision outcomes on the next user turn (tool-errors + user reaction + re-route); replaces eager SubagentStop boost/decay",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/jev-route-injector-userprompt.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/jev-route-injector-userprompt.py\"",
             "description": "Pre-run jev-route.py on a /d invocation and inject JEV_RESULT before generation starts",
             "timeout": 26000
           }
@@ -183,7 +183,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/suggest-compact.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/suggest-compact.py\"",
             "description": "Advisory: suggests /compact when Edit/Write call count reaches threshold (ADR-103)",
             "timeout": 2000
           }
@@ -194,7 +194,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-unified-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-unified-gate.py\"",
             "description": "Unified gate: gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068). Read gets a warn-only sensitive-file check.",
             "timeout": 3000
           }
@@ -205,7 +205,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-worktree-edit-guard.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-worktree-edit-guard.py\"",
             "description": "Worktree edit guard: blocks worktree-isolated agents from editing main-repo files outside their worktree (ADR worktree-edit-guard)",
             "timeout": 3000
           }
@@ -216,31 +216,31 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-branch-safety.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-branch-safety.py\"",
             "description": "Branch safety: blocks git commit on main/master, forces feature branches",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/ci-merge-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/ci-merge-gate.py\"",
             "description": "Gate: block merge to main/master when CI checks are red",
             "timeout": 30000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-ruff-format-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-ruff-format-gate.py\"",
             "description": "Ruff format gate: blocks git push when ruff format --check finds violations (Python projects with pyproject.toml only)",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-private-name-leak-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-private-name-leak-gate.py\"",
             "description": "Private-name leak gate: blocks git commit/push and gh pr text naming a private component from ~/private-skills (local-only by design; block messages redact the name)",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/security-review-hook.py\"",
             "description": "Security review gate: blocks git commit when staged files have HIGH/CRITICAL findings (VEXJOY_SECURITY_REVIEW_SKIP=1 to override)",
             "timeout": 30000
           }
@@ -251,25 +251,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-synthesis-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-synthesis-gate.py\"",
             "description": "Consultation synthesis gate: blocks implementation when ADR consultation is incomplete",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-plan-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-plan-gate.py\"",
             "description": "Plan gate: blocks implementation code without task_plan.md",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-prompt-injection-scanner.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-prompt-injection-scanner.py\"",
             "description": "Advisory scan for prompt injection patterns in agent context files (ADR-070)",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pipeline-phase-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pipeline-phase-gate.py\"",
             "description": "Pipeline phase gate: blocks edits that skip required pipeline phases",
             "timeout": 3000
           }
@@ -280,7 +280,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-adr-creation-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-adr-creation-gate.py\"",
             "description": "ADR creation gate: blocks new components without an ADR in adr/",
             "timeout": 3000
           }
@@ -291,7 +291,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-file-backup.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-file-backup.py\"",
             "description": "Backup files before Edit tool modifies them",
             "timeout": 3000
           }
@@ -302,25 +302,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/reference-loading-enforcer.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/reference-loading-enforcer.py\"",
             "description": "Inject reference loading requirement into agent prompts unless already present",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/creation-protocol-enforcer.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/creation-protocol-enforcer.py\"",
             "description": "Soft-warn when Agent dispatch is a creation request without a recent ADR session",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-section-integrity-validator.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-section-integrity-validator.py\"",
             "description": "Advisory: warn when subagent_type is a skill name or unknown (ARCH-002)",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-dispatch-spec-gate.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/pretool-dispatch-spec-gate.py\"",
             "description": "Advisory: warn when a medium/complex [do-route] dispatch drops Request (verbatim), Acceptance criteria, or Repo state (DISPATCH_SPEC_GATE_MODE=deny to block)",
             "timeout": 3000
           }
@@ -333,49 +333,49 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/adr-enforcement.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/adr-enforcement.py\"",
             "description": "Enforce ADR compliance after file writes during active pipeline sessions",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttool-security-scan.py\"",
             "description": "Advisory scan for credentials, SQL injection, and command injection in Write/Edit output",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-skill-frontmatter-check.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttool-skill-frontmatter-check.py\"",
             "description": "Validate skill YAML frontmatter after Write/Edit on SKILL.md files",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttooluse-joy-check-warn.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttooluse-joy-check-warn.py\"",
             "description": "Warn on joy-check framing violations in .md files at write time",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
             "description": "Auto-regenerate INDEX.json when SKILL.md is written or edited",
             "timeout": 15000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttooluse-sync-agent-index.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttooluse-sync-agent-index.py\"",
             "description": "Auto-regenerate agents/INDEX.json when an agent .md is written or edited",
             "timeout": 15000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-docs-drift-alert.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttool-docs-drift-alert.py\"",
             "description": "Alert when INDEX.json or agents/*.md writes may leave documentation out of sync",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/security-review-hook.py\"",
             "description": "Advisory security scan of just-edited file (matches Anthropic edit-time firing; never blocks; VEXJOY_SECURITY_REVIEW_DISABLE=1 to disable)",
             "timeout": 5000
           }
@@ -386,19 +386,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/adr-lifecycle-on-merge.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/adr-lifecycle-on-merge.py\"",
             "description": "Check ADR implementation status after merge operations",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-rename-sweep.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttool-rename-sweep.py\"",
             "description": "After git mv, scan for stale references to the old filename stem (ADR-129)",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-bash-injection-scan.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttool-bash-injection-scan.py\"",
             "description": "Advisory scan of files written by Bash commands for prompt-injection patterns (ADR-121); never blocks",
             "timeout": 3000
           }
@@ -409,7 +409,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-session-reads.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/posttool-session-reads.py\"",
             "description": "Track files read this session (Read tool and read-only Bash commands) for subagent warmstart (ADR-088); single PostToolUse registration, do not add a second Bash entry",
             "timeout": 2000
           }
@@ -420,7 +420,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/usage-tracker.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/usage-tracker.py\"",
             "description": "Record Skill and Agent invocation analytics",
             "timeout": 3000
           }
@@ -431,7 +431,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/review-capture.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/review-capture.py\"",
             "description": "Capture CRITICAL/HIGH review findings for the human-read review reports",
             "timeout": 3000
           }
@@ -442,7 +442,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/routing-decision-recorder.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/routing-decision-recorder.py\"",
             "description": "Record routing-decision rows per Agent dispatch and per [do-route] marker in a Workflow script (replaces /do Phase 5 action A)",
             "timeout": 3000
           }
@@ -453,7 +453,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-task-registry.py\"",
             "description": "Record [do-route] dispatches to the durable task registry",
             "timeout": 3000
           }
@@ -465,7 +465,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/precompact-archive.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/precompact-archive.py\"",
             "description": "Inject the ADR survival anchor before context compression so a pipeline session can recover",
             "timeout": 5000
           }
@@ -478,7 +478,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/subagent-start-warmstart.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/subagent-start-warmstart.py\"",
             "description": "Inject parent session context into the subagent at start (SubagentStart lands in the subagent; PreToolUse:Agent lands in the parent, so this hook owns the warmstart block and PreToolUse must not re-register it)",
             "timeout": 5000
           }
@@ -490,31 +490,31 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
             "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
             "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
             "description": "Report subagent state to herdr sidebar (no-op when herdr absent)",
             "timeout": 2000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/subagent-state-tracker.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/subagent-state-tracker.py\"",
             "description": "Track subagent lifecycle state and inject context for failed/unknown agents",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-task-registry.py\"",
             "description": "Update task registry status on subagent completion",
             "timeout": 3000
           }
@@ -526,7 +526,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/stop-failure-handler.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/stop-failure-handler.py\"",
             "description": "Record session failure for pattern analysis",
             "timeout": 3000
           }
@@ -538,7 +538,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/postcompact-handler.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/postcompact-handler.py\"",
             "description": "Re-inject plan context after context compaction",
             "timeout": 3000
           }
@@ -550,25 +550,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-summary.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/session-summary.py\"",
             "description": "Generate session summary and save metrics",
             "timeout": 10000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-stop-fallback.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/routing-outcome-stop-fallback.py\"",
             "description": "Resolve still-pending routing outcomes at session end (autonomous runs with no next user turn)",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/rules-distill-trigger.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/rules-distill-trigger.py\"",
             "description": "Auto-trigger rules distillation every 7 days",
             "timeout": 5000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/stop-drift-guard.py\"",
+            "command": "p=\"$HOME/.claude/vexjoy/bin/python3\"; [ -x \"$p\" ] || p=python3; exec \"$p\" \"$HOME/.claude/hooks/stop-drift-guard.py\"",
             "description": "Advisory: re-wake the session when this session's changes introduce toolkit drift (hook smoke-test, doc-count, or routing-manifest drift) so it can be fixed before CI",
             "timeout": 20000,
             "asyncRewake": true,

@@ -34,7 +34,7 @@ Checked on 2026-09-22 against these pages:
 - **Support dirs** (`SUPPORT_DIRS`): `shared-patterns`, `kb`, `voice-shared`. These install next to skills and have no `SKILL.md`.
 - **Data dirs** (`DATA_DIRS`): `reddit-data`, `synced`. Other tools write these under a skills root. The engine never installs, adopts, or removes them, and `doctor` names them as runtime data dirs.
 - **Mode.** Symlink mode is the default for a main git checkout outside `/tmp`. Copy mode is used otherwise. Copy and symlink modes produce the same shape. The ledger records the mode, and only `apply --mode` changes it.
-- **State.** `~/.claude/vexjoy/`: `ledger.json`, `overlays.json`, `reports/`, `backups/`, `trash/`, `lock`.
+- **State.** `~/.claude/vexjoy/`: `ledger.json`, `overlays.json`, `reports/`, `backups/`, `trash/`, `lock`, `bin/python3`.
 - **Installed indexes.** `~/.<target>/vexjoy/index/{skills,agents}.json` (public + overlays). Readers find them through `resolve_index(kind, target)` in `scripts/routing_index_merge.py`: `$VEXJOY_INDEX_DIR`, then the installed index, then the repo public index (plus a legacy `INDEX.local.json` if one exists).
 - **Repo guard.** No engine write may resolve inside the repo or an overlay root. A write that would triggers exit 4. Every command also refuses up front (exit 4) when the state dir or any target root resolves inside the repo, for example `HOME` set to the checkout.
 - **Takeover** (`apply --takeover`, never `sync`). An unowned entry at a desired dest (stale copy, foreign link, or a linked container dir) moves to trash and is replaced. The report lists it under `taken_over`; `restore-trash <ts>` undoes it. Unowned entries at other names are left alone. Takeover containers do not count toward the mass-removal cap.
@@ -54,10 +54,37 @@ Checked on 2026-09-22 against these pages:
 Allowlists:
 
 - Codex hooks: `scripts/codex-hooks-allowlist.txt`, rendered to `hooks.json`; `config.toml` gets `[features] hooks = true`.
-- Factory hooks: the repo `.claude/settings.json` hooks with `~/.claude/` rewritten to `~/.factory/`.
+- Factory hooks: the repo `.claude/settings.json` hooks with the launcher stripped to bare `python3` and `~/.claude/` rewritten to `~/.factory/`.
 - Reasonix hooks: `scripts/reasonix-hooks-allowlist.txt`, which also selects the mirrored hook files.
 
 A target other than claude is planned only when its root dir exists (`--target all`).
+
+## Hook interpreter
+
+Hooks need Python 3.10+. Under 3.9 they crash at import with exit 1, and Claude Code blocks only on exit 2, so a safety gate would fail open. Two layers prevent that (`scripts/vexinstall/interp.py`, `scripts/hook-pyguard.py`):
+
+- **Link.** `apply` resolves one interpreter and points `~/.claude/vexjoy/bin/python3` at it. Order: `$VEXJOY_PYTHON`, `/opt/homebrew/bin/python3`, `/usr/local/bin/python3`, `/usr/bin/python3`, then `python3` and `python3.N` on `PATH`, then the interpreter running the engine. Each candidate is run to read its version. Shims (`/shims/`) are never linked. Versioned dirs (Homebrew `Cellar`, pyenv, asdf, mise, uv) are used only when nothing stable qualifies. No 3.10+ found: `apply` exits 1 before any write. `sync` re-resolves only a missing or dangling link and never fails. `uninstall` trashes the link.
+- **Launcher.** Every repo hook command has this form, and the engine copies it unchanged into `~/.claude` and every profile:
+
+  ```sh
+  p="$HOME/.claude/vexjoy/bin/python3"; [ -x "$p" ] || p=python3; exec "$p" "$HOME/.claude/hooks/<file>.py"
+  ```
+
+  Claude Code runs hook commands with `/bin/sh -c`, whatever the login shell. The string holds no machine path on purpose: Claude Code dedupes hooks by exact command string across project and user settings, and differing strings run every hook twice in repo sessions. A missing or dangling link falls back to `python3`.
+- **Guard.** Every registered hook starts with a version check that runs before any other import and parses on 3.8+. Under <3.10, gates (PreToolUse hooks that deny, `GATES` in `scripts/hook-pyguard.py`) exit 2 with a one-line message to rerun `./install.sh`. Every other hook exits 0 with the same line on stderr. Stop and SubagentStop hooks stay advisory, because exit 2 there makes the model keep going. `codex-hook-adapter.py` exits 2 only for `--failure-policy closed`. Restamp with `python3 scripts/hook-pyguard.py --apply`; `scripts/tests/test_hook_python_pin.py` fails when a registered hook lacks its guard.
+- **Doctor.** `doctor` reports `python-pin-missing`, `python-pin-dangling`, `python-pin-not-link`, `python-pin-broken`, or `python-pin-old` (error).
+
+Runtime scope:
+
+| Target | Link + launcher | Guard | Why |
+|---|---|---|---|
+| claude + profiles | yes | yes | verified `/bin/sh -c` |
+| codex | no, bare `python3` | adapter + hooks | each command string carries a trusted hash in `config.toml`, so a new string forces re-approval of every hook; the hook shell is unverified |
+| factory | no, the launcher is stripped back to bare `python3` | yes | hook shell unverified (droid not tested) |
+| reasonix | no, bare `python3` | yes (advisory hooks only) | non-tool hooks only |
+| hermes | none | n/a | no hooks |
+
+Residual: no link and no `python3` on `PATH` exits 127, which fails open. Windows has no `/bin/sh` and is out of scope.
 
 ## Account profiles
 
@@ -76,4 +103,5 @@ Claude Code reads hooks from the `settings.json` of the config dir it runs with.
 | Write overlays from the legacy private roots | `./install.sh --migrate-overlays` |
 | Preview | `./install.sh --dry-run` or `vexinstall plan --dry-run --takeover --target all` |
 | Install or repair | `./install.sh` (`vexinstall apply --takeover`) |
+| Pick the hook python | `VEXJOY_PYTHON=/abs/python3 ./install.sh` |
 | Roll back the last apply | `./install.sh --rollback` (`restore-settings` + `restore-trash` with the newest ts) |

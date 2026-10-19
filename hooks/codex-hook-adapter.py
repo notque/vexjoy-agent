@@ -8,6 +8,16 @@ covers ``apply_patch`` only.
 
 from __future__ import annotations
 
+import sys  # vexjoy-pyguard
+
+if sys.version_info < (3, 10):  # vexjoy-pyguard adapter
+    sys.stderr.write(
+        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); rerun ./install.sh in vexjoy-agent\n"
+        % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)
+    )
+    _a = sys.argv[sys.argv.index("--failure-policy") + 1 :] if "--failure-policy" in sys.argv else []
+    sys.exit(2 if _a[:1] == ["closed"] else 0)
+
 import argparse
 import copy
 import json

@@ -78,7 +78,10 @@ def cmd_add(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     target = HOOKS_DIR / source.name
-    hook_command = f'python3 "$HOME/.claude/hooks/{source.name}"'
+    # Same launcher form as repo .claude/settings.json (scripts/vexinstall/interp.py LAUNCHER).
+    hook_command = (
+        f'p="$HOME/.claude/vexjoy/bin/python3"; [ -x "$p" ] || p=python3; exec "$p" "$HOME/.claude/hooks/{source.name}"'
+    )
 
     # Step 1: DEPLOY file to ~/.claude/hooks/ FIRST
     HOOKS_DIR.mkdir(parents=True, exist_ok=True)

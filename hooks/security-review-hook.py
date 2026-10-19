@@ -56,6 +56,15 @@ Fail-open: any internal error allows the commit / skips the rewake and prints a
 warning to stderr. A crashed hook never blocks a tool and never stalls a session.
 """
 
+import sys  # vexjoy-pyguard
+
+if sys.version_info < (3, 10):  # vexjoy-pyguard gate
+    sys.stderr.write(
+        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); rerun ./install.sh in vexjoy-agent\n"
+        % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)
+    )
+    sys.exit(2)
+
 import importlib.util
 import json
 import os
