@@ -39,7 +39,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/my-hook.py\"",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/my-hook.py\"",
             "description": "One-line description of what the hook does",
             "timeout": 2000,
             "once": true
@@ -52,7 +52,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttool-security-scan.py\"",
             "description": "Scan edited files for security risks",
             "timeout": 1000
           }
@@ -66,7 +66,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `type` | yes | `"command"` | Only `"command"` is currently supported |
-| `command` | yes | string | Shell command; always quote paths with spaces |
+| `command` | yes | string | Use the launcher form shown above, exactly; it runs the installer-linked python 3.10+ (`docs/installer-layout.md`, Hook interpreter). Before registering, stamp the version guard: `python3 scripts/hook-pyguard.py --apply --file hooks/<file>.py` |
 | `description` | yes | string | Shown in session startup output |
 | `timeout` | recommended | integer (ms) | Omitting allows hooks to hang indefinitely |
 | `once` | no | boolean | `true` = run only once per session (SessionStart default) |
@@ -246,7 +246,7 @@ for event, groups in settings.get('hooks', {}).items():
 ```json
 {
   "type": "command",
-  "command": "python3 \"$HOME/.claude/hooks/my-hook.py\"",
+  "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/my-hook.py\"",
   "description": "Does something"
 }
 ```

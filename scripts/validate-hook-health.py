@@ -13,7 +13,7 @@ Checks (ADR hook-health-gate):
   (c) Liveness: delegate to smoke-test-hooks.py --ci (opt-in via --with-liveness;
       always on under --ci).
   (d) Schema: settings.json parses; event names ∈ known set; matcher is a string;
-      each command matches the canonical python3 "$HOME/.claude/hooks/<file>.py" form.
+      each command matches the canonical launcher form (see CANONICAL_CMD).
   (e) Mirror sanity: every file named in codex-hooks-allowlist.txt exists
       AND is registered in .claude/settings.json (no phantom mirror entries).
       Mirrors are intentional subsets — full coverage is NOT required.
@@ -57,8 +57,10 @@ KNOWN_EVENTS = {
     "TaskCompleted",
 }
 
-# Canonical command form: python3 "$HOME/.claude/hooks/<file>.py"
-CANONICAL_CMD = re.compile(r'^python3\s+"\$HOME/\.claude/hooks/([A-Za-z0-9._-]+\.py)"$')
+# Canonical command form (scripts/vexinstall/interp.py hook_command): run the hook through
+# hooks/lib/pyrun.sh, which picks the installer-linked python 3.10+:
+#   sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/<file>.py"
+CANONICAL_CMD = re.compile(r'^sh "\$HOME/\.claude/hooks/lib/pyrun\.sh" "\$HOME/\.claude/hooks/([A-Za-z0-9._-]+\.py)"$')
 # Extract a hooks/<file>.py basename from any command (looser, for registered set)
 CMD_BASENAME = re.compile(r"hooks/([A-Za-z0-9._-]+\.py)")
 
@@ -595,8 +597,8 @@ def check_schema(settings: dict) -> list[str]:
                 cmd = entry.get("command", "")
                 if not CANONICAL_CMD.match(cmd):
                     msgs.append(
-                        f"SCHEMA: {event} command not in canonical form "
-                        f'python3 "$HOME/.claude/hooks/<file>.py": {cmd!r}.'
+                        f"SCHEMA: {event} command not in canonical launcher form "
+                        f'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/<file>.py": {cmd!r}.'
                     )
     return msgs
 

@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 from . import accounts as accounts_mod
-from . import external
+from . import external, interp
 from . import index as index_mod
 from . import ledger as ledger_mod
 from . import settings as settings_mod
@@ -97,6 +97,7 @@ def run_plan(opts: Options) -> Result:
                 plan.notes.append(f"external {f.path}: would write")
     res = Result(data=plan.to_json(), out=_plan_lines(plan))
     if "claude" in targets:
+        res.out.append(_python_plan_line(ctx.home))
         acct = accounts_mod.plan_all(ctx)
         res.out.extend(a.summary() for a in acct)
         res.data["accounts"] = [a.to_json() for a in acct]
@@ -104,6 +105,31 @@ def run_plan(opts: Options) -> Result:
         res.code = int(ExitCode.COLLISION)
         res.err.extend(f"collision: {c.describe()}" for c in plan.collisions)
     return res
+
+
+def _python_plan_line(home: Path) -> str:
+    link = interp.link_path(home)
+    try:
+        found = interp.resolve()
+    except interp.InterpreterError as exc:
+        return f"python: apply would fail: {exc}"
+    return f"python: {link} -> {found.label}"
+
+
+def _resolve_python(home: Path, sync: bool) -> tuple[interp.Interpreter | None, str | None]:
+    """(interpreter to link, error), decided before any write.
+
+    Sync re-resolves only a link that is missing, dangling, broken, or older than 3.10.
+    """
+    blocker = interp.link_blocker(home)
+    if blocker:
+        return None, blocker
+    if sync and interp.link_ok(home):
+        return None, None
+    try:
+        return interp.resolve(), None
+    except interp.InterpreterError as exc:
+        return None, str(exc)
 
 
 def _install(a: Action, guard: Guard) -> None:
@@ -284,6 +310,14 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             return Result(code=0, err=[msg + "; run apply --allow-mass-remove after review"], data=plan.to_json())
         return Result(code=int(ExitCode.MASS_REMOVE), err=[msg + "; review with plan, then --allow-mass-remove"])
 
+    python: interp.Interpreter | None = None
+    if "claude" in targets:
+        python, python_err = _resolve_python(ctx.home, sync)
+        if python_err and not sync:
+            return Result(code=int(ExitCode.ERROR), err=[f"[apply] {python_err}"])
+        if python_err:
+            res.err.append(f"[sync] warning: {python_err}")
+
     ts = utc_ts()
     trash = Trash(root=sdir / "trash", ts=ts, guard=guard)
     report: dict = {
@@ -299,6 +333,9 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     try:
         for t in targets:
             execute_target(plan.targets[t], ctx, trash, guard, ledger, skip)
+        if python is not None:
+            changed = interp.write_link(ctx.home, python, guard)
+            report["python"] = {"link": str(interp.link_path(ctx.home)), "target": python.label, "changed": changed}
         if "claude" in targets:
             report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
             report["accounts"] = accounts_mod.apply_all(ctx, guard)
@@ -335,6 +372,8 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     res.data = report
     line = summary_line(label, plan, ledger)
     res.out.append(line)
+    if report.get("python", {}).get("changed") and not sync:
+        res.out.append(f"[{label}] python: {report['python']['link']} -> {report['python']['target']}")
     res.out.extend(accounts_mod.report_lines(report.get("accounts", [])))
     for a in report.get("accounts", []):
         if a.get("error"):
@@ -385,6 +424,10 @@ def run_uninstall(opts: Options) -> Result:
                 settings_report = apply_settings(ctx, ctx.ledger, guard, desired={})
                 accounts_report = accounts_mod.apply_all(ctx, guard, desired={}, links=False)
                 ctx.ledger.settings.pop("claude", None)
+                link = interp.link_path(ctx.home)
+                if os.path.islink(link):
+                    trash.move(link, ctx.home, "uninstall")
+                    removed.append(str(link))
             ledger_mod.save(ledger_mod.ledger_path(sdir), ctx.ledger, guard)
             report = {
                 "ts": ts,

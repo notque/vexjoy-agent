@@ -23,6 +23,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 
+from .interp import strip_launcher
+
 PROFILE_ENV = "VEXJOY_INSTALL_PROFILE"
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 _PARSER: list[ModuleType | None] = []
@@ -102,6 +104,7 @@ def load_profile(path: Path) -> Profile:
 def _hook_filename(command: str) -> str | None:
     """Filename after ``/hooks/`` (the legacy settings filter semantics)."""
     marker = "/hooks/"
+    command = strip_launcher(command)
     if marker not in command:
         return None
     tail = command.split(marker, 1)[1]

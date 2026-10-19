@@ -89,18 +89,29 @@ while [[ $# -gt 0 ]]; do
 done
 
 check_python() {
-    if command -v python3 &> /dev/null; then
-        PYTHON_CMD="python3"
-    elif command -v python &> /dev/null; then
-        PYTHON_CMD="python"
-    else
-        echo -e "${RED}Error: Python 3.10+ not found${NC}"
+    # Run the engine with a python 3.10+. A bare python3 can be a pyenv shim that picks 3.9
+    # in some dirs, or /usr/bin/python3 3.9 on macOS, so try the known locations too.
+    # The engine separately links ~/.claude/vexjoy/bin/python3 for hooks (VEXJOY_PYTHON overrides).
+    local cand
+    PYTHON_CMD=""
+    if [[ -n "${VEXJOY_PYTHON:-}" ]]; then
+        if "$VEXJOY_PYTHON" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then
+            PYTHON_CMD="$VEXJOY_PYTHON"
+            return
+        fi
+        echo -e "${RED}Error: VEXJOY_PYTHON=${VEXJOY_PYTHON} is not a runnable python 3.10+${NC}"
         exit 1
     fi
-    if ! "$PYTHON_CMD" -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
-        echo -e "${RED}Error: Python 3.10+ required, found $("$PYTHON_CMD" -V 2>&1)${NC}"
-        exit 1
-    fi
+    for cand in python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3 \
+        python3.14 python3.13 python3.12 python3.11 python3.10 python; do
+        command -v "$cand" &> /dev/null || continue
+        if "$cand" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then
+            PYTHON_CMD="$cand"
+            return
+        fi
+    done
+    echo -e "${RED}Error: Python 3.10+ not found (python3 is $(python3 -V 2>&1 || echo missing)); install it or set VEXJOY_PYTHON=/path/to/python3${NC}"
+    exit 1
 }
 
 vexinstall() {
