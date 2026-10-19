@@ -332,7 +332,13 @@ def _fake_runner(path: Path, tag: str) -> Path:
 
 
 def _pyrun(home: Path, path_dirs: list[Path]) -> subprocess.CompletedProcess[str]:
-    env = {"HOME": str(home), "PATH": os.pathsep.join([*map(str, path_dirs), "/usr/bin", "/bin"])}
+    # Only sh on PATH besides the fakes: /usr/bin or /bin would expose the
+    # runner's real python3.1x (Ubuntu ships /usr/bin/python3.12).
+    tools = home.parent / "tools"
+    tools.mkdir(exist_ok=True)
+    if not (tools / "sh").exists():
+        os.symlink("/bin/sh", tools / "sh")
+    env = {"HOME": str(home), "PATH": os.pathsep.join([*map(str, path_dirs), str(tools)])}
     cmd = interp.hook_command("x.py")
     return subprocess.run(["/bin/sh", "-c", cmd], capture_output=True, text=True, env=env, timeout=30)
 
