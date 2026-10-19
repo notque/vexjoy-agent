@@ -179,6 +179,8 @@ Run the core doc's section 10 loop on the rendered page. This is the final step 
 Generate single self-contained `.html` files. All CSS in `<style>`, all JS in
 `<script>`. No CDN links, no frameworks, no external deps. Max 500KB.
 
+**Local files only.** Write the page to disk and open it in Google Chrome. Do not call the Artifact tool (publish or quickstart), the Claude Docs connector, or ArtifactData unless the user explicitly asks for a Claude Artifact by name. This rule overrides the Artifact tool's guidance to publish pages, reports, boards, and dashboards. For metrics dashboards, use Perses instead of a page.
+
 ### Phase 0: Check Saved Template
 
 Run: `python3 ${CLAUDE_SKILL_DIR}/scripts-html-artifact/fill-template.py --list`
@@ -219,7 +221,7 @@ Dispatch html-builder agent (see `agents/html-builder.md`) with pre-assembled te
 
 ### Phase 5: Deliver
 
-Print absolute file path, 1-line summary, offer browser open. Check `$DISPLAY`/`$SSH_TTY` before offering open on Linux.
+Open the file in Google Chrome: `open -a "Google Chrome" <file>` on macOS, `google-chrome <file>` on Linux (check `$DISPLAY`/`$SSH_TTY` first; skip opening over SSH). Print the absolute file path and a 1-line summary. Do not publish it as a Claude Artifact.
 
 ### Phase 6-7: Export (optional)
 

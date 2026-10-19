@@ -71,6 +71,7 @@ Must-include items and constraints per shape. Change one only when the content m
 1. Default location: current working directory or project root
 2. Filename: kebab-case describing the content
 3. After the look-then-fix loop: report the absolute file path and what you checked
+4. Keep it a local file. Do not call the Artifact tool, the Claude Docs connector, or ArtifactData unless the user explicitly asks for a Claude Artifact by name
 
 ## Patterns to Replace
 
