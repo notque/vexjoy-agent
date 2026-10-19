@@ -156,6 +156,8 @@ If nothing reusable was learned, skip recording.
 
 **Step 2: Record via retro-record-adhoc**
 
+This writes to `~/.claude/learning/learning.db` (or `$CLAUDE_LEARNING_DIR`), never to files in the repo. Nonzero exit means the learning was not saved.
+
 ```bash
 python3 ~/.claude/scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"
 ```
