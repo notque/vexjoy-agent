@@ -2,24 +2,27 @@
 
 Hooks need python 3.10+. A bare ``python3`` resolves through the runtime's
 PATH, which can be a pyenv shim that picks 3.9 in some repos, or
-``/usr/bin/python3`` 3.9 on macOS. Every repo hook command therefore starts
-with the launcher prefix::
+``/usr/bin/python3`` 3.9 on macOS. Every repo hook command therefore runs
+through the launcher script ``hooks/lib/pyrun.sh``::
 
-    p="$HOME/.claude/vexjoy/bin/python3"; [ -x "$p" ] || p=python3; exec "$p" "$HOME/.claude/hooks/x.py"
+    sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/x.py"
 
 The engine points ``~/.claude/vexjoy/bin/python3`` at one verified 3.10+
-interpreter. The command string carries no machine path, so the repo
-``.claude/settings.json`` and every installed copy hold the same string and
-Claude Code dedupes them (differing strings run the hook twice in repo
-sessions). Claude Code runs hook commands with ``/bin/sh -c``. A missing or
-dangling link falls back to ``python3``; the guard at the top of every hook
-(``scripts/hook-pyguard.py``) handles a fallback older than 3.10.
+interpreter, and ``pyrun.sh`` runs it first. The command string carries no
+machine path, so the repo ``.claude/settings.json`` and every installed copy
+hold the same string and Claude Code dedupes them (differing strings run the
+hook twice in repo sessions). Its first path is inside ``hooks/``, so every
+engine version, older ones included, owns the entry. Claude Code runs hook
+commands with ``/bin/sh -c``. A missing or dangling link falls back to
+python3.1x on PATH, then ``python3``; the guard at the top of every hook
+(``scripts/hook-pyguard.py``) re-execs or blocks under anything older.
 
 Resolution order: ``$VEXJOY_PYTHON``, well-known system paths, ``python3`` and
 ``python3.N`` on PATH, then the interpreter running the engine. Each candidate
-is run to read its version. Shims are never linked. Versioned install dirs
-(Homebrew Cellar, pyenv, asdf, mise, uv) are used only when nothing stable
-qualifies, because an upgrade or uninstall removes them.
+is run to read its version and whether it is a venv. Shims and venvs are never
+linked. Versioned install dirs (Homebrew Cellar, pyenv, asdf, mise, uv, rye)
+are used only when nothing stable qualifies, because an upgrade or uninstall
+removes them.
 """
 
 from __future__ import annotations
@@ -37,12 +40,15 @@ from .fsops import Guard, atomic_symlink, mkdirs
 MIN_VERSION = (3, 10)
 OVERRIDE_ENV = "VEXJOY_PYTHON"
 LINK_SH = "$HOME/.claude/vexjoy/bin/python3"
-LAUNCHER = f'p="{LINK_SH}"; [ -x "$p" ] || p=python3; exec "$p" '
+LAUNCHER = 'sh "$HOME/.claude/hooks/lib/pyrun.sh" '
 WELL_KNOWN = ("/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3")
 _SHIM_PARTS = ("/shims/",)
-_UNSTABLE_PARTS = ("/Cellar/", "/.pyenv/versions/", "/.asdf/installs/", "/mise/installs/", "/uv/python/", "/.rye/")
+# Checked on the literal path only: /opt/homebrew/bin/python3 resolves into Cellar but survives upgrades.
+_LITERAL_UNSTABLE_PARTS = ("/Cellar/",)
+# Checked on the literal path and its realpath (a python3.12 link into the uv store is still the uv store).
+_UNSTABLE_PARTS = ("/.pyenv/versions/", "/.asdf/installs/", "/mise/installs/", "/uv/python/", "/.rye/")
 _VERSIONED_NAME = re.compile(r"^python3\.(\d+)$")
-_PROBE = "import sys; print('%d.%d' % sys.version_info[:2])"
+_PROBE = "import sys; print('%d.%d %d' % (sys.version_info[0], sys.version_info[1], sys.prefix != sys.base_prefix))"
 
 
 class InterpreterError(Exception):
@@ -79,20 +85,8 @@ def strip_launcher(command: str) -> str:
     return command
 
 
-def strip_launchers(obj: object) -> object:
-    """Copy of hooks JSON with every launcher ``command`` turned back into bare ``python3``."""
-    if isinstance(obj, dict):
-        return {
-            k: strip_launcher(v) if k == "command" and isinstance(v, str) else strip_launchers(v)
-            for k, v in obj.items()
-        }
-    if isinstance(obj, list):
-        return [strip_launchers(v) for v in obj]
-    return obj
-
-
-def probe(path: str, timeout: float = 5.0) -> tuple[int, int] | None:
-    """(major, minor) of the interpreter at *path*, or None when it does not run."""
+def probe_info(path: str, timeout: float = 5.0) -> tuple[tuple[int, int], bool] | None:
+    """((major, minor), is_venv) of the interpreter at *path*, or None when it does not run."""
     try:
         out = subprocess.run([path, "-I", "-c", _PROBE], capture_output=True, text=True, timeout=timeout, check=False)
     except (OSError, subprocess.SubprocessError):
@@ -100,10 +94,17 @@ def probe(path: str, timeout: float = 5.0) -> tuple[int, int] | None:
     if out.returncode != 0:
         return None
     try:
-        major, minor = out.stdout.strip().split(".")
-        return int(major), int(minor)
+        ver, venv = out.stdout.split()
+        major, minor = ver.split(".")
+        return (int(major), int(minor)), venv == "1"
     except ValueError:
         return None
+
+
+def probe(path: str, timeout: float = 5.0) -> tuple[int, int] | None:
+    """(major, minor) of the interpreter at *path*, or None when it does not run."""
+    info = probe_info(path, timeout)
+    return info[0] if info else None
 
 
 def is_shim(path: str) -> bool:
@@ -113,7 +114,8 @@ def is_shim(path: str) -> bool:
 
 def is_unstable(path: str) -> bool:
     """True for a path inside a versioned install dir that an upgrade or uninstall removes."""
-    return any(p in path for p in _UNSTABLE_PARTS)
+    real = os.path.realpath(path)
+    return any(p in path for p in _LITERAL_UNSTABLE_PARTS) or any(p in path or p in real for p in _UNSTABLE_PARTS)
 
 
 def _usable(path: str) -> bool:
@@ -155,18 +157,23 @@ def resolve(
     env = dict(os.environ) if env is None else env
     override = env.get(OVERRIDE_ENV, "").strip()
     if override:
-        version = probe(override) if os.path.isabs(override) else None
-        if version is None or version < MIN_VERSION:
-            got = "does not run" if version is None else f"is {version[0]}.{version[1]}"
-            raise InterpreterError(f"{OVERRIDE_ENV}={override} {got}; it must be an absolute path to python 3.10+")
-        return Interpreter(override, version)
+        info = probe_info(override) if os.path.isabs(override) else None
+        if info is None or info[0] < MIN_VERSION or info[1]:
+            got = "does not run" if info is None else "is a venv" if info[1] else "is %d.%d" % info[0]
+            raise InterpreterError(
+                f"{OVERRIDE_ENV}={override} {got}; it must be an absolute path to a non-venv python 3.10+"
+            )
+        return Interpreter(override, info[0])
     later: list[str] = []
     checked: list[str] = []
 
     def try_path(path: str) -> Interpreter | None:
-        version = probe(path)
-        checked.append(f"{path}={'?' if version is None else '%d.%d' % version}")
-        return Interpreter(path, version) if version is not None and version >= MIN_VERSION else None
+        info = probe_info(path)
+        label = "?" if info is None else "venv" if info[1] else "%d.%d" % info[0]
+        checked.append(f"{path}={label}")
+        if info is None or info[1] or info[0] < MIN_VERSION:
+            return None
+        return Interpreter(path, info[0])
 
     for path in _ordered(env.get("PATH", ""), well_known, extra):
         if not _usable(path) or is_shim(path):
@@ -189,9 +196,22 @@ def resolve(
 
 
 def link_ok(home: Path) -> bool:
-    """True when the link exists and its target exists (no version probe)."""
+    """True when the link is a symlink to a python 3.10+ that runs (one probe, about 25 ms)."""
     link = link_path(home)
-    return os.path.islink(link) and os.path.exists(link)
+    if not (os.path.islink(link) and os.path.exists(link)):
+        return False
+    version = probe(str(link))
+    return version is not None and version >= MIN_VERSION
+
+
+def link_blocker(home: Path) -> str | None:
+    """Why the link cannot be written (a non-link at its path or its dir); None when it can."""
+    link = link_path(home)
+    if os.path.lexists(link.parent) and (os.path.islink(link.parent) or not os.path.isdir(link.parent)):
+        return f"{link.parent} is not a real directory; move it away and rerun ./install.sh"
+    if os.path.lexists(link) and not os.path.islink(link):
+        return f"{link} is a regular file, not a symlink; move it away and rerun ./install.sh"
+    return None
 
 
 def write_link(home: Path, interpreter: Interpreter, guard: Guard) -> bool:

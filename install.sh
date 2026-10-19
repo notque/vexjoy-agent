@@ -94,7 +94,15 @@ check_python() {
     # The engine separately links ~/.claude/vexjoy/bin/python3 for hooks (VEXJOY_PYTHON overrides).
     local cand
     PYTHON_CMD=""
-    for cand in ${VEXJOY_PYTHON:-} python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3 \
+    if [[ -n "${VEXJOY_PYTHON:-}" ]]; then
+        if "$VEXJOY_PYTHON" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then
+            PYTHON_CMD="$VEXJOY_PYTHON"
+            return
+        fi
+        echo -e "${RED}Error: VEXJOY_PYTHON=${VEXJOY_PYTHON} is not a runnable python 3.10+${NC}"
+        exit 1
+    fi
+    for cand in python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3 \
         python3.14 python3.13 python3.12 python3.11 python3.10 python; do
         command -v "$cand" &> /dev/null || continue
         if "$cand" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then

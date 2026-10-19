@@ -117,7 +117,13 @@ def _python_plan_line(home: Path) -> str:
 
 
 def _resolve_python(home: Path, sync: bool) -> tuple[interp.Interpreter | None, str | None]:
-    """(interpreter to link, error). Sync re-resolves only a missing or dangling link."""
+    """(interpreter to link, error), decided before any write.
+
+    Sync re-resolves only a link that is missing, dangling, broken, or older than 3.10.
+    """
+    blocker = interp.link_blocker(home)
+    if blocker:
+        return None, blocker
     if sync and interp.link_ok(home):
         return None, None
     try:

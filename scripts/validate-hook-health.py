@@ -57,13 +57,10 @@ KNOWN_EVENTS = {
     "TaskCompleted",
 }
 
-# Canonical command form (scripts/vexinstall/interp.py LAUNCHER): run the hook with the
-# installer-linked python 3.10+, else bare python3:
-#   p="$HOME/.claude/vexjoy/bin/python3"; [ -x "$p" ] || p=python3; exec "$p" "$HOME/.claude/hooks/<file>.py"
-CANONICAL_CMD = re.compile(
-    r'^p="\$HOME/\.claude/vexjoy/bin/python3"; \[ -x "\$p" \] \|\| p=python3; exec "\$p" '
-    r'"\$HOME/\.claude/hooks/([A-Za-z0-9._-]+\.py)"$'
-)
+# Canonical command form (scripts/vexinstall/interp.py hook_command): run the hook through
+# hooks/lib/pyrun.sh, which picks the installer-linked python 3.10+:
+#   sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/<file>.py"
+CANONICAL_CMD = re.compile(r'^sh "\$HOME/\.claude/hooks/lib/pyrun\.sh" "\$HOME/\.claude/hooks/([A-Za-z0-9._-]+\.py)"$')
 # Extract a hooks/<file>.py basename from any command (looser, for registered set)
 CMD_BASENAME = re.compile(r"hooks/([A-Za-z0-9._-]+\.py)")
 
@@ -601,7 +598,7 @@ def check_schema(settings: dict) -> list[str]:
                 if not CANONICAL_CMD.match(cmd):
                     msgs.append(
                         f"SCHEMA: {event} command not in canonical launcher form "
-                        f'p="$HOME/.claude/vexjoy/bin/python3"; ... exec "$p" "$HOME/.claude/hooks/<file>.py": {cmd!r}.'
+                        f'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/<file>.py": {cmd!r}.'
                     )
     return msgs
 

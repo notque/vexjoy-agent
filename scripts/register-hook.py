@@ -34,10 +34,14 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import shutil
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from vexinstall.interp import hook_command as launcher_command
 
 SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 HOOKS_DIR = Path.home() / ".claude" / "hooks"
@@ -70,18 +74,31 @@ def get_hooks_list(settings: dict, event: str) -> list[dict]:
     return []
 
 
+def guard_problems(source: Path) -> list[str]:
+    """Why *source* lacks the python version guard (scripts/hook-pyguard.py); empty when guarded."""
+    spec = importlib.util.spec_from_file_location("hook_pyguard", Path(__file__).resolve().parent / "hook-pyguard.py")
+    if spec is None or spec.loader is None:
+        return ["scripts/hook-pyguard.py not importable"]
+    pyguard = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pyguard)
+    return pyguard.problems(source.name, source.read_text(encoding="utf-8"))
+
+
 def cmd_add(args: argparse.Namespace) -> None:
     """Add a hook: deploy file first, then register."""
     source = Path(args.file)
     if not source.exists():
         print(f"ERROR: Source file not found: {source}", file=sys.stderr)
         sys.exit(1)
+    problems = guard_problems(source)
+    if problems:
+        # An unguarded hook crashes with exit 1 under python <3.10, and a gate then fails open.
+        print("ERROR: hook lacks the python version guard: " + "; ".join(problems), file=sys.stderr)
+        print(f"Fix: python3 scripts/hook-pyguard.py --apply --file {source}", file=sys.stderr)
+        sys.exit(1)
 
     target = HOOKS_DIR / source.name
-    # Same launcher form as repo .claude/settings.json (scripts/vexinstall/interp.py LAUNCHER).
-    hook_command = (
-        f'p="$HOME/.claude/vexjoy/bin/python3"; [ -x "$p" ] || p=python3; exec "$p" "$HOME/.claude/hooks/{source.name}"'
-    )
+    hook_command = launcher_command(source.name)
 
     # Step 1: DEPLOY file to ~/.claude/hooks/ FIRST
     HOOKS_DIR.mkdir(parents=True, exist_ok=True)

@@ -4,7 +4,12 @@
 Hooks use 3.10-only runtime syntax (``X | None`` annotations). Under 3.9 they
 crash at import with exit 1, and Claude Code blocks only on exit 2, so a
 safety gate would fail open without a word. The guard runs before any other
-import, parses and runs on 3.8+, and decides:
+import and parses and runs on 3.8+. Under <3.10 it first re-execs the hook
+under the newest ``python3.1x`` it finds on PATH, ``/opt/homebrew/bin``,
+``/usr/local/bin``, or ``/usr/bin`` (shim dirs skipped; once per run, via
+``VEXJOY_PYGUARD_REEXEC``). That keeps sessions working during an upgrade
+whose settings still say bare ``python3``, and lets the SessionStart sync
+repair the interpreter link. When none is found it decides:
 
 | mode     | hooks                                    | under <3.10                         |
 |----------|------------------------------------------|-------------------------------------|
@@ -18,9 +23,13 @@ going, so a broken interpreter would trap every session or subagent in a loop.
 Registered = repo ``.claude/settings.json`` + codex and reasonix allowlists
 (files that exist) + the codex adapter.
 
+Every guarded file must also parse with the 3.8 grammar, since a 3.10-only
+construct (``match``) is a SyntaxError on 3.9 before the guard can run.
+
 Usage:
     python3 scripts/hook-pyguard.py --check    # exit 1 when a hook lacks the right guard
     python3 scripts/hook-pyguard.py --apply    # stamp or restamp every registered hook
+    python3 scripts/hook-pyguard.py --apply --file hooks/new-hook.py   # one hook, before registering it
 """
 
 from __future__ import annotations
@@ -66,14 +75,27 @@ _EXIT = {
 }
 
 
+REEXEC_ENV = "VEXJOY_PYGUARD_REEXEC"
+
+
 def guard_block(mode: str) -> str:
-    """The guard text for *mode*; valid Python 3.8+."""
+    """The guard text for *mode*; valid Python 3.8+ and stable under ruff format."""
     return (
         f"import sys  {MARK}\n"
         "\n"
         f"if sys.version_info < (3, 10):  {MARK} {mode}\n"
+        "    import os\n"
+        "\n"
+        f'    if not os.environ.get("{REEXEC_ENV}"):\n'
+        f'        os.environ["{REEXEC_ENV}"] = "1"\n'
+        '        for _d in [*os.environ.get("PATH", "").split(os.pathsep), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]:\n'
+        '            for _v in ("14", "13", "12", "11", "10"):\n'
+        '                _p = os.path.join(_d, "python3." + _v)\n'
+        '                if _d and "/shims" not in _d and os.access(_p, os.X_OK):\n'
+        "                    os.execv(_p, [_p, *sys.argv])\n"
         "    sys.stderr.write(\n"
-        '        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); rerun ./install.sh in vexjoy-agent\\n"\n'
+        '        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); run ./install.sh in vexjoy-agent from a terminal"\n'
+        '        " outside Claude Code (gated tool calls stay blocked until then)\\n"\n'
         '        % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)\n'
         "    )\n" + _EXIT[mode]
     )
@@ -156,9 +178,9 @@ def problems(name: str, text: str) -> list[str]:
         found = re.search(rf"{re.escape(MARK)} (\w+)", text)
         return [f"{name}: guard {'mode ' + found.group(1) if found else 'missing'}, want {mode}"]
     try:
-        tree = ast.parse(text)
+        tree = ast.parse(text, feature_version=(3, 8))
     except SyntaxError as exc:
-        return [f"{name}: does not parse: {exc}"]
+        return [f"{name}: does not parse with the 3.8 grammar, so 3.9 fails before the guard: {exc}"]
     guard_line = text[: text.index(block)].count("\n") + 1
     for node in tree.body:
         if node.lineno >= guard_line:
@@ -176,11 +198,13 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--check", action="store_true")
     group.add_argument("--apply", action="store_true")
+    parser.add_argument("--file", type=Path, action="append", help="hook file(s) instead of every registered hook")
     args = parser.parse_args(argv)
     bad: list[str] = []
     changed = 0
-    for name in registered():
-        path = HOOKS / name
+    paths = [p.resolve() for p in args.file] if args.file else [HOOKS / n for n in registered()]
+    for path in paths:
+        name = path.name
         text = path.read_text(encoding="utf-8")
         if args.apply:
             new = stamp(text, mode_for(name))

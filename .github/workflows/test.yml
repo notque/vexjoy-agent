@@ -178,6 +178,8 @@ jobs:
           cp hooks/*.py "$HOME/.claude/hooks/"
           cp hooks/lib/*.py "$HOME/.claude/hooks/lib/" 2>/dev/null || true
           cp .claude/settings.json "$HOME/.claude/settings.json"
+      - name: Every registered hook carries the python version guard
+        run: python scripts/hook-pyguard.py --check
       - name: Registered hooks resolve to backing files
         run: python scripts/register-hook.py validate
       - name: Hook-health gate (no-dormant, schema, mirror, liveness)
