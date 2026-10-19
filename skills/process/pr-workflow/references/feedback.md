@@ -140,7 +140,7 @@ Leave INVALID comments unchanged. Escalate NEEDS-DISCUSSION items to the user.
 
 ### Phase 5: LEARN
 
-**Goal**: Extract reusable review patterns into the retro knowledge store.
+**Goal**: Extract reusable review patterns into learning.db.
 
 After fixes are applied, reflect on what was learned:
 
@@ -155,6 +155,8 @@ Ask:
 If nothing reusable was learned, skip recording.
 
 **Step 2: Record via retro-record-adhoc**
+
+This writes to `~/.claude/learning/learning.db` (or `$CLAUDE_LEARNING_DIR`), never to files in the repo. Nonzero exit means the learning was not saved.
 
 ```bash
 python3 ~/.claude/scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"

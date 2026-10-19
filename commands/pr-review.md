@@ -1,5 +1,5 @@
 ---
-description: "Comprehensive PR review using specialized agents, with automatic retro knowledge capture"
+description: "Comprehensive PR review using specialized agents, recording reusable findings to learning.db"
 argument-hint: "[review-aspects]"
 allowed-tools: ["Bash", "Glob", "Grep", "Read", "Agent"]
 ---
@@ -9,7 +9,7 @@ allowed-tools: ["Bash", "Glob", "Grep", "Read", "Agent"]
 Comprehensive PR review using specialized agents, with automatic knowledge capture.
 
 This is a local fork of `pr-review-toolkit:review-pr` with a retro learning phase that
-records review patterns to the knowledge store.
+records review patterns to learning.db.
 
 ## Scope
 
@@ -211,7 +211,7 @@ If nothing reusable was learned, skip recording. Generic findings like "add more
 
 **Step 2: Record via retro-record-adhoc**
 
-For each reusable finding, call:
+For each reusable finding, call the command below. It writes to `~/.claude/learning/learning.db` (or `$CLAUDE_LEARNING_DIR`), never to files in the reviewed repo. A TOPIC/KEY pair is shared across repos: if it already exists, the row keeps the first repo's path, and the JSON output shows the stored `project_path`. Nonzero exit means the learning was not saved.
 
 ```bash
 python3 ~/.claude/scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"
@@ -269,4 +269,4 @@ Only record findings that are specific enough to be actionable guidance for futu
 - **Address critical first**: Fix high-priority issues before lower priority
 - **Re-run after fixes**: Verify issues are resolved
 - **Use specific reviews**: Target specific aspects when you know the concern
-- **Learning accumulates**: Each review adds to the retro knowledge store, making future reviews smarter
+- **Learning accumulates**: Each review adds to learning.db, making future reviews smarter

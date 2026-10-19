@@ -34,7 +34,7 @@
 **Goal**: Write approved learnings to persistent storage.
 
 **Step 1**: Read gated learnings from previous phase.
-**Step 2**: Write to retro files (L1, L2 as appropriate).
+**Step 2**: Record each learning in learning.db with `python3 ~/.claude/scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"`. Never write learning files into the repo.
 **Step 3**: Confirm persistence.
 
 **Gate**: Learnings persisted. Proceed to Phase {{i+1}}.
