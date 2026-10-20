@@ -3,7 +3,7 @@
 """PreToolUse Bash gate: no push or PR to a repo that is not mine before a local /pr-review.
 
 Blocks `git push` (any form: `git -C dir push`, `cd x && git push`, chains,
-`sh -c '...'`), `gh pr create`, `gh pr edit`, and `gh pr ready` when the
+`sh -c '...'`), `gh pr create`, `gh pr edit --base`, and `gh pr ready` when the
 target is not mine and the commit being sent has no review record written by
 `scripts/review-record.py mark` (called by /pr-review).
 
@@ -14,7 +14,8 @@ counts as not mine. Pushes to a local path (`/x`, `./x`, `file://`) reach no
 remote and pass.
 
 Commit checked: each pushed refspec source (default HEAD); `gh pr create
---head B` checks branch B; `gh pr edit`/`ready` check HEAD. A record matches
+--head B` checks branch B; `gh pr edit --base`/`ready` check HEAD. Title,
+body, and label edits add no code and pass. A record matches
 one SHA in one repo (git common dir), so stale or foreign records fail.
 
 Bypass: REVIEW_PUSH_GATE_BYPASS=1 in the Claude Code process environment
@@ -267,6 +268,10 @@ def _parse_git(argv: list[str], cwd: str | None, found: list[Invocation]) -> Non
         return
 
 
+def _is_base_flag(arg: str) -> bool:
+    return arg in {"-B", "--base"} or arg.startswith(("--base=", "-B"))
+
+
 def _parse_gh(argv: list[str], cwd: str | None, found: list[Invocation]) -> None:
     rest = argv[1:]
     # gh takes --repo before the subcommand too: `gh -R o/r pr create`.
@@ -278,6 +283,8 @@ def _parse_gh(argv: list[str], cwd: str | None, found: list[Invocation]) -> None
             lead.append(rest[0])
             rest = rest[1:]
     if len(rest) >= 2 and rest[0] == "pr" and rest[1] in _GH_PR_GATED:
+        if rest[1] == "edit" and not any(_is_base_flag(a) for a in rest[2:]):
+            return  # title/body/label edits add no code
         found.append(Invocation(f"gh-{rest[1]}", cwd, lead + rest[2:]))
 
 

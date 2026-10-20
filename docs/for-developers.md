@@ -154,7 +154,7 @@ Fixtures: `scripts/tests/fixtures/` for script test data. Hook tests inline thei
 
 **Branch safety.** Create feature branches for all work. The `pretool-branch-safety.py` hook enforces this by blocking commits to protected branches.
 
-**Review before push.** In any repo that is not a non-fork `github.com/notque` repo, `pretool-review-before-push-gate.py` blocks `git push` and `gh pr create`/`edit`/`ready` until `/pr-review` has recorded the commit with `scripts/review-record.py mark`. Each fix commit needs its own review.
+**Review before push.** In any repo that is not a non-fork `github.com/notque` repo, `pretool-review-before-push-gate.py` blocks `git push`, `gh pr create`, `gh pr ready`, and `gh pr edit --base` until `/pr-review` has recorded the commit with `scripts/review-record.py mark`. Each fix commit needs its own review. Title, body, and label edits pass. Not caught: git aliases (`git p`), `eval` and `xargs git push`, `$(...)` command substitution, and PR creation through `gh api`.
 
 **Wabi-sabi in docs.** Sentence fragments where they're clear. Varied length. No "delve", "leverage", "comprehensive", "robust", "streamline", "empower." The `scripts/scan-ai-patterns.py` script catches these.
 

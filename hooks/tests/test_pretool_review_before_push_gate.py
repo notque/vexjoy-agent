@@ -322,7 +322,23 @@ class TestGhPr:
         assert env.mark(sapcc, sha="feat").returncode == 0
         assert denied(env.run("gh pr create --repo sapcc/limes --head notque:feat --fill", sapcc)) is None
 
-    @pytest.mark.parametrize("command", ["gh pr edit 5 --add-label x", "gh pr ready", "gh pr create --draft --fill"])
+    @pytest.mark.parametrize(
+        "command",
+        ["gh pr edit 5 --add-label x", "gh pr edit --title t --body-file b.md", "gh pr edit 5 --add-reviewer bob"],
+    )
+    def test_metadata_only_edit_passes_without_record(self, env: Env, sapcc: Path, command: str):
+        assert denied(env.run(command, sapcc)) is None
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "gh pr edit 5 --base main",
+            "gh pr edit 5 -B main",
+            "gh pr edit --base=dev",
+            "gh pr ready",
+            "gh pr create --draft --fill",
+        ],
+    )
     def test_edit_ready_create_need_record(self, env: Env, sapcc: Path, command: str):
         assert denied(env.run(command, sapcc))
         assert env.mark(sapcc).returncode == 0
