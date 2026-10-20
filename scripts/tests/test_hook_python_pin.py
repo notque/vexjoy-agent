@@ -142,7 +142,9 @@ def test_apply_links_python_and_writes_launcher_into_every_profile(world: Env) -
     assert again.code == 0, again.err
     assert _commands(cfg / "settings.json") == _commands(world.home / ".claude" / "settings.json")
     findings = world.run("doctor", "--target", "claude").data["findings"]
-    assert [f for f in findings if f["check"].startswith("python-")] == []
+    # python-deps-missing depends on the host interpreter, not the link; it has its own test.
+    pin = [f for f in findings if f["check"].startswith("python-") and f["check"] != "python-deps-missing"]
+    assert pin == []
 
 
 def test_apply_replaces_old_bare_entries_without_duplicates(world: Env) -> None:
