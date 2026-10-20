@@ -230,6 +230,13 @@ def _check_python(ctx: Context, findings: list[Finding]) -> None:
     link = str(interp.link_path(ctx.home))
     for check, detail in interp.drift(ctx.home):
         findings.append(Finding(ERROR, check, "claude", link, detail))
+    if not interp.drift(ctx.home):
+        missing = interp.missing_modules(ctx.home)
+        if missing:
+            detail = (
+                f"hook python cannot import {', '.join(missing)}; rerun ./install.sh or pip install -r requirements.txt"
+            )
+            findings.append(Finding(WARN, "python-deps-missing", "claude", link, detail))
 
 
 def _check_accounts(ctx: Context, findings: list[Finding]) -> None:

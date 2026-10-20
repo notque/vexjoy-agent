@@ -4,6 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 
 def _load_module():
     path = Path(__file__).resolve().parents[1] / "grill-jev.py"
@@ -177,3 +179,21 @@ def test_run_battery_sends_nothing_when_artifact_too_large(monkeypatch) -> None:
     with pytest.raises(grill.RequestTooLarge):
         grill._run_battery(state, {"risk_1": {"type": "noul", "instructions": "ok?"}}, timeout=1)
     assert sent == []
+
+
+def test_load_questions_names_the_expected_shape_for_a_top_level_list(tmp_path: Path) -> None:
+    grill = _load_module()
+    battery = tmp_path / "questions.json"
+    battery.write_text(json.dumps([{"type": "noul"}]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"top level is a JSON list.*\{\"questions\": \{\"<id>\""):
+        grill._load_questions(str(battery))
+
+
+def test_report_header_labels_the_question_source(capsys: pytest.CaptureFixture[str]) -> None:
+    grill = _load_module()
+    q = {"type": "noul", "report_when": "false", "instructions": {"question": "Ok?"}}
+    grill._print_report({"a": {"type": "noul", "noul": 0.9}}, {"a": q}, "plan", 0.7, True)
+    grill._print_report({"a": {"type": "noul", "noul": 0.9}}, {"a": q}, "plan", 0.7, False)
+    out = capsys.readouterr().out
+    assert "(questions file)" in out and "(static fallback)" in out and "(generated)" not in out

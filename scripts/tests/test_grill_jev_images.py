@@ -419,6 +419,24 @@ def test_explicit_vercel_transport_is_overridden_with_a_warning(
     assert "JEV_TRANSPORT=vercel ignored" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("transport", [None, "auto", "direct"])
+def test_no_vercel_warning_unless_vercel_is_explicitly_requested(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], transport: str | None
+) -> None:
+    shot = _png(tmp_path / "shot.png")
+    monkeypatch.setenv("TYPESAFE_API_KEY", "ts")
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "gw")
+    if transport is None:
+        monkeypatch.delenv("JEV_TRANSPORT", raising=False)
+    else:
+        monkeypatch.setenv("JEV_TRANSPORT", transport)
+    monkeypatch.setattr(jev_transport, "_direct_one", _fake_direct([]))
+
+    _run_main(monkeypatch, ["--image", str(shot), "--questions-file", _battery(tmp_path, {"q": _noul("ok?")})])
+
+    assert "ignored" not in capsys.readouterr().err
+
+
 def test_missing_name_equals_path_error_shows_the_original_argument(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match=r"from 'a=b/nonexist.png'"):
         grill._parse_image_specs(["a=b/nonexist.png"], None)

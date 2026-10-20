@@ -241,3 +241,30 @@ def drift(home: Path) -> list[tuple[str, str]]:
     if version < MIN_VERSION:
         return [("python-pin-old", f"{target} is {version[0]}.{version[1]}, need 3.10+; {fix}")]
     return []
+
+
+# Top-level import name per requirements.txt entry; find_spec on a dotted name imports its parent.
+REQUIRED_MODULES = ("yaml", "requests", "dotenv", "google.auth", "jsonschema", "PIL")
+_MISSING_PROBE = (
+    "import importlib.util as u, sys\n"
+    "def has(n):\n"
+    "    try: return u.find_spec(n) is not None\n"
+    "    except ImportError: return False\n"
+    "print(' '.join(n for n in sys.argv[1:] if not has(n)))"
+)
+
+
+def missing_modules(home: Path, modules: Iterable[str] = REQUIRED_MODULES, timeout: float = 10.0) -> list[str]:
+    """Modules the linked interpreter cannot import (find_spec only, nothing is imported); [] when unknown."""
+    link = link_path(home)
+    try:
+        out = subprocess.run(
+            [str(link), "-I", "-c", _MISSING_PROBE, *modules],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return out.stdout.split() if out.returncode == 0 else []

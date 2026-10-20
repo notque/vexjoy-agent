@@ -212,16 +212,34 @@ exit 0
 HOOK
 }
 
-install_deps() {
-    [ "${VEXJOY_NO_DEPS:-0}" = "1" ] && return 0
-    local -a pip=("$PYTHON_CMD" -m pip) args=(install -r "${SCRIPT_DIR}/requirements.txt" --quiet)
+# pip_requirements PYTHON: install requirements.txt into PYTHON; --break-system-packages when pip knows
+# it, then --user as a fallback. Prints the manual command on failure.
+pip_requirements() {
+    local -a pip=("$1" -m pip) args=(install -r "${SCRIPT_DIR}/requirements.txt" --quiet)
     if "${pip[@]}" install --help 2>/dev/null | grep -q -- "--break-system-packages"; then
         args+=(--break-system-packages)
     fi
     if "${pip[@]}" "${args[@]}" 2>/dev/null || "${pip[@]}" "${args[@]}" --user 2>/dev/null; then
-        echo -e "${GREEN}  ✓ Python dependencies installed${NC}"
+        echo -e "${GREEN}  ✓ Python dependencies installed for $1${NC}"
     else
-        echo -e "${YELLOW}  ⚠ Could not install Python dependencies. Run: ${pip[*]} ${args[*]}${NC}"
+        echo -e "${YELLOW}  ⚠ Could not install Python dependencies for $1. Hooks and scripts need them. Run: ${pip[*]} ${args[*]}${NC}"
+    fi
+}
+
+# Hooks run under the interpreter linked at ~/.claude/vexjoy/bin/python3 (chosen by the engine during
+# apply), which can differ from PYTHON_CMD. Install deps there too, so call this after apply.
+install_deps() {
+    [ "${VEXJOY_NO_DEPS:-0}" = "1" ] && return 0
+    pip_requirements "$PYTHON_CMD"
+    local linked="${HOME}/.claude/vexjoy/bin/python3" real_linked real_cmd
+    if [ -x "$linked" ]; then
+        real_linked=$("$linked" -I -c 'import os, sys; print(os.path.realpath(sys.executable))' 2>/dev/null) || real_linked=""
+        real_cmd=$("$PYTHON_CMD" -I -c 'import os, sys; print(os.path.realpath(sys.executable))' 2>/dev/null) || real_cmd=""
+        if [ -z "$real_linked" ]; then
+            echo -e "${YELLOW}  ⚠ Hook python ${linked} does not run; rerun ./install.sh after fixing it${NC}"
+        elif [ "$real_linked" != "$real_cmd" ]; then
+            pip_requirements "$linked"
+        fi
     fi
     # Vercel Jev gateway: the repo plus every real (copied) scripts dir.
     command -v npm &> /dev/null || { echo -e "${YELLOW}  ⚠ npm unavailable; /d falls back to /do${NC}"; return 0; }

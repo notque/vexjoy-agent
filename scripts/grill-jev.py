@@ -118,9 +118,14 @@ def _load_questions(path: str) -> dict[str, Any]:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"invalid question battery: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"invalid question battery: top level is a JSON {type(payload).__name__}; "
+            'expected {"questions": {"<id>": {...}}}'
+        )
     questions = payload.get("questions", payload)
     if not isinstance(questions, dict) or not questions:
-        raise ValueError("question battery must be a non-empty JSON object")
+        raise ValueError('question battery must be a non-empty JSON object: {"questions": {"<id>": {...}}}')
     problems = _battery_problems(questions)
     if problems:
         raise ValueError("invalid question battery: " + "; ".join(problems))
@@ -724,7 +729,7 @@ def _print_report(
     generated: bool,
 ) -> int:
     """Print findings report. Returns exit code (0=clean, 1=findings, 2=unanswered questions)."""
-    source_label = "generated" if generated else "static fallback"
+    source_label = "questions file" if generated else "static fallback"
     print(f"\nGRILL-JEV FINDINGS — mode: {mode} — {len(questions)} questions ({source_label})")
     print("=" * 60)
 
