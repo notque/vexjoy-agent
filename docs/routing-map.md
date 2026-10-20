@@ -102,7 +102,7 @@ CI check: `python3 scripts/generate-routing-map.py --check`.
 | workflow-help | Interactive guide to workflow system: agents, skills, routing, execution patterns. | how does routing work, what skills exist, system help, explain workflow, I am stuck, toolkit help | yes |  | workflow, do |
 | writing | Writing: voice creation and validation, prose editing, anti-AI cleanup, professional communication, translation. | write article, blog post, write in voice, voice pipeline, voice writer, validate voice, voice fidelity, write email, draft memo, executive summary, status update, meeting notes, pushback email, disagree professionally, translate, translation, localize, draft article, generate content, professional communication, draft response | yes | code comments (use code-quality), API documentation (use docs-sync-checker), scheduling or calendaring content (use content), code review (use review) | joy-check, content |
 
-## PIPELINES (25)
+## PIPELINES (26)
 
 | name | when to call (description) | triggers | FORCE | not_for | pairs_with |
 |---|---|---|---|---|---|
@@ -122,6 +122,7 @@ CI check: `python3 scripts/generate-routing-map.py --check`.
 | mcp-pipeline-builder | Convert any repository into a registered MCP server: ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER. | mcp pipeline, repo to mcp, create mcp from repo, generate mcp, mcp builder, mcp from repo |  |  | workflow-orchestrator, systematic-debugging |
 | pipeline-scaffolder | Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hooks, and routing entries. | scaffold pipeline, create pipeline components, generate pipeline from spec |  |  | chain-composer, pipeline-test-runner |
 | pipeline-test-runner | Test generated pipeline skills against real targets. | test generated pipelines, run pipeline tests, validate scaffolded skills, pipeline test runner |  |  | pipeline-scaffolder, chain-composer |
+| pr-fix-loop | Fix, implement, or address review on PRs in repos you don't own: ground rules, local review, owner discussion, local fixes with Docker tests, and publish only on the owner's go. | pr fix loop, upstream PR, upstream pull request, repo I don't own, repo we don't own, someone else's repo | yes |  | pr-workflow, review |
 | pr-pipeline | End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify. | submit PR, create pull request, send for review, push and PR, submit changes, open PR | yes |  | pr-workflow, review |
 | quality-loop | Canonical 14-phase pipeline for all Medium+ code modifications: ADR through cleanup | code change, implement, build feature, fix bug, add feature |  |  |  |
 | skill-creation-pipeline | Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE. | create skill pipeline, new skill formal, skill with gates, create skill formally, new skill with gates, skill creation pipeline, formal skill creation | yes |  | toolkit, toolkit |

@@ -288,6 +288,7 @@ under `${CLAUDE_SKILL_DIR}`.
 | Testing | Pipeline test runner | `references/pipeline-test-runner.md` |
 | Testing | Pipeline retro | `references/pipeline-retro.md` |
 | GitHub | Profile rules extraction | `references/github-profile-rules.md` |
+| GitHub | Fix PRs in repos you don't own | `references/pr-fix-loop.md` |
 | Orchestration | Task orchestration | `references/workflow-orchestrator.md` |
 | Orchestration | DAG composition | `references/dag-composition-patterns.md` |
 | Orchestration | Compatibility matrix | `references/dag-compatibility-matrix.md` |

@@ -110,9 +110,9 @@ FORCE-ROUTE RULE: manifest entries marked FORCE — in SKILLS: or in PIPELINES: 
 - "push my changes" → pr-workflow ✓ (git push) | "push back on this frontend" → NOT pr-workflow (means resist)
 - "configure my fish shell" → deploy ✓ (the Fish shell) | "fish for bugs" → NOT deploy (means search)
 - "quick fix to the login page" → quick ✓ (small edit) | "quick overview of the architecture" → NOT quick (means explore)
-A FORCE pipeline (5 of the 29) binds the `pipeline` slot exactly as a FORCE skill binds `skill`. `pre-route.py` reads FORCE pipelines and applies their semantic guard policy; the semantic route still owns intent and must apply the same MEANS-not-words test above.
+A FORCE pipeline (6 of the 30) binds the `pipeline` slot exactly as a FORCE skill binds `skill`. `pre-route.py` reads FORCE pipelines and applies their semantic guard policy; the semantic route still owns intent and must apply the same MEANS-not-words test above.
 
-PIPELINE-SELECTION RULE: pick a pipeline whenever the work has REAL PHASES. The PIPELINES: section ships in every manifest and 25 pipelines are available; reach for one on ANY of:
+PIPELINE-SELECTION RULE: pick a pipeline whenever the work has REAL PHASES. The PIPELINES: section ships in every manifest and 26 pipelines are available; reach for one on ANY of:
 (1) the intent semantically matches a pipeline's description or its `t:` triggers, OR
 (2) the shape is multi-phase — 3+ distinct steps, gather-then-synthesize, mixed script+LLM work, or intermediate artifacts worth keeping, OR
 (3) Phase 1 classified the request Complex.

@@ -494,6 +494,49 @@ class TestPipelineForceRoute:
         result = pre_route.route(query, entries=real_entries)
         assert result.get("pipeline") == "pr-pipeline", result
 
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "address review comments on an upstream PR in a repo I don't own",
+            "implement the fixes on these open PRs in someone else's repo",
+            "fix the Copilot comments on my upstream PR",
+            "run the pr fix loop on these PRs",
+            "fix review feedback on my upstream pull request",
+            # The PR lives on the upstream repo, opened from the user's fork:
+            # still a PR in a repo the user does not own.
+            "fix the lint failure on the upstream PR i opened from my fork",
+        ],
+    )
+    def test_pr_fix_loop_matches_fix_work_on_foreign_prs(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["matched"] is True, result
+        assert result.get("pipeline") == "pr-fix-loop", result
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "summarize the upstream PR",
+            "review this upstream PR for me",
+            "push back against the upstream PR fix",
+            # Read-only or meta requests about the pipeline itself.
+            "explain how the pr fix loop works",
+            "what does the pr fix loop pipeline do",
+            "update the docs for the pr fix loop pipeline",
+            # Porting upstream changes into the user's own repo.
+            "apply upstream PR changes to my fork",
+            "implement what upstream PR 42 does in our repo",
+            # The toolkit owner's own repo is never foreign.
+            "fix the failing test in the upstream PR in notque/vexjoy-agent",
+            # No foreign-repo signal at all.
+            "fix the failing test in my PR",
+            "fix the failing test in my PR in notque/vexjoy-agent",
+            "update my branch from upstream and resolve the conflicts",
+        ],
+    )
+    def test_pr_fix_loop_needs_a_change_verb(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result.get("pipeline") != "pr-fix-loop", result
+
     def test_fallthrough_has_pipeline_none(self, pre_route, real_entries) -> None:
         """Fallthrough results include pipeline: None."""
         result = pre_route.route("tell me about quantum physics", entries=real_entries)

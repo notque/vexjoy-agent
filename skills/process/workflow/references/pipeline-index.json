@@ -482,6 +482,34 @@
         "review"
       ]
     },
+    "pr-fix-loop": {
+      "file": "skills/process/workflow/references/pr-fix-loop.md",
+      "description": "Fix, implement, or address review on PRs in repos you don't own: ground rules, local review, owner discussion, local fixes with Docker tests, and publish only on the owner's go.",
+      "triggers": [
+        "pr fix loop",
+        "upstream PR",
+        "upstream pull request",
+        "repo I don't own",
+        "repo we don't own",
+        "someone else's repo"
+      ],
+      "category": "devops",
+      "force_route": true,
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "GROUND RULES",
+        "REVIEW",
+        "DISCUSS",
+        "FIX",
+        "PUBLISH",
+        "TRACK"
+      ],
+      "pairs_with": [
+        "pr-workflow",
+        "review"
+      ]
+    },
     "quality-loop": {
       "file": "skills/meta/do/references/quality-loop.md",
       "description": "Canonical 14-phase pipeline for all Medium+ code modifications: ADR through cleanup",
