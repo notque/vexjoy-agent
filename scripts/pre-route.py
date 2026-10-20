@@ -421,6 +421,18 @@ _DEPLOY_COMPANIONS: set[str] = {
     "vps",
     "droplet",
 }
+_PR_FIX_COMPANIONS: set[str] = {
+    "fix",
+    "fixes",
+    "fixing",
+    "implement",
+    "implementing",
+    "address",
+    "addressing",
+    "patch",
+    "resolve",
+    "rework",
+}
 SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
     "deploy": {
         "go live": _DEPLOY_COMPANIONS,
@@ -473,6 +485,18 @@ SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
             "criminals",
         },
     },
+    # pr-fix-loop: every trigger routes only with a change verb nearby. "fix
+    # the comments on my upstream PR" routes; "summarize the upstream PR" and
+    # "explain how the pr fix loop works" fall through. "run"/"start" also
+    # confirm an explicit "run the pr fix loop" invocation.
+    "pr-fix-loop": {
+        "upstream pr": _PR_FIX_COMPANIONS,
+        "upstream pull request": _PR_FIX_COMPANIONS,
+        "repo i don't own": _PR_FIX_COMPANIONS,
+        "repo we don't own": _PR_FIX_COMPANIONS,
+        "someone else's repo": _PR_FIX_COMPANIONS,
+        "pr fix loop": _PR_FIX_COMPANIONS | {"run", "start"},
+    },
 }
 
 # Multi-word disqualifying phrases (substring match in lowered request).
@@ -505,6 +529,39 @@ SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
 # owns the same external action. Otherwise a pipeline synonym can bypass the
 # skill guard while selecting the same workflow.
 GUARD_POLICY_ALIASES = {"pr-pipeline": "pr-workflow"}
+
+# pr-fix-loop keeps every pr-workflow guard and adds its own: read-only or
+# meta phrasing ("explain", "what does", "docs for") and porting upstream
+# changes into the user's own repo ("into my fork", "in our repo") are not
+# fixing a PR the user does not own. "notque" is the toolkit owner's own
+# GitHub account, so a PR there is never a foreign repo. A regex cannot tell
+# own from foreign repos in general; Phase 0 of the pipeline checks that.
+_PR_WORKFLOW_GUARDS = SEMANTIC_GUARDS["pr-workflow"]
+assert isinstance(_PR_WORKFLOW_GUARDS, set)
+SEMANTIC_GUARDS["pr-fix-loop"] = _PR_WORKFLOW_GUARDS | {
+    "explain",
+    "explains",
+    "describe",
+    "summarize",
+    "summary",
+    "notque",
+}
+SEMANTIC_GUARD_PHRASES["pr-fix-loop"] = SEMANTIC_GUARD_PHRASES["pr-workflow"] | {
+    "what does",
+    "what is",
+    "how does",
+    "how do",
+    "docs for",
+    "docs about",
+    "documentation for",
+    "into my fork",
+    "to my fork",
+    "into our repo",
+    "in our repo",
+    "to our repo",
+    "into my repo",
+    "in my repo",
+}
 
 
 @dataclass

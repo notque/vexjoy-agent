@@ -2058,6 +2058,54 @@
       "routing_tier": "pre_route_negative",
       "forbid_force_route_to": "pr-workflow",
       "notes": "Idiom overlap; must not force-route to pr-workflow (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "address review comments on an upstream PR in a repo I don't own",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-fix-loop",
+      "routing_tier": "pre_route_only",
+      "notes": "Fix work on a PR in a repo the user does not own: pr-workflow keeps the git gates and pre-route fills pipeline=pr-fix-loop (pinned in test_pre_route.py)"
+    },
+    {
+      "request": "implement the fixes on these open PRs in someone else's repo",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-fix-loop",
+      "routing_tier": "pre_route_only",
+      "notes": "Fix work on a PR in a repo the user does not own: pr-workflow keeps the git gates and pre-route fills pipeline=pr-fix-loop (pinned in test_pre_route.py)"
+    },
+    {
+      "request": "summarize the upstream PR",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Read-only mention of an upstream PR: no change verb, so the pr-fix-loop companion gate must not force-route"
+    },
+    {
+      "request": "what changed in that repo we don't own last week",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Read-only mention of an upstream PR: no change verb, so the pr-fix-loop companion gate must not force-route"
+    },
+    {
+      "request": "explain how the pr fix loop works",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Read-only or own-repo request: pr-fix-loop guards must not force-route"
+    },
+    {
+      "request": "apply upstream PR changes to my fork",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Read-only or own-repo request: pr-fix-loop guards must not force-route"
     }
   ]
 }
