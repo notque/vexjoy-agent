@@ -54,7 +54,7 @@ When no argument is provided, the command reads `git diff` to determine changed 
 2. Parse arguments to see if user requested specific review aspects
 3. Default: Run all applicable reviews
 4. Check if PR already exists: `gh pr view 2>/dev/null`
-5. Note the commit under review: `git rev-parse HEAD`. Uncommitted changes cannot be recorded in Phase 6b, so commit them first.
+5. Local-branch mode (no PR argument): note the commit under review as `REVIEWED_SHA=$(git rev-parse HEAD)`. Uncommitted changes cannot be recorded in Phase 6b, so commit them first.
 
 ### Phase 2: Identify Applicable Reviews
 
@@ -170,6 +170,8 @@ After agents complete, summarize:
 - **Suggestions** (nice to have)
 - **Positive Observations** (what's good)
 
+Write this summary to `/tmp/pr-review-<sha12>.md` (outside the repo, so it never gets committed). Phase 6b needs it.
+
 ### Phase 6: Provide Action Plan
 
 ```markdown
@@ -196,14 +198,17 @@ After agents complete, summarize:
 
 ### Phase 6b: Record the Reviewed Commit
 
-Run this only when no Critical or Important finding is open and every change is committed. If you fixed findings, commit the fixes and review that new commit (the fix delta) first: a record covers one SHA.
+Local-branch mode only. Never record for `/pr-review <PR#>` or a PR URL: that diff came from GitHub, not from the local commit.
+
+Run this only when no Critical or Important finding is open. Record the SHA noted in Phase 1, not whatever HEAD is now. If you fixed findings, commit the fixes and review that new commit (the fix delta) first: a record covers one SHA.
 
 ```bash
-python3 ~/.claude/scripts/review-record.py mark \
+python3 ~/.claude/scripts/review-record.py mark --sha "$REVIEWED_SHA" \
+  --findings-file "/tmp/pr-review-${REVIEWED_SHA:0:12}.md" \
   --summary "<agents run>; <N> suggestions; reviewed <base>..<sha12>" --critical 0 --important 0
 ```
 
-The script refuses open findings and a dirty tree. Never write the record for a commit you did not review. Report the recorded SHA; then the push and PR may proceed.
+The script refuses open findings, a dirty tree, and a findings file that is missing, empty, or older than the commit. These checks stop accidental self-marking, not a determined agent. Never write the record for a commit you did not review. Report the recorded SHA; then the push and PR may proceed.
 
 ### Phase 7: Apply Fixes (if requested)
 

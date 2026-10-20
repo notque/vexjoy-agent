@@ -115,11 +115,15 @@ class Env:
         )
 
     def mark(self, repo: Path, sha: str = "HEAD", critical: int = 0, important: int = 0) -> subprocess.CompletedProcess:
+        findings = self.tmp / f"findings-{time.monotonic_ns()}.md"
+        findings.write_text("## Critical\nnone\n## Important\nnone\n")
         return subprocess.run(
             [
                 sys.executable,
                 str(SCRIPT),
                 "mark",
+                "--findings-file",
+                str(findings),
                 "--repo-dir",
                 str(repo),
                 "--sha",
@@ -276,6 +280,9 @@ class TestPushForms:
         "command",
         [
             'git commit -m "push the fix"',
+            "git stash push -m wip",
+            "gh pr ready 12",
+            "gh pr edit 5 --title t",
             "git log --grep push",
             "echo 'gh pr create'",
             "git status",
@@ -297,10 +304,12 @@ class TestPushForms:
         assert "push one reviewed ref" in denied(env.run("git push --all origin", sapcc))
 
     def test_parse_invocations_tracks_cwd(self, tmp_path: Path):
-        invs = gate.parse_invocations("cd sub && git -C ../other push -u origin x; gh -R a/b pr ready 3", str(tmp_path))
-        assert [(i.kind, i.cwd) for i in invs] == [
-            ("push", str(tmp_path / "other")),
-            ("gh-ready", str(tmp_path / "sub")),
+        (tmp_path / "sub").mkdir()
+        (tmp_path / "other").mkdir()
+        invs = gate.parse_invocations("cd sub && git -C ../other push -u origin x; gh -R a/b pr create", str(tmp_path))
+        assert [(i.kind, i.cwd, i.problem) for i in invs] == [
+            ("push", str(tmp_path / "other"), ""),
+            ("gh-create", str(tmp_path / "sub"), ""),
         ]
 
 
@@ -335,7 +344,6 @@ class TestGhPr:
             "gh pr edit 5 --base main",
             "gh pr edit 5 -B main",
             "gh pr edit --base=dev",
-            "gh pr ready",
             "gh pr create --draft --fill",
         ],
     )
@@ -419,7 +427,6 @@ class TestContract:
             "/pr-review",
             "local commit",
             "Critical and Important",
-            "review-record.py mark",
             "retry the push",
         ):
             assert needle in reason
@@ -453,3 +460,194 @@ class TestContract:
         assert median("ls -la") < 0.5
         assert median("git push") < 1.0
         assert env.gh_calls() == []
+
+
+# --------------------------------------------------------------------------
+# Review of 40127d53: every reviewer case
+# --------------------------------------------------------------------------
+
+# C1: shell keywords and wrapper commands in front of a HEAD push.
+WRAPPED_PUSHES = [
+    "if git push; then echo ok; fi",
+    "if ! git push origin main; then echo fail; fi",
+    "! git push",
+    "until git push; do sleep 1; done",
+    "while git push; do break; done",
+    "for i in 1; do git push; done",
+    "timeout 60 git push",
+    "timeout 60s git push origin main",
+    "timeout -s KILL 60 git push",
+    "nice -n 5 git push",
+    "nice -5 git push",
+    "sudo -E git push",
+    "sudo -u me git push",
+    "env -u FOO git push",
+    "xargs git push < /dev/null",
+    "xargs -I{} git push origin {} < /dev/null",
+    "caffeinate -i git push",
+    "stdbuf -oL git push",
+    "time -p git push",
+    "unknownwrapper --flag git push origin main",
+]
+
+
+class TestWrappedPushes:
+    @pytest.mark.parametrize("command", WRAPPED_PUSHES)
+    def test_wrapped_push_is_gated(self, env: Env, sapcc: Path, command: str):
+        assert denied(env.run(command, sapcc))
+
+    @pytest.mark.parametrize("command", WRAPPED_PUSHES)
+    def test_wrapped_push_of_reviewed_head_passes(self, env: Env, sapcc: Path, command: str):
+        assert env.mark(sapcc).returncode == 0
+        assert denied(env.run(command, sapcc)) is None
+
+    def test_wrapper_hiding_an_unjudgeable_push_denies(self, env: Env, sapcc: Path):
+        assert env.mark(sapcc).returncode == 0
+        reason = denied(env.run('git "$SUB" push', sapcc))
+        assert reason and "cannot tell which git command" in reason
+
+
+class TestMatchingPushes:
+    """I1: matching refspecs and config-driven pushes send more than HEAD."""
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git push origin :",
+            "git push origin +:",
+            "git push origin 'refs/heads/*:refs/heads/*'",
+            "git -c push.default=matching push",
+            "git -c remote.origin.push=refs/heads/*:refs/heads/* push origin",
+            "git -c remote.origin.push=refs/heads/other:refs/heads/other push",
+        ],
+    )
+    def test_denied_even_with_head_reviewed(self, env: Env, sapcc: Path, command: str):
+        assert env.mark(sapcc).returncode == 0
+        assert "push one reviewed ref by name" in denied(env.run(command, sapcc))
+
+    def test_configured_remote_push_is_denied(self, env: Env, sapcc: Path):
+        assert env.mark(sapcc).returncode == 0
+        _git(sapcc, "config", "remote.origin.push", "refs/heads/*:refs/heads/*")
+        assert denied(env.run("git push", sapcc))
+        assert denied(env.run("git push origin main", sapcc)) is None
+
+
+class TestGitDirEnv:
+    """I2: GIT_DIR/GIT_WORK_TREE point the push at another repo."""
+
+    @pytest.mark.parametrize(
+        "template",
+        [
+            "GIT_DIR={git} git push origin main",
+            "export GIT_DIR={git}; git push origin main",
+            "GIT_DIR={git}; export GIT_DIR; git push origin main",
+            "env GIT_DIR={git} git push origin main",
+            "GIT_DIR={git} GIT_WORK_TREE={wt} git push origin main",
+        ],
+    )
+    def test_git_dir_targets_that_repo(self, env: Env, sapcc: Path, mine: Path, template: str):
+        command = template.format(git=sapcc / ".git", wt=sapcc)
+        reason = denied(env.run(command, mine))
+        assert reason and "sapcc/limes" in reason
+
+    def test_subshell_export_does_not_leak(self, env: Env, sapcc: Path, mine: Path):
+        assert denied(env.run(f"(export GIT_DIR={sapcc / '.git'}); git push", mine)) is None
+
+
+class TestDeadline:
+    """I3: a hanging gh cannot run the hook past its timeout."""
+
+    def test_hanging_gh_is_called_once_and_denies_in_time(self, env: Env, sapcc: Path):
+        (env.bin / "gh").write_text('#!/bin/sh\necho "$@" >> "$FAKE_GH_DIR/calls"\nsleep 30\n')
+        repo = make_repo(env.tmp / "x", {"origin": "https://github.com/notque/x.git"})
+        assert env.mark(repo).returncode == 0  # unknown fork status, so each push needs the record and passes
+        command = f"git push origin main; git push origin main; git push origin main; git -C {sapcc} push origin main"
+        t = time.monotonic()
+        reason = denied(env.run(command, repo))
+        assert time.monotonic() - t < 8
+        assert reason
+        assert len(env.gh_calls()) == 1
+
+
+class TestRecordProof:
+    """I4: records need a findings file; the deny text does not print the mark command."""
+
+    def test_deny_text_does_not_print_mark(self, env: Env, sapcc: Path):
+        reason = denied(env.run("git push", sapcc))
+        assert "review-record.py" not in reason and " mark" not in reason
+
+    def test_version_1_record_without_findings_hash_fails(self, env: Env, sapcc: Path):
+        out = json.loads(env.mark(sapcc).stdout)
+        path = Path(out["path"])
+        data = json.loads(path.read_text())
+        data.pop("findings_sha256")
+        data["version"] = 1
+        path.write_text(json.dumps(data))
+        assert denied(env.run("git push", sapcc))
+
+
+class TestUnresolvedDirs:
+    """I6 and S1: an unknown directory is a plain deny, a crash is a deny."""
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            'cd "$(git rev-parse --show-toplevel)" && git push origin main',
+            "cd $(git rev-parse --show-toplevel) && git push origin main",
+            "cd - && git push origin main",
+            'cd "$REPO" && git push',
+            "cd ~nosuchuser123 && git push",
+            "cd no-such-dir && git push",
+            "git -C $DIR push",
+        ],
+    )
+    def test_unresolved_cd_denies_with_git_dash_c_advice(self, env: Env, mine: Path, command: str):
+        reason = denied(env.run(command, mine))
+        assert reason and "git -C <dir> push" in reason and "crashed" not in reason
+
+    def test_crash_after_push_match_denies(self, env: Env, sapcc: Path):
+        boom = (
+            "import shlex, runpy\n"
+            "def _boom(*a, **k):\n    raise RuntimeError('boom')\n"
+            f"shlex.shlex = _boom\nrunpy.run_path({str(HOOK)!r}, run_name='__main__')\n"
+        )
+        payload = json.dumps({"tool_input": {"command": "git push"}, "cwd": str(sapcc)})
+        proc = subprocess.run(
+            [sys.executable, "-c", boom], input=payload, capture_output=True, text=True, env=env.env(), timeout=15
+        )
+        assert "crashed" in denied(proc)
+
+
+class TestSuggestions:
+    def test_attached_push_option_is_not_read_as_flags(self, env: Env, sapcc: Path):
+        """S2: -oskipdeploy holds d and n but is not --delete or --dry-run."""
+        assert denied(env.run("git push -oskipdeploy origin main", sapcc))
+        assert denied(env.run("git push -fo ci.skip origin main", sapcc))
+
+    def test_subtree_push_is_gated(self, env: Env, sapcc: Path):
+        """S3."""
+        assert denied(env.run("git subtree push --prefix=x origin main", sapcc))
+        assert env.mark(sapcc).returncode == 0
+        assert denied(env.run("git subtree push --prefix=x origin main", sapcc)) is None
+
+    def test_gh_pr_create_follows_insteadof(self, env: Env, mine: Path):
+        """S5: gh sees the same rewritten URL as git push."""
+        _git(mine, "remote", "set-url", "origin", "gh:notque/vexjoy-agent")
+        _git(mine, "config", "url.https://github.com/.insteadOf", "gh:")
+        assert denied(env.run("git push", mine)) is None
+        assert denied(env.run("gh pr create --fill", mine)) is None
+
+    def test_gh_pr_ready_is_not_gated(self, env: Env, sapcc: Path):
+        """S6."""
+        assert denied(env.run("gh pr ready 123", sapcc)) is None
+
+
+class TestSubstitutions:
+    @pytest.mark.parametrize("command", ['eval "git push"', 'echo "$(git push)"', 'echo "`git push`"', "eval git push"])
+    def test_eval_and_substitution_are_parsed(self, env: Env, sapcc: Path, command: str):
+        assert denied(env.run(command, sapcc))
+        assert env.mark(sapcc).returncode == 0
+        assert denied(env.run(command, sapcc)) is None
+
+    def test_substitution_in_commit_message_is_not_a_push(self, env: Env, sapcc: Path):
+        assert denied(env.run('git commit -m "explain $(date) push"', sapcc)) is None

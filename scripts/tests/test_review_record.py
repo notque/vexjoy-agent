@@ -6,6 +6,7 @@ Run with: python3 -m pytest scripts/tests/test_review_record.py -v
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -43,8 +44,17 @@ def run(repo: Path, *args: str) -> subprocess.CompletedProcess:
     )
 
 
-def mark(repo: Path, *extra: str, critical: str = "0", important: str = "0", summary: str = "clean"):
-    return run(repo, "mark", "--summary", summary, "--critical", critical, "--important", important, *extra)
+def findings_file(repo: Path, text: str = "## Critical\nnone\n") -> Path:
+    path = repo.parent / "findings.md"
+    path.write_text(text)
+    return path
+
+
+def mark(repo: Path, *extra: str, critical: str = "0", important: str = "0", summary: str = "clean", findings=None):
+    if findings is None:
+        findings = findings_file(repo)
+    args = ["--summary", summary, "--critical", critical, "--important", important, "--findings-file", str(findings)]
+    return run(repo, "mark", *args, *extra)
 
 
 def test_mark_then_check_head(repo: Path):
@@ -55,6 +65,8 @@ def test_mark_then_check_head(repo: Path):
     assert record["summary"] == "clean"
     assert record["remotes"] == {"origin": "https://github.com/sapcc/limes.git"}
     assert record["reviewed_at"]
+    assert record["version"] == 2
+    assert record["findings_sha256"] == hashlib.sha256(b"## Critical\nnone\n").hexdigest()
     assert run(repo, "check").returncode == 0
 
 
@@ -92,3 +104,26 @@ def test_mark_outside_repo(tmp_path: Path):
     plain = tmp_path / "plain"
     plain.mkdir()
     assert mark(plain).returncode == 2
+
+
+def test_mark_refuses_missing_findings_file(repo: Path):
+    proc = mark(repo, findings=repo.parent / "nope.md")
+    assert proc.returncode == 1 and "does not exist" in proc.stderr
+
+
+def test_mark_refuses_empty_findings_file(repo: Path):
+    proc = mark(repo, findings=findings_file(repo, "  \n"))
+    assert proc.returncode == 1 and "is empty" in proc.stderr
+
+
+def test_mark_refuses_findings_older_than_commit(repo: Path):
+    old = findings_file(repo)
+    ct = int(_git(repo, "show", "-s", "--format=%ct", "HEAD"))
+    os.utime(old, (ct - 60, ct - 60))
+    proc = mark(repo, findings=old)
+    assert proc.returncode == 1 and "older than commit" in proc.stderr
+
+
+def test_mark_requires_findings_flag(repo: Path):
+    proc = run(repo, "mark", "--summary", "x", "--critical", "0", "--important", "0")
+    assert proc.returncode == 2 and "--findings-file" in proc.stderr

@@ -5,9 +5,14 @@
 Critical or Important findings. The record covers one commit SHA of one repo;
 a fix commit needs its own review and its own record.
 
+``mark`` needs ``--findings-file``: the findings file /pr-review wrote for this
+review. It must exist, be non-empty, and be modified after the commit's
+committer time; its sha256 goes into the record. This stops accidental
+self-marking. It does not stop a determined agent that writes a fake file.
+
 Usage:
-    python3 ~/.claude/scripts/review-record.py mark --summary "3 agents, 0 critical, 0 important" \
-        --critical 0 --important 0 [--sha REV] [--repo-dir DIR]
+    python3 ~/.claude/scripts/review-record.py mark --sha SHA --findings-file /tmp/pr-review-SHA12.md \
+        --summary "3 agents, 0 critical, 0 important" --critical 0 --important 0 [--repo-dir DIR]
     python3 ~/.claude/scripts/review-record.py check [--sha REV] [--repo-dir DIR]
 
 Exit codes: 0 ok, 1 refused or no record, 2 usage or git error.
@@ -16,6 +21,7 @@ Exit codes: 0 ok, 1 refused or no record, 2 usage or git error.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -61,6 +67,24 @@ def cmd_mark(args: argparse.Namespace) -> int:
         print("review-record: refused: --summary is empty", file=sys.stderr)
         return 1
     identity, sha = _resolve(args)
+    findings = Path(args.findings_file).expanduser()
+    try:
+        body = findings.read_bytes()
+        mtime = findings.stat().st_mtime
+    except OSError:
+        print(f"review-record: refused: findings file {findings} does not exist", file=sys.stderr)
+        return 1
+    if not body.strip():
+        print(f"review-record: refused: findings file {findings} is empty", file=sys.stderr)
+        return 1
+    committed = review_record.git(["show", "-s", "--format=%ct", sha], args.repo_dir).stdout.strip()
+    if not committed.isdigit() or mtime <= int(committed):
+        print(
+            f"review-record: refused: findings file {findings} is older than commit {sha[:12]}; "
+            "it must come from a review of this commit",
+            file=sys.stderr,
+        )
+        return 1
     head = review_record.resolve_commit("HEAD", args.repo_dir)
     if sha == head:
         dirty = review_record.git(["status", "--porcelain", "--untracked-files=no"], args.repo_dir)
@@ -71,7 +95,14 @@ def cmd_mark(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 1
-    path = review_record.write_record(identity, sha, args.summary.strip()[:500], remotes=_remotes(args.repo_dir))
+    path = review_record.write_record(
+        identity,
+        sha,
+        args.summary.strip()[:500],
+        findings_sha256=hashlib.sha256(body).hexdigest(),
+        findings_path=str(findings.resolve()),
+        remotes=_remotes(args.repo_dir),
+    )
     print(json.dumps({"recorded": sha, "repo": identity, "path": str(path)}))
     return 0
 
@@ -95,6 +126,7 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--sha", default="HEAD", help="reviewed commit (default: HEAD)")
         if name == "mark":
             p.add_argument("--summary", required=True, help="one line: what was reviewed and the result")
+            p.add_argument("--findings-file", required=True, help="findings file /pr-review wrote for this commit")
             p.add_argument("--critical", type=int, required=True, help="unresolved Critical findings")
             p.add_argument("--important", type=int, required=True, help="unresolved Important findings")
     args = parser.parse_args(argv)

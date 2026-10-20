@@ -9,6 +9,10 @@ clone shares records and a second clone or another repo does not.
 A record covers exactly one commit SHA. A fix commit has a new SHA and needs a
 new record. The reader re-checks the repo and SHA stored inside the file, so a
 record copied between directories does not count.
+
+`mark` must name the findings file /pr-review wrote after the commit, and the
+record stores its sha256. That stops an agent from passing its own push by
+accident; it does not stop a determined agent that fakes a findings file.
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ import os
 import subprocess
 from pathlib import Path
 
-RECORD_VERSION = 1
+RECORD_VERSION = 2
 GIT_TIMEOUT = 5
 
 
@@ -75,14 +79,25 @@ def read_record(identity: str, sha: str) -> dict | None:
         return None
     if not isinstance(data, dict):
         return None
-    if data.get("repo") != identity or data.get("sha") != sha:
+    if data.get("version") != RECORD_VERSION or data.get("repo") != identity or data.get("sha") != sha:
+        return None
+    digest = data.get("findings_sha256")
+    if not isinstance(digest, str) or len(digest) != 64:
         return None
     if data.get("critical", 1) != 0 or data.get("important", 1) != 0:
         return None
     return data
 
 
-def write_record(identity: str, sha: str, summary: str, *, remotes: dict[str, str] | None = None) -> Path:
+def write_record(
+    identity: str,
+    sha: str,
+    summary: str,
+    *,
+    findings_sha256: str,
+    findings_path: str,
+    remotes: dict[str, str] | None = None,
+) -> Path:
     """Write the record atomically (temp file then rename) and return its path."""
     import tempfile
     from datetime import datetime, timezone
@@ -97,6 +112,8 @@ def write_record(identity: str, sha: str, summary: str, *, remotes: dict[str, st
         "summary": summary,
         "critical": 0,
         "important": 0,
+        "findings_sha256": findings_sha256,
+        "findings_path": findings_path,
         "remotes": remotes or {},
     }
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=".json")

@@ -2,21 +2,28 @@
 # hook-version: 1.0.0
 """PreToolUse Bash gate: no push or PR to a repo that is not mine before a local /pr-review.
 
-Blocks `git push` (any form: `git -C dir push`, `cd x && git push`, chains,
-`sh -c '...'`), `gh pr create`, `gh pr edit --base`, and `gh pr ready` when the
-target is not mine and the commit being sent has no review record written by
-`scripts/review-record.py mark` (called by /pr-review).
+Blocks `git push` and `git subtree push` (behind `cd`, `git -C`, `GIT_DIR=`,
+chains, shell keywords like `if`/`until`/`!`, wrappers like `timeout`/`sudo`/
+`env`/`xargs`, and `sh -c '...'`), `gh pr create`, and `gh pr edit --base`
+when the target is not mine and the commit being sent has no review record
+written by /pr-review. A `git` word followed by `push` under a wrapper this
+hook does not know still counts as a push. A push it cannot judge (unresolvable
+`cd`/`GIT_DIR` target, `git $SUB push`) is denied.
 
 Mine = every push URL of the target is github.com/notque/<repo> AND the repo
 is not a fork. Fork: any configured remote points at another owner or host;
-otherwise `gh repo view --json isFork` (disk cache, short timeout). Unknown
-counts as not mine. Pushes to a local path (`/x`, `./x`, `file://`) reach no
-remote and pass.
+otherwise `gh repo view --json isFork` (disk cache, memoized per run). Unknown
+counts as not mine, so a notque repo with a mirror or colleague remote, or an
+ssh host alias, needs a review too (fail closed on purpose). Pushes to a local
+path (`/x`, `./x`, `file://`) reach no remote and pass.
 
 Commit checked: each pushed refspec source (default HEAD); `gh pr create
---head B` checks branch B; `gh pr edit --base`/`ready` check HEAD. Title,
-body, and label edits add no code and pass. A record matches
-one SHA in one repo (git common dir), so stale or foreign records fail.
+--head B` checks branch B; `gh pr edit --base` checks HEAD. Matching (`:`),
+pattern, `--all`-style, `push.default=matching`, and `remote.<r>.push` pushes
+are denied in repos that are not mine. A record matches one SHA in one repo
+(git common dir), so stale or foreign records fail.
+
+The whole run has a 6 s budget (hook timeout is 10 s); running out denies.
 
 Bypass: REVIEW_PUSH_GATE_BYPASS=1 in the Claude Code process environment
 (set when launching the session; a `VAR=1 git push` prefix in a command does
@@ -24,7 +31,7 @@ not reach this hook). Each bypass is logged to
 ~/.claude/state/review-gate/bypass.log.
 
 Always exits 0; the deny goes out as JSON permissionDecision on stdout. A
-crash while judging a gated command denies it (fail closed).
+crash after the command matched a push or `gh pr` shape denies it.
 """
 
 import sys  # vexjoy-pyguard
@@ -65,11 +72,52 @@ MY_OWNER = "notque"
 MY_HOST = "github.com"
 FORK_CACHE_TTL = 7 * 24 * 3600
 GH_TIMEOUT = 4
+# Total budget per run, well under the 10 s hook timeout: a hook killed by the
+# timeout is a non-blocking error, so the command would run.
+DEADLINE_SECONDS = 6.0
+review_record.GIT_TIMEOUT = 2
 
 _QUICK_RE = re.compile(r"\bpush\b|\bgh\b")
+# Commands this hook judges; a crash after one matches is a deny.
+_GATED_RE = re.compile(r"\bpush\b|\bgh\b[^\n;&|]*\bpr\b")
 _PUNCT = "();&|{}"
 _SHELLS = {"sh", "bash", "zsh", "fish", "dash", "ksh"}
-_PREFIX_CMDS = {"builtin", "nohup", "time", "exec", "sudo", "nice"}
+# Shell words that start a segment but are not the command.
+_KEYWORDS = {"if", "then", "elif", "else", "do", "while", "until", "!", "fi", "done", "{", "}"}
+# Segment heads with no command after them.
+_SKIP_HEADS = {"for", "case", "select", "function", "esac", "in"}
+# Wrapper commands: (options that take a value, positional args before the command).
+_WRAPPERS: dict[str, tuple[frozenset[str], int]] = {
+    "nohup": (frozenset(), 0),
+    "builtin": (frozenset(), 0),
+    "exec": (frozenset({"-a"}), 0),
+    "command": (frozenset(), 0),
+    "time": (frozenset({"-f", "-o", "--format", "--output"}), 0),
+    "timeout": (frozenset({"-s", "--signal", "-k", "--kill-after"}), 1),
+    "nice": (frozenset({"-n", "--adjustment"}), 0),
+    "sudo": (
+        frozenset({"-u", "-g", "-h", "-p", "-C", "-U", "-r", "-t", "-D", "-R", "-T", "--user", "--group", "--chdir"}),
+        0,
+    ),
+    "doas": (frozenset({"-u", "-C"}), 0),
+    "env": (frozenset({"-u", "--unset", "-C", "--chdir", "-S", "--split-string"}), 0),
+    "xargs": (
+        frozenset({"-I", "-n", "-P", "-L", "-d", "-a", "-E", "-s", "--max-args", "--max-procs", "--delimiter"}),
+        0,
+    ),
+    "caffeinate": (frozenset({"-t", "-w"}), 0),
+    "stdbuf": (frozenset({"-i", "-o", "-e"}), 0),
+    "ionice": (frozenset({"-c", "-n", "-p", "-P", "-u"}), 0),
+    "chronic": (frozenset(), 0),
+    "unbuffer": (frozenset(), 0),
+    "watch": (frozenset({"-n", "--interval"}), 0),
+    "flock": (frozenset({"-w", "--timeout", "-E", "--conflict-exit-code"}), 1),
+    "taskset": (frozenset(), 1),
+    "chrt": (frozenset(), 1),
+    "torsocks": (frozenset(), 0),
+    "proxychains": (frozenset(), 0),
+    "proxychains4": (frozenset(), 0),
+}
 _GIT_VALUE_OPTS = {
     "-C",
     "-c",
@@ -81,25 +129,47 @@ _GIT_VALUE_OPTS = {
     "--work-tree",
 }
 _PASS_OPTS = {"-c", "--git-dir", "--work-tree", "--namespace", "--config-env"}
+_GIT_ENV = {"GIT_DIR": "--git-dir", "GIT_WORK_TREE": "--work-tree"}
 _PUSH_VALUE_OPTS = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
 _PUSH_MULTI = {"--all", "--mirror", "--tags", "--branches"}
-_GH_PR_GATED = {"create", "edit", "ready"}
+_GH_PR_GATED = {"create", "edit"}
 _REDIRECT_RE = re.compile(r"^\d*(>>?|<<?|>&|<&|&>)")
 _HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
-_ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+_SUBST_RE = re.compile(r"\$\(([^()]*)\)|`([^`]*)`")
+_ENV_ASSIGN_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.S)
 _GH_REMOTE_ORDER = {"upstream": 0, "github": 1, "origin": 2}
-_ACTION = {"push": "git push", "gh-create": "gh pr create", "gh-edit": "gh pr edit", "gh-ready": "gh pr ready"}
+_ACTION = {
+    "push": "git push",
+    "subtree": "git subtree push",
+    "unresolved": "git push",
+    "gh-create": "gh pr create",
+    "gh-edit": "gh pr edit --base",
+}
 
-# Set once main() knows the command is a gated action; a crash after that denies.
+# Set once main() sees a push or `gh pr` shape; a crash after that denies.
 _GATED: dict[str, str] = {}
+_DEADLINE = [0.0]
+_FORK_MEMO: dict[str, bool | None] = {}
+
+
+class DeadlineHit(Exception):
+    pass
 
 
 class Invocation:
-    def __init__(self, kind: str, cwd: str | None, args: list[str], git_opts: list[str] | None = None):
-        self.kind = kind  # "push" or "gh-<sub>"
+    def __init__(
+        self,
+        kind: str,
+        cwd: str | None,
+        args: list[str],
+        git_opts: list[str] | None = None,
+        problem: str = "",
+    ):
+        self.kind = kind  # push, subtree, unresolved, gh-create, gh-edit
         self.cwd = cwd
         self.args = args
         self.git_opts = git_opts or []
+        self.problem = problem  # set when the command cannot be judged; always a deny
 
 
 # --------------------------------------------------------------------------
@@ -148,13 +218,33 @@ def _newlines_to_semicolons(command: str) -> str:
     return "".join(out)
 
 
-def _resolve_dir(base: str | None, path: str) -> str | None:
-    p = Path(path).expanduser()
+class Where:
+    """Effective directory of a command: a path, or why it cannot be known."""
+
+    def __init__(self, path: str | None, problem: str = ""):
+        self.path = path
+        self.problem = problem
+
+
+def _resolve_dir(base: Where, path: str, what: str = "cd") -> Where:
+    if base.problem:
+        return base
+    if (
+        path == "-"
+        or "$" in path
+        or "`" in path
+        or (path.startswith("~") and path != "~" and not path.startswith("~/"))
+    ):
+        return Where(None, f"cannot resolve the `{what}` target `{path}`")
+    p = Path(os.path.expanduser(path))
     if not p.is_absolute():
-        if not base:
-            return None
-        p = Path(base) / p
-    return os.path.normpath(str(p))
+        if not base.path:
+            return Where(None, f"cannot resolve the `{what}` target `{path}`")
+        p = Path(base.path) / p
+    norm = os.path.normpath(str(p))
+    if not os.path.isdir(norm):
+        return Where(None, f"the `{what}` target `{path}` does not exist")
+    return Where(norm)
 
 
 def _drop_redirects(argv: list[str]) -> list[str]:
@@ -172,27 +262,74 @@ def _drop_redirects(argv: list[str]) -> list[str]:
     return out
 
 
-def _strip_prefixes(argv: list[str]) -> list[str]:
+def _skip_options(argv: list[str], values: frozenset[str]) -> tuple[int, list[tuple[str, str]]]:
+    """Index of the first non-option word after argv[0], plus (option, value) pairs seen."""
+    seen: list[tuple[str, str]] = []
+    i = 1
+    while i < len(argv):
+        a = argv[i]
+        if a == "--":
+            return i + 1, seen
+        if a in values:
+            seen.append((a, argv[i + 1] if i + 1 < len(argv) else ""))
+            i += 2
+            continue
+        if a.startswith("--") and "=" in a:
+            name, _, val = a.partition("=")
+            seen.append((name, val))
+            i += 1
+            continue
+        if a.startswith("-") and len(a) > 1:
+            if a[:2] in values:  # value attached: -n5, -I{}
+                seen.append((a[:2], a[2:]))
+            i += 1
+            continue
+        return i, seen
+    return i, seen
+
+
+def _strip_prefixes(argv: list[str], where: Where) -> tuple[list[str], dict[str, str], Where]:
+    """Drop shell keywords, env assignments, and wrapper commands in front of the real command."""
+    assigns: dict[str, str] = {}
     while argv:
         head = argv[0]
-        if head in _PREFIX_CMDS or head == "$":
+        name = os.path.basename(head)
+        m = _ENV_ASSIGN_RE.match(head)
+        if head in _KEYWORDS or head == "$":
             argv = argv[1:]
-        elif head == "command":
+        elif m:
+            assigns[m.group(1)] = m.group(2)
             argv = argv[1:]
-            while argv and argv[0] in {"-p", "-v", "-V", "--"}:
-                argv = argv[1:]
-        elif head == "env":
-            argv = argv[1:]
-            while argv and ("=" in argv[0] or argv[0].startswith("-")):
-                argv = argv[1:]
-        elif _ENV_ASSIGN_RE.match(head):
-            argv = argv[1:]
+        elif name in _WRAPPERS:
+            values, positionals = _WRAPPERS[name]
+            i, seen = _skip_options(argv, values)
+            for opt, val in seen:
+                if name == "env" and opt in {"-C", "--chdir"}:
+                    where = _resolve_dir(where, val, "env -C")
+            if name in {"env", "sudo"}:
+                while i < len(argv) and (am := _ENV_ASSIGN_RE.match(argv[i])):
+                    assigns[am.group(1)] = am.group(2)
+                    i += 1
+            argv = argv[i + positionals :]
         else:
             break
-    return argv
+    return argv, assigns, where
 
 
-def parse_invocations(command: str, cwd: str | None, depth: int = 0) -> list[Invocation]:
+def _git_env_opts(env: dict[str, str], where: Where) -> tuple[list[str], str]:
+    """`--git-dir=`/`--work-tree=` options for GIT_DIR/GIT_WORK_TREE, or a problem."""
+    opts: list[str] = []
+    for var, flag in _GIT_ENV.items():
+        val = env.get(var)
+        if val is None:
+            continue
+        if "$" in val or "`" in val or not (os.path.isabs(val) or where.path):
+            return [], f"cannot resolve `{var}={val}`"
+        opts.append(f"{flag}={os.path.normpath(os.path.join(where.path or '', os.path.expanduser(val)))}")
+    return opts, ""
+
+
+def parse_invocations(command: str, cwd: str | None, depth: int = 0, env: dict | None = None) -> list[Invocation]:
     """Every gated invocation in *command*, in shell order, with its effective cwd."""
     text = _newlines_to_semicolons(_strip_heredocs(command))
     # `2>&1` would otherwise lex as `2>` `&` `1` and split the segment.
@@ -206,27 +343,73 @@ def parse_invocations(command: str, cwd: str | None, depth: int = 0) -> list[Inv
         raise ParseError(str(exc)) from exc
 
     found: list[Invocation] = []
-    current = cwd
-    stack: list[str | None] = []
+    state = {"where": Where(cwd) if isinstance(cwd, str) or cwd is None else cwd, "env": dict(env or {})}
+    stack: list[tuple[Where, dict]] = []
     segment: list[str] = []
 
-    def execute(argv: list[str]) -> None:
-        nonlocal current
-        argv = _strip_prefixes(_drop_redirects(argv))
+    def execute(raw: list[str]) -> None:
+        if depth < 3:
+            # Command substitutions run even inside double quotes: `echo "$(git push)"`.
+            for tok in raw:
+                for inner in _SUBST_RE.findall(tok):
+                    found.extend(parse_invocations(inner[0] or inner[1], state["where"], depth + 1, state["env"]))
+        argv, assigns, where = _strip_prefixes(_drop_redirects(raw), state["where"])
         if not argv:
+            # A bare `GIT_DIR=x` sets a shell variable; treat it as effective (fail toward the right repo).
+            state["env"].update({k: v for k, v in assigns.items() if k in _GIT_ENV})
             return
         name = os.path.basename(argv[0])
-        if name in {"cd", "pushd"} and len(argv) >= 2:
-            current = _resolve_dir(current, argv[1])
-        elif name in _SHELLS and depth < 3:
+        if name in _SKIP_HEADS:
+            return
+        if name in {"cd", "pushd"}:
+            state["where"] = _resolve_dir(state["where"], argv[1] if len(argv) > 1 else "~", name)
+            return
+        if name == "export":
+            for word in argv[1:]:
+                am = _ENV_ASSIGN_RE.match(word)
+                if am and am.group(1) in _GIT_ENV:
+                    state["env"][am.group(1)] = am.group(2)
+            return
+        if name == "unset":
+            for word in argv[1:]:
+                state["env"].pop(word, None)
+            return
+        cmd_env = {**state["env"], **{k: v for k, v in assigns.items() if k in _GIT_ENV}}
+        if name == "eval" and depth < 3:
+            found.extend(parse_invocations(" ".join(argv[1:]), where, depth + 1, cmd_env))
+            return
+        if name in _SHELLS and depth < 3:
             for i, tok in enumerate(argv[1:-1], start=1):
                 if tok == "-c" or (tok.startswith("-") and not tok.startswith("--") and "c" in tok[1:]):
-                    found.extend(parse_invocations(argv[i + 1], current, depth + 1))
+                    found.extend(parse_invocations(argv[i + 1], where, depth + 1, cmd_env))
                     break
-        elif name == "git":
-            _parse_git(argv, current, found)
-        elif name == "gh":
-            _parse_gh(argv, current, found)
+            return
+        if name == "git":
+            _parse_git(argv, where, cmd_env, found)
+            return
+        if name == "gh":
+            _parse_gh(argv, where, found)
+            return
+        # Backstop: an unknown wrapper in front of `git ... push` or `gh ... pr`.
+        for i in range(1, len(argv)):
+            tail = argv[i:]
+            base = os.path.basename(argv[i])
+            if base == "git" and "push" in tail[1:]:
+                before = len(found)
+                _parse_git(tail, where, cmd_env, found)
+                if len(found) == before:
+                    found.append(
+                        Invocation(
+                            "unresolved",
+                            where.path,
+                            [],
+                            problem=f"`{argv[0]}` runs `git` with `push` in its arguments and the push cannot be judged",
+                        )
+                    )
+                return
+            if base == "gh" and "pr" in tail[1:]:
+                _parse_gh(tail, where, found)
+                return
 
     for tok in [*tokens, ";"]:
         if tok and all(c in _PUNCT for c in tok):
@@ -234,23 +417,23 @@ def parse_invocations(command: str, cwd: str | None, depth: int = 0) -> list[Inv
             segment = []
             for c in tok:
                 if c == "(":
-                    stack.append(current)
+                    stack.append((state["where"], dict(state["env"])))
                 elif c == ")" and stack:
-                    current = stack.pop()
+                    state["where"], state["env"] = stack.pop()
             continue
         segment.append(tok)
     return found
 
 
-def _parse_git(argv: list[str], cwd: str | None, found: list[Invocation]) -> None:
-    git_cwd = cwd
-    opts: list[str] = []
+def _parse_git(argv: list[str], where: Where, env: dict[str, str], found: list[Invocation]) -> None:
+    git_where = where
+    opts, env_problem = _git_env_opts(env, where)
     i = 1
     while i < len(argv):
         arg = argv[i]
         if arg in _GIT_VALUE_OPTS and i + 1 < len(argv):
             if arg == "-C":
-                git_cwd = _resolve_dir(git_cwd, argv[i + 1])
+                git_where = _resolve_dir(git_where, argv[i + 1], "git -C")
             elif arg in _PASS_OPTS:
                 opts += [arg, argv[i + 1]]
             i += 2
@@ -263,8 +446,16 @@ def _parse_git(argv: list[str], cwd: str | None, found: list[Invocation]) -> Non
         if arg.startswith("-"):
             i += 1
             continue
+        rest = argv[i + 1 :]
+        problem = git_where.problem or env_problem
         if arg == "push":
-            found.append(Invocation("push", git_cwd, argv[i + 1 :], opts))
+            found.append(Invocation("push", git_where.path, rest, opts, problem))
+        elif arg == "subtree" and "push" in rest:
+            found.append(Invocation("subtree", git_where.path, rest[rest.index("push") + 1 :], opts, problem))
+        elif ("$" in arg or "`" in arg) and "push" in rest:
+            found.append(
+                Invocation("unresolved", git_where.path, [], problem=f"cannot tell which git command `{arg}` runs")
+            )
         return
 
 
@@ -272,7 +463,7 @@ def _is_base_flag(arg: str) -> bool:
     return arg in {"-B", "--base"} or arg.startswith(("--base=", "-B"))
 
 
-def _parse_gh(argv: list[str], cwd: str | None, found: list[Invocation]) -> None:
+def _parse_gh(argv: list[str], where: Where, found: list[Invocation]) -> None:
     rest = argv[1:]
     # gh takes --repo before the subcommand too: `gh -R o/r pr create`.
     lead: list[str] = []
@@ -285,7 +476,7 @@ def _parse_gh(argv: list[str], cwd: str | None, found: list[Invocation]) -> None
     if len(rest) >= 2 and rest[0] == "pr" and rest[1] in _GH_PR_GATED:
         if rest[1] == "edit" and not any(_is_base_flag(a) for a in rest[2:]):
             return  # title/body/label edits add no code
-        found.append(Invocation(f"gh-{rest[1]}", cwd, lead + rest[2:]))
+        found.append(Invocation(f"gh-{rest[1]}", where.path, lead + rest[2:], problem=where.problem))
 
 
 # --------------------------------------------------------------------------
@@ -384,6 +575,9 @@ class RepoConfig:
         urls = self.get_all(f"remote.{remote}.url") or [remote]
         return [self._rewrite(u, "pushinsteadof") or self._rewrite(u, "insteadof") or u for u in urls]
 
+    def rewrite_fetch(self, url: str) -> str:
+        return self._rewrite(url, "insteadof") or url
+
     def all_urls(self) -> list[str]:
         urls: list[str] = []
         for name in self.remotes():
@@ -396,9 +590,19 @@ def _fork_cache_path() -> Path:
     return Path.home() / ".claude" / "state" / "review-gate" / "fork-cache.json"
 
 
+def _remaining() -> float:
+    return _DEADLINE[0] - time.monotonic() if _DEADLINE[0] else DEADLINE_SECONDS
+
+
 def _gh_is_fork(owner: str, repo: str) -> bool | None:
-    """isFork from cache or `gh repo view`; None when unknown (never cached)."""
+    """isFork, memoized per run, from the disk cache or `gh repo view`; None when unknown (never cached on disk)."""
     key = f"{owner}/{repo}".lower()
+    if key not in _FORK_MEMO:
+        _FORK_MEMO[key] = _gh_is_fork_uncached(key)
+    return _FORK_MEMO[key]
+
+
+def _gh_is_fork_uncached(key: str) -> bool | None:
     path = _fork_cache_path()
     try:
         cache = json.loads(path.read_text(encoding="utf-8"))
@@ -414,14 +618,21 @@ def _gh_is_fork(owner: str, repo: str) -> bool | None:
             fresh = False
         if fresh:
             return hit["is_fork"]
+    budget = min(GH_TIMEOUT, _remaining() - 0.5)
+    if budget <= 0.2:
+        raise DeadlineHit(f"no time left to check whether {key} is a fork")
     try:
         proc = subprocess.run(
-            ["gh", "repo", "view", f"{owner}/{repo}", "--json", "isFork", "--jq", ".isFork"],
+            ["gh", "repo", "view", key, "--json", "isFork", "--jq", ".isFork"],
             capture_output=True,
             text=True,
-            timeout=GH_TIMEOUT,
+            timeout=budget,
             check=False,
         )
+    except subprocess.TimeoutExpired as exc:
+        if _remaining() <= 0.5:
+            raise DeadlineHit(f"checking whether {key} is a fork took too long") from exc
+        return None
     except (OSError, subprocess.SubprocessError):
         return None
     answer = proc.stdout.strip()
@@ -504,8 +715,13 @@ def _push_plan(inv: Invocation, config: RepoConfig) -> tuple[list[str], list[str
         elif a in _PUSH_MULTI:
             multi = True
         elif a.startswith("-") and not a.startswith("--") and len(a) > 2:
-            delete |= "d" in a[1:]
-            dry |= "n" in a[1:]
+            for j, letter in enumerate(a[1:], start=1):
+                if letter == "o":  # -o takes a value: the rest of the word, or the next word
+                    if j == len(a) - 1:
+                        i += 1
+                    break
+                delete |= letter == "d"
+                dry |= letter == "n"
         elif not a.startswith("-"):
             positional.append(a)
         i += 1
@@ -523,15 +739,42 @@ def _push_plan(inv: Invocation, config: RepoConfig) -> tuple[list[str], list[str
     urls = config.push_urls(remote)
     if dry or delete:
         return urls, None, ""
+    many = "push many refs; push one reviewed ref by name, like `git push origin <branch>`"
     if multi:
-        return urls, [], "--all, --mirror, --tags, and --branches push many refs; push one reviewed ref by name"
+        return urls, [], f"--all, --mirror, --tags, and --branches {many}"
+    if not positional:
+        if config.get_all(f"remote.{remote}.push"):
+            return urls, [], f"`remote.{remote}.push` is set, so a bare push may {many}"
+        if (config.get("push.default") or "").lower() == "matching":
+            return urls, [], f"`push.default=matching` would {many}"
     srcs: list[str] = []
     for spec in positional or ["HEAD"]:
         spec = spec.lstrip("+")
+        if spec in {"", ":"}:
+            return urls, [], f"the matching refspec `:` would {many}"
+        if "*" in spec:
+            return urls, [], f"the pattern refspec `{spec}` would {many}"
         src = spec.split(":", 1)[0]
         if src:
             srcs.append(src)
     return urls, srcs, ""
+
+
+def _subtree_plan(inv: Invocation, config: RepoConfig) -> tuple[list[str], list[str], str]:
+    """`git subtree push [opts] <remote> <ref>` sends commits split from HEAD."""
+    positional: list[str] = []
+    i = 0
+    while i < len(inv.args):
+        a = inv.args[i]
+        if a in {"-P", "--prefix", "-m", "--message", "--onto", "--annotate"}:
+            i += 2
+            continue
+        if not a.startswith("-"):
+            positional.append(a)
+        i += 1
+    if not positional:
+        return [], [], "cannot tell which remote `git subtree push` targets"
+    return config.push_urls(positional[0]), ["HEAD"], ""
 
 
 def _gh_plan(inv: Invocation, config: RepoConfig) -> tuple[list[str], list[str], str]:
@@ -563,7 +806,8 @@ def _gh_plan(inv: Invocation, config: RepoConfig) -> tuple[list[str], list[str],
         resolved = [n for n in names if config.get(f"remote.{n}.gh-resolved") == "base"]
         if not resolved:
             resolved = sorted(names, key=lambda n: _GH_REMOTE_ORDER.get(n, 9))
-        urls = config.get_all(f"remote.{resolved[0]}.url") if resolved else []
+        raw = config.get_all(f"remote.{resolved[0]}.url") if resolved else []
+        urls = [config.rewrite_fetch(u) for u in raw]
     src = head.split(":", 1)[-1] if inv.kind == "gh-create" and head else "HEAD"
     return urls, [src], ""
 
@@ -601,13 +845,17 @@ def _identity_and_shas(inv: Invocation, srcs: list[str]) -> tuple[str | None, li
 
 
 def evaluate(inv: Invocation) -> Verdict:
+    if inv.problem:
+        return Verdict(False, "an unknown repo", "the command cannot be judged", problem=inv.problem)
     config = RepoConfig(inv.cwd, inv.git_opts)
     if inv.kind == "push":
         urls, srcs, problem = _push_plan(inv, config)
+    elif inv.kind == "subtree":
+        urls, srcs, problem = _subtree_plan(inv, config)
     else:
         urls, srcs, problem = _gh_plan(inv, config)
     target = ", ".join(urls) or "an unknown repo"
-    if inv.kind == "push" and urls and all(is_local_path(u) for u in urls):
+    if inv.kind in {"push", "subtree"} and urls and all(is_local_path(u) for u in urls):
         return Verdict(True, target, "local path")
     mine, reason = classify(urls, config)
     if mine:
@@ -637,13 +885,17 @@ def evaluate(inv: Invocation) -> Verdict:
 _STEPS = (
     "Nothing reaches a repo that is not mine before a local review. Do this: (1) commit locally; "
     "(2) run /pr-review on that local commit; (3) fix every Critical and Important finding and commit the fixes; "
-    "(4) run /pr-review again on the new commit until it is clean, which records it with "
-    "`python3 ~/.claude/scripts/review-record.py mark`; (5) retry the push, then open the PR. "
-    "Check a commit with `python3 ~/.claude/scripts/review-record.py check`."
+    "(4) run /pr-review again on the new commit until it is clean; (5) retry the push, then open the PR."
+)
+_UNJUDGED = (
+    "Write the push as a plain command with literal paths, like `git -C <dir> push <remote> <branch>`, "
+    "so the gate can see which repo and commit it sends."
 )
 
 
 def deny_message(inv: Invocation, v: Verdict) -> str:
+    if inv.problem:
+        return f"[{HOOK}] blocked `{_ACTION[inv.kind]}`: {inv.problem}. {_UNJUDGED} {_STEPS}"
     head = f"[{HOOK}] blocked `{_ACTION[inv.kind]}` to {v.target}: {v.reason}."
     if v.problem:
         why = f" {v.problem[0].upper()}{v.problem[1:]}."
@@ -706,12 +958,15 @@ def main() -> None:
     if not isinstance(command, str) or not _QUICK_RE.search(command):
         return
     cwd = data.get("cwd") if isinstance(data.get("cwd"), str) else os.getcwd()
+    _DEADLINE[0] = time.monotonic() + DEADLINE_SECONDS
+    if _GATED_RE.search(command):
+        _GATED["command"] = command
 
     try:
         invocations = parse_invocations(command, cwd)
     except ParseError:
         # Shell text shlex cannot split that still names a gated action: fail closed.
-        if not re.search(r"\bgit\b.*\bpush\b|\bgh\b.*\bpr\s+(create|edit|ready)\b", command, re.S):
+        if not re.search(r"\bgit\b.*\bpush\b|\bgh\b.*\bpr\s+(create|edit)\b", command, re.S):
             return
         if os.environ.get(_BYPASS_ENV) == "1":
             _log_bypass(cwd, command)
@@ -731,7 +986,13 @@ def main() -> None:
         return
 
     for inv in invocations:
-        verdict = evaluate(inv)
+        try:
+            if _remaining() <= 0.5:
+                raise DeadlineHit("the checks ran out of time")
+            verdict = evaluate(inv)
+        except DeadlineHit as exc:
+            _deny(f"[{HOOK}] blocked `{_ACTION[inv.kind]}`: {exc}, so it cannot be judged. Retry; {_STEPS}", command)
+            return
         if not verdict.allow:
             print(f"[{HOOK}] BLOCKED {_ACTION[inv.kind]} -> {verdict.target}", file=sys.stderr)
             _deny(deny_message(inv, verdict), command)
