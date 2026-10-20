@@ -125,7 +125,7 @@ Resolves review comments on PR #{number}"
 git push
 ```
 
-Repos that are not non-fork `github.com/notque` repos: before `git push`, run `/pr-review` on the fix commit, fix any Critical or Important finding, and re-review until it records the SHA. The push gate blocks an unreviewed commit.
+Repos that are not non-fork `github.com/notque` repos: run `ruff check`/`ruff format` and the repo's own formatters and linters before the fix commit; before `git push`, run `/pr-review` on the fix commit, fix any Critical or Important finding, and re-review until it records the SHA. The push gate blocks an unreviewed commit.
 
 ### Phase 6: FINAL REPORT
 

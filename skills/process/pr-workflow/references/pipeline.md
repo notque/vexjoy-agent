@@ -82,7 +82,7 @@ If the changeset spans 30+ files or multiple unrelated features, suggest the use
 
 ### Phase 2: REVIEW
 
-Repos that are not non-fork `github.com/notque` repos: run Phase 3 (COMMIT) first, then review the local commit with `/pr-review`, fix and commit, and re-review each fix commit until `/pr-review` records the SHA. Push (Phase 4) only after that; skip Phase 4b.
+Repos that are not non-fork `github.com/notque` repos: run `ruff check`/`ruff format` and the repo's own formatters and linters, then run Phase 3 (COMMIT) first, then review the local commit with `/pr-review`, fix and commit, and re-review each fix commit until `/pr-review` records the SHA. Push (Phase 4) only after that; skip Phase 4b.
 
 Classify risk and use the review lanes in `../SKILL.md`. Review the staged diff directly for routine changes. For substantial changes, choose specialists through `right-size-review.py`. Preserve required high-risk review and operator sign-off. `--skip-review` skips optional review, not repository requirements.
 

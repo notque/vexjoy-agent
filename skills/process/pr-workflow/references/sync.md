@@ -95,7 +95,7 @@ If no uncommitted changes exist, skip to Step 4.
 
 ### Step 3b: Review before push (repos that are not mine)
 
-Repos that are not non-fork `github.com/notque` repos: run `/pr-review` on the local commit, fix and commit, and re-run `/pr-review` on each fix commit until it records the SHA. Only then go to Step 4. Skip Step 4b; this review replaces it.
+Repos that are not non-fork `github.com/notque` repos: run `ruff check`/`ruff format` and the repo's own formatters and linters before the Step 3 commit, then run `/pr-review` on the local commit, fix and commit, and re-run `/pr-review` on each fix commit until it records the SHA. Only then go to Step 4. Skip Step 4b; this review replaces it.
 
 ### Step 4: Push to Remote
 

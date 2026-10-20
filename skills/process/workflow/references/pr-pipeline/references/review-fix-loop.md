@@ -4,7 +4,7 @@ Full details for the PR Pipeline review-fix loop.
 
 ## Loop Logic
 
-Up to 3 iterations of `/pr-review` -> fix -> commit, all local. Push once, after the loop exits clean and `/pr-review` recorded the final SHA. Each fix commit is a new SHA and needs its own review.
+Before each commit, run `ruff check`/`ruff format` and the repo's own formatters and linters. Up to 3 iterations of `/pr-review` -> fix -> commit, all local. Push once, after the loop exits clean and `/pr-review` recorded the final SHA. Each fix commit is a new SHA and needs its own review.
 
 ```
 ITERATION = 0
@@ -14,7 +14,7 @@ while ITERATION < MAX_ITERATIONS:
     ITERATION += 1
 
     Step 1: Run /pr-review
-    Step 2: If no issues found -> EXIT LOOP (proceed to Phase 5)
+    Step 2: If no issues found -> EXIT LOOP: record, push, then Phase 5
     Step 3: Fix all reported issues
     Step 4: Stage fixes and commit (no push)
     Step 5: Report iteration results
@@ -28,7 +28,7 @@ Invoke the `/pr-review` command, which launches specialized review agents (code-
 
 | Result | Action |
 |--------|--------|
-| No issues found | **Exit loop**. Proceed to Phase 5 (CREATE PR). |
+| No issues found | **Exit loop**. `/pr-review` records the SHA (Phase 6b), push the branch, then Phase 5 (CREATE PR). |
 | Issues found (iteration < 3) | Fix issues in Step 3, then re-review. |
 | Issues remaining after iteration 3 | **Exit loop**. Repos that are not non-fork notque repos: stop and report; do not push. Non-fork notque repos: list remaining issues in the PR body as known items and proceed to Phase 5. |
 
