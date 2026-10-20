@@ -224,7 +224,7 @@ The executing LLM owns question generation; the script only evaluates a supplied
 ## Output
 
 ```
-GRILL-JEV FINDINGS — mode: plan — 31 questions (generated)
+GRILL-JEV FINDINGS — mode: plan — 31 questions (questions file)
 ============================================================
 HIGH SIGNAL (requires attention):
   [completeness/has_success_criteria] noul=0.89 TRUE — no measurable success criteria

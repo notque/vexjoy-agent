@@ -412,6 +412,31 @@ def test_doctor_flags_python_drift(world: Env, tmp_path: Path, setup: str, check
     assert res.code == 1
 
 
+def test_doctor_warns_when_hook_python_lacks_requirements(world: Env, tmp_path: Path) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    link = interp.link_path(world.home)
+    os.unlink(link)
+    # Answers the version probe like a real python, and reports yaml and PIL as unimportable.
+    fake = tmp_path / "bare" / "python3"
+    fake.parent.mkdir(parents=True)
+    fake.write_text(
+        '#!/bin/sh\nif [ "$2" = "-c" ] && case "$3" in *find_spec*) true;; *) false;; esac; then echo "yaml PIL"; '
+        "else echo 3.12 0; fi\n"
+    )
+    fake.chmod(0o755)
+    os.symlink(fake, link)
+    res = world.run("doctor", "--target", "claude")
+    found = [f for f in res.data["findings"] if f["check"] == "python-deps-missing"]
+    assert len(found) == 1 and found[0]["level"] == "warn", res.data["findings"]
+    assert "yaml, PIL" in found[0]["detail"]
+
+
+def test_missing_modules_is_empty_for_a_python_with_the_stdlib_only(world: Env) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    assert interp.missing_modules(world.home, ("json", "os.path")) == []
+    assert interp.missing_modules(world.home, ("json", "no_such_mod_xyz")) == ["no_such_mod_xyz"]
+
+
 @pytest.mark.parametrize("setup", ["dangling", "old"])
 def test_sync_repairs_a_bad_link_and_uninstall_removes_it(world: Env, tmp_path: Path, setup: str) -> None:
     assert world.run("apply", "--target", "claude").code == 0

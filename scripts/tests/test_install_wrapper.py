@@ -147,3 +147,50 @@ def test_home_inside_repo_is_refused_by_the_engine(tmp_path: Path) -> None:
     )
     assert r.returncode == 4, r.stdout + r.stderr
     assert "inside" in r.stderr
+
+
+# --- install_deps: requirements go into the hook python too ------------------------------------------
+
+
+def _install_deps_harness(tmp_path: Path, *, same: bool) -> list[str]:
+    """Run install.sh's install_deps against logging fake pythons; return the pip invocations."""
+    log = tmp_path / "pip.log"
+    home = tmp_path / "h"
+    linked = home / ".claude" / "vexjoy" / "bin" / "python3"
+    linked.parent.mkdir(parents=True)
+    # Fakes answer the realpath probe (-I) with a fixed value and log every pip call.
+    script = '#!/bin/sh\nif [ "$1" = "-I" ]; then echo "REAL"; exit 0; fi\necho "$0 $*" >> "$LOG"\nexit 0\n'
+    cmd = tmp_path / "cmd_python"
+    hook = tmp_path / "hook_python"
+    for p, real in ((cmd, "/real/a"), (hook, "/real/a" if same else "/real/b")):
+        p.write_text(script.replace("REAL", real))
+        p.chmod(0o755)
+    linked.symlink_to(cmd if same else hook)
+    funcs = subprocess.run(
+        ["sed", "-n", "/^pip_requirements() {/,/^}/p;/^install_deps() {/,/^}/p", str(INSTALL_SH)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    body = (
+        f'GREEN=""; YELLOW=""; NC=""; SCRIPT_DIR="{REPO_ROOT}"; PYTHON_CMD="{cmd}"; CLAUDE_DIR="{home}/.claude"\n'
+        f"{funcs}\n"
+        "command() { return 1; }\ninstall_deps\n"
+    )
+    env = {"HOME": str(home), "LOG": str(log), "PATH": "/usr/bin:/bin"}
+    res = subprocess.run(["bash", "-c", body], capture_output=True, text=True, env=env, timeout=60)
+    assert res.returncode == 0, res.stderr
+    return [line for line in log.read_text().splitlines() if "-m pip install -r" in line] if log.exists() else []
+
+
+def test_install_deps_also_installs_into_a_different_hook_python(tmp_path: Path) -> None:
+    calls = _install_deps_harness(tmp_path, same=False)
+    assert len(calls) == 2
+    assert calls[0].startswith(str(tmp_path / "cmd_python")) and calls[1].startswith(
+        str(tmp_path / "h" / ".claude" / "vexjoy" / "bin" / "python3")
+    )
+
+
+def test_install_deps_skips_the_hook_python_when_it_is_the_same_interpreter(tmp_path: Path) -> None:
+    calls = _install_deps_harness(tmp_path, same=True)
+    assert len(calls) == 1 and calls[0].startswith(str(tmp_path / "cmd_python"))
