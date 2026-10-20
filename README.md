@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 62 skills, 78 hooks, 155 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+43 agents, 62 skills, 79 hooks, 156 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -157,7 +157,7 @@ Replaces generated compaction summaries with Jev-judged verbatim pruning after c
 <details>
 <summary><b>Codex CLI Parity</b></summary>
 
-Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ supports 59 of the 70 unique Claude hook registrations: **29 native, 30 adapter-backed, and 11 unsupported**. These are registrations, not unique hook files.
+Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ supports 60 of the 71 unique Claude hook registrations: **30 native, 30 adapter-backed, and 11 unsupported**. These are registrations, not unique hook files.
 
 The adapter converts `apply_patch` operations into the Write/Edit payload expected by existing guards. It cannot intercept writes through `unified_exec`, unmatched MCP tools, WebSearch, or other unsupported paths. PreCompact and Stop receive less telemetry than in Claude Code. This is expanded compatibility, not full parity.
 
@@ -175,7 +175,7 @@ Mirrors agents (as "droids"), skills, and hooks into `~/.factory/`. Hook config 
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 155 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
+Mirrors skills, 156 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
 
 </details>
 
@@ -200,8 +200,8 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 62 | Reusable guidance and methodology for recurring work. |
-| Hooks | 78 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 155 | Repeatable validation, orchestration, and plumbing. |
+| Hooks | 79 | Lifecycle checks, context injection, and telemetry. |
+| Scripts | 156 | Repeatable validation, orchestration, and plumbing. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
@@ -254,7 +254,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 155 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 156 scripts.
 
 | Need | Use |
 |---|---|

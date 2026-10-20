@@ -180,6 +180,10 @@ classification, roster selection, and review reuse. Preserve explicit user and
 `/do` rosters and repository requirements. Do not start a second review at each
 PR phase.
 
+### Review Before Push
+
+In a repo that is not a non-fork `github.com/notque` repo (upstreams, every github.wdf.sap.corp org, and notque forks), nothing reaches a remote before a local review: run `ruff check`/`ruff format` and the repo's own formatters and linters, commit, run `/pr-review` on the local commit, fix (formatters again) and commit, run `/pr-review` on the fix delta, then push, then open the PR. Formatting after the review makes a new SHA that needs another review. No push, remote branch, draft PR, or `gh pr create` before that. `/pr-review` records the clean SHA; `pretool-review-before-push-gate` blocks a push without the record. Non-fork notque repos keep the risk-selected lanes below.
+
 ### CI Check
 
 Before pushing Python changes, run both locally:

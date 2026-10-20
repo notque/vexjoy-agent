@@ -20,6 +20,8 @@ This command accepts either a PR reference or a local branch diff. You do not ne
 | `/pr-review` (no argument) | Uncommitted and committed local changes against the base branch (`HEAD` vs base) |
 | `/pr-review 123` or `/pr-review https://github.com/org/repo/pull/123` | The diff of the specified open PR |
 
+**Review the local commit before any push.** In a repo that is not a non-fork `github.com/notque` repo (sapcc, SAP-cloud-infrastructure, cloudoperators, perses, ceph, every github.wdf.sap.corp org, other upstreams, and notque forks), nothing reaches a remote before this review passes: no push, remote branch, or draft PR. Commit first, review the local commit, fix, review the fix delta, then push. The `pretool-review-before-push-gate` hook enforces this with the record from Phase 6b.
+
 When no argument is provided, the command reads `git diff` to determine changed files. When a PR number or URL is provided, it fetches the PR diff via `gh pr view`. All review phases and retro learning apply in both cases.
 
 ## Usage
@@ -52,6 +54,7 @@ When no argument is provided, the command reads `git diff` to determine changed 
 2. Parse arguments to see if user requested specific review aspects
 3. Default: Run all applicable reviews
 4. Check if PR already exists: `gh pr view 2>/dev/null`
+5. Local-branch mode (no PR argument): note the commit under review as `REVIEWED_SHA=$(git rev-parse HEAD)`. Uncommitted changes cannot be recorded in Phase 6b, so commit them first.
 
 ### Phase 2: Identify Applicable Reviews
 
@@ -167,6 +170,8 @@ After agents complete, summarize:
 - **Suggestions** (nice to have)
 - **Positive Observations** (what's good)
 
+Write this summary to `/tmp/pr-review-<sha12>.md` (outside the repo, so it never gets committed). Phase 6b needs it.
+
 ### Phase 6: Provide Action Plan
 
 ```markdown
@@ -191,9 +196,23 @@ After agents complete, summarize:
 4. Re-run review after fixes
 ```
 
+### Phase 6b: Record the Reviewed Commit
+
+Local-branch mode only. Never record for `/pr-review <PR#>` or a PR URL: that diff came from GitHub, not from the local commit.
+
+Run this only when no Critical or Important finding is open. Record the SHA noted in Phase 1, not whatever HEAD is now. If you fixed findings, commit the fixes and review that new commit (the fix delta) first: a record covers one SHA.
+
+```bash
+python3 ~/.claude/scripts/review-record.py mark --sha "$REVIEWED_SHA" \
+  --findings-file "/tmp/pr-review-${REVIEWED_SHA:0:12}.md" \
+  --summary "<agents run>; <N> suggestions; reviewed <base>..<sha12>" --critical 0 --important 0
+```
+
+The script refuses open findings, a dirty tree, and a findings file that is missing, empty, or older than the commit. These checks stop accidental self-marking, not a determined agent. Never write the record for a commit you did not review. Report the recorded SHA; then the push and PR may proceed.
+
 ### Phase 7: Apply Fixes (if requested)
 
-If the user asks to fix issues, apply the fixes using the code-simplifier agent or direct edits.
+If the user asks to fix issues, apply the fixes using the code-simplifier agent or direct edits. Commit the fixes, then re-run the review on the new commit before Phase 6b.
 
 ### Phase 8: Retro Learning (run after every review)
 
@@ -264,7 +283,7 @@ Only record findings that are specific enough to be actionable guidance for futu
 
 ## Tips
 
-- **Run early**: Before creating PR, not after
+- **Run before push**: Review the local commit, fix, re-review the delta, then push and open the PR
 - **Focus on changes**: Agents analyze git diff by default
 - **Address critical first**: Fix high-priority issues before lower priority
 - **Re-run after fixes**: Verify issues are resolved

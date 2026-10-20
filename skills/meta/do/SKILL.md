@@ -333,6 +333,8 @@ python3 "$SDIR/build-dispatch.py" --json '{
 
 `[do-route]` = SOLE signal for `routing-decision-recorder`. Sub-agents excluded.
 
+**PR work briefs:** put in `constraints`: commit locally, report the SHA, never push or open a PR without the coordinator's go-ahead.
+
 **Fallback:** `[do-route] agent={a} skill={s|-} complexity={c}[ pipeline={p}] health=- model={m|-}`, Task Spec inline, dispatch.
 
 **Model choice.** Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
