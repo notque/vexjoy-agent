@@ -82,6 +82,8 @@ If the changeset spans 30+ files or multiple unrelated features, suggest the use
 
 ### Phase 2: REVIEW
 
+Repos that are not non-fork `github.com/notque` repos: run Phase 3 (COMMIT) first, then review the local commit with `/pr-review`, fix and commit, and re-review each fix commit until `/pr-review` records the SHA. Push (Phase 4) only after that; skip Phase 4b.
+
 Classify risk and use the review lanes in `../SKILL.md`. Review the staged diff directly for routine changes. For substantial changes, choose specialists through `right-size-review.py`. Preserve required high-risk review and operator sign-off. `--skip-review` skips optional review, not repository requirements.
 
 Assess findings before fixing them. Fix confirmed issues, stage the fixes, and rerun affected checks. Blocking correctness and security issues prevent merge. Repeat review only for new changes or unresolved concerns; reuse clean review of unchanged work.
@@ -161,7 +163,7 @@ Confirm push succeeded by checking output. If push fails (e.g., rejected), repor
 
 **Gate**: Changes pushed to remote. Branch tracks upstream. (protected-org: authorization checked.)
 
-### Phase 4b: REVIEW-FIX (personal repos)
+### Phase 4b: REVIEW-FIX (non-fork notque repos)
 
 Reuse Phase 2's review. If new findings or changes need follow-up, fix confirmed issues and rerun affected checks. Document unresolved nonblocking issues in Notes; blocking correctness and security issues prevent merge. Protected-org repos retain their own review gates.
 
@@ -412,6 +414,8 @@ This is context-dependent. If the project has a test suite (`go test`, `npm test
 # Review-Fix Loop
 
 Review only changed or unresolved scope using the selected risk lane. Exit when clean. Do not impose a fixed number of reviewer rounds. Report any unresolved issue; blocking correctness and security issues prevent merge.
+
+Repos that are not non-fork notque repos: loop locally (fix, commit, `/pr-review` the new commit) and push once, after the record exists.
 
 Stage fixes selectively. Prefer a new commit if earlier commits have external review or collaborators. Amend only the tip created and pushed by this workflow before external review; use `--force-with-lease`, never `--force`, and stop if the lease fails.
 

@@ -180,7 +180,7 @@ print("[hook-name] Action suggested: fix the broken reference")
 
 PreToolUse hooks split into **gates** (can block tool execution) and **advisory** (context injection only). This distinction matters for exit code behavior and testing.
 
-### Gates (8 hooks — block on violation)
+### Gates (9 hooks — block on violation)
 
 | Hook | Matcher | Blocking Mechanism |
 |------|---------|-------------------|
@@ -188,6 +188,7 @@ PreToolUse hooks split into **gates** (can block tool execution) and **advisory*
 | `pretool-branch-safety.py` | Bash | JSON `permissionDecision: deny` (exit 0) |
 | `ci-merge-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0) — **non-functional**: uses `gh pr checks --json conclusion` but `conclusion` is invalid; use `bucket` |
 | `pretool-ruff-format-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0) |
+| `pretool-review-before-push-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0); denies on crash once a push or PR is detected |
 | `pretool-synthesis-gate.py` | Write\|Edit | JSON `permissionDecision: deny` (exit 0) |
 | `pretool-plan-gate.py` | Write\|Edit | JSON `permissionDecision: deny` (exit 0) |
 | `pretool-adr-creation-gate.py` | Write | JSON `permissionDecision: deny` (exit 0) |

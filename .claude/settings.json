@@ -228,6 +228,12 @@
           },
           {
             "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-review-before-push-gate.py\"",
+            "description": "Review-before-push gate: blocks git push and gh pr create/edit/ready to repos that are not non-fork notque repos until /pr-review recorded the commit",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-ruff-format-gate.py\"",
             "description": "Ruff format gate: blocks git push when ruff format --check finds violations (Python projects with pyproject.toml only)",
             "timeout": 5000

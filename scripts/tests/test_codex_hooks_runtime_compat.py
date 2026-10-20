@@ -86,6 +86,7 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
         "allow",
         "pretool-branch-safety.py",
         "ci-merge-gate.py",
+        "pretool-review-before-push-gate.py",
         "pretool-ruff-format-gate.py",
         "pretool-private-name-leak-gate.py",
         "security-review-hook.py",
@@ -615,9 +616,9 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    assert len(REGISTRATIONS) == 59, "runtime matrix must execute every supported registration"
+    assert len(REGISTRATIONS) == 60, "runtime matrix must execute every supported registration"
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 59
+    assert len(registrations) == 60
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 

@@ -93,6 +93,10 @@ git commit -m "type(scope): description"
 If no uncommitted changes exist, skip to Step 4.
 
 
+### Step 3b: Review before push (repos that are not mine)
+
+Repos that are not non-fork `github.com/notque` repos: run `/pr-review` on the local commit, fix and commit, and re-run `/pr-review` on each fix commit until it records the SHA. Only then go to Step 4. Skip Step 4b; this review replaces it.
+
 ### Step 4: Push to Remote
 
 All pushes use standard `git push`, never `--force`, because force pushing destroys remote history and teammates lose work. If push is rejected due to the branch being behind remote, pull with rebase and resolve conflicts rather than forcing.
@@ -117,7 +121,7 @@ python3 scripts/adr-decision-coverage.py --adr <active-adr-path> --diff-base mai
 
 If verdict is PARTIAL or FAIL, display uncovered decision points and ask whether to proceed or address gaps first. This runs once before the review loop, not on every iteration.
 
-### Step 4b: Review and fix (personal repos)
+### Step 4b: Review and fix (non-fork notque repos)
 
 Use the risk-selected review lane in `../SKILL.md`. Reuse completed review; repeat only for new changes or unresolved findings. Fix confirmed issues and rerun affected checks. Document nonblocking unresolved issues in Notes; blocking correctness and security issues prevent merge.
 
