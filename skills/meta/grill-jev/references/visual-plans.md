@@ -13,9 +13,9 @@ When the plan or artifact has a visual goal ("looks like the reference", "reads 
 
 If the artifact has no rendered candidate or no reference, that is the first finding. Report it as a gap and stop asking visual questions until both exist.
 
-## Use `jev_transport`, not `grill-jev.py`
+## Screenshots: `grill-jev.py --image`; custom batteries: `jev_transport`
 
-`scripts/grill-jev.py` evaluates a text battery. For a visual battery, write the questions yourself and call `jev_transport.evaluate`. Keep the images in `state` so the request bills them once.
+`scripts/grill-jev.py --image/--images-dir` judges screenshots with a question battery (see SKILL.md, Images and screenshots). For a candidate-versus-reference battery with custom state, write the questions yourself and call `jev_transport.evaluate`. Keep the images in `state` so the request bills them once.
 
 ```python
 from jev_images import JevImage
