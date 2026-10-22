@@ -279,6 +279,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `game-pipeline` | no | Game lifecycle: scaffold, assets, audio, motion capture, QA, deploy |
 | `game-sprite-pipeline` | no | AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana. |
 | `phaser-gamedev` | no | Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish. |
+| `game-trailer` | yes | Trailer or promo video from the real game: virtual-clock 4K capture, beat-mapped edit with poster overlays, code-written score, the game's own sounds and crowd. |
 
 ---
 
