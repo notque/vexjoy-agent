@@ -22,6 +22,8 @@ fi
 
 SDIR="$(cd "$(dirname "$0")" && pwd)"
 BASE="$(dirname "$SDIR")"
+# Hashed repo files live under the resolved base; ~/.claude/scripts is a symlink into the repo.
+RBASE="$(dirname "$(cd "$(dirname "$0")" && pwd -P)")"
 CACHE="${HOME}/.claude/cache/routing-manifest.txt"
 CHASH="${HOME}/.claude/cache/routing-manifest.hash"
 if [ -n "${VEXJOY_INDEX_DIR:-}" ]; then
@@ -35,10 +37,10 @@ fi
 
 if [ -n "$REQUEST_FILE" ] && {
   grep -qs '"overlay:' "$IDX/skills.json" "$IDX/agents.json" ||
-    [ -e "$BASE/skills/INDEX.local.json" ] || [ -e "$BASE/agents/INDEX.local.json" ]
+    [ -e "$RBASE/skills/INDEX.local.json" ] || [ -e "$RBASE/agents/INDEX.local.json" ]
 }; then
   python3 "$SDIR/routing-manifest.py" --request-file "$REQUEST_FILE"
-elif [ -s "$CACHE" ] && [ -s "$CHASH" ] && [ "$(cat "$SDIR/routing-manifest.py" "$SDIR/routing_index_merge.py" "$BASE/skills/INDEX.json" "$BASE/skills/INDEX.local.json" "$BASE/agents/INDEX.json" "$BASE/agents/INDEX.local.json" "$BASE/skills/process/workflow/references/pipeline-index.json" "$IDX/skills.json" "$IDX/agents.json" 2>/dev/null | sha256sum | cut -d' ' -f1)" = "$(cat "$CHASH")" ]; then
+elif [ -s "$CACHE" ] && [ -s "$CHASH" ] && [ "$(cat "$SDIR/routing-manifest.py" "$SDIR/routing_index_merge.py" "$RBASE/skills/INDEX.json" "$RBASE/skills/INDEX.local.json" "$RBASE/agents/INDEX.json" "$RBASE/agents/INDEX.local.json" "$RBASE/skills/process/workflow/references/pipeline-index.json" "$IDX/skills.json" "$IDX/agents.json" 2>/dev/null | sha256sum | cut -d' ' -f1)" = "$(cat "$CHASH")" ]; then
   cat "$CACHE"    # cache hit: manifest read from disk, no Python start
 else
   python3 "$SDIR/routing-manifest.py"

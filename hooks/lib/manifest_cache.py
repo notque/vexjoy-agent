@@ -56,11 +56,12 @@ def installed_index_dir(scripts_dir: Path) -> Path:
 
 def input_paths(scripts_dir: Path) -> list[Path]:
     """Generator inputs in the fixed order the digest concatenates them."""
-    base = scripts_dir.parent
+    # Resolve the symlink for the hashed repo files; keep the invoked path for the index dir.
+    base = scripts_dir.resolve().parent
     index_dir = installed_index_dir(scripts_dir)
     return [
-        scripts_dir / "routing-manifest.py",
-        scripts_dir / "routing_index_merge.py",
+        base / "scripts" / "routing-manifest.py",
+        base / "scripts" / "routing_index_merge.py",
         base / "skills" / "INDEX.json",
         base / "skills" / "INDEX.local.json",
         base / "agents" / "INDEX.json",
