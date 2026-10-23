@@ -189,6 +189,67 @@ go mod tidy
 
 ---
 
+## Rust Scans
+
+### Unused Imports / Dead Code
+
+```bash
+# Lint with all warnings as errors — catches unused imports, dead code, and more
+cargo clippy -- -D warnings -D dead_code -D unused_imports
+```
+
+Expected output:
+```
+warning: unused import: `std::collections::HashMap`
+  --> src/lib.rs:3:5
+   |
+ 3 |     use std::collections::HashMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+```
+
+### Static Analysis
+
+```bash
+# Full clippy lint pass — use in CI
+cargo clippy --all-targets --all-features -- -D warnings
+
+# Pedantic and restriction lints (optional; noisy on first run)
+cargo clippy -- -W clippy::pedantic -W clippy::restriction
+```
+
+### Cyclomatic Complexity
+
+```bash
+# Install once, then run
+cargo install cargo-geiger       # measures unsafe usage too
+cargo clippy -- -W clippy::cognitive_complexity
+```
+
+### Naming Conventions
+
+```bash
+# Clippy enforces Rust naming rules by default
+cargo clippy -- \
+  -D clippy::module_name_repetitions \
+  -D clippy::enum_variant_names \
+  -D clippy::struct_field_names
+```
+
+### Auto-Fix Commands (Safe)
+
+```bash
+# Format all files
+cargo fmt --all
+
+# Apply machine-suggested clippy fixes (staged changes only — review the diff)
+cargo clippy --fix --allow-staged
+
+# Remove unused dependencies (requires cargo-udeps nightly or cargo-machete)
+cargo machete
+```
+
+---
+
 ## Validation After Fixes
 
 ### Python
@@ -205,4 +266,13 @@ ruff check .        # Verify linting
 go test ./...       # Run tests
 go build ./...      # Verify build
 golangci-lint run   # Check linting
+```
+
+### Rust
+
+```bash
+cargo test          # Run tests
+cargo build         # Verify build
+cargo clippy -- -D warnings   # Check linting
+cargo fmt --check   # Verify formatting
 ```
