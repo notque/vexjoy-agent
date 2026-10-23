@@ -110,16 +110,16 @@ FORCE-ROUTE RULE: manifest entries marked FORCE — in SKILLS: or in PIPELINES: 
 - "push my changes" → pr-workflow ✓ (git push) | "push back on this frontend" → NOT pr-workflow (means resist)
 - "configure my fish shell" → deploy ✓ (the Fish shell) | "fish for bugs" → NOT deploy (means search)
 - "quick fix to the login page" → quick ✓ (small edit) | "quick overview of the architecture" → NOT quick (means explore)
-A FORCE pipeline (6 of the 30) binds the `pipeline` slot exactly as a FORCE skill binds `skill`. `pre-route.py` reads FORCE pipelines and applies their semantic guard policy; the semantic route still owns intent and must apply the same MEANS-not-words test above.
+A FORCE pipeline (6 of the 26) binds the `pipeline` slot exactly as a FORCE skill binds `skill`. `pre-route.py` reads FORCE pipelines and applies their semantic guard policy; the semantic route still owns intent and must apply the same MEANS-not-words test above.
 
 PIPELINE-SELECTION RULE: pick a pipeline whenever the work has REAL PHASES. The PIPELINES: section ships in every manifest and 26 pipelines are available; reach for one on ANY of:
 (1) the intent semantically matches a pipeline's description or its `t:` triggers, OR
 (2) the shape is multi-phase — 3+ distinct steps, gather-then-synthesize, mixed script+LLM work, or intermediate artifacts worth keeping, OR
 (3) Phase 1 classified the request Complex.
 The user saying the word "pipeline" is one signal among these, never the gate. Examples:
-- "write an article in vexjoy voice about X" → writing ✓ | "research X with artifacts and sources" → research ✓
+- "write an article in vexjoy voice about X" → writing ✓ | "write structured docs for X from the source" → doc-pipeline ✓
 - "comprehensive review of these 8 files" → comprehensive-review ✓ (outranked by `right-size-review.py` when a real diff exists)
-- "add caching to the API and update the docs" → feature-pipeline ✓ (frontend → implement → document; nobody said "pipeline")
+- "add caching to the API and update the docs" → quality-loop ✓ (implement → review → document; nobody said "pipeline")
 - "help me understand how auth works across this repo" → explore-pipeline ✓ (parallel exploration; a plain pipeline earns the pick on shape, no FORCE flag needed)
 Return null when the whole job is one step for one agent: "fix the typo on line 42 of foo.py", "debug this failing test", "review this 10-line function".
 
@@ -253,8 +253,8 @@ Stack on signals.
 | Complex implementation | Offer process |
 | "local only"/"no push"/"keep it local"/"stay local" | Inject `shared-patterns/local-only.md` |
 | Voice profile (e.g. voice-example-profile) | Stack `writing`; voice-*=profile |
-| Needed knowledge or approval exists with another person | `workflow` — `human-source-elicitation.md` |
-| Observation can settle a high impact uncertainty | `workflow` — `empirical-prototype.md` |
+| Needed knowledge or approval exists with another person | `workflow` — `skills/process/workflow/references/pl-human-source-elicitation.md` |
+| Observation can settle a high impact uncertainty | `workflow` — `skills/process/workflow/references/pl-empirical-prototype.md` |
 | Objective with done-criteria / "loop until done" | Stack `workflow` |
 | Protected PR/security intent with a Go source operand | Keep `pr-workflow`/`security` primary and stack `programming` from `PRE_ROUTE_RESULT.stack` or router `pairs_with` |
 
@@ -265,9 +265,9 @@ Review overlap: real-diff row wins; fallback only without diff.
 |---|---|
 | Low impact, reversible, or covered by a safe convention | State the assumption and execute. |
 | One high impact decision owned by the current user | Ask one question with a recommendation, then execute. |
-| Two or more high impact decisions owned by the current user | Use `depth-first-interview.md`: batch the independent frontier, then traverse genuine dependencies; interviews initiated by the router cap at five questions and three decision rounds. |
-| Facts, constraints, preferences, or approval exist with another person | Use `human-source-elicitation.md`; draft the artifact and never send without authorization. |
-| Evidence can settle the choice faster than discussion | Use `empirical-prototype.md`: Question → Evidence → Verdict → Next action. |
+| Two or more high impact decisions owned by the current user | Use `skills/process/workflow/references/pl-depth-first-interview.md`: batch the independent frontier, then traverse genuine dependencies; interviews initiated by the router cap at five questions and three decision rounds. |
+| Facts, constraints, preferences, or approval exist with another person | Use `skills/process/workflow/references/pl-human-source-elicitation.md`; draft the artifact and never send without authorization. |
+| Evidence can settle the choice faster than discussion | Use `skills/process/workflow/references/pl-empirical-prototype.md`: Question → Evidence → Verdict → Next action. |
 
 Explicit "interview me" or "grill me" opts into exhaustive material coverage until shared understanding or a user stop; it has no arbitrary question or round cap. An implicit interview must earn its interruption cost through likely avoided rework and remains bounded. "Just build it," "skip questions," and equivalents use recommended defaults and continue.
 

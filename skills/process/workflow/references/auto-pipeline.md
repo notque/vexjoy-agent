@@ -109,11 +109,11 @@ a stale catalog silently weakens the HARD BLOCK below.
 
 **Goal**: Determine whether to crystallize immediately or run ephemeral.
 
-**Toolkit repo rule**: If running in this repo (detected by `skills/workflow/references/auto-pipeline.md` existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Capture the pattern immediately on the first run.
+**Toolkit repo rule**: If running in this repo (detected by `skills/process/workflow/references/auto-pipeline.md` (or installed `skills/workflow/references/auto-pipeline.md`) existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Capture the pattern immediately on the first run.
 
 **Outside toolkit repo rule**: Wait for 3+ ephemeral executions in the same domain before crystallizing. This ensures the pattern is stable and not a one-off.
 
-**Step 1**: Check if `skills/workflow/references/auto-pipeline.md` exists in CWD (indicates toolkit repo).
+**Step 1**: Check if `skills/process/workflow/references/auto-pipeline.md` exists in CWD (indicates toolkit repo).
 
 **Step 2**: If toolkit repo:
 - Proceed to Phase 3 (CRYSTALLIZE) instead of Phase 4 (EPHEMERAL EXECUTE)
