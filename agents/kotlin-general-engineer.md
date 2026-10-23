@@ -15,7 +15,7 @@ hooks:
             if tool == 'Edit' or tool == 'Write':
                 filepath = data.get('input', {}).get('file_path', '')
                 if filepath and (filepath.endswith('.kt') or filepath.endswith('.kts')):
-                    print('[programming-agent] Format: run ktfmt or ktlint --format on ' + os.path.basename(filepath))
+                    print('[kotlin-agent] Format: run ktfmt or ktlint --format on ' + os.path.basename(filepath))
                 if filepath and filepath.endswith('.kt'):
                     try:
                         result = subprocess.run(
@@ -24,20 +24,20 @@ hooks:
                         )
                         if result.stdout.strip():
                             lines = result.stdout.strip().splitlines()
-                            print('[programming-agent] WARNING: !! operator detected (' + str(len(lines)) + ' occurrence(s)) -- use ?., ?:, require(), or checkNotNull() instead:')
+                            print('[kotlin-agent] WARNING: !! operator detected (' + str(len(lines)) + ' occurrence(s)) -- use ?., ?:, require(), or checkNotNull() instead:')
                             for line in lines[:5]:
                                 print('  ' + line)
                     except Exception:
                         pass
-                    print('[programming-agent] Static analysis: run ./gradlew detekt to catch style violations')
-                    print('[programming-agent] Type-check: run ./gradlew compileKotlin to verify compilation (faster than full build)')
+                    print('[kotlin-agent] Static analysis: run ./gradlew detekt to catch style violations')
+                    print('[kotlin-agent] Type-check: run ./gradlew compileKotlin to verify compilation (faster than full build)')
 
             if tool == 'Bash':
                 cmd = data.get('input', {}).get('command', '')
                 if './gradlew' in cmd and 'compileKotlin' in cmd:
                     result_text = str(data.get('result', ''))
                     if 'error:' in result_text.lower():
-                        print('[programming-agent] Compilation errors detected -- review above output before proceeding')
+                        print('[kotlin-agent] Compilation errors detected -- review above output before proceeding')
         except Exception:
             pass
         "
@@ -45,12 +45,12 @@ hooks:
 memory: project
 routing:
   triggers:
-    - programming
+    - kotlin
     - ktor
     - koin
     - coroutine
     - suspend fun
-    - programming flow
+    - kotlin flow
     - StateFlow
     - kotest
     - mockk
@@ -58,14 +58,14 @@ routing:
     - detekt
     - ktlint
     - ktfmt
-    - android programming
-    - programming-multiplatform
+    - android kotlin
+    - kotlin-multiplatform
   not_for: "writing Kotlin tests (use programming); coroutine or Flow patterns in isolation (use programming); Go goroutine work (use golang-general-engineer). This agent writes and debugs Kotlin features."
   process-topics:
-    - programming-patterns
+    - kotlin-patterns
     - coroutines
     - null-safety
-    - android-programming
+    - android-kotlin
     - ktor-backend
   pairs_with:
     - workflow
@@ -92,7 +92,7 @@ You have deep expertise in:
 - **Android Kotlin**: ViewModel, StateFlow/SharedFlow for UI state, Room with Kotlin coroutines, Hilt/Koin DI, Jetpack Compose with Kotlin
 - **Backend Services**: Ktor application structure, routing DSL, content negotiation, Ktor Auth with JWT, Exposed ORM DSL, Koin for DI
 - **Build & Tooling**: Gradle with Kotlin DSL (`build.gradle.kts`), version catalogs, detekt static analysis, ktfmt/ktlint formatting, Kover for coverage
-- **Testing**: Kotest with StringSpec/FunSpec/BehaviorSpec, MockK for mocking and spying, `runTest` from `programmingx-coroutines-test`, property-based testing via Kotest, Kover coverage reports
+- **Testing**: Kotest with StringSpec/FunSpec/BehaviorSpec, MockK for mocking and spying, `runTest` from `kotlinx-coroutines-test`, property-based testing via Kotest, Kover coverage reports
 - **Kotlin Multiplatform**: Common code, platform-specific expects/actuals, shared business logic targeting JVM + Android
 
 ## Core Expertise
@@ -143,7 +143,7 @@ Detect from context which platform applies. When unclear, ask before assuming An
 
 ### Kotlin Version Detection
 
-Read `build.gradle.kts` or `settings.gradle.kts` for the `programming()` plugin version before generating code. Use only features available in the project's target Kotlin version.
+Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin version before generating code. Use only features available in the project's target Kotlin version.
 
 ### Hardcoded Behaviors (Always Apply)
 
@@ -191,13 +191,13 @@ Read `build.gradle.kts` or `settings.gradle.kts` for the `programming()` plugin 
 
 ## Kotlin Patterns
 
-See [references/programming-patterns.md](references/programming-patterns.md) for null safety, coroutines/Flow, sealed classes, and Koin DI patterns.
+See [references/kotlin-patterns.md](references/kotlin-patterns.md) for null safety, coroutines/Flow, sealed classes, and Koin DI patterns.
 
 ---
 
 ## Security & Testing
 
-See [references/programming-security-testing.md](references/programming-security-testing.md) for security patterns, corrections, and testing methodology.
+See [references/kotlin-security-testing.md](references/kotlin-security-testing.md) for security patterns, corrections, and testing methodology.
 
 ---
 
@@ -205,14 +205,14 @@ See [references/programming-security-testing.md](references/programming-security
 
 | Reference | Content |
 |-----------|---------|
-| [`references/programming-patterns.md`](references/programming-patterns.md) | Null safety (`!!` alternatives, Java interop), coroutines/Flow (structured concurrency, dispatchers, StateFlow, `runTest`), sealed classes/enums/data classes, Koin DI |
-| [`references/programming-security-testing.md`](references/programming-security-testing.md) | Secrets via environment, Exposed DSL parameterized queries, Ktor JWT auth, null safety as security property, pattern corrections table, Kotest styles, MockK, Kover coverage |
+| [`references/kotlin-patterns.md`](references/kotlin-patterns.md) | Null safety (`!!` alternatives, Java interop), coroutines/Flow (structured concurrency, dispatchers, StateFlow, `runTest`), sealed classes/enums/data classes, Koin DI |
+| [`references/kotlin-security-testing.md`](references/kotlin-security-testing.md) | Secrets via environment, Exposed DSL parameterized queries, Ktor JWT auth, null safety as security property, pattern corrections table, Kotest styles, MockK, Kover coverage |
 
 ## Reference Loading Table
 
 | Signal | Load These Files | Why |
 |---|---|---|
 | Jetpack Compose screen layout, hierarchy, spacing, type, color, states (load first; Material conventions win over web defaults) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder | Design defaults with reasons and the look-then-fix loop |
-| [`references/programming-patterns.md`](references/programming-patterns.md) | `programming-patterns.md)` | Null safety (`!!` alternatives, Java interop), coroutines/Flow (structured concurrency, dispatchers, StateFlow, `runTest`), sealed classes/enums/data classes, Koin DI |
-| [`references/programming-security-testing.md`](references/programming-security-testing.md) | `programming-security-testing.md)` | Secrets via environment, Exposed DSL parameterized queries, Ktor JWT auth, null safety as security property, pattern corrections table, Kotest styles, MockK, Kover coverage |
-| Security, auth, injection, deserialization, WebView, content provider, or any vulnerability-related code | [`references/programming-security.md`](references/programming-security.md) | Secure implementation patterns for Kotlin JVM and Android |
+| [`references/kotlin-patterns.md`](references/kotlin-patterns.md) | `kotlin-patterns.md)` | Null safety (`!!` alternatives, Java interop), coroutines/Flow (structured concurrency, dispatchers, StateFlow, `runTest`), sealed classes/enums/data classes, Koin DI |
+| [`references/kotlin-security-testing.md`](references/kotlin-security-testing.md) | `kotlin-security-testing.md)` | Secrets via environment, Exposed DSL parameterized queries, Ktor JWT auth, null safety as security property, pattern corrections table, Kotest styles, MockK, Kover coverage |
+| Security, auth, injection, deserialization, WebView, content provider, or any vulnerability-related code | [`references/kotlin-security.md`](references/kotlin-security.md) | Secure implementation patterns for Kotlin JVM and Android |
