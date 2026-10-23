@@ -1026,6 +1026,14 @@
       }
     },
     {
+      "request": "make a new trailer for road to aew for youtube showing the ladder match and the busaiku knee finish",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": "game-trailer",
+      "category": "content-creation",
+      "routing_tier": "candidate",
+      "notes": "Game trailer from the real game (virtual-clock capture, beat-mapped edit) — game-trailer should appear in top-3 candidates; agent from its agent field. Distinct from video-editing (recorded footage)."
+    },
+    {
       "request": "get API p99 under 200ms using the same load-test dataset on every run",
       "expected_agent": null,
       "expected_skill": "toolkit",

@@ -107,7 +107,7 @@ def ground_truth() -> dict[str, int]:
     truth["skills"] = skill_count
 
     # workflow skills (pipelines)
-    pipelines_dir = skills_dir / "workflow" / "references"
+    pipelines_dir = skills_dir / "process" / "workflow" / "references"
     truth["pipelines"] = count_files(pipelines_dir, "*.md")
 
     # hook events

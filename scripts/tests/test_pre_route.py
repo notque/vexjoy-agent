@@ -548,3 +548,29 @@ class TestPipelineForceRoute:
         assert result["matched"] is True
         assert result["skill"] == "deploy"
         assert result.get("pipeline") is None
+
+
+class TestSeparatorEquivalence:
+    """A hyphen or underscore between trigger words counts as a space."""
+
+    @pytest.mark.parametrize(
+        "query",
+        ["pr-review this", "pr_review it", "code-review the diff", "pr-review our agent"],
+    )
+    def test_hyphen_underscore_matches_review_force_route(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["matched"] is True, result
+        assert result["skill"] == "review"
+        assert result["match_type"] == "force_route"
+
+    def test_spaced_form_still_matches(self, pre_route, real_entries) -> None:
+        result = pre_route.route("pr review our agent", entries=real_entries)
+        assert result["skill"] == "review"
+
+    @pytest.mark.parametrize(
+        ("query", "skill"),
+        [("push back on this frontend", "pr-workflow"), ("fish for bugs", "deploy")],
+    )
+    def test_idioms_do_not_match(self, pre_route, real_entries, query: str, skill: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result.get("skill") != skill, result

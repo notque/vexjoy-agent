@@ -66,8 +66,8 @@ _EXCLUDE_PATTERNS = [
 ]
 
 # Reference files used by adr-compliance.py
-_STEP_MENU = "skills/workflow/references/pipeline-scaffolder/references/step-menu.md"
-_SPEC_FORMAT = "skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md"
+_STEP_MENU = "skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md"
+_SPEC_FORMAT = "skills/process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md"
 
 
 def _project_root(event: dict) -> Path:
