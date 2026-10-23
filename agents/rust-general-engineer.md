@@ -142,7 +142,7 @@ See `agents/rust-general-engineer/references/rust-version-idioms.md` for the mod
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript, Rust. | Call the Skill tool with `programming`. |
+| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 
