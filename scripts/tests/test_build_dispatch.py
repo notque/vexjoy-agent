@@ -305,6 +305,38 @@ def test_skill_calls_are_primary_first_ordered_and_deduplicated():
     ]
 
 
+def test_trigger_phrase_and_category_alias_coerce_to_canonical_skill():
+    mapping = bd._trigger_to_skill_map()
+    alias = next(
+        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
+    )
+    calls = bd.render_skill_calls(_decision(skill=alias, stack=[]))
+    assert calls == "Call the Skill tool with `review`."
+
+
+def test_marker_records_the_canonical_skill_for_a_coerced_alias():
+    mapping = bd._trigger_to_skill_map()
+    alias = next(
+        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
+    )
+    first_line = _preamble(_decision(skill=alias, stack=[])).splitlines()[0]
+    assert " skill=review " in first_line + " "
+
+
+def test_coerced_alias_is_deduplicated_against_its_canonical_skill():
+    mapping = bd._trigger_to_skill_map()
+    alias = next(
+        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
+    )
+    calls = bd.render_skill_calls(_decision(skill="review", stack=[alias]))
+    assert calls == "Call the Skill tool with `review`."
+
+
+def test_alias_to_unknown_skill_still_fails_closed():
+    with pytest.raises(bd.InputError, match="absent from"):
+        _preamble(_decision(skill="zz-no-such-trigger", stack=[]))
+
+
 def test_shared_pattern_stack_entry_is_not_a_skill_call():
     decision = _decision(stack=["anti-rationalization-core", "testing"])
     calls = bd.render_skill_calls(decision)

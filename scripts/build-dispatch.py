@@ -493,6 +493,38 @@ def load_known_stack_patterns(patterns_dir: Path = SHARED_PATTERNS_DIR) -> froze
         return frozenset()
 
 
+@lru_cache(maxsize=1)
+def _trigger_to_skill_map() -> dict[str, str]:
+    """Map every trigger phrase and category name → canonical skill name.
+
+    Used by _canonical_skill_for_trigger to coerce router mistakes where the
+    LLM outputs a trigger phrase or manifest category label instead of the
+    canonical skill name (e.g. skill="pr-review" → "review", or
+    skill="code-review" when that is review's category).  Returns an empty
+    dict on read failure (callers then fall through to the original InputError).
+    """
+    mapping: dict[str, str] = {}
+    try:
+        path, _ = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        for skill_name, data in (raw.get("skills") or {}).items():
+            name_lc = skill_name.strip().lower()
+            for t in data.get("triggers") or []:
+                mapping.setdefault(str(t).strip().lower(), name_lc)
+            cat = (data.get("category") or "").strip().lower()
+            if cat:
+                mapping.setdefault(cat, name_lc)
+    except (OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
+        print(f"[build-dispatch] warning: could not load trigger map: {exc}", file=sys.stderr)
+    return mapping
+
+
+def _canonical_skill_for_trigger(name: str, known_skills: frozenset[str]) -> str | None:
+    """Return the canonical skill name when *name* is a trigger phrase or category alias."""
+    canon = _trigger_to_skill_map().get(name.lower())
+    return canon if canon and canon in known_skills else None
+
+
 def ordered_skill_calls(decision: dict) -> list[str]:
     """Return callable skill names, primary first, ordered and de-duplicated.
 
@@ -525,6 +557,16 @@ def ordered_skill_calls(decision: dict) -> list[str]:
             raise InputError(f"skill call {name!r} names an agent; dispatch it with the Agent tool")
         if name in known_pipelines:
             raise InputError(f"skill call {name!r} names a pipeline; run it through workflow dispatch")
+        # Coerce trigger phrases and category aliases to the canonical skill name.
+        # The LLM router may output a trigger from the manifest (e.g. "pr-review"
+        # instead of "review") or a category label rendered as "(code-review)" in
+        # the manifest line for the "review" skill.
+        canonical = _canonical_skill_for_trigger(name, known_skills)
+        if canonical is not None:
+            if canonical not in seen:
+                seen.add(canonical)
+                ordered.append(canonical)
+            continue
         raise InputError(f"skill call {name!r} is absent from skills/INDEX.json")
     return ordered
 
@@ -630,7 +672,9 @@ def build_marker(decision: dict) -> str:
 
     # Validate the primary and stack names before emitting telemetry. This also
     # prevents an agent or pipeline token from later becoming a Skill-tool call.
-    ordered_skill_calls(decision)
+    calls = ordered_skill_calls(decision)
+    if skill != "-" and calls:
+        skill = calls[0]  # a coerced trigger/category alias is recorded as its canonical skill
     pipeline = resolve_pipeline(decision)
 
     parts = [f"[do-route] agent={agent}", f"skill={skill}", f"complexity={complexity}"]
