@@ -265,6 +265,8 @@ SUPPLEMENTAL_TRIGGERS: dict[str, tuple[str, ...]] = {
 #                           skill (e.g. "repo" disambiguates "make it public"
 #                           but must not suppress "deploy website").
 SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
+    # "make a game trailer" is trailer work (game-trailer), not game building.
+    "game-dev": {"make game": {"trailer"}},
     "pr-workflow": {
         "back",
         "against",

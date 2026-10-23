@@ -4027,6 +4027,71 @@
         "workload": "mmr-ratings-flask",
         "sample": "gp_routes 2026-08: 128 general-purpose fallbacks recorded on ONE machine, one Flask/Peewee/SQLite app."
       }
+    },
+    {
+      "request": "make a game trailer",
+      "expected_agent": null,
+      "expected_skill": "game-trailer",
+      "category": "game-development",
+      "bucket": "sibling-disambiguation",
+      "notes": "TRAILER. 'make game' must not capture trailer work; game-trailer force-routes.",
+      "provenance": {
+        "source": "catalog-derived",
+        "workload": null,
+        "sample": "Written from the game-trailer and game-dev skill triggers."
+      }
+    },
+    {
+      "request": "cut a trailer for my game",
+      "expected_agent": null,
+      "expected_skill": "game-trailer",
+      "category": "game-development",
+      "bucket": "sibling-disambiguation",
+      "notes": "TRAILER. Trigger 'cut a trailer'.",
+      "provenance": {
+        "source": "catalog-derived",
+        "workload": null,
+        "sample": "Written from the game-trailer and game-dev skill triggers."
+      }
+    },
+    {
+      "request": "edit the trailer for road to aew",
+      "expected_agent": null,
+      "expected_skill": "game-trailer",
+      "category": "game-development",
+      "bucket": "sibling-disambiguation",
+      "notes": "TRAILER. Bare 'trailer' trigger on a named game.",
+      "provenance": {
+        "source": "catalog-derived",
+        "workload": null,
+        "sample": "Written from the game-trailer and game-dev skill triggers."
+      }
+    },
+    {
+      "request": "make a game",
+      "expected_agent": null,
+      "expected_skill": "game-dev",
+      "category": "game-development",
+      "bucket": "sibling-disambiguation",
+      "notes": "CONTROL. 'make game' still reaches game-dev.",
+      "provenance": {
+        "source": "catalog-derived",
+        "workload": null,
+        "sample": "Written from the game-trailer and game-dev skill triggers."
+      }
+    },
+    {
+      "request": "make game levels",
+      "expected_agent": null,
+      "expected_skill": "game-dev",
+      "category": "game-development",
+      "bucket": "sibling-disambiguation",
+      "notes": "CONTROL. 'make game' still reaches game-dev.",
+      "provenance": {
+        "source": "catalog-derived",
+        "workload": null,
+        "sample": "Written from the game-trailer and game-dev skill triggers."
+      }
     }
   ]
 }

@@ -574,3 +574,37 @@ class TestSeparatorEquivalence:
     def test_idioms_do_not_match(self, pre_route, real_entries, query: str, skill: str) -> None:
         result = pre_route.route(query, entries=real_entries)
         assert result.get("skill") != skill, result
+
+
+class TestGameTrailerRoute:
+    """Trailer requests reach game-trailer; plain game building stays on game-dev."""
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "make a game trailer",
+            "cut a trailer for my game",
+            "edit the trailer for road to aew",
+            "I need a trailer cut of the new build",
+            "make me a trailer for my game",
+        ],
+    )
+    def test_trailer_requests_route_to_game_trailer(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["matched"] is True, result
+        assert result["skill"] == "game-trailer"
+        assert result["match_type"] == "force_route"
+
+    @pytest.mark.parametrize("query", ["make a game", "make game levels"])
+    def test_make_game_still_routes_to_game_dev(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["skill"] == "game-dev"
+        assert result["match_type"] == "force_route"
+
+    def test_make_game_guard_blocks_only_trailer_requests(self, pre_route, real_entries) -> None:
+        table = pre_route.build_match_table(real_entries)
+        make_game = next(e for e in table if e.name == "game-dev" and e.trigger == "make game")
+        launch = "make a game launch video"
+        trailer = "make a game trailer"
+        assert pre_route._is_semantically_guarded("game-dev", launch, "make game", make_game.pattern) is False
+        assert pre_route._is_semantically_guarded("game-dev", trailer, "make game", make_game.pattern) is True
