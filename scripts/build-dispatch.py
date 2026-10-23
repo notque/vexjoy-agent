@@ -96,7 +96,9 @@ from pathlib import Path
 # the gather/validation fallback only, since ~/.claude is not a git repo.
 INSTALL_ROOT = Path(__file__).absolute().parent.parent
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SETTINGS_PATH = INSTALL_ROOT / ".claude" / "settings.json"
+# Repo checkout keeps settings under .claude/; an installed ~/.claude holds settings.json directly.
+_SETTINGS_CANDIDATES = (INSTALL_ROOT / ".claude" / "settings.json", INSTALL_ROOT / "settings.json")
+SETTINGS_PATH = next((c for c in _SETTINGS_CANDIDATES if c.is_file()), _SETTINGS_CANDIDATES[0])
 DEFAULT_TOKEN_BUDGET = 500000
 
 # ---------------------------------------------------------------------------
@@ -172,7 +174,7 @@ OPENAI_AUTO_POLICIES = {
     "high-risk": ("gpt-5.6-sol", "xhigh"),  # 71 / $4.70
     "max-power": ("gpt-5.6-sol", "max"),  # 73 / $8.39, explicit only
 }
-# Anthropic lane: tiers follow the blind Jev task-fit eval (2026-10), see
+# Anthropic lane: tiers follow the blind Jev task-fit evaluation, 2026-10; see
 # skills/meta/d/references/model-task-fit.md. Opus never won a measured task, so
 # it is the unmeasured high-risk tier only; escalate haiku -> sonnet -> opus on a miss.
 ANTHROPIC_AUTO_POLICIES = {
@@ -205,7 +207,14 @@ AGENT_INDEX_PATH = INSTALL_ROOT / "agents" / "INDEX.json"
 AGENT_INDEX_LOCAL = "INDEX.local.json"
 SKILL_INDEX_PATH = INSTALL_ROOT / "skills" / "INDEX.json"
 SKILL_INDEX_LOCAL = "INDEX.local.json"
-PIPELINE_INDEX_PATH = INSTALL_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
+# Installed layout links skills per skill (~/.claude/skills/workflow -> <repo>/skills/process/workflow),
+# so the nested repo path is absent there. Installed first, then the repo checkout.
+PIPELINE_INDEX_CANDIDATES = (
+    INSTALL_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
+    INSTALL_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
+    REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
+)
+PIPELINE_INDEX_PATH = next((c for c in PIPELINE_INDEX_CANDIDATES if c.is_file()), PIPELINE_INDEX_CANDIDATES[1])
 SHARED_PATTERNS_DIR = INSTALL_ROOT / "skills" / "shared-patterns"
 # Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
 # ~/.<runtime>/vexjoy/index/<kind>.json, then the deploy-dir index + legacy
@@ -534,7 +543,8 @@ def resolve_pipeline(decision: dict) -> str:
         raise InputError(f"'pipeline' {pipeline!r} — must match [a-z0-9-]+")
     known = load_known_pipelines()
     if not known:
-        raise InputError("cannot validate pipeline: pipeline-index.json is unreadable or empty")
+        tried = ", ".join(str(c) for c in dict.fromkeys((PIPELINE_INDEX_PATH, *PIPELINE_INDEX_CANDIDATES)))
+        raise InputError(f"cannot validate pipeline: pipeline-index.json is unreadable or empty (tried: {tried})")
     if pipeline not in known:
         raise InputError(f"'pipeline' {pipeline!r} is absent from pipeline-index.json")
     return pipeline

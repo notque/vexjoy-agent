@@ -1078,6 +1078,31 @@ def test_symlinked_script_from_non_repo_cwd_gathers_real_git_output(tmp_path):
     assert "gather:" not in result.stdout
 
 
+def test_installed_layout_with_per_skill_symlinks_validates_pipeline(tmp_path):
+    # Real install shape: skills/ holds flat per-skill symlinks (skills/workflow -> <repo>/skills/process/workflow,
+    # skills/process -> <repo>/skills/process/process), so skills/process/workflow does not exist.
+    for name in ("scripts", "agents", "hooks"):
+        (tmp_path / name).symlink_to(REPO_ROOT / name)
+    skills = tmp_path / "skills"
+    skills.mkdir()
+    for extra in ("INDEX.json", "shared-patterns"):
+        (skills / extra).symlink_to(REPO_ROOT / "skills" / extra)
+    for category in sorted((REPO_ROOT / "skills").iterdir()):
+        if not category.is_dir() or category.name == "shared-patterns":
+            continue
+        for child in sorted(category.iterdir()):
+            if child.is_dir() and not (skills / child.name).exists():
+                (skills / child.name).symlink_to(child)
+    assert not (skills / "process" / "workflow").exists()
+    decision_file = tmp_path / "d.json"
+    decision_file.write_text(json.dumps(_decision(pipeline="explore-pipeline")))
+    result = _run_cli_from(
+        tmp_path, tmp_path / "scripts" / "build-dispatch.py", "--no-gather", "--json-file", str(decision_file)
+    )
+    assert result.returncode == 0, result.stderr
+    assert "pipeline=explore-pipeline" in result.stdout
+
+
 def test_cwd_inside_a_git_repo_picks_that_repo(tmp_path):
     repo = _git_repo(tmp_path / "repo")
     decision = _decision(task_spec={"intent": "x", "files": "tracked.md"})

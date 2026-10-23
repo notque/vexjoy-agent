@@ -380,7 +380,7 @@ def main(argv: list[str] | None = None) -> int:
 
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
-    references_dir = repo_root / "skills" / "workflow" / "references"
+    references_dir = repo_root / "skills" / "process" / "workflow" / "references"
 
     if not references_dir.exists():
         print(f"Error: workflow references directory not found at {references_dir}", file=sys.stderr)
