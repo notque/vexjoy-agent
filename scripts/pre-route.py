@@ -689,17 +689,21 @@ def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
         escaped = re.escape(words[0])
         return re.compile(rf"\b{escaped}\b", re.IGNORECASE)
 
-    # Multi-word: allow up to 2 words between each trigger word.
+    # Multi-word: allow up to 2 words between each trigger word. A hyphen or
+    # underscore counts as a space between trigger words ("pr-review" and
+    # "pr_review" match "pr review"), so interior edges use an alphanumeric
+    # lookaround instead of \b (\b does not break at "_").
     parts = []
     for i, word in enumerate(words):
         escaped = re.escape(word)
+        start = r"\b" if i == 0 else r"(?<![^\W_])"
         if i == len(words) - 1:
-            parts.append(rf"\b{escaped}{TRIGGER_INFLECTION}\b")
+            parts.append(rf"{start}{escaped}{TRIGGER_INFLECTION}\b")
         else:
-            parts.append(rf"\b{escaped}\b")
+            parts.append(rf"{start}{escaped}(?![^\W_])")
 
     # Join with "up to 2 intervening words" gap
-    gap = r"(?:\s+\S+){0,2}\s+"
+    gap = r"(?:[\s_-]+\S+){0,2}[\s_-]+"
     full_pattern = gap.join(parts)
     return re.compile(full_pattern, re.IGNORECASE)
 
