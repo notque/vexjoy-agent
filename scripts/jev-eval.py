@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Eval driver: run scripts/routing-ab-corpus.json (269 cases) through the /d
+"""Eval driver: run scripts/routing-ab-corpus.json (274 cases) through the /d
 route, live, and write scripts/routing-ab-results/<out-dir>/.
 
 One case runs the production path: `jev-route.py` prepare (safety force route
