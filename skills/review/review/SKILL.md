@@ -40,6 +40,7 @@ routing:
     - "review my PR"
     - "review my changes"
     - "PR review"
+    - "pr-review"
     - "diff review"
   category: code-review
   pairs_with:
