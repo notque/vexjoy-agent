@@ -307,7 +307,9 @@ Reuse reads only while their source and task context remain unchanged; a fresh w
 **`build-dispatch.py`** — source for `[do-route]`, exact Skill-tool calls, thinking, budget, Task Spec, injections, worktree/local-only. Do not hand-assemble it.
 
 ```bash
-python3 "$SDIR/build-dispatch.py" --json '{
+DISPATCH_JSON=$(mktemp)
+cat > "$DISPATCH_JSON" << 'DISPATCH_EOF'
+{
   "agent": "<agent>", "skill": "<skill; omit when agent-only>",
   "pipeline": "<pipeline; omit when Phase 2 returned null>",
   "complexity": "<trivial|simple|medium|complex>",
@@ -326,7 +328,10 @@ python3 "$SDIR/build-dispatch.py" --json '{
                 "operator_context": "..."},
   "flags": {"worktree": false, "local_only": false, "thinking_override": null},
   "token_remaining": 480000
-}'
+}
+DISPATCH_EOF
+python3 "$SDIR/build-dispatch.py" --json-file "$DISPATCH_JSON"
+rm -f "$DISPATCH_JSON"
 ```
 
 `agent`/`skill`/`complexity`: Phase 2 (null→`-`). `pipeline`: the Phase 2 pick, passed so the marker carries it; omit when null. The builder validates each name against its index, then emits this exact action contract once per callable skill, primary first with ordered stack de-duplication: `Call the Skill tool with \`skill-name\`.` Shared-pattern stack entries remain prompt injections. Agents and pipelines stay out of Skill-tool calls. Fan-out: one call per agent, same `skill`/`pipeline`. `model`: **required Medium+**; pick from **Model choice** below. Override rules: `references/model-selection.md`. `provider` describes the active harness (anthropic|openai|other), not an installed directory. `health`: `-` (in-context weights read retired — `docs/route-loop-validation.md`). `fallback_reason`: **required when `agent=general-purpose`** — the one-line reason from the Agent-greediness gate, any prose; `build-dispatch.py` slugifies it and appends `fallback=<slug>` to the marker so every fallback is countable. Dispatch fails without it. `stack`: Phase 3. `task_spec`: mandatory Simple+ (Phase 3 Step G); the script rejects an empty spec at Medium+; creation+"match ADR". `thinking_override`: slow=security/arch/5+files; fast=lookups.
