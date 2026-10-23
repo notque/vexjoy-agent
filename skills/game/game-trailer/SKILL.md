@@ -209,6 +209,6 @@ A sound-only change (cues, levels, crowd) needs no picture render: rerun `mix.py
 ## Related skills
 
 The poster style itself (slab type, bands, starbursts, halftone) is the game's; its rules live in the
-game repo's `fight-poster-style` skill. For a cut that will be judged on pace, build a Score ladder
+game repo's own poster-style skill. For a cut that will be judged on pace, build a Score ladder
 (levels: "every moment registers", "one or two blur", "the owner can't follow") and send the contact
 sheet as the image: Call the Skill tool with `building-with-jev`.
