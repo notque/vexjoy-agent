@@ -47,7 +47,7 @@ State thread-safety, ownership, and zero-value/default behavior when they matter
 |----|-----|-------|
 | `thiserror` for library error types | `Box<dyn Error>` or `String` as error return in library code | stable |
 | `anyhow::Result` / `.context("...")` for application code | `.unwrap()` or `.expect("")` outside tests | stable |
-| `errors::is::<E>(&err)` via `downcast_ref` | String matching: `err.to_string().contains("not found")` | stable |
+| `err.downcast_ref::<ConcreteError>()` / `err.is::<E>()` (anyhow) | String matching: `err.to_string().contains("not found")` | stable |
 | Named variants: `Error::NotFound { id }` | `Error::NotFound(String)` with formatted text as data | stable |
 | `.context("create user {email:?}")` to add call-site context | Empty wrappers: `anyhow!("error: {e}")` that repeat the message | stable |
 | Driver typed errors via `sqlx::Error::Database` downcast | Magic codes or string matching on SQLSTATE | stable |
@@ -213,7 +213,7 @@ use axum::{Router, routing::{get, post}};
 
 let app = Router::new()
     .route("/items", post(create_item))
-    .route("/items/:id", get(get_item))
+    .route("/items/{id}", get(get_item))
     .route("/healthz", get(health));
 ```
 

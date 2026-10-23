@@ -55,7 +55,7 @@ Framework: `skills/shared-patterns/forbidden-patterns-template.md`.
 | `.expect("")` (empty string message) | Panic with no diagnostic context | `.expect("user id must be set at this point")` |
 | `.clone()` to satisfy the borrow checker | Hides a design flaw; costs allocation | Restructure ownership or use `Arc` / `Rc` explicitly |
 | `let _ = result;` / `let _ = tx.send(...)` | Silently discards errors | `result?` or `result.ok()` with explicit intent |
-| `strings.Contains(err.to_string(), "...")` | Breaks when messages change | `downcast_ref::<ConcreteError>()` or `matches!(err, MyError::Variant)` |
+| `err.to_string().contains("...")` | Breaks when messages change | `downcast_ref::<ConcreteError>()` or `matches!(err, MyError::Variant)` |
 | `std::thread::sleep` in async code | Blocks the executor thread | `tokio::time::sleep(d).await` |
 | `std::sync::Mutex` held across `.await` | Deadlocks under async | `tokio::sync::Mutex` |
 | Fire-and-forget `tokio::spawn` (dropped `JoinHandle`) | Panics lost; no shutdown path | Store `JoinHandle`; await on shutdown |
@@ -78,7 +78,7 @@ Sanctioned exceptions:
 
 | Error Message | Root Cause | Fix |
 |---------------|------------|-----|
-| `error[E0658]: let chains are experimental` | Rust < 1.64 | Use nested `if let` or upgrade MSRV |
+| `error[E0658]: let chains are experimental` | Rust < 1.88 | Use nested `if let` or upgrade MSRV |
 | `error[E0658]: use of unstable library feature 'let_else'` | Rust < 1.65 | Upgrade to 1.65+ |
 | `error[E0277]: the trait bound ... is not satisfied` on async trait | Rust < 1.75 without `async-trait` | Add `#[async_trait]` or upgrade to 1.75 |
 | `error[E0562]: 'impl Trait' only allowed in ... not in return type of trait methods` | Rust < 1.75 (RPITIT) | Upgrade to 1.75 or use `Box<dyn Future>` |

@@ -14,7 +14,7 @@ Available when rust-analyzer is configured in the editor or via LSP.
 | `cargo check` | After every code edit; surfaces type errors before the full test suite |
 | `cargo clippy --workspace --all-targets -- -D warnings` | After `cargo check` passes; re-run after applying fixes |
 | `cargo test --workspace` | After clippy passes; paste full output |
-| `cargo udeps --workspace` | During cleanup or refactoring tasks to find unused dependencies |
+| `cargo +nightly udeps --workspace` | During cleanup or refactoring tasks to find unused dependencies (requires nightly; use `cargo machete` as the stable alternative) |
 
 Fallback without rust-analyzer: `Grep` for symbols, `cargo check` / `cargo clippy` / `cargo test` for diagnostics. rust-analyzer understands types and trait bounds where grep sees text — check references before renaming any public item.
 
@@ -42,9 +42,9 @@ stat -f "%m %Sm" target/debug/my-binary
 # Linux
 stat -c "%Y %n" target/debug/my-binary
 
-# Or compare version output
+# Or compare version output against what's in Cargo.toml
 ./target/debug/my-binary --version
-cargo pkgid | grep my-binary
+grep '^version' Cargo.toml
 ```
 
 A stale binary silently passes tests against the old (broken) code path.

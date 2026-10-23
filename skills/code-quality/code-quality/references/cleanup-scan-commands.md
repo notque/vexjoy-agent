@@ -191,11 +191,18 @@ go mod tidy
 
 ## Rust Scans
 
-### Unused Imports / Dead Code
+### Unused Imports
 
 ```bash
-# Lint with all warnings as errors — catches unused imports, dead code, and more
-cargo clippy -- -D warnings -D dead_code -D unused_imports
+# Detect unused imports (promoted to error via -D warnings)
+cargo clippy -- -D warnings -D unused_imports 2>&1 | grep "unused import"
+```
+
+### Dead Code
+
+```bash
+# Detect dead code
+cargo clippy -- -D warnings -D dead_code 2>&1 | grep "dead_code\|never used"
 ```
 
 Expected output:
@@ -210,18 +217,14 @@ warning: unused import: `std::collections::HashMap`
 ### Static Analysis
 
 ```bash
-# Full clippy lint pass — use in CI
+# Full lint pass — catches unused imports, dead code, style, and correctness
 cargo clippy --all-targets --all-features -- -D warnings
-
-# Pedantic and restriction lints (optional; noisy on first run)
-cargo clippy -- -W clippy::pedantic -W clippy::restriction
 ```
 
 ### Cyclomatic Complexity
 
 ```bash
-# Install once, then run
-cargo install cargo-geiger       # measures unsafe usage too
+# Cognitive complexity lint (built into clippy)
 cargo clippy -- -W clippy::cognitive_complexity
 ```
 
