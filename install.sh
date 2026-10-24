@@ -335,6 +335,9 @@ if [ "$rc" -ne 0 ]; then
     echo -e "${RED}  PYTHONPATH=${SCRIPT_DIR}/scripts python3 -m vexinstall plan --target ${TARGET} --takeover${NC}"
     exit "$rc"
 fi
+if [ "$TAKEOVER" = true ]; then
+    vexinstall prune --unowned --confirm --target "$TARGET" || true
+fi
 install_git_hooks
 install_deps
 harden_permissions

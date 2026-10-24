@@ -19,6 +19,7 @@ from .common import (
     tree_sha256,
 )
 from .ledger import STATUS_STALE, Ledger, LedgerEntry
+from .legacy import is_legacy_repo_path
 from .profile import EMPTY, Profile
 from .sources import OverlayConfig, PublicSources, SourceItem
 
@@ -189,13 +190,26 @@ def _link_target(path: Path) -> str:
 
 
 def link_points_into(path: Path, roots: list[str]) -> bool:
-    """True when the link text or its realpath lies inside a known root."""
+    """True when the link text or its realpath lies inside a known root or legacy toolkit repo."""
     try:
         literal = _link_target(path)
     except OSError:
         return False
     resolved = realpath(path)
-    return any(is_inside(literal, r) or is_inside(resolved, r) for r in roots)
+    if any(is_inside(literal, r) or is_inside(resolved, r) for r in roots):
+        return True
+    return is_legacy_repo_path(literal) or is_legacy_repo_path(resolved)
+
+
+def dir_of_adoptable_links(dest: Path, roots: list[str]) -> bool:
+    """True for a non-symlink dir whose non-dot children are all adoptable links."""
+    if os.path.islink(dest) or not os.path.isdir(dest):
+        return False
+    try:
+        children = [dest / c for c in os.listdir(dest) if not c.startswith(".")]
+    except OSError:
+        return False
+    return bool(children) and all(os.path.islink(c) and link_points_into(c, roots) for c in children)
 
 
 def copy_matches_source(dest: Path, src: Path) -> bool:
@@ -329,6 +343,8 @@ def plan_target(
     def adoptable(dest: Path) -> bool:
         if os.path.islink(dest):
             return link_points_into(dest, roots)
+        if dir_of_adoptable_links(dest, roots):
+            return True
         return any(copy_matches_source(dest, src) for src in cands.get(str(dest), []))
 
     # Containers: must be real dirs. Owned or adoptable whole-dir links become dirs.
