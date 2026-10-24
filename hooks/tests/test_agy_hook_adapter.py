@@ -212,9 +212,7 @@ def test_pretooluse_allow_deny_ask_and_overwrite(adapter):
     }
 
     # Exit 0 empty -> allow
-    assert adapter.translate_child_result("PreToolUse", 0, "", "", normalized_event=norm_event) == {
-        "decision": "allow"
-    }
+    assert adapter.translate_child_result("PreToolUse", 0, "", "", normalized_event=norm_event) == {"decision": "allow"}
 
     # Exit 2 -> deny with stderr reason
     deny_exit2 = adapter.translate_child_result(
@@ -249,9 +247,7 @@ def test_pretooluse_allow_deny_ask_and_overwrite(adapter):
             }
         }
     )
-    overwrite_out = adapter.translate_child_result(
-        "PreToolUse", 0, claude_overwrite, "", normalized_event=norm_event
-    )
+    overwrite_out = adapter.translate_child_result("PreToolUse", 0, claude_overwrite, "", normalized_event=norm_event)
     assert overwrite_out == {
         "decision": "allow",
         "overwrite": {"CommandLine": "rtk git status", "WaitMsBeforeAsync": 5000},
@@ -327,9 +323,7 @@ def test_stop_and_post_invocation_translate_continuation_decisions(adapter):
     }
 
     # Stop exit 0 -> allow
-    assert adapter.translate_child_result("Stop", 0, "", "", normalized_event=norm_event) == {
-        "decision": "allow"
-    }
+    assert adapter.translate_child_result("Stop", 0, "", "", normalized_event=norm_event) == {"decision": "allow"}
 
     # PostInvocation exit 2 -> force_continue
     post_inv = adapter.translate_child_result("PostInvocation", 2, "", "keep going", normalized_event=norm_event)

@@ -488,7 +488,6 @@ _BYPASS_ENV = "AGY_HOOK_ADAPTER_BYPASS"
 
 def main() -> int:
     if os.environ.get(_BYPASS_ENV) == "1":
-        print("{}")
         return 0
     args = _parser().parse_args()
     try:
