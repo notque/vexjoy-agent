@@ -37,7 +37,7 @@ MASS_REMOVE_MAX = 10
 MASS_REMOVE_FRACTION = 0.20
 APPLY_LOCK_TIMEOUT_S = 30.0
 
-TARGET_NAMES = ("claude", "codex", "factory", "hermes", "reasonix")
+TARGET_NAMES = ("claude", "codex", "factory", "hermes", "reasonix", "antigravity")
 MODES = ("symlink", "copy")
 
 # Colon-separated realpath prefixes treated as ephemeral (symlink mode refused).

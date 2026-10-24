@@ -41,7 +41,7 @@ After intent alignment resolves: `===` routing banner. Both required.
 ### Phase 1: CLASSIFY
 
 Resolve `$SDIR`: `${HOME}/.claude/scripts`, falling back through
-`.hermes`/`.factory`/`.codex`/`.reasonix`, or the repo's `scripts/`
+`.gemini`/`.hermes`/`.factory`/`.codex`/`.reasonix`, or the repo's `scripts/`
 directory.
 
 **Step 1 — JEV_RESULT.** When `JEV_RESULT` is already in context (the
@@ -271,9 +271,9 @@ python3 "$SDIR/build-dispatch.py" --json '{
   "agent": "<ROUTE.agent>", "skill": "<ROUTE.skill; omit when agent-only>",
   "pipeline": "<ROUTE.pipeline; omit when null>",
   "complexity": "<ROUTE.complexity>",
-  "model": "<haiku|sonnet|opus from Model choice>",
+  "model": "<haiku|sonnet|opus or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high from Model choice>",
   "context_mode": "summary",
-  "provider": "<anthropic|openai|other>",
+  "provider": "<anthropic|openai|google|antigravity|other>",
   "manual_model_override": false,
   "health": "-",
   "fallback_reason": "<REQUIRED when agent=general-purpose; omit otherwise>",
@@ -306,7 +306,7 @@ Set `model` from the task type, not `inherit`. Pass the same `model` on every Ag
 
 Opus won no measured task.
 
-Tiers (`model_policy`): low-risk = haiku, standard = sonnet, high-risk (unmeasured, costly miss) = opus. `max-power` stays opus/xhigh and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
+Tiers (`model_policy`): low-risk = haiku, standard = sonnet, high-risk (unmeasured, costly miss) = opus (on Antigravity / Google AI with `provider="google"`: `low-risk` = `gemini-3.8-flash`, `standard` = `gemini-4-argon`, `high-risk` = `gemini-4-argon-high`, `max-power` = `gemini-4-argon-high` / `max`; see `skills/meta/do/references/antigravity-execution.md`). `max-power` stays opus/xhigh (or `gemini-4-argon-high`/`max`) and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
 
 Escalate on a miss: haiku, then sonnet, then opus. Retry once on the next model when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
 

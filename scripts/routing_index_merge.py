@@ -79,7 +79,8 @@ def load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
 
 def installed_index_path(kind: str, target: str = "claude", home: Path | None = None) -> Path:
     """``~/.<target>/vexjoy/index/<kind>.json`` (may not exist)."""
-    return (home if home is not None else Path.home()) / f".{target}" / "vexjoy" / "index" / f"{kind}.json"
+    root_dir = ".gemini" if target == "antigravity" else f".{target}"
+    return (home if home is not None else Path.home()) / root_dir / "vexjoy" / "index" / f"{kind}.json"
 
 
 def _lists_items(path: Path, kind: str) -> bool:
@@ -153,6 +154,7 @@ _RUNTIME_DIRS = {
     ".factory": "factory",
     ".hermes": "hermes",
     ".reasonix": "reasonix",
+    ".gemini": "antigravity",
 }
 
 

@@ -29,7 +29,7 @@ from vexinstall.context import Result
 
 __all__ = ["ADAPTERS", "adapters", "common", "fsops", "profile", "settings_mod", "sources"]
 
-TARGETS = ("claude", "codex", "factory", "hermes", "reasonix")
+TARGETS = ("claude", "codex", "factory", "hermes", "reasonix", "antigravity")
 PUBLIC_SKILLS = {
     "meta": ["alpha", "beta"],
     "process": ["gamma", "delta"],
@@ -91,6 +91,7 @@ def make_repo(path: Path, *, bulk: bool = False) -> Path:
     _w(path / "scripts" / "tool" / "x.py", "# tool x\n")
     _w(path / "scripts" / "codex-hooks-allowlist.txt", "SessionStart:h1.py matcher=startup\nStop:h2.py\n")
     _w(path / "scripts" / "reasonix-hooks-allowlist.txt", "# comment\nUserPromptSubmit:h1.py\n")
+    _w(path / "scripts" / "agy-hooks-allowlist.txt", "SessionStart:h1.py failure=open\nStop:h2.py failure=open\n")
     settings = {
         "attribution": {"commit": "", "pr": ""},
         "hooks": {
