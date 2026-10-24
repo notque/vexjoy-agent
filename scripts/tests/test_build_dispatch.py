@@ -890,6 +890,77 @@ def test_provider_openai_uses_openai_table():
     assert "effort=high" in marker
 
 
+@pytest.mark.parametrize("provider", ("google", "antigravity"))
+@pytest.mark.parametrize(
+    ("task_class", "model", "effort"),
+    [
+        ("low-risk", "gemini-3.8-flash", "low"),
+        ("standard", "gemini-4-argon", "medium"),
+        ("high-risk", "gemini-4-argon-high", "high"),
+    ],
+)
+def test_google_antigravity_policy_maps_tiers_to_argon_and_flash(provider, task_class, model, effort):
+    """Google/Antigravity lane maps low-risk to Flash, standard to Argon, and high-risk to Argon-High."""
+    decision = _decision(model=None, model_policy=task_class, provider=provider)
+    marker = bd.build_marker(decision)
+    assert f"model={model}" in marker
+    assert f"effort={effort}" in marker
+    assert recorder.parse_model(marker) == model
+    assert recorder.parse_model_effort(marker) == effort
+
+
+@pytest.mark.parametrize("provider", ("google", "antigravity"))
+def test_google_max_power_requires_manual_override(provider):
+    """Google max-power requires manual_model_override=true."""
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model=None, model_policy="max-power", provider=provider))
+    marker = bd.build_marker(
+        _decision(model=None, model_policy="max-power", manual_model_override=True, provider=provider)
+    )
+    assert "model=gemini-4-argon-high" in marker
+    assert "effort=max" in marker
+
+
+@pytest.mark.parametrize(
+    "model",
+    (
+        "gemini-4-argon",
+        "gemini-4-argon-low",
+        "gemini-4-argon-medium",
+        "gemini-4-argon-high",
+        "gemini-3.8-flash",
+        "gemini-3.8-flash-low",
+        "gemini-3.8-flash-medium",
+        "gemini-3.8-flash-high",
+        "argon",
+        "flash",
+        "flash_lite",
+        "pro",
+    ),
+)
+def test_explicit_google_models_round_trip_with_recorder(model):
+    """All Google AI / Antigravity subagent and CLI models are accepted and parsed by the recorder."""
+    marker = bd.build_marker(_decision(model=model, model_effort="medium", provider="google"))
+    assert f"model={model}" in marker
+    assert "effort=medium" in marker
+    assert recorder.parse_model(marker) == model
+    assert recorder.parse_model_effort(marker) == "medium"
+
+
+def test_google_cross_provider_policy_override_rejected():
+    """Google policy cannot be overridden with a non-Google model."""
+    with pytest.raises(bd.InputError, match="Google/Gemini model"):
+        bd.build_marker(
+            _decision(
+                model_policy="standard",
+                model="opus",
+                model_effort="high",
+                manual_model_override=True,
+                provider="google",
+            )
+        )
+
+
 def test_provider_other_rejects_model_policy():
     """provider='other' cannot use model_policy — no hardcoded table."""
     with pytest.raises(bd.InputError, match="other"):

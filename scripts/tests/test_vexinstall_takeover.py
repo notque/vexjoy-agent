@@ -214,6 +214,23 @@ def test_plan_reports_external_changes_without_writing(world: Env) -> None:
     assert not (root / "settings.json").exists()
 
 
+def test_antigravity_hooks_json_from_allowlist_honors_profile(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    (world.repo / "hooks" / "agy-hook-adapter.py").write_text("# agy adapter\n")
+    commit_all(world.repo, "add agy adapter")
+    root = world.root("antigravity")
+    root.mkdir()
+    assert world.run("apply", "--target", "antigravity").code == 0
+    hooks_path = root / "config" / "hooks.json"
+    data = json.loads(hooks_path.read_text())
+    assert data["vexjoy-agent"]["enabled"] is True
+    assert f"{root}/hooks/h1.py" in json.dumps(data["vexjoy-agent"])
+    profile = world.work / "profile.yaml"
+    profile.write_text("disabled:\n  hooks:\n    - h1.py\n")
+    monkeypatch.setenv("VEXJOY_INSTALL_PROFILE", str(profile))
+    assert world.run("apply", "--target", "antigravity").code == 0
+    assert "h1.py" not in json.dumps(json.loads(hooks_path.read_text())["vexjoy-agent"])
+
+
 # --------------------------------------------------------------------------
 # migrate-overlays (install.sh --migrate-overlays)
 # --------------------------------------------------------------------------

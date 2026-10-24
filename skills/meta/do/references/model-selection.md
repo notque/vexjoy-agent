@@ -47,3 +47,15 @@ Measurement cells: Pass@1 / average USD per task / output tokens / steps. Higher
 | standard | `gpt-5.6-sol` / `high` | 19.9 | 69 Pass@1 at 3.47, 28k tokens, 37 steps. |
 | high-risk | `gpt-5.6-sol` / `xhigh` | 15.1 | 71 Pass@1 at 4.70, 41k tokens, 44 steps. |
 | max-power | `gpt-5.6-sol` / `max` | 8.7 | 73 Pass@1 at 8.39, 60k tokens, 61 steps; `manual_model_override=true`; state justification in task_spec intent. |
+
+## Google AI / Antigravity CLI (`provider="google"` or `"antigravity"`)
+
+When running in Antigravity CLI (`agy`) with Google AI models (`gemini-4-argon`, `gemini-3.8-flash`), `build-dispatch.py` maps `model_policy` to the Argon/Flash tiers below. Subagent dispatches (`invoke_subagent` and `run_workflow` `agent()`) map to `"flash_lite"`, `"flash"`, `"inherit"`, or `"pro"`. See `skills/meta/do/references/antigravity-execution.md` for full execution details.
+
+| Task class | `build-dispatch.py` Selection | `invoke_subagent` `Model` | Why |
+|---|---|---|---|
+| deterministic | no LLM | — | Run the script directly. |
+| low-risk | `gemini-3.8-flash` / `low` | `flash` / `flash_lite` | Fast mechanical edits, lookups, scouting, formatting. |
+| standard | `gemini-4-argon` / `medium` | `inherit` | Standard feature work, debugging, and test implementation. |
+| high-risk | `gemini-4-argon-high` / `high` | `pro` | Multi-file architecture, concurrency, security-critical paths. |
+| max-power | `gemini-4-argon-high` / `max` | `pro` | `manual_model_override=true`; escalation tier after an objective verification miss. |

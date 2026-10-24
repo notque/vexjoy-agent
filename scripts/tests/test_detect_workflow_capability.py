@@ -34,9 +34,16 @@ _spec.loader.exec_module(dwc)
     [
         # claude-code: any of the distinctive markers
         ({"CLAUDECODE": "1"}, "claude-code"),
+        # antigravity: distinctive env markers or _ binary basename
+        ({"ANTIGRAVITY_AGENT": "1"}, "antigravity"),
+        ({"ANTIGRAVITY_CLI": "1"}, "antigravity"),
+        ({"ANTIGRAVITY_SESSION_ID": "s-1"}, "antigravity"),
+        ({"ANTIGRAVITY_APP_DATA_DIR": "/Users/u/.gemini/antigravity-cli"}, "antigravity"),
+        ({"_": "/usr/local/bin/agy"}, "antigravity"),
+        ({"_": "/opt/bin/antigravity"}, "antigravity"),
         # codex: home / hooks dir markers
         ({"CODEX_HOME": "/home/u/.codex"}, "codex"),
-        # gemini/agy CLI markers removed with Gemini CLI support; unmapped now
+        # gemini CLI marker alone (without Antigravity markers) stays unmapped
         ({"GEMINI_CLI": "1"}, "unknown"),
         # factory / droid
         ({"FACTORY_SESSION_ID": "f1"}, "factory"),
@@ -75,6 +82,7 @@ def test_claude_code_wins_over_other_markers():
     "harness,expected",
     [
         ("claude-code", True),
+        ("antigravity", True),
         ("codex", False),
     ],
 )

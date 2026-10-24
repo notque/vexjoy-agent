@@ -15,11 +15,11 @@ they are checkpoints, not fourteen mandatory agent calls or tracking tasks.
   `python3 ~/.claude/scripts/adr-query.py register adr/{name}.md`.
   For other changes, read an active `.adr-session.json` and its ADR when present;
   do not create an unrelated ADR.
-- **1 — Plan:** Keep `task_plan.md` brief: original request, acceptance criteria,
+- **1 — Plan:** Keep `task_plan.md` brief (or write `implementation_plan.md` + `task.md` in `<appDataDir>/brain/<conversation-id>/` when running under Antigravity CLI `/plan` or `/goal` mode): original request, acceptance criteria,
   approach, affected files, and material risks. Use it to resume longer work and
   check the result against the request. Do not create a separate task for every
   checkpoint.
-- **2 — Implement:** Use one feature branch and worktree. Before creating it, run
+- **2 — Implement:** Use one feature branch and worktree (or `invoke_subagent(..., Workspace="branch")` in Antigravity `/teamwork` mode). Before creating a git worktree manually, run
   `worktree_capacity.py --strict` as described in `references/worktree-rules.md`.
   Reuse the checkout for fixes; preserve unrelated work. Give the selected agent
   the task, domain references, worktree rules, and instruction to commit its changes.

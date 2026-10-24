@@ -61,7 +61,7 @@ Assessment: SUITABLE / UNSUITABLE
 
 **Step 1: Launch all 10 agents in a SINGLE message**
 
-All 10 Task invocations MUST appear in one message to achieve true parallelism. Each agent is a read-only analyst receiving ONLY its assigned perspective with zero cross-contamination between agents.
+All 10 Task invocations MUST appear in one message to achieve true parallelism (on Antigravity CLI, either invoke `invoke_subagent(TypeName="research", Model="flash", ...)` in a single turn or run `skills/process/workflow/references/fan-out-workflow.py` via `run_workflow` with `parallel([agent(...) for ...])`). Each agent is a read-only analyst receiving ONLY its assigned perspective with zero cross-contamination between agents.
 
 Each agent receives:
 1. The FULL source material

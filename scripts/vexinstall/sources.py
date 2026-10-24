@@ -246,7 +246,11 @@ def load_public(root: Path) -> PublicSources:
         for name in _top_level_items(root, "scripts", lister, frozenset()):
             pub.script_items.append(SourceItem("script", name, scripts_dir / name, PUBLIC))
 
-    for key, fname in (("codex", "codex-hooks-allowlist.txt"), ("reasonix", "reasonix-hooks-allowlist.txt")):
+    for key, fname in (
+        ("codex", "codex-hooks-allowlist.txt"),
+        ("reasonix", "reasonix-hooks-allowlist.txt"),
+        ("antigravity", "agy-hooks-allowlist.txt"),
+    ):
         allow = scripts_dir / fname
         if allow.is_file():
             pub.allowlists[key] = parse_allowlist(allow)

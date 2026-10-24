@@ -162,8 +162,22 @@ VALID_COMPLEXITY = ("trivial", "simple", "medium", "complex")
 GPT_56_MODELS = ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna")
 GPT_56_EFFORTS = ("low", "medium", "high", "xhigh", "max")
 LEGACY_GPT_55 = "gpt-5.5"
-VALID_MODELS = ("inherit", "haiku", "sonnet", "opus", "codex", LEGACY_GPT_55, *GPT_56_MODELS)
-VALID_PROVIDERS = ("anthropic", "openai", "other")
+GOOGLE_MODELS = (
+    "gemini-4-argon",
+    "gemini-4-argon-low",
+    "gemini-4-argon-medium",
+    "gemini-4-argon-high",
+    "gemini-3.8-flash",
+    "gemini-3.8-flash-low",
+    "gemini-3.8-flash-medium",
+    "gemini-3.8-flash-high",
+    "argon",
+    "flash",
+    "flash_lite",
+    "pro",
+)
+VALID_MODELS = ("inherit", "haiku", "sonnet", "opus", "codex", LEGACY_GPT_55, *GPT_56_MODELS, *GOOGLE_MODELS)
+VALID_PROVIDERS = ("anthropic", "openai", "google", "antigravity", "other")
 ANTHROPIC_MODELS = ("opus", "sonnet", "haiku")
 
 # DeepSWE Pass@1 / cost benchmark defaults per provider lane.
@@ -183,9 +197,21 @@ ANTHROPIC_AUTO_POLICIES = {
     "high-risk": ("opus", "high"),
     "max-power": ("opus", "xhigh"),  # explicit only
 }
+# Google / Antigravity CLI lane (Gemini 4 Argon & Gemini 3.8 Flash):
+# low-risk routes to Flash (fast mechanical/scouting work), standard routes to
+# Argon at medium effort, high-risk routes to Argon-High at high effort, and
+# max-power escalates Argon-High to max effort (requires manual_model_override).
+GOOGLE_AUTO_POLICIES = {
+    "low-risk": ("gemini-3.8-flash", "low"),
+    "standard": ("gemini-4-argon", "medium"),
+    "high-risk": ("gemini-4-argon-high", "high"),
+    "max-power": ("gemini-4-argon-high", "max"),  # explicit only
+}
 AUTO_POLICIES_BY_PROVIDER = {
     "anthropic": ANTHROPIC_AUTO_POLICIES,
     "openai": OPENAI_AUTO_POLICIES,
+    "google": GOOGLE_AUTO_POLICIES,
+    "antigravity": GOOGLE_AUTO_POLICIES,
 }
 # Backward compat: tests and the OpenAI-only path reference this name.
 AUTO_MODEL_POLICIES = OPENAI_AUTO_POLICIES
@@ -350,7 +376,7 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
         policies = AUTO_POLICIES_BY_PROVIDER.get(provider)
         if policies is None:
             raise InputError(
-                f"model_policy requires provider 'anthropic' or 'openai', got {provider!r}; "
+                f"model_policy requires provider 'anthropic', 'openai', or 'google'/'antigravity', got {provider!r}; "
                 "use an explicit model for other harnesses"
             )
 
@@ -368,6 +394,8 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
                 raise InputError("OpenAI model_policy overrides must use a GPT-5.6 model")
             if provider == "anthropic" and override_model not in ANTHROPIC_MODELS:
                 raise InputError("Anthropic model_policy overrides must use a Claude model")
+            if provider in ("google", "antigravity") and override_model not in GOOGLE_MODELS:
+                raise InputError("Google/Antigravity model_policy overrides must use a Google/Gemini model")
             if model is not None and model != expected_model and effort is None:
                 raise InputError("manual model overrides require 'model_effort'")
             return override_model, effort or expected_effort
@@ -392,11 +420,11 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
             raise InputError("legacy gpt-5.5 requires manual_model_override=true")
         return model, effort
 
-    # Claude models (opus, sonnet, haiku) and codex wrapper.
-    # Effort is optional and advisory for Claude lanes — recorded in the
-    # marker (model@effort) for telemetry but not passed to the Agent tool.
-    if model == "opus" and effort == "max" and not manual:
-        raise InputError("opus/max requires manual_model_override=true (unmeasured top tier; escalate on a miss)")
+    # Claude models (opus, sonnet, haiku), Google models (gemini-4-argon*, gemini-3.8-flash*,
+    # flash_lite, flash, pro), and codex wrapper.
+    # Effort is optional and recorded in the marker (model@effort) for telemetry.
+    if model in ("opus", "gemini-4-argon", "gemini-4-argon-high", "argon", "pro") and effort == "max" and not manual:
+        raise InputError(f"{model}/max requires manual_model_override=true (unmeasured top tier; escalate on a miss)")
     return model, effort
 
 

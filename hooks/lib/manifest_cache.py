@@ -28,7 +28,7 @@ CACHE_FILE = CACHE_DIR / "routing-manifest.txt"
 HASH_FILE = CACHE_DIR / "routing-manifest.hash"
 
 # Same search order as the SDIR resolution in skills/meta/do/SKILL.md Phase 2.
-_SCRIPT_DIR_CANDIDATES = (".claude", ".hermes", ".factory", ".codex", ".reasonix")
+_SCRIPT_DIR_CANDIDATES = (".claude", ".gemini", ".hermes", ".factory", ".codex", ".reasonix")
 
 GENERATOR_TIMEOUT = 20  # seconds; full manifest generation completes in ~1s
 
