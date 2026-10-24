@@ -224,6 +224,47 @@ def test_prune_lists_command_that_shadows_a_skill(world: Env) -> None:
     assert f"  {shim}  (command shadows a skill of the same name)" in listing.out
 
 
+def test_adopt_and_prune_legacy_checkout_links_and_dir_of_links(world: Env) -> None:
+    """Legacy category dirs holding symlinks and links to a prior vexjoy-agent checkout are adopted/prunable."""
+    old_repo = world.work / "old" / "vexjoy-agent"
+    (old_repo / "skills" / "business" / "biz-one").mkdir(parents=True)
+    (old_repo / "skills" / "business" / "biz-one" / "SKILL.md").write_text(skill_md("biz-one"))
+    (old_repo / "agents" / "retired-agent").mkdir(parents=True)
+    (old_repo / "agents" / "retired-agent" / "references").mkdir(parents=True)
+    (old_repo / "agents" / "retired-agent.md").write_text("---\nname: retired-agent\n---\n")
+
+    # Real category dir populated with symlinks to the old checkout on first apply.
+    cat_dir = world.skills("claude") / "business"
+    cat_dir.mkdir(parents=True)
+    os.symlink(old_repo / "skills" / "business" / "biz-one", cat_dir / "biz-one")
+    assert world.run("apply", "--target", "claude").code == 0
+    assert not os.path.lexists(cat_dir)
+
+    # After ledger exists, leftover links/dirs pointing to old vexjoy-agent checkout are prunable.
+    agents_dir = world.home / ".claude" / "agents"
+    legacy_md = agents_dir / "retired-agent.md"
+    legacy_dir = agents_dir / "retired-agent"
+    os.symlink(old_repo / "agents" / "retired-agent.md", legacy_md)
+    legacy_dir.mkdir()
+    os.symlink(old_repo / "agents" / "retired-agent" / "references", legacy_dir / "references")
+    foreign = world.work / "foreign-tool"
+    foreign.mkdir()
+    user_link = agents_dir / "user-custom.md"
+    os.symlink(foreign, user_link)
+
+    listing = "\n".join(world.run("prune", "--unowned", "--target", "claude").out)
+    assert f"{legacy_md}  (legacy toolkit entry)" in listing
+    assert f"{legacy_dir}  (legacy toolkit entry)" in listing
+    assert str(user_link) not in listing
+
+    assert world.run("prune", "--unowned", "--confirm", "--target", "claude").code == 0
+    assert not os.path.lexists(legacy_md)
+    assert not os.path.lexists(legacy_dir)
+    assert os.path.islink(user_link)
+    noop = world.run("prune", "--unowned", "--confirm", "--target", "claude")
+    assert noop.code == 0 and "nothing to trash" in noop.out[0]
+
+
 # ---------------------------------------------------------------- leak + repair
 
 
