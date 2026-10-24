@@ -207,7 +207,7 @@ _INSTALL_SHAPED = (
     ".vexjoy-managed-hooks-settings",
     ".install-manifest.json",
 )
-_RUNTIME_ROOTS = (".codex", ".factory", ".hermes", ".reasonix")
+_RUNTIME_ROOTS = (".codex", ".factory", ".hermes", ".reasonix", ".gemini")
 
 
 def _install_shaped_snapshot() -> dict[str, int]:

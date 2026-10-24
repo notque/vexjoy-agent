@@ -140,7 +140,7 @@ _PIPELINE_RE = re.compile(r"\bpipeline=([a-z0-9-]+)", re.IGNORECASE)
 # Model token on the marker line: `model=opus` or `model=-`. GPT-5.6 selections
 # carry an additional `effort=` token. Valid values match build-dispatch.py;
 # `model=-` or absent => null. Old markers remain readable.
-_MODEL_RE = re.compile(r"\bmodel=([a-z0-9.-]+|-)", re.IGNORECASE)
+_MODEL_RE = re.compile(r"\bmodel=([a-z0-9._-]+|-)", re.IGNORECASE)
 _EFFORT_RE = re.compile(r"\beffort=(low|medium|high|xhigh|max)", re.IGNORECASE)
 _VALID_MODELS = frozenset(
     {
@@ -153,6 +153,18 @@ _VALID_MODELS = frozenset(
         "gpt-5.6-sol",
         "gpt-5.6-terra",
         "gpt-5.6-luna",
+        "gemini-4-argon",
+        "gemini-4-argon-low",
+        "gemini-4-argon-medium",
+        "gemini-4-argon-high",
+        "gemini-3.8-flash",
+        "gemini-3.8-flash-low",
+        "gemini-3.8-flash-medium",
+        "gemini-3.8-flash-high",
+        "argon",
+        "flash",
+        "flash_lite",
+        "pro",
     }
 )
 

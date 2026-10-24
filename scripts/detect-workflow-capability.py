@@ -1,30 +1,33 @@
 #!/usr/bin/env python3
 """Detect the running harness from environment variables (env proxy).
 
-Emits JSON: {"harness": "claude-code|codex|factory|reasonix|unknown",
+Emits JSON: {"harness": "claude-code|antigravity|codex|factory|reasonix|unknown",
              "workflow_capable": bool}
 
 Anthropic's native ``Workflow`` tool (deterministic JS orchestration) is
-Claude Code-only. ``workflow_capable`` is the env-derived proxy
-``harness in WORKFLOW_CAPABLE`` — currently the singleton ``{"claude-code"}``.
-The toolkit's prose pipelines run on every harness when the native path is
-unavailable.
+Claude Code-only, and Antigravity CLI (``agy``) provides the native Python
+``run_workflow`` tool (plus ``/teamwork`` subagent orchestration).
+``workflow_capable`` is the env-derived proxy ``harness in WORKFLOW_CAPABLE`` —
+currently ``{"claude-code", "antigravity"}``. The toolkit's prose pipelines run
+on every harness when the native path is unavailable.
 
 PROXY, NOT AUTHORITY. A subprocess cannot introspect the session's tool list,
 only the environment. So this script answers "which harness am I in?" and the
-orchestrator LLM adds the authoritative gate: "is the `Workflow` tool actually
-in my tool list?". Both must be true to take the native path. See
-adr/harness-conditional-workflow-dispatch.md (R1).
+orchestrator LLM adds the authoritative gate: "is the `Workflow` or
+`run_workflow` tool actually in my tool list?". Both must be true to take the
+native path. See adr/harness-conditional-workflow-dispatch.md (R1).
 
 Detection markers (distinctive entrypoint/session/home vars — never generic
 API-key vars like GEMINI_API_KEY, which are commonly set under any harness):
   claude-code : CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, CLAUDE_CODE_SESSION_ID
+  antigravity : ANTIGRAVITY_AGENT, ANTIGRAVITY_CLI, ANTIGRAVITY_SESSION_ID,
+                ANTIGRAVITY_APP_DATA_DIR (or ``_`` basename ``agy``/``antigravity``)
   codex       : CODEX_HOME, CODEX_HOOKS_DIR
   factory     : FACTORY_SESSION_ID, FACTORY_HOME, DROID_SESSION_ID, DROID_HOME
   reasonix    : (no env marker) — keyed off the ``_`` invocation var, since
                 reasonix sets no session/home var and spawns hooks with the
                 ambient env inherited (src/hooks.ts:206-212).
-Env-marker detection extended with factory + the Claude Code session markers.
+Env-marker detection extended with factory, antigravity, + the Claude Code session markers.
 
 Pure stdlib. Exit 0 always. Never raises.
 
@@ -39,17 +42,18 @@ import json
 import os
 import sys
 
-HARNESSES = ("claude-code", "codex", "factory", "reasonix", "unknown")
+HARNESSES = ("claude-code", "antigravity", "codex", "factory", "reasonix", "unknown")
 
 # Single source of truth for native-Workflow availability. Add a harness here
 # the day it ships the native Workflow tool; the docstring and tests pin against
 # this set so a one-line change flips the contract.
-WORKFLOW_CAPABLE: frozenset[str] = frozenset({"claude-code"})
+WORKFLOW_CAPABLE: frozenset[str] = frozenset({"claude-code", "antigravity"})
 
 # Marker var -> harness. Claude Code is checked first so it wins when env from
 # a Claude Code session leaks other harnesses' vars (config copied around).
 _MARKERS: list[tuple[str, tuple[str, ...]]] = [
     ("claude-code", ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID")),
+    ("antigravity", ("ANTIGRAVITY_AGENT", "ANTIGRAVITY_CLI", "ANTIGRAVITY_SESSION_ID", "ANTIGRAVITY_APP_DATA_DIR")),
     ("codex", ("CODEX_HOME", "CODEX_HOOKS_DIR")),
     ("factory", ("FACTORY_SESSION_ID", "FACTORY_HOME", "DROID_SESSION_ID", "DROID_HOME")),
 ]
@@ -68,12 +72,15 @@ def detect_harness(env: dict | None) -> str:
             for key in keys:
                 if env.get(key):
                     return harness
+        invoked_base = os.path.basename(env.get("_", "")).lower()
+        if invoked_base in ("agy", "antigravity", "antigravity-cli"):
+            return "antigravity"
         # Reasonix exposes no distinctive env marker. Fall back to the ``_``
         # invocation var (path of the invoking binary). Match on basename so
         # unrelated parent paths like ``/Users/reasonix-fan/bin/python3`` do
         # not false-positive while wrapper scripts ``reasonix``/``Reasonix``/
         # ``reasonix-dev`` still match.
-        if "reasonix" in os.path.basename(env.get("_", "")).lower():
+        if "reasonix" in invoked_base:
             return "reasonix"
     except Exception:
         return "unknown"

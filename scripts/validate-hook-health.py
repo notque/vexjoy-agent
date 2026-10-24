@@ -42,6 +42,7 @@ SETTINGS_PATH = REPO_ROOT / ".claude" / "settings.json"
 HOOKS_DIR = REPO_ROOT / "hooks"
 ALLOWLIST_PATH = REPO_ROOT / "scripts" / "hook-health-allowlist.txt"
 CODEX_MIRROR = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
+AGY_MIRROR = REPO_ROOT / "scripts" / "agy-hooks-allowlist.txt"
 
 KNOWN_EVENTS = {
     "SessionStart",
@@ -433,6 +434,9 @@ def dispatched_basenames() -> set[str]:
     codex_adapter = "codex-hook-adapter.py"
     if codex_adapter in names and parse_mirror(CODEX_MIRROR):
         dispatched.add(codex_adapter)
+    agy_adapter = "agy-hook-adapter.py"
+    if agy_adapter in names and parse_mirror(AGY_MIRROR):
+        dispatched.add(agy_adapter)
     return dispatched
 
 
@@ -606,7 +610,7 @@ def check_schema(settings: dict) -> list[str]:
 def check_mirror(settings: dict) -> list[str]:
     registered = registered_basenames(settings)
     msgs = []
-    for path in (CODEX_MIRROR,):
+    for path in (CODEX_MIRROR, AGY_MIRROR):
         for event, fname in parse_mirror(path):
             if not (HOOKS_DIR / fname).exists():
                 msgs.append(f"MIRROR: {path.name} names hooks/{fname} but no repo file exists (phantom).")

@@ -26,7 +26,14 @@
 ## Routing outcome capture
 
 The routing hooks automatically:
-1. Record each dispatch as `{agent}:{skill}` at PostToolUse:Agent
-2. Mark the outcome pending at SubagentStop
-3. Score it on the next user turn: failure on errors or rejection, success on explicit acceptance, neutral otherwise
-4. Fall back to a Stop-time score when no user turn follows
+1. Record each dispatch as `{agent}:{skill}` at `PostToolUse:Agent` (or `PostToolUse:invoke_subagent|run_workflow` on Antigravity CLI via `hooks/agy-hook-adapter.py`)
+2. Mark the outcome pending at `SubagentStop`
+3. Score it on the next user turn (`UserPromptSubmit` / `PreInvocation`): failure on errors or rejection, success on explicit acceptance, neutral otherwise
+4. Fall back to a `Stop`-time score when no user turn follows
+
+## Antigravity CLI (`agy`) Hook Translation
+
+On Antigravity CLI (`~/.gemini/config/hooks.json`), `scripts/generate-agy-hooks-json.py` compiles `scripts/agy-hooks-allowlist.txt` into the `"vexjoy-agent"` hook group and routes every hook through `hooks/agy-hook-adapter.py`:
+- **Flat events** (`SessionStart`, `PreInvocation`, `PostInvocation`, `Stop`) emit `injectSteps` or continuation decisions (`{"decision": "continue", "reason": "..."}` for `/goal` and drift guards).
+- **Grouped events** (`PreToolUse`, `PostToolUse`) match native Antigravity tool names (`run_command`, `write_file`, `edit_file`, `read_file`, `invoke_subagent`, `run_workflow`) and translate them to Claude tool contracts (`Bash`, `Write`, `Edit`, `Read`, `Agent`, `Workflow`).
+- **Deferred `PostToolUse` advisories**: Because Antigravity requires `PostToolUse` stdout to be `{}` (`EmptyHookOutput`), `hooks/agy-hook-adapter.py` queues `PostToolUse` advisory outputs per `conversationId` and drains them as `injectSteps` on the next `PreInvocation`.

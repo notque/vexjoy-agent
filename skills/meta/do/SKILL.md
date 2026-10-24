@@ -41,7 +41,7 @@ After Phase 2: `===` routing banner. Both required.
 
 ### Phase 1: CLASSIFY
 
-Read CLAUDE.md first.
+Read CLAUDE.md (or GEMINI.md on Antigravity CLI) first.
 
 | Complexity | Agent | Skill | Direct |
 |---|---|---|---|
@@ -73,7 +73,7 @@ The routing manifest (`scripts/routing-manifest.py`) is the runtime form; `docs/
 Resolve SDIR to locate installed scripts, then read the manifest for this request (hash-gated cache or regenerate). This probe does not identify the active session model or provider:
 
 ```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
 REQUEST_FILE=$(mktemp); printf '%s' "{user_request}" > "$REQUEST_FILE"
 bash "$SDIR/get-routing-manifest.sh" --request-file "$REQUEST_FILE"
 rm -f "$REQUEST_FILE"
@@ -313,9 +313,9 @@ cat > "$DISPATCH_JSON" << 'DISPATCH_EOF'
   "agent": "<agent>", "skill": "<skill; omit when agent-only>",
   "pipeline": "<pipeline; omit when Phase 2 returned null>",
   "complexity": "<trivial|simple|medium|complex>",
-  "model": "<haiku|sonnet|opus from Model choice>",
+  "model": "<haiku|sonnet|opus or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high from Model choice>",
   "context_mode": "summary",
-  "provider": "<anthropic|openai|other>",
+  "provider": "<anthropic|openai|google|antigravity|other>",
   "manual_model_override": false,
   "health": "-",
   "fallback_reason": "<REQUIRED when agent=general-purpose; omit otherwise>",
@@ -358,7 +358,9 @@ Opus won no measured task.
 
 Tiers (`model_policy`): low-risk = haiku, standard = sonnet, high-risk (unmeasured, costly miss) = opus. `max-power` stays opus/xhigh and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
 
-Escalate on a miss: haiku, then sonnet, then opus. Retry once on the next model when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
+**Antigravity CLI (`agy`) & Google AI (Argon):** When `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`. Set `provider="google"` in `build-dispatch.py` (`low-risk` = `gemini-3.8-flash` / `low`, `standard` = `gemini-4-argon` / `medium`, `high-risk` = `gemini-4-argon-high` / `high`, `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`). For Complex / multi-agent tasks, execute via `/teamwork` primitives (`define_subagent` from `agents/*.md`, `invoke_subagent` with `Workspace="branch"|"share"` for parallel code isolation or `"inherit"` for read-only scouts, `send_message` for stateful continuation, `manage_subagents` for 3-strike circuit breaking) or Python `run_workflow` (`skills/process/workflow/references/fan-out-workflow.py`). For deep autonomous work (`/goal`), enforce Phase 4.5 verification before emitting `<!-- GOAL_COMPLETE -->`.
+
+Escalate on a miss: haiku, then sonnet, then opus (or `gemini-3.8-flash` → `gemini-4-argon` → `gemini-4-argon-high` on Google AI). Retry once on the next model when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
 
 Evidence limits: one repo, one run per cell; the review row is n=1. Full record, Jev questions, probabilities, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
@@ -398,6 +400,7 @@ On any routing error → load `${CLAUDE_SKILL_DIR}/references/error-handling.md`
 ## References
 
 - `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`
+- `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`
 - `agents/INDEX.json`, `skills/INDEX.json`
 - `skills/workflow/SKILL.md`, `skills/workflow/references/pipeline-index.json`
 - `scripts/routing-manifest.py`
