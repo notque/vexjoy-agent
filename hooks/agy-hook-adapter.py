@@ -102,7 +102,7 @@ def queue_deferred_context(conversation_id: str, text: str) -> None:
         tmp = path.with_suffix(".tmp")
         tmp.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
         tmp.replace(path)
-    except OSError:
+    except (OSError, json.JSONDecodeError):
         pass
 
 

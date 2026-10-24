@@ -130,3 +130,18 @@ def test_cli_dry_run_produces_valid_json():
     )
     data = json.loads(proc.stdout)
     assert data["vexjoy-agent"]["enabled"] is True
+
+
+def test_cli_output_creates_and_prunes_backups(tmp_path: Path):
+    out_file = tmp_path / "hooks.json"
+    out_file.write_text('{"existing": true}\n', encoding="utf-8")
+    for _ in range(7):
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT_PATH), "--allowlist", str(ALLOWLIST_PATH), "--output", str(out_file)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert proc.returncode == 0
+    backups = list(tmp_path.glob("hooks.bak.*"))
+    assert 0 < len(backups) <= 5

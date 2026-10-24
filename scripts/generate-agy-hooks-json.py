@@ -244,6 +244,12 @@ def main(argv: list[str] | None = None) -> int:
         backup_path = output_path.with_suffix(f".bak.{timestamp}")
         try:
             backup_path.write_bytes(output_path.read_bytes())
+            old_backups = sorted(output_path.parent.glob(f"{output_path.stem}.bak.*"))
+            for old in old_backups[:-5]:
+                try:
+                    old.unlink()
+                except OSError:
+                    pass
         except OSError:
             pass
 

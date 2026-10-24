@@ -346,3 +346,15 @@ def test_failure_policies_on_invalid_input_and_hook_crash(tmp_path: Path):
     assert open_res.returncode == 0
     open_data = json.loads(open_res.stdout)
     assert open_data["decision"] == "allow"
+
+
+def test_queue_deferred_context_handles_corrupt_json(tmp_path: Path, adapter):
+    state_dir = tmp_path / "agy-state-corrupt"
+    os.environ["VEXJOY_AGY_DEFERRED_DIR"] = str(state_dir)
+    try:
+        def_path = adapter._deferred_path("conv-corrupt")
+        def_path.parent.mkdir(parents=True, exist_ok=True)
+        def_path.write_text("{not valid json", encoding="utf-8")
+        adapter.queue_deferred_context("conv-corrupt", "advisory message")
+    finally:
+        os.environ.pop("VEXJOY_AGY_DEFERRED_DIR", None)
