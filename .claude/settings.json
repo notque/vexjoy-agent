@@ -176,6 +176,16 @@
             "timeout": 26000
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/gemini-turn-gate-userprompt.py\"",
+            "description": "Detect user prompts and enforce Turn-1 routing mandate for Gemini models",
+            "timeout": 3000
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -328,6 +338,17 @@
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-dispatch-spec-gate.py\"",
             "description": "Advisory: warn when a medium/complex [do-route] dispatch drops Request (verbatim), Acceptance criteria, or Repo state (DISPATCH_SPEC_GATE_MODE=deny to block)",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-routing-gate.py\"",
+            "description": "Enforce Turn-1 routing before executing mutating commands or file edits",
             "timeout": 3000
           }
         ]
