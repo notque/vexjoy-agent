@@ -601,6 +601,12 @@ def ordered_skill_calls(decision: dict) -> list[str]:
 
 def render_skill_calls(decision: dict) -> str:
     """Render the A/B-winning action contract once per callable skill."""
+    provider = str(decision.get("provider") or "").strip().lower()
+    if provider in ("google", "antigravity"):
+        return "\n".join(
+            f"Read and follow ~/.gemini/skills/{name}/SKILL.md before starting work."
+            for name in ordered_skill_calls(decision)
+        )
     return "\n".join(f"Call the Skill tool with `{name}`." for name in ordered_skill_calls(decision))
 
 

@@ -361,3 +361,19 @@ def test_queue_deferred_context_handles_corrupt_json(tmp_path: Path, adapter):
         assert result == ["advisory message"]
     finally:
         os.environ.pop("VEXJOY_AGY_DEFERRED_DIR", None)
+
+
+def test_deferred_dir_fallback_resolution(tmp_path: Path, adapter, monkeypatch):
+    custom_dir = tmp_path / "custom-deferred"
+    monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(custom_dir))
+    assert adapter._deferred_dir() == custom_dir
+
+    monkeypatch.delenv("VEXJOY_AGY_DEFERRED_DIR", raising=False)
+    state_root = tmp_path / "custom-state"
+    monkeypatch.setenv("VEXJOY_STATE_DIR", str(state_root))
+    assert adapter._deferred_dir() == state_root / "agy-deferred"
+
+    monkeypatch.delenv("VEXJOY_STATE_DIR", raising=False)
+    default_dir = adapter._deferred_dir()
+    assert default_dir.is_dir()
+    assert default_dir.name == "agy-deferred" or default_dir.name == "vexjoy-agy-deferred"

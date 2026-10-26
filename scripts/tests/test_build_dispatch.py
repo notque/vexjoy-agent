@@ -305,6 +305,20 @@ def test_skill_calls_are_primary_first_ordered_and_deduplicated():
     ]
 
 
+@pytest.mark.parametrize("provider", ("google", "antigravity"))
+def test_skill_calls_for_google_antigravity_emit_read_skill_directive(provider):
+    decision = _decision(
+        skill="review",
+        stack=["review", "quick"],
+        provider=provider,
+    )
+    calls = bd.render_skill_calls(decision).splitlines()
+    assert calls == [
+        "Read and follow ~/.gemini/skills/review/SKILL.md before starting work.",
+        "Read and follow ~/.gemini/skills/quick/SKILL.md before starting work.",
+    ]
+
+
 def test_trigger_phrase_and_category_alias_coerce_to_canonical_skill():
     mapping = bd._trigger_to_skill_map()
     alias = next(
@@ -342,6 +356,12 @@ def test_shared_pattern_stack_entry_is_not_a_skill_call():
     calls = bd.render_skill_calls(decision)
     assert "anti-rationalization-core" not in calls
     assert calls.endswith("Call the Skill tool with `testing`.")
+
+
+def test_render_skill_calls_renders_antigravity_instruction_for_google_provider():
+    decision = _decision(skill="pr-workflow", stack=[], provider="google")
+    calls = bd.render_skill_calls(decision)
+    assert calls == "Read and follow ~/.gemini/skills/pr-workflow/SKILL.md before starting work."
 
 
 @pytest.mark.parametrize("name", ["reviewer-code", "agent-upgrade", "not-a-real-component"])

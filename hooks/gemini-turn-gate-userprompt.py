@@ -149,8 +149,9 @@ def main() -> None:
         directive = (
             "[VEXJOY ROUTING MANDATE] Non-trivial task detected. "
             "In Turn 1, output the 4-Phase Classification and ROUTING banner as visible user-facing text "
-            "before calling execution tools. If executing in-thread, load the selected SKILL.md before "
-            "mutating files; if Complex/Parallel, dispatch via define_subagent and invoke_subagent. "
+            "before calling execution tools. For all Simple+ tasks (Simple, Medium, Complex), dispatch a subagent "
+            "via define_subagent (from agents/<name>.md if not already defined) and invoke_subagent. "
+            "Only Trivial tasks (single user-named file typo/fix) may execute directly in the main thread. "
             "Do not defer routing to post-execution."
         )
         out = context_output(EVENT_NAME, directive)

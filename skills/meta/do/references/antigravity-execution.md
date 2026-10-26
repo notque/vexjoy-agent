@@ -46,16 +46,16 @@ Select `model` (and optional `model_effort` or `model_policy`) in `build-dispatc
 
 ### 2.3 Execution Tier Architecture in Antigravity CLI
 
-Unlike Claude Code where subagents are pre-registered lightweight subprocesses invoked via `Agent(subagent_type, prompt)`, Antigravity CLI requires registering custom agents dynamically via `define_subagent` before `invoke_subagent`. To balance context isolation with execution latency:
+In Antigravity CLI, all non-trivial tasks follow VexJoy's orchestrator contract: the main thread orchestrates and delegates all execution to subagents. Custom agents are registered via `define_subagent` from `agents/<name>.md` before `invoke_subagent`:
 
 | Complexity Tier | Execution Mode | Agent Mechanism | Skill Mechanism |
 |---|---|---|---|
 | **Trivial** | Direct in-thread | Handled directly (single user-named file typo/fix) | None |
-| **Simple / Medium** | In-thread persona adoption | Declare specialist in Turn-1 ROUTING banner; adopt persona in-thread | Load `~/.gemini/skills/<skill>/SKILL.md` via `read_file` before mutating files |
-| **Complex / Fan-out** | Subagent dispatch (`/teamwork`) | Register via `define_subagent` from `agents/<name>.md`; dispatch via `invoke_subagent` (`Workspace="branch"` or `"share"`) | Inject skill instructions / path into subagent prompt |
+| **Simple / Medium** | Single subagent dispatch | Register specialist via `define_subagent` from `agents/<name>.md`; dispatch via `invoke_subagent` (`Workspace="inherit"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
+| **Complex / Fan-out** | Multi-agent dispatch (`/teamwork`) | Register via `define_subagent` from `agents/<name>.md`; dispatch via `invoke_subagent` (`Workspace="branch"` or `"share"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
 
 **Context Gathering Boundary (Phase 3 Step G)**:
-Reading repository status (`git status -s`, `git branch`) and exploring up to 5 files in the main thread is explicitly permitted as orchestrator routing work to populate the Task Spec prior to execution or subagent dispatch (`skills/meta/do/SKILL.md#L25`).
+Reading repository status (`git status -s`, `git branch`) and exploring up to 5 files in the main thread is explicitly permitted as orchestrator routing work to populate the Task Spec prior to subagent dispatch (`skills/meta/do/SKILL.md#L25`).
 
 ---
 
@@ -144,7 +144,7 @@ When the user invokes `/do` alongside `/goal` (or requests `<afk-mode>`, "loop u
 | **`/plan`** (`implementation_plan.md` + `walkthrough.md` in `<appDataDir>/brain/<conversation-id>/`) | Phase 4 Step 1 & Phase 5 | Writes structured brain artifacts (`implementation_plan.md` with `ArtifactMetadata: {RequestFeedback: true, UserFacing: true}`) for user review before risky/complex changes, plus `task_plan.md` for repo-local checkpointing and `walkthrough.md` at completion. |
 | **`/grill-me`** + **`ask_question`** tool | Phase 3 (Ambiguity Gate / Depth-First Interview) | Uses Antigravity's native `ask_question` tool (`questions` array, unnumbered `options`, `(Recommended)` prefix on first option, `is_multi_select`) to batch independent decision frontiers (`pl-depth-first-interview.md`). Recommend `/grill-me` when the user wants an exhaustive interactive design interview. |
 | **`/boost`** (Deep Thinking + Multi-Perspective Verification + Scratch Prototyping) | Phase 3 & Phase 4.5 (`high-risk` / `max-power`) | Escalates to `gemini-4-argon-high` (`effort: "high"` or `"max"`), runs multi-perspective review fan-out (`reviewer-code`, `reviewer-system`, `reviewer-domain`, `reviewer-perspectives`), and builds empirical prototypes (`pl-empirical-prototype.md`) in `<appDataDir>/brain/<conversation-id>/scratch/`. |
-| **`/browser`** | Phase 4.5 Stage 6 (`LIVE-VALIDATE`) | Validates web applications, UI components, and visual regressions in a live browser alongside `playwright-cli`. |
+| **`/browser`** | Phase 4.5 Stage 6 (`LIVE-VALIDATE`) | Validates web applications, UI components, and visual regressions in a live browser. |
 | **`/schedule`** (`schedule` tool) & **`/automation`** (Sidecars) | Phase 4 (Async Monitoring / Recurring Tasks) | Uses the native `schedule` tool (`DurationSeconds` or `CronExpression` + `TimerCondition`) instead of bash `sleep` polling; uses `~/.gemini/config/sidecars/<id>/sidecar.json` (`automation` skill) for standing background daemons. |
 | **`/compact`** | Phase Boundaries (Context Hygiene) | When `suggest-compact.py` or context length signals pressure between phases, checkpoints state to `task_plan.md` and brain artifacts, then recommends `/compact`. |
 | **`/learn`** | Phase 5 (Post-Task Learning & Rule Graduation) | Records routing and error learnings to `learning.db` (`rules-distill-trigger.py`) and graduates durable workflow corrections into `.agents/rules/*.md` or `GEMINI.md` (with `trigger: always_on`, `glob`, `manual`, or `model_decision`). |

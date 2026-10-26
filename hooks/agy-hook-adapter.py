@@ -76,7 +76,15 @@ def _deferred_dir() -> Path:
     env_dir = os.environ.get("VEXJOY_AGY_DEFERRED_DIR")
     if env_dir:
         return Path(env_dir)
-    return Path(tempfile.gettempdir()) / "vexjoy-agy-deferred"
+    state_dir = os.environ.get("VEXJOY_STATE_DIR")
+    if state_dir:
+        return Path(state_dir) / "agy-deferred"
+    gemini_dir = Path.home() / ".gemini" / "state" / "agy-deferred"
+    try:
+        gemini_dir.mkdir(parents=True, exist_ok=True)
+        return gemini_dir
+    except OSError:
+        return Path(tempfile.gettempdir()) / "vexjoy-agy-deferred"
 
 
 def _deferred_path(conversation_id: str) -> Path:
