@@ -356,5 +356,8 @@ def test_queue_deferred_context_handles_corrupt_json(tmp_path: Path, adapter):
         def_path.parent.mkdir(parents=True, exist_ok=True)
         def_path.write_text("{not valid json", encoding="utf-8")
         adapter.queue_deferred_context("conv-corrupt", "advisory message")
+        # Advisory must survive a corrupt file — drain must return it.
+        result = adapter.drain_deferred_context("conv-corrupt")
+        assert result == ["advisory message"]
     finally:
         os.environ.pop("VEXJOY_AGY_DEFERRED_DIR", None)
