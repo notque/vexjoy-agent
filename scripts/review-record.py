@@ -23,14 +23,85 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import re
 import sys
 from pathlib import Path
 
-for _lib in (Path.home() / ".claude" / "hooks" / "lib", Path(__file__).resolve().parent.parent / "hooks" / "lib"):
+for _lib in (
+    Path.home() / ".gemini" / "hooks" / "lib",
+    Path.home() / ".claude" / "hooks" / "lib",
+    Path(__file__).resolve().parent.parent / "hooks" / "lib",
+):
     if _lib.is_dir() and str(_lib) not in sys.path:
         sys.path.insert(0, str(_lib))
 
 import review_record
+
+
+def _active_runtime_prefix() -> str:
+    """Return ~/.gemini or ~/.claude depending on active environment."""
+    runtime = os.environ.get("VEXJOY_HOOK_RUNTIME")
+    if (
+        runtime == "antigravity"
+        or bool(os.environ.get("ANTIGRAVITY_AGENT"))
+        or bool(os.environ.get("ANTIGRAVITY_APP_DATA_DIR"))
+        or bool(os.environ.get("ANTIGRAVITY_CLI"))
+    ):
+        return "~/.gemini"
+    return "~/.claude"
+
+
+def _validate_findings_content(content: str, review_type: str | None = None) -> list[str]:
+    """Validate review output structure. Returns list of errors (empty if valid)."""
+    if not content.strip():
+        return ["findings content is empty"]
+
+    if not re.search(
+        r"^#{1,4}\s+(?:Verdict|Critical|Important|Findings|Scope|Summary|Strengths|Review|Analysis|Severity)\b",
+        content,
+        re.MULTILINE | re.IGNORECASE,
+    ):
+        return ["missing review structure: expected headings like ## Verdict, ## Findings, ## Scope, or ## Critical"]
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if re.search(r"\b(BLOCK|REQUEST-CHANGES)\b", stripped, re.IGNORECASE):
+            if not re.search(r"\b0\s+(?:BLOCK|REQUEST-CHANGES)\b", stripped, re.IGNORECASE) and not re.search(
+                r"\b(?:no|zero)\s+(?:BLOCK|REQUEST-CHANGES)\b", stripped, re.IGNORECASE
+            ):
+                return [f"findings file contains blocking verdict: {stripped}"]
+
+    vro_path = Path(__file__).resolve().parent / "validate-review-output.py"
+    if vro_path.is_file():
+        try:
+            import importlib.util
+
+            import jsonschema
+
+            spec = importlib.util.spec_from_file_location("validate_review_output", vro_path)
+            if spec and spec.loader:
+                vro = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(vro)
+                types_to_try = (
+                    [review_type] if review_type else ["base", "systematic", "parallel", "sapcc-review", "sapcc-audit"]
+                )
+                valid = False
+                for t in types_to_try:
+                    try:
+                        data = vro.parse_markdown(content, t)
+                        if data and not vro.validate_structure(data, t):
+                            valid = True
+                            break
+                    except Exception:
+                        pass
+                if review_type and not valid:
+                    return [f"failed validation against {review_type} schema"]
+        except BaseException:
+            # If jsonschema is not installed or validate-review-output cannot run,
+            # structural checks above already verified headings and non-blocking verdict.
+            pass
+    return []
 
 
 def _remotes(repo_dir: str) -> dict[str, str]:
@@ -95,6 +166,17 @@ def cmd_mark(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 1
+    if not getattr(args, "skip_validation", False):
+        val_errors = _validate_findings_content(
+            body.decode("utf-8", errors="replace"),
+            review_type=getattr(args, "type", None),
+        )
+        if val_errors:
+            print(
+                f"review-record: refused: findings file {findings} failed review validation: {'; '.join(val_errors)}",
+                file=sys.stderr,
+            )
+            return 1
     path = review_record.write_record(
         identity,
         sha,
@@ -129,6 +211,16 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--findings-file", required=True, help="findings file /pr-review wrote for this commit")
             p.add_argument("--critical", type=int, required=True, help="unresolved Critical findings")
             p.add_argument("--important", type=int, required=True, help="unresolved Important findings")
+            p.add_argument(
+                "--skip-validation",
+                action="store_true",
+                help="skip structural validation of the findings file",
+            )
+            p.add_argument(
+                "--type",
+                choices=("base", "systematic", "parallel", "sapcc-review", "sapcc-audit"),
+                help="review schema type to validate against",
+            )
     args = parser.parse_args(argv)
     return cmd_mark(args) if args.cmd == "mark" else cmd_check(args)
 

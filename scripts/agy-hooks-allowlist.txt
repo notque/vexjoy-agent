@@ -31,14 +31,16 @@ SessionStart:session-manifest-cache.py failure=open
 SessionStart:session-task-registry.py failure=open
 SessionStart:hook-version-parity-check.py failure=open
 
-# PreInvocation (5) — flat handler list (maps to Claude UserPromptSubmit; first hook drains PostToolUse advisories)
+# PreInvocation (6) — flat handler list (maps to Claude UserPromptSubmit; first hook drains PostToolUse advisories)
 PreInvocation:review-false-positive-capture.py failure=open
 PreInvocation:prompt-capture.py failure=open
 PreInvocation:routing-outcome-finalizer.py failure=open
 PreInvocation:pipeline-context-detector.py failure=open
 PreInvocation:jev-route-injector-userprompt.py failure=open
+PreInvocation:gemini-turn-gate-userprompt.py failure=open
 
-# PreToolUse run_command -> Bash enforcement (6)
+# PreToolUse run_command -> Bash enforcement (7)
+PreToolUse:pretool-routing-gate.py matcher=run_command failure=closed
 PreToolUse:pretool-branch-safety.py matcher=run_command failure=closed
 PreToolUse:ci-merge-gate.py matcher=run_command failure=closed
 PreToolUse:pretool-review-before-push-gate.py matcher=run_command failure=closed
@@ -46,7 +48,8 @@ PreToolUse:pretool-ruff-format-gate.py matcher=run_command failure=closed
 PreToolUse:pretool-private-name-leak-gate.py matcher=run_command failure=closed
 PreToolUse:security-review-hook.py matcher=run_command failure=closed
 
-# PreToolUse edit_file|write_file -> Edit|Write enforcement (9)
+# PreToolUse edit_file|write_file -> Edit|Write enforcement (10)
+PreToolUse:pretool-routing-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:suggest-compact.py matcher=edit_file|write_file failure=open
 PreToolUse:pretool-unified-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-worktree-edit-guard.py matcher=edit_file|write_file failure=closed

@@ -893,15 +893,42 @@ _UNJUDGED = (
 )
 
 
+def _is_antigravity_runtime() -> bool:
+    return (
+        os.environ.get("VEXJOY_HOOK_RUNTIME") == "antigravity"
+        or bool(os.environ.get("ANTIGRAVITY_AGENT"))
+        or bool(os.environ.get("ANTIGRAVITY_APP_DATA_DIR"))
+        or bool(os.environ.get("ANTIGRAVITY_CLI"))
+    )
+
+
+def _guidance_steps(commit_sha: str | None = None) -> str:
+    if _is_antigravity_runtime():
+        sha_str = commit_sha[:12] if commit_sha else "<sha>"
+        return (
+            "Nothing reaches a repo that is not mine before a local review. Do this: "
+            "(1) commit locally; "
+            "(2) run local review on that commit using the review skill (/do review or review agents) "
+            "and write findings to /tmp/pr-review-{sha}.md; "
+            "(3) fix every Critical and Important finding and commit the fixes; "
+            "(4) record the clean review using: python3 ~/.gemini/scripts/review-record.py mark --sha {sha} "
+            '--findings-file /tmp/pr-review-{sha}.md --summary "<summary>" --critical 0 --important 0; '
+            "(5) retry the push, then open the PR."
+        ).format(sha=sha_str)
+    return _STEPS
+
+
 def deny_message(inv: Invocation, v: Verdict) -> str:
+    sha = v.missing[0] if v.missing else None
+    steps = _guidance_steps(sha)
     if inv.problem:
-        return f"[{HOOK}] blocked `{_ACTION[inv.kind]}`: {inv.problem}. {_UNJUDGED} {_STEPS}"
+        return f"[{HOOK}] blocked `{_ACTION[inv.kind]}`: {inv.problem}. {_UNJUDGED} {steps}"
     head = f"[{HOOK}] blocked `{_ACTION[inv.kind]}` to {v.target}: {v.reason}."
     if v.problem:
         why = f" {v.problem[0].upper()}{v.problem[1:]}."
     else:
         why = f" Commit {', '.join(s[:12] for s in v.missing)} has no local review record."
-    return f"{head}{why} {_STEPS}"
+    return f"{head}{why} {steps}"
 
 
 def _deny(reason: str, command: str) -> None:

@@ -127,3 +127,61 @@ def test_mark_refuses_findings_older_than_commit(repo: Path):
 def test_mark_requires_findings_flag(repo: Path):
     proc = run(repo, "mark", "--summary", "x", "--critical", "0", "--important", "0")
     assert proc.returncode == 2 and "--findings-file" in proc.stderr
+
+
+def test_mark_refuses_non_review_content(repo: Path):
+    bad = findings_file(repo, "just some text without any review structure\n")
+    proc = mark(repo, findings=bad)
+    assert proc.returncode == 1
+    assert "missing review structure" in proc.stderr
+
+
+def test_mark_refuses_blocking_verdict(repo: Path):
+    blocked = findings_file(repo, "## Verdict: BLOCK\n\n## Scope\nReviewed changes.\n")
+    proc = mark(repo, findings=blocked)
+    assert proc.returncode == 1
+    assert "blocking verdict" in proc.stderr
+
+
+def test_records_root_respects_antigravity_runtime(monkeypatch):
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "hooks" / "lib"))
+    import review_record
+
+    monkeypatch.setenv("VEXJOY_HOOK_RUNTIME", "antigravity")
+    assert ".gemini" in str(review_record.records_root())
+
+
+def test_read_record_cross_runtime_fallback(tmp_path: Path, monkeypatch):
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "hooks" / "lib"))
+    import review_record
+
+    # Set up mock home directory with .claude records
+    mock_home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(mock_home))
+    repo_id = "/path/to/repo"
+    key = hashlib.sha256(repo_id.encode("utf-8")).hexdigest()[:16]
+    claude_records = mock_home / ".claude" / "state" / "review-records" / key
+    claude_records.mkdir(parents=True)
+    record_data = {
+        "version": 2,
+        "repo": repo_id,
+        "sha": "1234567890123456789012345678901234567890",
+        "reviewed_at": "2026-10-26T12:00:00Z",
+        "summary": "clean",
+        "critical": 0,
+        "important": 0,
+        "findings_sha256": "a" * 64,
+        "findings_path": "/tmp/f.md",
+        "remotes": {},
+    }
+    (claude_records / f"{record_data['sha']}.json").write_text(json.dumps(record_data))
+
+    # When running under antigravity, records_root() is .gemini, but read_record finds .claude
+    monkeypatch.setenv("VEXJOY_HOOK_RUNTIME", "antigravity")
+    read = review_record.read_record(repo_id, record_data["sha"])
+    assert read is not None
+    assert read["sha"] == record_data["sha"]

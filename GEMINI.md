@@ -4,7 +4,25 @@
 
 The toolkit uses **agents, skills, hooks, and scripts** to absorb complexity that would otherwise fall on the user. Behavioral enforcement lives in these mechanisms, not in this file.
 
-**Route to agents (`/do` or `/d`).** The main thread is an orchestrator. It classifies requests, dispatches agents, and evaluates results. Delegate source code reading, file edits, and multi-domain analysis to specialized agents. See `skills/meta/do/SKILL.md` and `skills/meta/do/references/antigravity-execution.md`.
+**Route to agents (`/do` or `/d`).** Execution in Antigravity CLI follows a 2-tier delegation model:
+- **Complex & Parallel Work**: The main thread acts as an orchestrator. It decomposes tasks, registers specialists via `define_subagent` from `agents/<name>.md`, dispatches workers via `invoke_subagent` (`Workspace="branch"` or `"share"`), and evaluates results.
+- **Simple & Medium Work**: To eliminate subagent registration overhead for single-domain tasks, the main thread adopts the specialist persona in-thread after emitting the Turn-1 ROUTING banner.
+- **Skill Loading Mandate**: Antigravity has no callable `Skill` tool. When a skill is selected, the executing agent (main thread or subagent) MUST load `~/.gemini/skills/<skill>/SKILL.md` (or the project path) via `read_file` before mutating files. Reading up to 5 files for Task Spec gathering (Phase 3 Step G) is permitted prior to execution.
+See `skills/meta/do/SKILL.md` and `skills/meta/do/references/antigravity-execution.md`.
+
+**Turn-1 Routing Invariant (Non-Negotiable).**
+1. **Turn-1 Output Mandate**: On any non-trivial user prompt (anything beyond a single-file typo or read-only inquiry), emit the 4-Phase Classification and ROUTING banner as visible user-facing text in Turn 1 before calling execution tools.
+2. **Zero Mutating Tools in Turn 1**: Call no `edit_file`, `write_file`, or mutating `run_command` in Turn 1 before emitting the routing banner. Read-only inspection (`read_file`, `git status`) is permitted.
+3. **No Retroactive Banners**: Emit the routing banner exclusively in Turn 1 prior to actions. Refrain from outputting a post-hoc banner at the end of execution or inside the final summary.
+
+### Anti-Rationalization Gates (Non-Negotiable)
+| Model Assertion | Required Gate Behavior |
+| :--- | :--- |
+| *"Execute tools first, print routing banner at end"* | **BLOCKED**. Emit routing banner in Turn 1 before invoking tools. |
+| *"This is a single session, I can edit directly without routing"* | **BLOCKED**. Declare active domain specialist and skill before modifying files. |
+| *"Post-execution summary can include routing banner"* | **BLOCKED**. Post-hoc routing is prohibited. |
+| *"Code looks correct, skip tests"* | **BLOCKED**. Run test suite and inspect exit codes. |
+| *"Trivial change, no verification needed"* | **BLOCKED**. Provide concrete execution proof. |
 
 **Antigravity CLI Execution Primitives (`/teamwork`, `run_workflow`, `/goal`).**
 - **Multi-Agent Teamwork (`/teamwork`)**: Register specialist personas from `agents/<name>.md` via `define_subagent`, dispatch workers via `invoke_subagent` (using `Workspace="branch"` or `"share"` for isolated parallel code edits and `"inherit"` for read-only scouts), iterate with existing workers via `send_message`, and enforce the 3-strike circuit breaker via `manage_subagents`. Never poll in a loop after `invoke_subagent` — rely on reactive wakeup.

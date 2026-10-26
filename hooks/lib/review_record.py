@@ -27,8 +27,35 @@ GIT_TIMEOUT = 5
 
 
 def records_root() -> Path:
-    """Directory holding every review record."""
+    """Directory holding review records for the active runtime."""
+    env = os.environ.get("VEXJOY_STATE_DIR")
+    if env:
+        return Path(env) / "review-records"
+    runtime = os.environ.get("VEXJOY_HOOK_RUNTIME")
+    if (
+        runtime == "antigravity"
+        or bool(os.environ.get("ANTIGRAVITY_AGENT"))
+        or bool(os.environ.get("ANTIGRAVITY_APP_DATA_DIR"))
+        or bool(os.environ.get("ANTIGRAVITY_CLI"))
+    ):
+        return Path.home() / ".gemini" / "state" / "review-records"
+    if runtime == "codex" or bool(os.environ.get("CODEX_HOME")):
+        return Path.home() / ".codex" / "state" / "review-records"
     return Path.home() / ".claude" / "state" / "review-records"
+
+
+def candidate_records_roots() -> list[Path]:
+    """Every candidate review records root across supported runtimes, active first."""
+    active = records_root()
+    roots = [active]
+    for candidate in (
+        Path.home() / ".gemini" / "state" / "review-records",
+        Path.home() / ".claude" / "state" / "review-records",
+        Path.home() / ".codex" / "state" / "review-records",
+    ):
+        if candidate not in roots:
+            roots.append(candidate)
+    return roots
 
 
 def git(args: list[str], cwd: str | Path | None, git_opts: list[str] | None = None) -> subprocess.CompletedProcess:
@@ -73,20 +100,26 @@ def record_path(identity: str, sha: str) -> Path:
 
 def read_record(identity: str, sha: str) -> dict | None:
     """The record for (*identity*, *sha*) when it exists and names that repo and SHA."""
-    try:
-        data = json.loads(record_path(identity, sha).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if not isinstance(data, dict):
-        return None
-    if data.get("version") != RECORD_VERSION or data.get("repo") != identity or data.get("sha") != sha:
-        return None
-    digest = data.get("findings_sha256")
-    if not isinstance(digest, str) or len(digest) != 64:
-        return None
-    if data.get("critical", 1) != 0 or data.get("important", 1) != 0:
-        return None
-    return data
+    import hashlib
+
+    key = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+    for root in candidate_records_roots():
+        record_file = root / key / f"{sha}.json"
+        try:
+            data = json.loads(record_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        if data.get("version") != RECORD_VERSION or data.get("repo") != identity or data.get("sha") != sha:
+            continue
+        digest = data.get("findings_sha256")
+        if not isinstance(digest, str) or len(digest) != 64:
+            continue
+        if data.get("critical", 1) != 0 or data.get("important", 1) != 0:
+            continue
+        return data
+    return None
 
 
 def write_record(

@@ -44,6 +44,19 @@ Select `model` (and optional `model_effort` or `model_policy`) in `build-dispatc
 | Feature implementation (multi-file) | `gemini-4-argon` | `medium` | `inherit` | `gemini-4-argon-high` (`high`) |
 | Complex architecture / security / migration | `gemini-4-argon-high` | `high` | `pro` | `gemini-4-argon-high` (`max`, `manual_model_override: true`) |
 
+### 2.3 Execution Tier Architecture in Antigravity CLI
+
+Unlike Claude Code where subagents are pre-registered lightweight subprocesses invoked via `Agent(subagent_type, prompt)`, Antigravity CLI requires registering custom agents dynamically via `define_subagent` before `invoke_subagent`. To balance context isolation with execution latency:
+
+| Complexity Tier | Execution Mode | Agent Mechanism | Skill Mechanism |
+|---|---|---|---|
+| **Trivial** | Direct in-thread | Handled directly (single user-named file typo/fix) | None |
+| **Simple / Medium** | In-thread persona adoption | Declare specialist in Turn-1 ROUTING banner; adopt persona in-thread | Load `~/.gemini/skills/<skill>/SKILL.md` via `read_file` before mutating files |
+| **Complex / Fan-out** | Subagent dispatch (`/teamwork`) | Register via `define_subagent` from `agents/<name>.md`; dispatch via `invoke_subagent` (`Workspace="branch"` or `"share"`) | Inject skill instructions / path into subagent prompt |
+
+**Context Gathering Boundary (Phase 3 Step G)**:
+Reading repository status (`git status -s`, `git branch`) and exploring up to 5 files in the main thread is explicitly permitted as orchestrator routing work to populate the Task Spec prior to execution or subagent dispatch (`skills/meta/do/SKILL.md#L25`).
+
 ---
 
 ## 3. Multi-Agent Teamwork (`/teamwork` Engine for Complex Tasks)
@@ -148,3 +161,18 @@ When the user invokes `/do` alongside `/goal` (or requests `<afk-mode>`, "loop u
    - Use `read_file`, `edit_file`, and `write_file` instead of shell `cat`/`sed`/`awk` for file operations so `PostToolUse` hooks (`edit_file|write_file`) and file backups trigger deterministically.
 3. **Writing Style Precedence**:
    - Follow `CLAUDE.md` / `GEMINI.md` precedence: **Completeness floor** (never omit required technical facts or verification evidence) > **Google Developer Documentation Style** (active voice, second person, context-before-instruction) > **Dense-Complete conciseness**.
+
+---
+
+## 8. Gemini Turn-1 Routing Invariants & Hook Enforcement
+
+Gemini models (`gemini-3.8-flash`, `gemini-4-argon`) possess an aggressive function-calling bias and may attempt tool execution before emitting conversational preamble or routing banners.
+
+1. **Turn-1 Output Invariant**:
+   - On non-trivial requests, the very first turn must output the `/do` CLASSIFY and ROUTING banner as user-facing text before invoking mutating tools.
+   - Refrain from retroactive banner creation at the conclusion of execution.
+2. **Mechanical Enforcement**:
+   - `hooks/gemini-turn-gate-userprompt.py` (`PreInvocation`) inspects incoming prompts, initializes routing state, and injects the Turn-1 mandate.
+   - `hooks/pretool-routing-gate.py` (`PreToolUse`) permits read-only inspection (`read_file`, inspection commands like `git status`) but strictly denies mutating commands (`cargo`, `git commit`, `edit_file`) until the routing banner is emitted.
+   - `invoke_subagent` and `run_workflow` immediately satisfy routing requirements.
+
