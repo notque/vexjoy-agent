@@ -79,6 +79,14 @@ def validate_name(value: str, label: str) -> str:
     return cleaned
 
 
+def default_workspace_for_agent(agent_type: str) -> str:
+    """Default workspace to 'inherit' for reviewers/scouts, and 'branch' for implementers."""
+    cleaned = agent_type.strip().lower()
+    if cleaned.startswith("reviewer-") or "review" in cleaned or "research" in cleaned or "scout" in cleaned:
+        return "inherit"
+    return "branch"
+
+
 def validate_roster(roster: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Validate the caller-supplied specialist roster (1..MAX_ROSTER_SIZE)."""
     if not isinstance(roster, list) or not (1 <= len(roster) <= MAX_ROSTER_SIZE):
@@ -90,12 +98,17 @@ def validate_roster(roster: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(raw_skills, list) or not raw_skills:
             raise ValueError(f"roster entry for {agent_type!r} requires at least one skill")
         skills = [validate_name(s, "skill") for s in raw_skills]
+        ws = str(entry.get("workspace") or "").strip()
+        if not ws:
+            ws = default_workspace_for_agent(agent_type)
+        type_name = str(entry.get("type_name") or agent_type).strip()
         validated.append(
             {
                 "agentType": agent_type,
+                "type_name": type_name,
                 "skills": skills,
                 "lens": str(entry.get("lens") or "").strip(),
-                "workspace": str(entry.get("workspace") or "inherit").strip(),
+                "workspace": ws,
                 "model": str(entry.get("model") or "inherit").strip(),
             }
         )
@@ -112,7 +125,9 @@ def build_worker_prompt(entry: dict[str, Any], scope: dict[str, Any], complexity
         f"[do-route] agent={entry['agentType']} skill={primary_skill} "
         f"complexity={complexity} model={model_token} health=-{stack_token}"
     )
-    skill_calls = "\n".join(f"Load and follow the `{s}` skill (`skills/{s}/SKILL.md`)." for s in entry["skills"])
+    skill_calls = "\n".join(
+        f"Read and follow ~/.gemini/skills/{s}/SKILL.md before starting work." for s in entry["skills"]
+    )
     lens = f"Apply this lens: {entry['lens']}." if entry.get("lens") else "Apply your specialist lens."
     return (
         f"{marker}\n\n"
@@ -156,14 +171,30 @@ async def run_fan_out_workflow(
 
     async def _invoke_worker(w: dict[str, Any]) -> Any:
         prompt = build_worker_prompt(w, scope)
-        return await _agent(
-            prompt,
-            schema=WORKER_SCHEMA,
-            role=f"{w['agentType']} ({w['lens'] or w['skills'][0]})",
-            type_name=w.get("type_name", "self"),
-            workspace=w.get("workspace", "inherit"),
-            model=w.get("model", "inherit"),
-        )
+        try:
+            return await _agent(
+                prompt,
+                schema=WORKER_SCHEMA,
+                role=f"{w['agentType']} ({w['lens'] or w['skills'][0]})",
+                type_name=w.get("type_name") or w.get("agentType") or "self",
+                workspace=w.get("workspace") or default_workspace_for_agent(w["agentType"]),
+                model=w.get("model", "inherit"),
+            )
+        except Exception as exc:
+            return {
+                "verdict": "BLOCK",
+                "summary": f"Worker {w['agentType']} execution failed: {exc}",
+                "findings": [
+                    {
+                        "title": f"Worker execution failure ({w['agentType']})",
+                        "location": "run_workflow",
+                        "severity": "critical",
+                        "detail": str(exc),
+                    }
+                ],
+                "lens": w.get("lens", ""),
+                "error": str(exc),
+            }
 
     if callable(_parallel):
         raw_results = await _parallel([_invoke_worker(w) for w in workers])
@@ -171,7 +202,15 @@ async def run_fan_out_workflow(
         raw_results = [await _invoke_worker(w) for w in workers]
 
     results = [r for r in raw_results if r is not None]
-    trajectories = [_trajectory(r) for r in results] if callable(_trajectory) else []
+    trajectories = []
+    if callable(_trajectory):
+        for r in results:
+            try:
+                t = _trajectory(r)
+                if t is not None:
+                    trajectories.append(t)
+            except Exception:
+                pass
 
     if callable(_phase):
         _phase("synthesize")

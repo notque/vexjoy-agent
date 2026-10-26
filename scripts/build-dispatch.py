@@ -89,6 +89,7 @@ import subprocess
 import sys
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 # INSTALL_ROOT keeps the invoked path: through ~/.claude/scripts -> <repo>/scripts,
 # inventories (INDEX.json, settings, hook_utils) must come from the deploy dir,
@@ -498,6 +499,57 @@ def _load_index_names(index_path: Path, field: str, local_name: str | None = Non
     return frozenset(names)
 
 
+@lru_cache(maxsize=8)
+def _load_index_entries(index_path: Path, field: str, local_name: str | None = None) -> dict[str, dict]:
+    """Load dictionary entries from a tracked index and local overlay."""
+    entries: dict[str, dict] = {}
+    paths = [index_path]
+    if local_name:
+        paths.append(index_path.parent / local_name)
+    for path in paths:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        data = raw.get(field)
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, dict):
+                    entries[str(k).strip().lower()] = v
+    return entries
+
+
+def load_skill_index_entries() -> dict[str, dict]:
+    """Return dictionary of known skill entries from the resolved skills index."""
+    path, local = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
+    return _load_index_entries(path, "skills", local)
+
+
+def get_skill_operational_summary(skill_name: str) -> str:
+    """Return the operational description/summary of a skill if available."""
+    clean_name = skill_name.strip().lower()
+    entries = load_skill_index_entries()
+    if clean_name in entries:
+        desc = entries[clean_name].get("description")
+        if isinstance(desc, str) and desc.strip():
+            return " ".join(desc.strip().split())
+    # Fallback to checking deployed skill or repo file
+    candidates = [
+        Path.home() / ".gemini" / "skills" / clean_name / "SKILL.md",
+        INSTALL_ROOT / "skills" / clean_name / "SKILL.md",
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            try:
+                txt = cand.read_text(encoding="utf-8")
+                match = re.search(r"^---\n.*?\ndescription:\s*([^\n]+)", txt, re.DOTALL)
+                if match:
+                    return match.group(1).strip().strip("\"'")
+            except OSError:
+                pass
+    return ""
+
+
 def load_known_skills(index_path: Path | None = None) -> frozenset[str]:
     """Return active skill names from the resolved index (installed first), else
     the tracked index plus local overlay."""
@@ -602,12 +654,18 @@ def ordered_skill_calls(decision: dict) -> list[str]:
 def render_skill_calls(decision: dict) -> str:
     """Render the A/B-winning action contract once per callable skill."""
     provider = str(decision.get("provider") or "").strip().lower()
+    calls = ordered_skill_calls(decision)
     if provider in ("google", "antigravity"):
-        return "\n".join(
-            f"Read and follow ~/.gemini/skills/{name}/SKILL.md before starting work."
-            for name in ordered_skill_calls(decision)
-        )
-    return "\n".join(f"Call the Skill tool with `{name}`." for name in ordered_skill_calls(decision))
+        directives = []
+        for i, name in enumerate(calls):
+            line = f"Read and follow ~/.gemini/skills/{name}/SKILL.md before starting work."
+            if i == 0:
+                summary = get_skill_operational_summary(name)
+                if summary:
+                    line += f"\nOperational Summary ({name}): {summary}"
+            directives.append(line)
+        return "\n".join(directives)
+    return "\n".join(f"Call the Skill tool with `{name}`." for name in calls)
 
 
 def resolve_pipeline(decision: dict) -> str:
@@ -1143,12 +1201,67 @@ def build_preamble(
     return "\n\n".join(block for block in blocks if block) + "\n"
 
 
+def load_build_subagent_spec_fn():
+    """Dynamically load build_subagent_spec helper from build-subagent-spec.py."""
+    spec_path = Path(__file__).resolve().parent / "build-subagent-spec.py"
+    if not spec_path.is_file():
+        return None
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("build_subagent_spec", spec_path)
+    if not spec or not spec.loader:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return getattr(mod, "build_subagent_spec", None)
+
+
+def build_subagent_dispatch(
+    decision: dict,
+    *,
+    gather: bool = True,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    """Combine subagent persona generation with task dispatch preamble for Antigravity."""
+    agent_name = str(decision.get("agent") or "").strip()
+    fn = load_build_subagent_spec_fn()
+    subagent_spec: dict[str, Any] = {}
+    if fn:
+        try:
+            subagent_spec = fn(agent_name, repo_root=repo_root)
+        except Exception:
+            subagent_spec = {}
+
+    preamble = build_preamble(decision, gather=gather, repo_root=repo_root)
+
+    category = subagent_spec.get("category", "implementer")
+    default_workspace = "inherit" if category in ("reviewer", "scout") else "branch"
+
+    return {
+        "subagent_spec": subagent_spec,
+        "preamble": preamble,
+        "define_subagent": subagent_spec.get("define_subagent", {}),
+        "invoke_subagent": {
+            "TypeName": subagent_spec.get("Name", agent_name),
+            "Role": subagent_spec.get("Description", agent_name),
+            "Prompt": preamble,
+            "Workspace": default_workspace,
+            "Model": decision.get("model", "gemini-4-argon"),
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build the /do Phase 4 dispatch preamble from a routing decision.")
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--json", help="Routing decision as a JSON string")
     source.add_argument("--json-file", help="Path to a routing-decision JSON file ('-' = stdin)")
     parser.add_argument("--no-gather", action="store_true", help="Skip the '## Repo state (auto-gathered)' block")
+    parser.add_argument(
+        "--subagent-spec",
+        action="store_true",
+        help="Output full Antigravity define_subagent and invoke_subagent JSON spec alongside preamble",
+    )
     parser.add_argument(
         "--repo-root",
         type=Path,
@@ -1173,7 +1286,16 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        sys.stdout.write(build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root))
+        if args.subagent_spec or decision.get("subagent_spec"):
+            sys.stdout.write(
+                json.dumps(
+                    build_subagent_dispatch(decision, gather=not args.no_gather, repo_root=args.repo_root),
+                    indent=2,
+                )
+                + "\n"
+            )
+        else:
+            sys.stdout.write(build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root))
     except InputError as exc:
         print(f"build-dispatch: {exc}", file=sys.stderr)
         return 2

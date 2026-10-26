@@ -312,11 +312,17 @@ def test_skill_calls_for_google_antigravity_emit_read_skill_directive(provider):
         stack=["review", "quick"],
         provider=provider,
     )
-    calls = bd.render_skill_calls(decision).splitlines()
-    assert calls == [
-        "Read and follow ~/.gemini/skills/review/SKILL.md before starting work.",
-        "Read and follow ~/.gemini/skills/quick/SKILL.md before starting work.",
-    ]
+    rendered = bd.render_skill_calls(decision)
+    assert "Read and follow ~/.gemini/skills/review/SKILL.md before starting work." in rendered
+    assert "Operational Summary (review):" in rendered
+    assert "Read and follow ~/.gemini/skills/quick/SKILL.md before starting work." in rendered
+
+
+def test_render_skill_calls_without_summary_falls_back_to_reference(monkeypatch):
+    monkeypatch.setattr(bd, "get_skill_operational_summary", lambda _name: "")
+    decision = _decision(skill="pr-workflow", stack=[], provider="google")
+    calls = bd.render_skill_calls(decision)
+    assert calls == "Read and follow ~/.gemini/skills/pr-workflow/SKILL.md before starting work."
 
 
 def test_trigger_phrase_and_category_alias_coerce_to_canonical_skill():
@@ -361,7 +367,8 @@ def test_shared_pattern_stack_entry_is_not_a_skill_call():
 def test_render_skill_calls_renders_antigravity_instruction_for_google_provider():
     decision = _decision(skill="pr-workflow", stack=[], provider="google")
     calls = bd.render_skill_calls(decision)
-    assert calls == "Read and follow ~/.gemini/skills/pr-workflow/SKILL.md before starting work."
+    assert "Read and follow ~/.gemini/skills/pr-workflow/SKILL.md before starting work." in calls
+    assert "Operational Summary (pr-workflow):" in calls
 
 
 @pytest.mark.parametrize("name", ["reviewer-code", "agent-upgrade", "not-a-real-component"])
@@ -1383,3 +1390,35 @@ def test_none_context_does_not_gather_or_drop_task_spec(tmp_path):
 def test_invalid_context_mode_fails_even_without_gather(mode):
     with pytest.raises(bd.InputError, match="context_mode"):
         _preamble(_decision(context_mode=mode))
+
+
+def test_build_subagent_dispatch():
+    decision = _decision(agent="python-general-engineer", skill="testing")
+    payload = bd.build_subagent_dispatch(decision, repo_root=REPO_ROOT)
+    assert "subagent_spec" in payload
+    assert payload["subagent_spec"]["Name"] == "python-general-engineer"
+    assert payload["define_subagent"]["EnableWriteTools"] is True
+    assert payload["invoke_subagent"]["TypeName"] == "python-general-engineer"
+    assert payload["invoke_subagent"]["Workspace"] == "branch"
+    assert "[do-route]" in payload["preamble"]
+
+
+def test_build_dispatch_cli_subagent_spec(tmp_path):
+    decision_file = tmp_path / "route.json"
+    decision = _decision(agent="reviewer-code", skill="review")
+    decision_file.write_text(json.dumps(decision), encoding="utf-8")
+
+    cmd = [
+        sys.executable,
+        str(SCRIPT_PATH),
+        "--json-file",
+        str(decision_file),
+        "--subagent-spec",
+        "--no-gather",
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT, check=False)
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["define_subagent"]["Name"] == "reviewer-code"
+    assert data["define_subagent"]["EnableWriteTools"] is False
+    assert data["invoke_subagent"]["Workspace"] == "inherit"

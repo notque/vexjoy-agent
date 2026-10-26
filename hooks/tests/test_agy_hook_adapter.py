@@ -306,6 +306,74 @@ def test_posttooluse_returns_empty_json_and_queues_deferred_context_for_pre_invo
     }
 
 
+def test_posttooluse_detects_run_command_failure_and_queues_diagnostic(tmp_path: Path):
+    state_dir = tmp_path / "agy-state-err"
+    env = {"VEXJOY_AGY_DEFERRED_DIR": str(state_dir)}
+
+    noop_hook = _write_hook(tmp_path, "print('{}')\n")
+    post_payload = _agy_event(
+        "PostToolUse",
+        conversation_id="conv-err-cmd",
+        tool_name="run_command",
+        args={"CommandLine": "pytest"},
+        toolResult={"output": "Command exited with code 1.\nFAIL: test_a", "exitCode": 1},
+    )
+    post_res = _run_cli(noop_hook, "PostToolUse", "open", post_payload, matcher="run_command", extra_env=env)
+    assert post_res.returncode == 0
+    assert json.loads(post_res.stdout) == {}
+
+    pre_hook = _write_hook(tmp_path, 'print("ready for fixes")\n')
+    pre_payload = _agy_event("PreInvocation", conversation_id="conv-err-cmd", lastUserInput="fix it")
+    pre_res = _run_cli(
+        pre_hook,
+        "PreInvocation",
+        "open",
+        pre_payload,
+        matcher="",
+        drain_deferred=True,
+        extra_env=env,
+    )
+    assert pre_res.returncode == 0
+    pre_data = json.loads(pre_res.stdout)
+    assert len(pre_data["injectSteps"]) == 1
+    injected = pre_data["injectSteps"][0]["systemMessage"]["systemMessage"]
+    assert "[diagnostic] Tool 'run_command' execution failed (exit code 1" in injected
+    assert "ready for fixes" in injected
+
+
+def test_posttooluse_detects_file_error_and_queues_diagnostic(tmp_path: Path):
+    state_dir = tmp_path / "agy-state-file-err"
+    env = {"VEXJOY_AGY_DEFERRED_DIR": str(state_dir)}
+
+    noop_hook = _write_hook(tmp_path, "print('{}')\n")
+    post_payload = _agy_event(
+        "PostToolUse",
+        conversation_id="conv-err-file",
+        tool_name="edit_file",
+        args={"Path": "a.py", "Target": "foo", "Replacement": "bar"},
+        toolResult="Error: Target must exactly match existing file text.",
+    )
+    post_res = _run_cli(noop_hook, "PostToolUse", "open", post_payload, matcher="edit_file", extra_env=env)
+    assert post_res.returncode == 0
+    assert json.loads(post_res.stdout) == {}
+
+    pre_hook = _write_hook(tmp_path, 'print("retry turn")\n')
+    pre_payload = _agy_event("PreInvocation", conversation_id="conv-err-file", lastUserInput="retry")
+    pre_res = _run_cli(
+        pre_hook,
+        "PreInvocation",
+        "open",
+        pre_payload,
+        matcher="",
+        drain_deferred=True,
+        extra_env=env,
+    )
+    assert pre_res.returncode == 0
+    pre_data = json.loads(pre_res.stdout)
+    injected = pre_data["injectSteps"][0]["systemMessage"]["systemMessage"]
+    assert "[diagnostic] Tool 'edit_file' execution failed" in injected
+
+
 def test_stop_and_post_invocation_translate_continuation_decisions(adapter):
     norm_event = {"session_id": "conv-1"}
     # Stop exit 2 -> continue

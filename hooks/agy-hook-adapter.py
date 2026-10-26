@@ -260,15 +260,59 @@ def normalize_agy_payload(payload: dict[str, Any], *, agy_event: str) -> dict[st
         normalized.setdefault("tool_input", {})
 
     if agy_event == "PostToolUse":
+        raw_result = (
+            payload.get("toolResult")
+            or payload.get("result")
+            or payload.get("toolOutput")
+            or payload.get("tool_result")
+        )
         err = payload.get("error")
-        if isinstance(err, str) and err:
-            normalized["tool_result"] = {"output": err, "is_error": True}
-        elif "tool_result" not in normalized:
-            normalized["tool_result"] = {"output": "", "is_error": False}
+        exit_code = payload.get("exitCode") if payload.get("exitCode") is not None else payload.get("exit_code")
+
+        is_error = False
+        output_str = ""
+
+        if isinstance(raw_result, dict):
+            output_str = str(raw_result.get("output") or raw_result.get("text") or raw_result.get("stdout") or "")
+            if raw_result.get("is_error") or raw_result.get("isError"):
+                is_error = True
+            if exit_code is None:
+                exit_code = (
+                    raw_result.get("exitCode")
+                    if raw_result.get("exitCode") is not None
+                    else raw_result.get("exit_code")
+                )
+            if raw_result.get("error"):
+                is_error = True
+                err = raw_result.get("error")
+        elif isinstance(raw_result, str):
+            output_str = raw_result
+
+        if isinstance(err, str) and err.strip():
+            is_error = True
+            if not output_str:
+                output_str = err
+
+        if exit_code is not None and isinstance(exit_code, (int, str)):
+            try:
+                if int(exit_code) != 0:
+                    is_error = True
+            except ValueError:
+                pass
+
+        normalized["tool_result"] = {
+            "output": output_str,
+            "is_error": is_error,
+            "error": str(err) if err else None,
+            "exit_code": exit_code,
+        }
 
     if agy_event in ("Stop", "PostInvocation"):
         normalized.setdefault("stop_hook_active", False)
         normalized.setdefault("session_data", {})
+        usage = payload.get("usageMetadata") or payload.get("usage_metadata")
+        if isinstance(usage, dict):
+            normalized["usage_metadata"] = usage
 
     return normalized
 
@@ -326,6 +370,73 @@ def _extract_claude_fields(stdout: str) -> dict[str, Any]:
     }
 
 
+def detect_tool_failure(normalized_event: dict[str, Any]) -> tuple[bool, str]:
+    """Detect tool execution failure (non-zero exit code / file error) for on_tool_error parity."""
+    tool_name = str(normalized_event.get("agy_tool_name") or normalized_event.get("tool_name") or "")
+    tool_result = normalized_event.get("tool_result")
+    if not isinstance(tool_result, dict):
+        tool_result = {}
+
+    is_error = bool(tool_result.get("is_error"))
+    err_field = tool_result.get("error")
+    exit_code = tool_result.get("exit_code")
+    output = str(tool_result.get("output") or "")
+
+    if exit_code is not None:
+        try:
+            if int(exit_code) != 0:
+                is_error = True
+        except ValueError:
+            pass
+
+    # Check run_command output for exit code patterns
+    if tool_name in ("run_command", "Bash"):
+        m = re.search(r"(?:exited with code|exit code:?|status)\s+([1-9]\d*)", output, re.IGNORECASE)
+        if m:
+            is_error = True
+            if exit_code is None:
+                exit_code = int(m.group(1))
+
+    # Check file operation errors (edit_file, write_file, read_file, view_file)
+    if tool_name in ("edit_file", "write_file", "read_file", "view_file", "Edit", "Write", "Read"):
+        lower_out = output.lower()
+        if any(
+            indicator in lower_out
+            for indicator in (
+                "target must exactly match",
+                "target does not match",
+                "file not found",
+                "no such file or directory",
+                "permission denied",
+                "failed to write",
+                "failed to edit",
+                "cannot open file",
+                "error:",
+            )
+        ):
+            is_error = True
+
+    if not is_error and not err_field:
+        return False, ""
+
+    details: list[str] = []
+    if exit_code is not None:
+        details.append(f"exit code {exit_code}")
+    if err_field:
+        details.append(str(err_field).strip())
+    elif output:
+        first_line = output.strip().splitlines()[0] if output.strip() else ""
+        if first_line:
+            details.append(first_line[:120])
+
+    detail_str = f" ({', '.join(details)})" if details else ""
+    diagnostic = (
+        f"[diagnostic] Tool '{tool_name}' execution failed{detail_str}. "
+        "Review tool arguments, error diagnostics, and workspace state before proceeding."
+    )
+    return True, diagnostic
+
+
 def translate_child_result(
     agy_event: str,
     returncode: int,
@@ -375,6 +486,12 @@ def translate_child_result(
         ]
         if returncode == 2 and exit2_reason:
             msg_parts.append(exit2_reason)
+
+        # on_tool_error parity: detect tool execution failure and queue diagnostic guidance
+        has_failure, diagnostic = detect_tool_failure(normalized_event)
+        if has_failure and diagnostic not in msg_parts:
+            msg_parts.append(diagnostic)
+
         if msg_parts:
             queue_deferred_context(conv_id, "\n".join(msg_parts))
         return {}

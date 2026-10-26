@@ -78,21 +78,62 @@ flowchart LR
 
 ### Step 1: Register Domain Specialists (`define_subagent`)
 Antigravity ships built-in `self` (full tool access), `research` (read-only sandbox), and `image-generator` subagents. To dispatch a specialized VexJoy agent (such as `python-general-engineer`, `golang-general-engineer`, `reviewer-system`):
-1. Read `agents/<agent-name>.md` to extract its role description and system prompt.
+1. Extract persona definition and permissions via `scripts/build-subagent-spec.py`:
+   ```bash
+   python3 scripts/build-subagent-spec.py --agent <agent-name> --format define_subagent
+   ```
 2. Call `define_subagent`:
    - `Name`: `"<agent-name>"`
    - `Description`: Specialist domain summary from frontmatter.
-   - `SystemPrompt`: Full agent instructions + `agents/base-instructions.md` reference.
+   - `SystemPrompt`: Compiled agent body + `agents/base-instructions.md` rules.
    - `EnableWriteTools`: `true` for implementers; `false` for reviewers/scouts.
    - `EnableMCPTools`: `true` when MCP documentation or external tools are needed.
-   - `EnableSubagentTools`: `true` only for coordinators (`project-coordinator-engineer`, `research-coordinator-engineer`).
+   - `EnableSubagentTools`: `true` only for coordinators (`project-coordinator-engineer`, `pipeline-orchestrator-engineer`).
+
+#### Antigravity SDK Programmatic Equivalents:
+In the Python SDK (`google-antigravity`), personas and permissions map directly to `types.SubagentConfig` or `LocalAgentConfig`:
+```python
+from google_antigravity import types
+
+# Programmatic equivalent generated via `scripts/build-subagent-spec.py --agent <name> --format sdk`
+worker_config = types.SubagentConfig(
+    name="python-general-engineer",
+    description="Python development: features, debugging, code review, performance",
+    system_instruction="<compiled system prompt>",
+    capabilities=types.CapabilitiesConfig(
+        enable_write_tools=True,
+        enable_mcp_tools=False,
+        enable_subagents=False,
+    ),
+)
+```
+
+#### Antigravity SDK Tool Permission Matrix for Specialists:
+| Specialist Category | Example Agents | `EnableWriteTools` | `EnableMCPTools` | `EnableSubagentTools` | SDK Equivalent |
+|---|---|---|---|---|---|
+| **Builders / Implementers** | `python-general-engineer`, `typescript-frontend-engineer` | `true` | `false` (or `true` if needed) | `false` | ReadWrite BuiltinTools |
+| **Reviewers & Auditors** | `reviewer-code`, `reviewer-system`, `reviewer-perspectives` | `false` | `false` | `false` | ReadOnly Policy (`BuiltinTools.read_only()`) |
+| **Scouts & Researchers** | `research-subagent-executor` | `false` | `true` | `false` | Sandboxed ReadOnly + Web/MCP |
+| **Coordinators / Planners** | `project-coordinator-engineer`, `pipeline-orchestrator-engineer` | `true` | `true` | `true` | Full capabilities (`enable_subagents=True`) |
 
 ### Step 2: Dispatch with Native Workspace Isolation (`invoke_subagent`)
-1. Run `build-dispatch.py` **once per agent** so each worker receives its own `[do-route]` marker line, scoped `task_spec.files`, and `ownership` boundaries.
-2. Call `invoke_subagent(TypeName, Role, Prompt, Model, Workspace)`:
-   - **`Workspace="branch"`**: Creates an isolated workspace branched/cloned from the parent. **Mandatory** when 2+ parallel implementers edit files concurrently (replaces manual `git worktree` creation).
+1. Run `build-dispatch.py` **once per agent** (or use `--subagent-spec`) so each worker receives its own `[do-route]` marker line, scoped `task_spec.files`, and `ownership` boundaries:
+   ```bash
+   python3 scripts/build-dispatch.py --json '<decision>' --subagent-spec
+   ```
+2. **Skill Context Injection**: For Antigravity (`provider="google"` or `"antigravity"`), `build-dispatch.py` inlines the primary skill's operational summary directly into the prompt directive alongside `Read and follow ~/.gemini/skills/<skill>/SKILL.md`. This eliminates the cold-start latency of subagents spending their first turn reading skill files.
+3. Call `invoke_subagent(TypeName, Role, Prompt, Model, Workspace)`:
+   - **`Workspace="branch"`**: Creates an isolated workspace branched/cloned from the parent. **Mandatory** when parallel implementers edit files concurrently (replaces manual `git worktree` creation and prevents merge conflicts).
    - **`Workspace="share"`**: Shares the underlying repository metadata (worktree-style) for lightweight independent branching without duplicating storage.
-   - **`Workspace="inherit"`**: Uses the parent workspace directly. Use for single-agent dispatches, read-only `research` scouts, or sequential phases with non-overlapping files.
+   - **`Workspace="inherit"`**: Uses the parent workspace directly. **Default** for read-only reviewers (`reviewer-*`), scouts (`research-subagent-executor`), and single-agent sequential work where files do not collide.
+
+#### Workspace Selection Guidelines:
+| Agent Role | Primary Activity | Recommended Workspace | Rationale |
+|---|---|---|---|
+| **Implementer / Builder** | Code changes, refactoring | `Workspace="branch"` | Prevents file corruption and collision during parallel edits. |
+| **Reviewer / Auditor** | Read-only inspection | `Workspace="inherit"` | Fast start, reads caller workspace state directly without cloning. |
+| **Scout / Researcher** | Search, codebase scanning | `Workspace="inherit"` | Zero storage overhead, shared read access to project directory. |
+| **Single Worker (Sequential)** | Contained fix | `Workspace="inherit"` | No parallel risk; fast execution in the active workspace. |
 
 ### Step 3: Reactive Wakeup & Stateful Continuation (`send_message`)
 - **Zero Polling Rule (HARD CONSTRAINT)**: `invoke_subagent` launches asynchronously. After invoking subagents, **do not poll in a loop or run shell `sleep` commands**. Either perform independent non-dependent work or stop calling tools to end your turn; Antigravity automatically wakes you when a subagent replies or completes.
@@ -175,4 +216,20 @@ Gemini models (`gemini-3.8-flash`, `gemini-4-argon`) possess an aggressive funct
    - `hooks/gemini-turn-gate-userprompt.py` (`PreInvocation`) inspects incoming prompts, initializes routing state, and injects the Turn-1 mandate.
    - `hooks/pretool-routing-gate.py` (`PreToolUse`) permits read-only inspection (`read_file`, inspection commands like `git status`) but strictly denies mutating commands (`cargo`, `git commit`, `edit_file`) until the routing banner is emitted.
    - `invoke_subagent` and `run_workflow` immediately satisfy routing requirements.
+
+---
+
+## 9. Antigravity Lifecycle Events & Hooks Integration
+
+The Antigravity SDK architecture relies on event-driven hooks to govern execution, validate policies, and track metrics. VexJoy integrates with these lifecycle points via `hooks/agy-hook-adapter.py`:
+
+| Antigravity Hook | Lifecycle Trigger | VexJoy Integration & Behavior |
+|---|---|---|
+| **`SessionStart`** | New agent session initialized | Reads operator profile, clears stale run caches, and injects session-level environment context. |
+| **`PreInvocation`** | Model turn starts (user prompt or wakeup) | Drains deferred context from prior tool calls, enforces Turn-1 routing invariant, and verifies active gates. |
+| **`PreToolUse`** | Tool call emitted before execution | Enforces permission policies (`allow`, `deny`, `ask`), prevents mutating commands prior to routing, checks review gates before `git push`, and translates input modifications via `overwrite`. |
+| **`PostToolUse`** | Tool execution finishes | Captures tool output and errors (`on_tool_error`), records diagnostics, and queues advisory context for delivery in the next model turn without breaking tool stdout format. |
+| **`PostInvocation`** | Model finishes turn before reply | Determines termination behavior (`terminate` or `force_continue`) and updates turn counters. |
+| **`Stop`** | User/agent attempts session completion | Blocks early termination if incomplete checklist items or unverified deliverables remain (`/goal` quality loop enforcement). |
+
 
