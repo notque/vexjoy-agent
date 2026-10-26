@@ -40,6 +40,7 @@ from hook_utils import context_output, empty_output, hook_error
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "UserPromptSubmit"
+_BYPASS_ENV = "GEMINI_TURN_GATE_BYPASS"
 
 # Trivial / conversational phrases that do not require full routing ceremonies
 CONTINUATION_PATTERN = re.compile(
@@ -113,6 +114,9 @@ def is_non_trivial_task(prompt: str) -> bool:
 
 
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        return
+
     raw = read_stdin()
     if not raw:
         empty_output(EVENT_NAME)

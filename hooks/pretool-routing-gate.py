@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import sys  # vexjoy-pyguard
 
-if sys.version_info < (3, 10):  # vexjoy-pyguard advisory
+if sys.version_info < (3, 10):  # vexjoy-pyguard gate
     import os
 
     if not os.environ.get("VEXJOY_PYGUARD_REEXEC"):
@@ -29,7 +29,7 @@ if sys.version_info < (3, 10):  # vexjoy-pyguard advisory
         " outside Claude Code (gated tool calls stay blocked until then)\n"
         % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)
     )
-    sys.exit(0)
+    sys.exit(2)
 
 import json
 import os

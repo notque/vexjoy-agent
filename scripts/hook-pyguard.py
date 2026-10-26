@@ -62,6 +62,7 @@ GATES = frozenset(
         "pretool-plan-gate.py",
         "pretool-private-name-leak-gate.py",
         "pretool-review-before-push-gate.py",
+        "pretool-routing-gate.py",
         "pretool-ruff-format-gate.py",
         "pretool-synthesis-gate.py",
         "pretool-unified-gate.py",
