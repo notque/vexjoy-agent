@@ -20,6 +20,97 @@ MIN_NAME_LEN = 4
 MIN_HASH_BYTES = 32
 MAX_SCAN_BYTES = 2 * 1024 * 1024
 
+# Harness built-in commands and slash commands (never private overlay names).
+BUILTIN_COMMANDS: frozenset[str] = frozenset(
+    {
+        "goal",
+        "compact",
+        "schedule",
+        "browser",
+        "plan",
+        "grill-me",
+        "teamwork",
+        "learn",
+        "boost",
+        "help",
+        "clear",
+        "cost",
+        "doctor",
+        "init",
+        "login",
+        "logout",
+        "review",
+        "pr-comments",
+        "bug",
+    }
+)
+
+# Common/normal words that may be overlay skill names but must not be flagged
+# as content-name leaks when they appear in normal tracked documentation or code.
+COMMON_WORDS: frozenset[str] = frozenset(
+    {
+        "anti",
+        "auto",
+        "base",
+        "blog",
+        "check",
+        "code",
+        "content",
+        "core",
+        "data",
+        "deep",
+        "deploy",
+        "docs",
+        "draft",
+        "edit",
+        "editor",
+        "file",
+        "five",
+        "full",
+        "game",
+        "image",
+        "images",
+        "main",
+        "news",
+        "open",
+        "pipeline",
+        "post",
+        "quick",
+        "research",
+        "review",
+        "social",
+        "story",
+        "teach",
+        "test",
+        "text",
+        "tool",
+        "tools",
+        "user",
+        "video",
+        "voice",
+        "wizard",
+        "write",
+        "writer",
+        "writing",
+    }
+)
+
+
+def load_common_words(cfg: OverlayConfig | None = None) -> frozenset[str]:
+    """Base COMMON_WORDS plus optional host-local words from <overlays_dir>/common-words.txt."""
+    words = set(COMMON_WORDS)
+    if cfg is not None and cfg.path is not None:
+        ignore_file = cfg.path.parent / "common-words.txt"
+        if ignore_file.is_file():
+            try:
+                for line in ignore_file.read_text(encoding="utf-8").splitlines():
+                    w = line.strip().lower()
+                    if w and not w.startswith("#"):
+                        words.add(w)
+            except OSError:
+                pass
+    return frozenset(words)
+
 
 @dataclass(frozen=True)
 class Leak:
@@ -43,6 +134,7 @@ def overlay_names(ledger: Ledger, cfg: OverlayConfig, pub: PublicSources) -> set
     public = {i.name for i in pub.skills + pub.promoted + pub.support + pub.data}
     public |= {i.name[:-3] if i.name.endswith(".md") else i.name for i in pub.agents}
     public |= {i.name for i in pub.commands}
+    public |= BUILTIN_COMMANDS
     return {n for n in names if len(n) >= MIN_NAME_LEN and n not in public}
 
 
@@ -74,13 +166,15 @@ def find_leaks(repo: Path, ledger: Ledger, cfg: OverlayConfig, pub: PublicSource
     hashes = overlay_hashes(ledger, cfg)
     if not names and not hashes:
         return []
+    common = load_common_words(cfg)
+    content_names = names - common
     pattern = (
         re.compile(
             r"(?<![A-Za-z0-9_-])("
-            + "|".join(sorted(map(re.escape, names), key=len, reverse=True))
+            + "|".join(sorted(map(re.escape, content_names), key=len, reverse=True))
             + r")(?![A-Za-z0-9_-])"
         )
-        if names
+        if content_names
         else None
     )
     leaks: list[Leak] = []

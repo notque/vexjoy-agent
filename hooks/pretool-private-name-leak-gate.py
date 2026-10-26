@@ -182,6 +182,7 @@ _COMMON_WORDS = frozenset(
         "review",
         "social",
         "story",
+        "teach",
         "test",
         "text",
         "tool",
@@ -189,9 +190,34 @@ _COMMON_WORDS = frozenset(
         "user",
         "video",
         "voice",
+        "wizard",
         "write",
         "writer",
         "writing",
+    }
+)
+
+_BUILTIN_COMMANDS = frozenset(
+    {
+        "goal",
+        "compact",
+        "schedule",
+        "browser",
+        "plan",
+        "grill-me",
+        "teamwork",
+        "learn",
+        "boost",
+        "help",
+        "clear",
+        "cost",
+        "doctor",
+        "init",
+        "login",
+        "logout",
+        "review",
+        "pr-comments",
+        "bug",
     }
 )
 
@@ -395,6 +421,8 @@ def _private_names(toolkit_root: Path) -> set[str]:
     names = _raw_leaf_names()
     names -= _public_skill_names(toolkit_root)
     names -= _toolkit_identity(toolkit_root)
+    names -= _BUILTIN_COMMANDS
+    names -= _COMMON_WORDS
     return names
 
 

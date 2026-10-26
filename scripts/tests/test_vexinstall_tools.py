@@ -249,6 +249,61 @@ def test_check_private_leak_reports_path_and_name_only(world: Env, capsys: pytes
     commit_all(world.repo, "unleak")
 
 
+def test_check_private_leak_common_words_and_builtin_commands(world: Env, capsys: pytest.CaptureFixture[str]) -> None:
+    teach_dir = world.priv / "priv" / "teach"
+    teach_dir.mkdir(parents=True)
+    (teach_dir / "SKILL.md").write_text(skill_md("teach"))
+    grill_dir = world.priv / "priv" / "grill-me"
+    grill_dir.mkdir(parents=True)
+    (grill_dir / "SKILL.md").write_text(skill_md("grill-me"))
+
+    assert world.run("apply", "--target", "claude").code == 0
+    leak = _load_script("check-private-leak")
+
+    # Mentioning common word 'teach', 'wizard', or built-in command 'grill-me' in content does not leak.
+    (world.repo / "docs").mkdir(exist_ok=True)
+    (world.repo / "docs" / "guide.md").write_text("We teach users how to use the setup wizard and /grill-me.\n")
+    commit_all(world.repo, "test-common-words")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 0
+
+    # However, tracking a path matching 'teach' still triggers a path leak.
+    (world.repo / "skills" / "teach").mkdir(parents=True)
+    (world.repo / "skills" / "teach" / "other.md").write_text("not the skill body\n")
+    commit_all(world.repo, "test-path-leak")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 1
+    out = capsys.readouterr().out
+    assert "skills/teach/other.md: path 'teach'" in out
+
+    git(world.repo, "rm", "-r", "-q", "skills/teach")
+    git(world.repo, "rm", "-r", "-q", "docs/guide.md")
+    commit_all(world.repo, "cleanup")
+
+
+def test_check_private_leak_custom_common_words_file(world: Env, capsys: pytest.CaptureFixture[str]) -> None:
+    custom_dir = world.priv / "priv" / "customterm"
+    custom_dir.mkdir(parents=True)
+    (custom_dir / "SKILL.md").write_text(skill_md("customterm"))
+    assert world.run("apply", "--target", "claude").code == 0
+    leak = _load_script("check-private-leak")
+
+    (world.repo / "docs").mkdir(exist_ok=True)
+    (world.repo / "docs" / "mention.md").write_text("mention customterm here\n")
+    commit_all(world.repo, "leak-custom")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 1
+
+    # Adding customterm to common-words.txt suppresses content-name leak
+    common_file = world.home / ".claude" / "vexjoy" / "common-words.txt"
+    common_file.write_text("# comments allowed\ncustomterm\n")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 0
+
+    git(world.repo, "rm", "-r", "-q", "docs/mention.md")
+    commit_all(world.repo, "cleanup")
+
+
 def test_repair_repo_restores_contaminated_tracked_file(world: Env) -> None:
     tracked = world.repo / "skills" / "meta" / "beta" / "SKILL.md"
     private_copy = world.priv / "priv" / "private-one" / "SKILL.md"
