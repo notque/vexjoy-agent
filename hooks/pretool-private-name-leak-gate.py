@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.3.1
+# hook-version: 1.3.2
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
@@ -30,6 +30,8 @@ Term set, three sources:
    - MINUS the toolkit's own name (pyproject `name` and its first hyphen
      segment). This is the only "already public" exemption: exempting every
      name already in the tracked tree made a leak self-perpetuating.
+   - MINUS harness built-in and slash commands (_BUILTIN_COMMANDS)
+   - MINUS common words that appear routinely in documentation or code (_COMMON_WORDS)
 2. BRAND terms: a first hyphen segment shared by at least 2 private leaf
    names, at least 4 chars, not a common word (_COMMON_WORDS), not the
    toolkit's own name, and not a segment of any public skill or agent name.
@@ -471,7 +473,7 @@ def private_terms(toolkit_root: Path) -> tuple[set[str], set[str]]:
     already appearing in the public tree.
     """
     leaves = _private_names(toolkit_root)
-    strong = _brand_terms(toolkit_root, _raw_leaf_names()) | _owner_terms()
+    strong = _brand_terms(toolkit_root, _raw_leaf_names() - _BUILTIN_COMMANDS) | _owner_terms()
     return leaves, strong
 
 

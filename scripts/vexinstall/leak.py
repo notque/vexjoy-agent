@@ -99,7 +99,7 @@ COMMON_WORDS: frozenset[str] = frozenset(
 def load_common_words(cfg: OverlayConfig | None = None) -> frozenset[str]:
     """Base COMMON_WORDS plus optional host-local words from <overlays_dir>/common-words.txt."""
     words = set(COMMON_WORDS)
-    if cfg is not None and cfg.path is not None:
+    if cfg is not None:
         ignore_file = cfg.path.parent / "common-words.txt"
         if ignore_file.is_file():
             try:
@@ -167,6 +167,10 @@ def find_leaks(repo: Path, ledger: Ledger, cfg: OverlayConfig, pub: PublicSource
     if not names and not hashes:
         return []
     common = load_common_words(cfg)
+    # Intentional asymmetry: common words are excluded from content-matching so they do
+    # not flag normal text in documentation or code, but remain in `names` so tracking a
+    # directory or file literally named after a common word still triggers a path leak.
+    # Built-in commands, by contrast, were filtered out earlier in `overlay_names()`.
     content_names = names - common
     pattern = (
         re.compile(

@@ -277,6 +277,16 @@ def test_check_private_leak_common_words_and_builtin_commands(world: Env, capsys
     assert "skills/teach/other.md: path 'teach'" in out
 
     git(world.repo, "rm", "-r", "-q", "skills/teach")
+
+    # Built-in commands (like grill-me) are filtered in overlay_names() and must NOT cause a path leak,
+    # unlike common words which intentionally trigger path leaks.
+    (world.repo / "skills" / "grill-me").mkdir(parents=True)
+    (world.repo / "skills" / "grill-me" / "other.md").write_text("not the skill body\n")
+    commit_all(world.repo, "test-builtin-path")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 0
+
+    git(world.repo, "rm", "-r", "-q", "skills/grill-me")
     git(world.repo, "rm", "-r", "-q", "docs/guide.md")
     commit_all(world.repo, "cleanup")
 
@@ -302,6 +312,20 @@ def test_check_private_leak_custom_common_words_file(world: Env, capsys: pytest.
 
     git(world.repo, "rm", "-r", "-q", "docs/mention.md")
     commit_all(world.repo, "cleanup")
+
+
+def test_private_leak_sets_parity_with_pretool_hook() -> None:
+    """Ensure BUILTIN_COMMANDS and COMMON_WORDS sets in leak.py and the pretool hook stay identical."""
+    from vexinstall import leak
+
+    hook_path = SCRIPTS_DIR.parent / "hooks" / "pretool-private-name-leak-gate.py"
+    spec = importlib.util.spec_from_file_location("_leak_gate", hook_path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    assert leak.BUILTIN_COMMANDS == mod._BUILTIN_COMMANDS
+    assert leak.COMMON_WORDS == mod._COMMON_WORDS
 
 
 def test_repair_repo_restores_contaminated_tracked_file(world: Env) -> None:
