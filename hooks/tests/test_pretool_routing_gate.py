@@ -102,7 +102,7 @@ def test_routing_gate_allows_subagent_dispatch(tmp_path: Path):
             "tool_name": "Agent",
             "tool_input": {"subagent_type": "python-general-engineer", "prompt": "fix bug"},
         },
-        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir)},
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
     )
     assert res.returncode == 0
     assert "deny" not in res.stdout
@@ -123,7 +123,7 @@ def test_routing_gate_denies_mutating_tool_when_unrouted(tmp_path: Path):
     state_dir.mkdir(parents=True, exist_ok=True)
     state_file.write_text(json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}))
 
-    # Attempt edit_file
+    # Attempt edit_file — must use HARNESS=agy so provider guard does not short-circuit
     res = run_hook(
         ROUTING_GATE,
         {
@@ -131,7 +131,7 @@ def test_routing_gate_denies_mutating_tool_when_unrouted(tmp_path: Path):
             "tool_name": "Edit",
             "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
         },
-        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir)},
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
     )
     assert res.returncode == 0
     data = json.loads(res.stdout)
@@ -146,7 +146,7 @@ def test_routing_gate_denies_mutating_tool_when_unrouted(tmp_path: Path):
             "tool_name": "Bash",
             "tool_input": {"command": "cargo test"},
         },
-        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir)},
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
     )
     assert res.returncode == 0
     data = json.loads(res.stdout)
@@ -182,7 +182,84 @@ def test_routing_gate_allows_when_bypass_or_routed(tmp_path: Path):
             "tool_name": "Bash",
             "tool_input": {"command": "cargo test"},
         },
-        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir)},
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
     )
     assert res.returncode == 0
     assert "deny" not in res.stdout
+
+
+def test_routing_gate_allows_claude_session_no_agy_env(tmp_path: Path):
+    """Claude/Anthropic sessions (no AGY env vars) must never be blocked."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-claude-1"
+
+    # Initialize unrouted state — same setup that would block AGY sessions
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}))
+
+    # No AGY env vars present (standard Claude/Anthropic session)
+    res = run_hook(
+        ROUTING_GATE,
+        {
+            "session_id": session_id,
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
+        },
+        {
+            "VEXJOY_ROUTING_STATE_DIR": str(state_dir),
+            "HARNESS": "",
+            "AGY_SESSION": "",
+            "ANTIGRAVITY_BRAIN_DIR": "",
+        },
+    )
+    assert res.returncode == 0
+    assert "deny" not in res.stdout, "Routing gate must not block Claude/Anthropic sessions (no AGY env)"
+
+
+def test_routing_gate_enforces_for_agy_session(tmp_path: Path):
+    """AGY/Gemini sessions must still be blocked when unrouted."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-agy-1"
+
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}))
+
+    res = run_hook(
+        ROUTING_GATE,
+        {
+            "session_id": session_id,
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
+        },
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
+    )
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["hookSpecificOutput"]["permissionDecision"] == "deny", (
+        "Routing gate must still block AGY sessions when unrouted"
+    )
+
+
+def test_routing_gate_enforces_for_agy_session_env2(tmp_path: Path):
+    """AGY_SESSION=1 env var also triggers enforcement."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-agy-2"
+
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}))
+
+    res = run_hook(
+        ROUTING_GATE,
+        {
+            "session_id": session_id,
+            "tool_name": "Bash",
+            "tool_input": {"command": "cargo test"},
+        },
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "AGY_SESSION": "1"},
+    )
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["hookSpecificOutput"]["permissionDecision"] == "deny", "AGY_SESSION=1 must trigger enforcement"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """PreToolUse:Bash,Edit,Write Hook: Routing Gate
 
 Ensures Gemini models and other agents emit the 4-Phase Classification
@@ -268,6 +268,12 @@ def main() -> None:
         empty_output(EVENT_NAME)
         return
 
+    # Provider guard: routing mandate is AGY/Gemini-only.
+    # Claude/Anthropic sessions have no AGY transcript -- allow immediately.
+    if not _is_agy_session():
+        empty_output(EVENT_NAME)
+        return
+
     raw = read_stdin()
     if not raw:
         empty_output(EVENT_NAME)
@@ -322,6 +328,15 @@ def main() -> None:
         "Emit the routing decision first."
     )
     deny_tool_use(EVENT_NAME, reason)
+
+
+def _is_agy_session() -> bool:
+    """True when env signals indicate an AGY/Gemini harness session."""
+    return (
+        os.environ.get("HARNESS", "").lower() == "agy"
+        or os.environ.get("AGY_SESSION") == "1"
+        or bool(os.environ.get("ANTIGRAVITY_BRAIN_DIR"))
+    )
 
 
 if __name__ == "__main__":
