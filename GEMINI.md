@@ -14,6 +14,7 @@ See `skills/meta/do/SKILL.md` and `skills/meta/do/references/antigravity-executi
 1. **Turn-1 Output Mandate**: On any non-trivial user prompt (anything beyond a single-file typo or read-only inquiry), emit the 4-Phase Classification and ROUTING banner as visible user-facing text in Turn 1 before calling execution tools.
 2. **Zero Mutating Tools in Turn 1**: Call no `edit_file`, `write_file`, or mutating `run_command` in Turn 1 before emitting the routing banner. Read-only inspection (`read_file`, `git status`) is permitted.
 3. **No Retroactive Banners**: Emit the routing banner exclusively in Turn 1 prior to actions. Refrain from outputting a post-hoc banner at the end of execution or inside the final summary.
+4. **Plan Approval Continuity**: When the user approves an artifact or plan (e.g., `[Approved] <artifact>`, `proceed`, `continue`), execute the approved plan directly. Do not re-route with a fresh single-agent Turn-1 banner or collapse multi-agent work streams.
 
 ### Anti-Rationalization Gates (Non-Negotiable)
 | Model Assertion | Required Gate Behavior |
@@ -21,12 +22,15 @@ See `skills/meta/do/SKILL.md` and `skills/meta/do/references/antigravity-executi
 | *"Execute tools first, print routing banner at end"* | **BLOCKED**. Emit routing banner in Turn 1 before invoking tools. |
 | *"I can execute this Simple/Medium task in-thread without dispatching"* | **BLOCKED**. Dispatch a subagent via define_subagent and invoke_subagent. Only Trivial tasks run in-thread. |
 | *"This is a single session, I can edit directly without routing"* | **BLOCKED**. Route to domain specialist and dispatch via invoke_subagent. |
+| *"Task was planned or approved with multiple subagents (e.g. Subagent A/B/C/D), but I can collapse them into a single subagent dispatch"* | **BLOCKED**. Dispatch each planned subagent via define_subagent and invoke_subagent (Workspace="branch" or "share"). Never collapse a multi-subagent plan into a single monolithic subagent dispatch. |
+| *"Artifact review approved the plan, so I must re-route with a single-agent /do banner"* | **BLOCKED**. Plan approval executes the planned subagents immediately. Do not reset multi-subagent workflows into a single-agent dispatch. |
+| *"Complex task with multiple subtasks can be assigned to a single subagent"* | **BLOCKED**. Complex tasks requiring 2+ failures or 3+ subtasks must fan out to multiple subagents via /teamwork or run_workflow. |
 | *"Post-execution summary can include routing banner"* | **BLOCKED**. Post-hoc routing is prohibited. |
 | *"Code looks correct, skip tests"* | **BLOCKED**. Run test suite and inspect exit codes. |
 | *"Trivial change, no verification needed"* | **BLOCKED**. Provide concrete execution proof. |
 
 **Antigravity CLI Execution Primitives (`/teamwork`, `run_workflow`, `/goal`).**
-- **Multi-Agent Teamwork (`/teamwork`)**: Register specialist personas from `agents/<name>.md` via `define_subagent`, dispatch workers via `invoke_subagent` (using `Workspace="branch"` or `"share"` for isolated parallel code edits and `"inherit"` for read-only scouts), iterate with existing workers via `send_message`, and enforce the 3-strike circuit breaker via `manage_subagents`. Never poll in a loop after `invoke_subagent` — rely on reactive wakeup.
+- **Multi-Agent Teamwork (`/teamwork`)**: Register specialist personas from `agents/<name>.md` via `define_subagent`, dispatch workers via `invoke_subagent` (using `Workspace="branch"` or `"share"` for isolated parallel code edits and `"inherit"` for read-only scouts), iterate with existing workers via `send_message`, and enforce the 3-strike circuit breaker via `manage_subagents`. Never poll in a loop after `invoke_subagent` — rely on reactive wakeup. When a plan or Job Package specifies multiple subagents (e.g. Subagents A/B/C/D), dispatch every planned subagent individually; never consolidate them into a single monolithic worker prompt.
 - **Python Workflows (`run_workflow`)**: When `run_workflow` is in the active tool list and a pipeline or Complex fan-out is selected, run deterministic Python orchestration (`skills/process/workflow/references/fan-out-workflow.py`) using `phase()`, `parallel()`, `pipeline()`, `agent(schema=...)`, and `trajectory()`.
 - **Deep Autonomous Work (`/goal`)**: Track deliverables in `<appDataDir>/brain/<conversation-id>/task.md` and enforce Phase 4.5 verification (`VERIFY`, `REVIEW`, `EVALUATE`, `LIVE-VALIDATE` via `/browser`) before emitting `<!-- GOAL_COMPLETE -->`.
 - **Google AI Model Dispatch**: Pass `"provider": "google"` to `scripts/build-dispatch.py` (`low-risk` → `gemini-3.8-flash`/`low`, `standard` → `gemini-4-argon`/`medium`, `high-risk` → `gemini-4-argon-high`/`high`, `max-power` → `gemini-4-argon-high`/`max` with `manual_model_override: true`).

@@ -42,9 +42,15 @@ from stdin_timeout import read_stdin
 EVENT_NAME = "UserPromptSubmit"
 _BYPASS_ENV = "GEMINI_TURN_GATE_BYPASS"
 
-# Trivial / conversational phrases that do not require full routing ceremonies
+# Artifact review approvals and plan approval notifications
+APPROVAL_PATTERN = re.compile(
+    r"(?:^|\n)\s*(?:>\s*)?(?:\[Approved\]|/artifact\b)",
+    re.IGNORECASE,
+)
+
+# Trivial conversational / continuation phrases and affirmations
 CONTINUATION_PATTERN = re.compile(
-    r"^\s*(?:yes|no|y|n|ok|okay|proceed|continue|approved|go ahead|looks good|lgtm|thanks|thank you)\b[.!]*\s*$",
+    r"^\s*(?:yes|no|y|n|ok|okay|proceed|continue|approved?|go ahead|looks good|lgtm|thanks|thank you)\b",
     re.IGNORECASE,
 )
 TRIVIAL_COMMAND_PATTERN = re.compile(
@@ -99,6 +105,8 @@ def is_non_trivial_task(prompt: str) -> bool:
     """Classify if the prompt is an actionable engineering or analysis task."""
     if not prompt:
         return False
+    if APPROVAL_PATTERN.search(prompt):
+        return False
     if CONTINUATION_PATTERN.match(prompt):
         return False
     if TRIVIAL_COMMAND_PATTERN.match(prompt):
@@ -149,8 +157,12 @@ def main() -> None:
         directive = (
             "[VEXJOY ROUTING MANDATE] Non-trivial task detected. "
             "In Turn 1, output the 4-Phase Classification and ROUTING banner as visible user-facing text "
-            "before calling execution tools. For all Simple+ tasks (Simple, Medium, Complex), dispatch a subagent "
-            "via define_subagent (from agents/<name>.md if not already defined) and invoke_subagent. "
+            "before calling execution tools. "
+            "Execution Mode: For Simple/Medium tasks, dispatch a subagent via define_subagent (from agents/<name>.md "
+            'if not already defined) and invoke_subagent (Workspace="inherit"). '
+            "For Complex tasks, multi-phase jobs, or approved plans with 2+ subagents / 3+ subtasks, dispatch all planned "
+            'subagents via define_subagent and invoke_subagent (/teamwork with Workspace="branch" or "share") or '
+            "run_workflow; never collapse multiple planned subagents into a single monolithic subagent dispatch. "
             "Only Trivial tasks (single user-named file typo/fix) may execute directly in the main thread. "
             "Do not defer routing to post-execution."
         )

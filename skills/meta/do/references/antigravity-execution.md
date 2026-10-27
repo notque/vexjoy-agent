@@ -57,6 +57,12 @@ In Antigravity CLI, all non-trivial tasks follow VexJoy's orchestrator contract:
 **Context Gathering Boundary (Phase 3 Step G)**:
 Reading repository status (`git status -s`, `git branch`) and exploring up to 5 files in the main thread is explicitly permitted as orchestrator routing work to populate the Task Spec prior to subagent dispatch (`skills/meta/do/SKILL.md#L25`).
 
+**Plan Approval Continuation Protocol**:
+When the user approves an artifact or plan (e.g., `[Approved] <filename>`, `proceed`, `continue`), the orchestrator immediately resumes execution of the approved plan. Do not restart single-agent `/do` routing or collapse multi-agent streams into one monolithic subagent.
+
+**No Multi-Subagent Collapse Rule (HARD CONSTRAINT)**:
+When a task breakdown, job package, or Phase 1 classification plans multiple subagents (e.g., Subagents A/B/C/D), the orchestrator MUST invoke each subagent individually via `define_subagent` and `invoke_subagent` (or `run_workflow`). Collapsing multiple planned subagents into a single monolithic subagent prompt is strictly prohibited.
+
 ---
 
 ## 3. Multi-Agent Teamwork (`/teamwork` Engine for Complex Tasks)

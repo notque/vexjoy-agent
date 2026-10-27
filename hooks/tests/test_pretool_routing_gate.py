@@ -363,3 +363,51 @@ def test_routing_gate_allows_when_state_not_explicitly_nontrivial(tmp_path: Path
     )
     assert res.returncode == 0
     assert "deny" not in res.stdout
+
+
+@pytest.mark.parametrize(
+    "approval_prompt",
+    [
+        "[Approved] job_package_02_phase_01b.md",
+        "> [Approved] job_package_02_phase_01b.md",
+        "> /artifact\nReview submitted\n> [Approved] job_package_02_phase_01b.md",
+        "/artifact review submitted",
+        "approved, proceed with the 4 subagents",
+        "approve and execute the plan",
+    ],
+)
+def test_turn_gate_approved_artifact_continuation_does_not_inject(tmp_path: Path, approval_prompt: str):
+    """Artifact reviews and plan approvals should not re-trigger turn-1 routing mandates."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-approval"
+    payload = {
+        "session_id": session_id,
+        "prompt": approval_prompt,
+    }
+    res = run_hook(TURN_GATE, payload, {"VEXJOY_ROUTING_STATE_DIR": str(state_dir)})
+    assert res.returncode == 0
+    assert "[VEXJOY ROUTING MANDATE]" not in res.stdout
+
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    assert state_file.is_file()
+    state = json.loads(state_file.read_text())
+    assert state["routed"] is True
+    assert state["non_trivial"] is False
+
+
+def test_turn_gate_mandate_text_includes_multi_subagent_directive(tmp_path: Path):
+    """Non-trivial prompt mandate must forbid collapsing multi-subagent plans into one."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-multi-agent-directive"
+    payload = {
+        "session_id": session_id,
+        "prompt": "Implement the full dynamic schema registry and tantivy integration",
+    }
+    res = run_hook(TURN_GATE, payload, {"VEXJOY_ROUTING_STATE_DIR": str(state_dir)})
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    ctx = data["hookSpecificOutput"]["additionalContext"]
+    assert "[VEXJOY ROUTING MANDATE]" in ctx
+    assert "never collapse multiple planned subagents into a single monolithic subagent dispatch" in ctx
+    assert 'Workspace="inherit"' in ctx
+    assert 'Workspace="branch"' in ctx
