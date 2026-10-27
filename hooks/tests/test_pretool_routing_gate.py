@@ -16,9 +16,15 @@ TURN_GATE = ROOT / "hooks" / "gemini-turn-gate-userprompt.py"
 
 
 def run_hook(
-    hook_path: Path, payload: dict, env_override: dict[str, str] | None = None
+    hook_path: Path,
+    payload: dict,
+    env_override: dict[str, str] | None = None,
+    env_remove: list[str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
+    if env_remove:
+        for k in env_remove:
+            env.pop(k, None)
     if env_override:
         env.update(env_override)
     return subprocess.run(
@@ -263,3 +269,97 @@ def test_routing_gate_enforces_for_agy_session_env2(tmp_path: Path):
     assert res.returncode == 0
     data = json.loads(res.stdout)
     assert data["hookSpecificOutput"]["permissionDecision"] == "deny", "AGY_SESSION=1 must trigger enforcement"
+
+
+def test_routing_gate_enforces_for_agy_session_env3(tmp_path: Path):
+    """ANTIGRAVITY_BRAIN_DIR env var also triggers enforcement."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-agy-3"
+
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}))
+
+    res = run_hook(
+        ROUTING_GATE,
+        {
+            "session_id": session_id,
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
+        },
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "ANTIGRAVITY_BRAIN_DIR": str(tmp_path / "brain")},
+    )
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["hookSpecificOutput"]["permissionDecision"] == "deny", "ANTIGRAVITY_BRAIN_DIR must trigger enforcement"
+
+
+def test_routing_gate_enforces_for_agy_session_case_insensitive(tmp_path: Path):
+    """HARNESS='AGY' (uppercase) must trigger enforcement case-insensitively."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-agy-case"
+
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}))
+
+    res = run_hook(
+        ROUTING_GATE,
+        {
+            "session_id": session_id,
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
+        },
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "AGY"},
+    )
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["hookSpecificOutput"]["permissionDecision"] == "deny", (
+        "HARNESS='AGY' (uppercase) must trigger enforcement"
+    )
+
+
+def test_routing_gate_allows_claude_session_unset_env(tmp_path: Path):
+    """Claude/Anthropic sessions with AGY env vars unset (deleted) must be allowed."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-claude-unset"
+
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}))
+
+    res = run_hook(
+        ROUTING_GATE,
+        {
+            "session_id": session_id,
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
+        },
+        env_override={"VEXJOY_ROUTING_STATE_DIR": str(state_dir)},
+        env_remove=["HARNESS", "AGY_SESSION", "ANTIGRAVITY_BRAIN_DIR"],
+    )
+    assert res.returncode == 0
+    assert "deny" not in res.stdout
+
+
+def test_routing_gate_allows_when_state_not_explicitly_nontrivial(tmp_path: Path):
+    """If state is not explicitly marked non-trivial, tool use is allowed even if AGY env is set and transcript missing."""
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-no-nontrivial-state"
+
+    # State file does NOT have non_trivial=True (e.g. empty or omitted)
+    res = run_hook(
+        ROUTING_GATE,
+        {
+            "session_id": session_id,
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
+        },
+        {
+            "VEXJOY_ROUTING_STATE_DIR": str(state_dir),
+            "HARNESS": "agy",
+            "ANTIGRAVITY_BRAIN_DIR": str(tmp_path / "brain"),
+        },
+    )
+    assert res.returncode == 0
+    assert "deny" not in res.stdout

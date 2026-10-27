@@ -194,7 +194,7 @@ def check_transcript_for_routing(session_id: str) -> bool:
         return False
 
     # Check both brain directory and env paths
-    candidate_paths = [
+    candidate_paths: list[Path] = [
         Path.home()
         / ".gemini"
         / "antigravity-cli"
@@ -203,10 +203,17 @@ def check_transcript_for_routing(session_id: str) -> bool:
         / ".system_generated"
         / "logs"
         / "transcript.jsonl",
+        Path.home() / ".gemini" / "antigravity-cli" / "brain" / ".system_generated" / "logs" / "transcript.jsonl",
     ]
-    brain_env = os.environ.get("ANTIGRAVITY_BRAIN_DIR")
+    brain_env = os.environ.get("ANTIGRAVITY_BRAIN_DIR", "").strip()
     if brain_env:
-        candidate_paths.append(Path(brain_env) / session_id / ".system_generated" / "logs" / "transcript.jsonl")
+        bp = Path(brain_env)
+        candidate_paths.extend(
+            [
+                bp / session_id / ".system_generated" / "logs" / "transcript.jsonl",
+                bp / ".system_generated" / "logs" / "transcript.jsonl",
+            ]
+        )
 
     transcript_file: Path | None = None
     for p in candidate_paths:
@@ -269,7 +276,7 @@ def main() -> None:
         return
 
     # Provider guard: routing mandate is AGY/Gemini-only.
-    # Claude/Anthropic sessions have no AGY transcript -- allow immediately.
+    # outside the routing mandate (AGY/Gemini only); skip enforcement
     if not _is_agy_session():
         empty_output(EVENT_NAME)
         return
@@ -310,8 +317,15 @@ def main() -> None:
     # Here we have a mutating tool (Edit, Write, or modifying Bash command)
     state = load_routing_state(session_id)
 
-    # If state already marked routed or non-trivial is False, allow
-    if state.get("routed") is True or state.get("non_trivial") is False:
+    # If state already marked routed, allow immediately
+    if state.get("routed") is True:
+        empty_output(EVENT_NAME)
+        return
+
+    # Fall back to state-file-only check: if state is not explicitly marked non-trivial,
+    # allow tool use so sessions without an unrouted state record are not falsely denied
+    # when transcript is missing.
+    if state.get("non_trivial") is not True:
         empty_output(EVENT_NAME)
         return
 
@@ -330,12 +344,15 @@ def main() -> None:
     deny_tool_use(EVENT_NAME, reason)
 
 
+# Note: Relies on environment variables (HARNESS, AGY_SESSION, ANTIGRAVITY_BRAIN_DIR).
+# Environment variable spoofing is a known limitation in un-sandboxed environments;
+# this hook trusts the execution environment to provide authentic signals.
 def _is_agy_session() -> bool:
-    """True when env signals indicate an AGY/Gemini harness session."""
+    """True if HARNESS=="agy", AGY_SESSION=="1", or ANTIGRAVITY_BRAIN_DIR is set."""
     return (
         os.environ.get("HARNESS", "").lower() == "agy"
-        or os.environ.get("AGY_SESSION") == "1"
-        or bool(os.environ.get("ANTIGRAVITY_BRAIN_DIR"))
+        or os.environ.get("AGY_SESSION", "") == "1"
+        or bool(os.environ.get("ANTIGRAVITY_BRAIN_DIR", ""))
     )
 
 
