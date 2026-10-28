@@ -122,7 +122,7 @@ def is_non_trivial_task(prompt: str) -> bool:
 
 
 _CLAUDE_MODEL_RE = re.compile(
-    r"\b(?:claude|anthropic|sonnet|haiku|opus)\b",
+    r"\b(?:claude|anthropic|sonnet|haiku|opus|fable)\b",
     re.IGNORECASE,
 )
 
@@ -133,7 +133,7 @@ def main() -> None:
 
     raw = read_stdin()
     if not raw:
-        empty_output(EVENT_NAME)
+        empty_output(EVENT_NAME).print_and_exit()
         return
 
     try:
@@ -143,16 +143,16 @@ def main() -> None:
         return
 
     # Skip injection for Claude/Anthropic sessions — this hook targets Gemini models only.
-    model = str(event.get("model") or "")
+    model = str(event.get("model") or os.environ.get("ANTHROPIC_MODEL") or os.environ.get("CLAUDE_MODEL") or "")
     if _CLAUDE_MODEL_RE.search(model):
-        empty_output(EVENT_NAME)
+        empty_output(EVENT_NAME).print_and_exit()
         return
 
     session_id = str(event.get("session_id") or event.get("conversationId") or "default")
     prompt = extract_prompt_text(event)
 
     if not prompt:
-        empty_output(EVENT_NAME)
+        empty_output(EVENT_NAME).print_and_exit()
         return
 
     non_trivial = is_non_trivial_task(prompt)
@@ -181,7 +181,7 @@ def main() -> None:
         out = context_output(EVENT_NAME, directive)
         sys.stdout.write(out.to_json())
     else:
-        empty_output(EVENT_NAME)
+        empty_output(EVENT_NAME).print_and_exit()
 
 
 if __name__ == "__main__":
