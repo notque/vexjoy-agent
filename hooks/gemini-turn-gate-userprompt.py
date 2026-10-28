@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """PreInvocation / UserPromptSubmit Hook: Gemini Turn Gate
 
 Detects incoming user prompts, evaluates task complexity, initializes
@@ -121,6 +121,12 @@ def is_non_trivial_task(prompt: str) -> bool:
     return False
 
 
+_CLAUDE_MODEL_RE = re.compile(
+    r"\b(?:claude|anthropic|sonnet|haiku|opus)\b",
+    re.IGNORECASE,
+)
+
+
 def main() -> None:
     if os.environ.get(_BYPASS_ENV) == "1":
         return
@@ -134,6 +140,12 @@ def main() -> None:
         event = json.loads(raw)
     except json.JSONDecodeError as exc:
         hook_error(EVENT_NAME, f"invalid input JSON: {exc}")
+        return
+
+    # Skip injection for Claude/Anthropic sessions — this hook targets Gemini models only.
+    model = str(event.get("model") or "")
+    if _CLAUDE_MODEL_RE.search(model):
+        empty_output(EVENT_NAME)
         return
 
     session_id = str(event.get("session_id") or event.get("conversationId") or "default")
