@@ -210,7 +210,7 @@ Load these reference files when the task type matches:
 
 ## References
 
-- **Skill**: [skills/workflow/references/system-upgrade.md](../skills/workflow/references/system-upgrade.md)
+- **Skill**: [skills/process/workflow/references/system-upgrade.md](../skills/process/workflow/references/system-upgrade.md)
 - **Agent Evaluation**: [skills/meta/toolkit/SKILL.md](../skills/meta/toolkit/SKILL.md)
 - **Learning DB**: [scripts/learning-db.py](../scripts/learning-db.py)
 - **Routing Table Updater**: [skills/meta/toolkit/SKILL.md](../skills/meta/toolkit/SKILL.md)

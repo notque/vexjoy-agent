@@ -117,7 +117,37 @@ Generate questions covering these nine areas, weighted by what the artifact cont
 
 ## Visual goals
 
-When the plan or artifact has a visual goal, require a rendered candidate and a reference image in the state instead of a description. If either is missing, that is the first finding. Load `references/visual-plans.md` for the state, the question set, and the code. `scripts/grill-jev.py` is text-only; send visual batteries through `jev_transport.evaluate`. API and limits: [images.md](../building-with-jev/references/images.md).
+When the plan or artifact has a visual goal, require a rendered candidate and a reference image in the state instead of a description. If either is missing, that is the first finding. Load `references/visual-plans.md` for the state, the question set, and the code. Judge screenshots with `scripts/grill-jev.py --image` (below). Other visual batteries go through `jev_transport.evaluate`. API and limits: [images.md](../building-with-jev/references/images.md).
+
+## Images and screenshots
+
+`--image [NAME=]PATH` (repeat) and `--images-dir DIR` (png, jpg, jpeg, webp, named by file stem) add images. The script prepares each (resize, encode) and forces the direct Jev API. It needs `TYPESAFE_API_KEY`; without it the run exits 2 with one line, and never tries Vercel. `--file` and `--text` are optional when images are given.
+
+Grill these screenshots for clarity and misleading panels:
+
+```bash
+python3 scripts/grill-jev.py --images-dir shots/ --questions-file /tmp/grill-questions.json \
+  --context "audience: on-call SRE; each image is a Grafana dashboard"
+python3 scripts/grill-jev.py --image home=home.png --image cpu=cpu.png --questions-file /tmp/grill-questions.json
+```
+
+Each question picks its images in `--questions-file`. Both forms are optional and combine:
+
+```json
+{"questions": {
+  "cpu_panel_misleading": {"type": "noul", "report_when": "true", "images": ["cpu"],
+    "instructions": {"question": "Does the CPU panel imply load the data does not show?"}},
+  "home_vs_cpu_units": {"type": "noul", "report_when": "true",
+    "instructions": {"question": "Do {img:home} and {img:cpu} label the same unit differently?"}}
+}}
+```
+
+- `"images": [names]` sends those images in `state.images` (key = name). The field is removed before the question reaches Jev.
+- `{img:name}` in question text references the image inline; each use bills the image again. An unknown name exits 2.
+- A question with neither gets every image. If its request would pass about 24,000 tokens, it is not sent: it shows under UNANSWERED (exit 2) with the fix, add `"images"`. Without `--questions-file` and with 2+ images, the fallback battery is sent once per image (ids `id@name`) and the cost is printed on stderr.
+- Literal `{img:x}` in `--file`, `--text`, or `--context` is sent as plain text. If a batch fails, earlier answers are still reported and the rest show under UNANSWERED.
+- Requests are packed by tokens (`jev_limits.IMAGE_REQUEST_TARGET_TOKENS`); questions with the same image set share requests. Each request carries only the images its questions use, so an image is billed once per request that carries it. Overlapping sets are not merged. Few images per question keeps cost down.
+- Ask one defect kind per question (see `building-with-jev/references/images.md`). Pair image judgments with measured numbers.
 
 ## Plans that call Jev or another metered API
 
@@ -194,7 +224,7 @@ The executing LLM owns question generation; the script only evaluates a supplied
 ## Output
 
 ```
-GRILL-JEV FINDINGS — mode: plan — 31 questions (generated)
+GRILL-JEV FINDINGS — mode: plan — 31 questions (questions file)
 ============================================================
 HIGH SIGNAL (requires attention):
   [completeness/has_success_criteria] noul=0.89 TRUE — no measurable success criteria

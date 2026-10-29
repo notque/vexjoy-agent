@@ -13,7 +13,7 @@ Checks (ADR hook-health-gate):
   (c) Liveness: delegate to smoke-test-hooks.py --ci (opt-in via --with-liveness;
       always on under --ci).
   (d) Schema: settings.json parses; event names ∈ known set; matcher is a string;
-      each command matches the canonical python3 "$HOME/.claude/hooks/<file>.py" form.
+      each command matches the canonical launcher form (see CANONICAL_CMD).
   (e) Mirror sanity: every file named in codex-hooks-allowlist.txt exists
       AND is registered in .claude/settings.json (no phantom mirror entries).
       Mirrors are intentional subsets — full coverage is NOT required.
@@ -42,6 +42,7 @@ SETTINGS_PATH = REPO_ROOT / ".claude" / "settings.json"
 HOOKS_DIR = REPO_ROOT / "hooks"
 ALLOWLIST_PATH = REPO_ROOT / "scripts" / "hook-health-allowlist.txt"
 CODEX_MIRROR = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
+AGY_MIRROR = REPO_ROOT / "scripts" / "agy-hooks-allowlist.txt"
 
 KNOWN_EVENTS = {
     "SessionStart",
@@ -57,8 +58,10 @@ KNOWN_EVENTS = {
     "TaskCompleted",
 }
 
-# Canonical command form: python3 "$HOME/.claude/hooks/<file>.py"
-CANONICAL_CMD = re.compile(r'^python3\s+"\$HOME/\.claude/hooks/([A-Za-z0-9._-]+\.py)"$')
+# Canonical command form (scripts/vexinstall/interp.py hook_command): run the hook through
+# hooks/lib/pyrun.sh, which picks the installer-linked python 3.10+:
+#   sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/<file>.py"
+CANONICAL_CMD = re.compile(r'^sh "\$HOME/\.claude/hooks/lib/pyrun\.sh" "\$HOME/\.claude/hooks/([A-Za-z0-9._-]+\.py)"$')
 # Extract a hooks/<file>.py basename from any command (looser, for registered set)
 CMD_BASENAME = re.compile(r"hooks/([A-Za-z0-9._-]+\.py)")
 
@@ -431,6 +434,9 @@ def dispatched_basenames() -> set[str]:
     codex_adapter = "codex-hook-adapter.py"
     if codex_adapter in names and parse_mirror(CODEX_MIRROR):
         dispatched.add(codex_adapter)
+    agy_adapter = "agy-hook-adapter.py"
+    if agy_adapter in names and parse_mirror(AGY_MIRROR):
+        dispatched.add(agy_adapter)
     return dispatched
 
 
@@ -595,8 +601,8 @@ def check_schema(settings: dict) -> list[str]:
                 cmd = entry.get("command", "")
                 if not CANONICAL_CMD.match(cmd):
                     msgs.append(
-                        f"SCHEMA: {event} command not in canonical form "
-                        f'python3 "$HOME/.claude/hooks/<file>.py": {cmd!r}.'
+                        f"SCHEMA: {event} command not in canonical launcher form "
+                        f'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/<file>.py": {cmd!r}.'
                     )
     return msgs
 
@@ -604,7 +610,7 @@ def check_schema(settings: dict) -> list[str]:
 def check_mirror(settings: dict) -> list[str]:
     registered = registered_basenames(settings)
     msgs = []
-    for path in (CODEX_MIRROR,):
+    for path in (CODEX_MIRROR, AGY_MIRROR):
         for event, fname in parse_mirror(path):
             if not (HOOKS_DIR / fname).exists():
                 msgs.append(f"MIRROR: {path.name} names hooks/{fname} but no repo file exists (phantom).")

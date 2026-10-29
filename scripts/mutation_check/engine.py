@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import signal
+import site
 import subprocess
 import sys
 import tempfile
@@ -47,6 +48,8 @@ def sandbox_env(home: Path) -> dict[str, str]:
     """Return an environment with agent/session variables removed and HOME pointing at the sandbox."""
     env = {k: v for k, v in os.environ.items() if not k.startswith(SCRUB_PREFIXES)}
     env["HOME"] = str(home)
+    # HOME is redirected, so pin the real user site or user-installed pytest vanishes.
+    env.setdefault("PYTHONUSERBASE", site.getuserbase())
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["MUTATION_CHECK_SANDBOX"] = "1"
     return env

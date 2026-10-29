@@ -156,7 +156,28 @@ def _reasonix(root: Path, source_root: Path, profile: Profile) -> list[ExternalF
     return [f]
 
 
-_BUILDERS = {"codex": _codex, "factory": _factory, "reasonix": _reasonix}
+def _antigravity(root: Path, source_root: Path, profile: Profile) -> list[ExternalFile]:
+    f = ExternalFile("antigravity", root / "config" / "hooks.json")
+    allow = source_root / "scripts" / "agy-hooks-allowlist.txt"
+    mod = _load("generate-agy-hooks-json.py")
+    if not allow.is_file():
+        f.error = "no agy-hooks-allowlist.txt"
+    elif mod is None:
+        f.error = "generate-agy-hooks-json.py not importable"
+    else:
+        try:
+            data = mod.build_hooks_json(
+                _allowlist_entries(mod, allow, profile),
+                agy_hooks_dir=str(root / "hooks"),
+                source_hooks_dir=source_root / "hooks",
+            )
+            f.content = _dump(mod.merge_hooks_json(_read_json(f.path), data))
+        except (ValueError, OSError) as exc:
+            f.error = str(exc)
+    return [f]
+
+
+_BUILDERS = {"codex": _codex, "factory": _factory, "reasonix": _reasonix, "antigravity": _antigravity}
 
 
 def desired(target: str, root: Path, source_root: Path, profile: Profile) -> list[ExternalFile]:

@@ -31,7 +31,7 @@ Find the failing question before changing anything. Collect labeled examples, ru
 
 ## When one sharpening is not enough
 
-After one sharpening pass (a split, added evidence, tighter criteria), a Noul still in 0.4 to 0.6 or a Choice or Score still split goes to a stronger model, not to a third re-ask. Re-asking unchanged evidence is fishing for a yes. See "Escalate when Jev is unsure" in `SKILL.md`. Before building a bigger question, ask a coding agent to propose two or three decompositions and run each on the labeled set.
+After one sharpening pass (a split, added evidence, tighter criteria), a Noul still in 0.4 to 0.6 or a Choice or Score still split goes to a stronger model, not to a third re-ask. Re-asking unchanged evidence is fishing for a yes. A changed question set counts as a changed state (see "Freeze the question set" in `iteration-with-jev.md`). See "Escalate when Jev is unsure" in `SKILL.md`. Before building a bigger question, ask a coding agent to propose two or three decompositions and run each on the labeled set.
 
 ## Service failure or wrong design
 

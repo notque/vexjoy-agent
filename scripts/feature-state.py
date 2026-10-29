@@ -15,7 +15,7 @@ Usage:
     python3 scripts/feature-state.py gate FEATURE GATE_ID       # Check gate status (human|auto|confidence)
 
     python3 scripts/feature-state.py retro-record FEATURE KEY VALUE  # Write L3 retro record
-    python3 scripts/feature-state.py retro-record --adhoc TOPIC KEY VALUE  # Write directly to retro/L2/
+    python3 scripts/feature-state.py retro-record-adhoc TOPIC KEY VALUE  # Record a learning in learning.db
     python3 scripts/feature-state.py retro-promote FEATURE KEY       # Promote L3→L2 if confidence threshold met
     python3 scripts/feature-state.py context-read FEATURE LEVEL      # Read context at L0/L1/L2 level
 
@@ -23,7 +23,8 @@ Usage:
     python3 scripts/feature-state.py worktree FEATURE path     # Print worktree path
     python3 scripts/feature-state.py worktree FEATURE cleanup  # Remove worktree after merge
 
-    python3 scripts/feature-state.py retro-audit                # Audit retro/L2 for stale/orphan files
+    python3 scripts/feature-state.py retro-audit                # Legacy: audit old retro/L2 files (read-only)
+    python3 scripts/feature-state.py retro-candidates           # Legacy: list old retro/L2 graduation candidates
 
     python3 scripts/feature-state.py complete FEATURE          # Archive feature, cleanup worktree
     python3 scripts/feature-state.py abandon FEATURE --reason "reason"  # Abandon feature
@@ -41,6 +42,7 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
@@ -449,14 +451,7 @@ def _get_gate_confidence(gate_id: str) -> float:
     """
     phase = gate_id.split(".")[0] if "." in gate_id else gate_id
     try:
-        _script_dir = Path(__file__).resolve().parent.parent
-        sys.path.insert(0, str(_script_dir / "hooks" / "lib"))
-        _home_lib = Path.home() / ".claude" / "hooks" / "lib"
-        if _home_lib.is_dir():
-            sys.path.insert(0, str(_home_lib))
-        from learning_db_v2 import query_learnings
-
-        learnings = query_learnings(tags=[phase], min_confidence=0.0, limit=50)
+        learnings = _load_learning_db().query_learnings(tags=[phase], min_confidence=0.0, limit=50)
         if not learnings:
             return 0.0
         confidences = [row.get("confidence", 0.0) for row in learnings]
@@ -541,85 +536,125 @@ def cmd_retro_record(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_retro_record_adhoc(args: argparse.Namespace) -> int:
-    """Write a retro record directly to retro/L2/ without a feature context.
+CONFIDENCE_SCORES = {"high": 0.85, "medium": 0.65, "low": 0.45}
 
-    Used by /do's learning phase for ad-hoc knowledge capture from any task.
-    Writes directly to retro/L2/<topic>.md with observation clustering and
-    L1 regeneration — same as feature complete archival but without requiring
-    .feature/ state.
+
+class LearningDBError(Exception):
+    """Raised when a learning cannot be written to learning.db."""
+
+
+def _load_learning_db() -> Any:
+    """Import learning_db_v2 from the repo checkout or ~/.claude/hooks/lib.
+
+    Same lookup order as scripts/learning-db.py: the hooks/lib next to this
+    script wins, ~/.claude/hooks/lib is the fallback for cross-repo runs.
     """
-    root = find_project_root()
-    retro_dir = root / "retro"
-    l2_dir = retro_dir / "L2"
-    l2_dir.mkdir(parents=True, exist_ok=True)
+    home_lib = str(Path.home() / ".claude" / "hooks" / "lib")
+    repo_lib = str(Path(__file__).resolve().parent.parent / "hooks" / "lib")
+    for lib in (home_lib, repo_lib):
+        if Path(lib).is_dir() and lib not in sys.path:
+            sys.path.insert(0, lib)
+    import learning_db_v2
 
-    topic = slugify(args.topic)
-    key = args.key
-    value = args.value
-    confidence = args.confidence
+    return learning_db_v2
 
-    heading = key.replace("-", " ").title()
-    dest_file = l2_dir / f"{topic}.md"
 
-    clustered = False
-    if dest_file.exists():
-        existing = dest_file.read_text()
-        updated, clustered = _increment_observation(existing, heading)
-        if clustered:
-            dest_file.write_text(updated)
-        elif f"### {heading}" not in existing:
-            existing += f"\n### {heading}\n{value}\n"
-            dest_file.write_text(existing)
-    else:
-        # Create new L2 topic file with proper metadata
-        lines = [
-            f"# Retro: {topic.replace('-', ' ').title()}",
-            "**Source**: adhoc",
-            f"**Confidence**: {confidence.upper()}",
-            f"**Tags**: {topic.replace('-', ', ')}",
-            "**Languages**: ",
-            "",
-            f"### {heading}",
-            value,
-            "",
-        ]
-        dest_file.write_text("\n".join(lines))
+def _record_learning_db(
+    topic: str,
+    key: str,
+    value: str,
+    *,
+    confidence: str,
+    tags: list[str],
+    source: str,
+    project_path: Path,
+    source_detail: str | None = None,
+) -> tuple[dict[str, Any], Path]:
+    """Write one learning to learning.db and return (row, db_path).
 
-    # Regenerate L1 summary
-    _regenerate_l1(retro_dir)
+    The DB path is resolved before the write, so an error raised after the
+    commit cannot report a saved learning as failed. The returned row carries
+    the project_path stored in the DB, which stays with the first writer of a
+    topic/key (it is not updated on conflict), or None if the read-back fails.
 
-    # Bridge: also write to learning.db if available
+    Raises:
+        LearningDBError: learning_db_v2 cannot be imported or the write fails.
+    """
     try:
-        _script_dir = Path(__file__).resolve().parent.parent
-        sys.path.insert(0, str(_script_dir / "hooks" / "lib"))
-        _home_lib = Path.home() / ".claude" / "hooks" / "lib"
-        if _home_lib.is_dir():
-            sys.path.insert(0, str(_home_lib))
-        from learning_db_v2 import record_learning
-
-        conf_map = {"HIGH": 0.85, "MEDIUM": 0.65, "LOW": 0.45}
-        record_learning(
+        db = _load_learning_db()
+    except ImportError as err:
+        raise LearningDBError(f"cannot import learning_db_v2: {err}") from err
+    try:
+        db_path = Path(db.get_db_path())
+        row = db.record_learning(
             topic=topic,
             key=key.lower().replace(" ", "-"),
             value=value,
             category="design",
-            confidence=conf_map.get(confidence.upper(), 0.65),
-            tags=topic.replace("-", ",").split(","),
-            source="manual:retro-record-adhoc",
-            project_path=str(root),
+            confidence=CONFIDENCE_SCORES.get(confidence.lower(), CONFIDENCE_SCORES["medium"]),
+            tags=[t for t in tags if t],
+            source=source,
+            source_detail=source_detail,
+            project_path=str(project_path),
         )
-    except ImportError:
-        pass  # learning_db_v2 not available yet
+    except (sqlite3.Error, OSError) as err:
+        raise LearningDBError(f"learning.db write failed for {topic}/{key}: {err}") from err
+    row["project_path"] = _stored_project_path(db, row["topic"], row["key"])
+    return row, db_path
+
+
+def _stored_project_path(db: Any, topic: str, key: str) -> str | None:
+    """Read back the project_path stored for topic/key, or None if the read fails.
+
+    Runs after the write committed, so a failure here must not fail the write.
+    """
+    try:
+        with db.get_connection() as conn:
+            found = conn.execute(
+                "SELECT project_path FROM learnings WHERE topic = ? AND key = ?",
+                (topic, key),
+            ).fetchone()
+    except (sqlite3.Error, OSError):
+        return None
+    if found is None or found[0] is None:
+        return None
+    return str(found[0])
+
+
+def cmd_retro_record_adhoc(args: argparse.Namespace) -> int:
+    """Record a learning in learning.db without a feature context.
+
+    Used by /do and /pr-review learning phases. Nothing is written to the
+    working repo. The repo root is sent as project_path, but learning.db keeps
+    the first writer's project_path when topic/key already exists, so the
+    output reports the stored project_path read back from the row.
+    """
+    root = find_project_root()
+    topic = slugify(args.topic)
+    try:
+        row, db_path = _record_learning_db(
+            topic,
+            args.key,
+            args.value,
+            confidence=args.confidence,
+            tags=topic.split("-"),
+            source="manual:retro-record-adhoc",
+            project_path=root,
+        )
+    except LearningDBError as err:
+        output_error(f"retro-record-adhoc: {err}")
+        return 1
 
     output_json(
         {
             "action": "retro-record-adhoc",
-            "topic": topic,
-            "key": key,
-            "confidence": confidence,
-            "clustered": clustered,
-            "file": str(dest_file),
+            "recorded": True,
+            "topic": row["topic"],
+            "key": row["key"],
+            "is_new": bool(row.get("is_new")),
+            "observation_count": row.get("observation_count"),
+            "db_path": str(db_path),
+            "project_path": row.get("project_path"),
         },
         args,
     )
@@ -799,16 +834,25 @@ def cmd_complete(args: argparse.Namespace) -> int:
         output_error(f"Feature '{feature}' not found")
         return 1
 
-    # Archive retro knowledge BEFORE moving state (archival reads state file)
-    retro_archived = _archive_retro_knowledge(root, feature_dir, feature)
+    # Record retro knowledge BEFORE moving state. Each saved learning is marked
+    # in the state file, so on failure the state stays put and a retry of
+    # complete skips what was already saved.
+    try:
+        learnings_recorded, learnings_skipped = _archive_retro_knowledge(root, feature_dir, state)
+    except LearningDBError as err:
+        output_error(f"complete aborted, {err}")
+        return 1
 
-    # Move state to completed
+    # Move state to completed. A concurrent complete may have moved it already.
     completed_dir = feature_dir / "state" / "completed"
     completed_dir.mkdir(parents=True, exist_ok=True)
     state_file = feature_dir / "state" / f"{feature}.json"
-    if state_file.exists():
-        dest = completed_dir / f"{date.today().isoformat()}-{feature}.json"
+    dest = completed_dir / f"{date.today().isoformat()}-{feature}.json"
+    try:
         state_file.rename(dest)
+        state_moved = True
+    except FileNotFoundError:
+        state_moved = False
 
     # Cleanup worktree
     if state.worktree_path and Path(state.worktree_path).exists():
@@ -819,7 +863,18 @@ def cmd_complete(args: argparse.Namespace) -> int:
             cwd=str(root),
         )
 
-    output_json({"action": "complete", "feature": feature, "archived": True, "retro_archived": retro_archived}, args)
+    output_json(
+        {
+            "action": "complete",
+            "feature": feature,
+            "archived": True,
+            "state_moved": state_moved,
+            "retro_archived": learnings_recorded > 0,
+            "learnings_recorded": learnings_recorded,
+            "learnings_already_saved": learnings_skipped,
+        },
+        args,
+    )
     return 0
 
 
@@ -862,200 +917,107 @@ def _detect_languages(feature_dir: Path, feature: str) -> list[str]:
     return sorted(languages) if languages else ["*"]
 
 
-def _increment_observation(content: str, heading: str) -> tuple[str, bool]:
-    """Increment [Nx] counter for an existing ### heading in L2 content.
+def feature_topic(root: Path, feature: str) -> str:
+    """Return the learning.db topic for a feature: ``<repo-slug>--<feature>``.
 
-    If heading exists, bump its observation count. If no count tag exists,
-    assumes 1x and increments to [2x].
-
-    Returns (updated_content, was_incremented).
+    learning.db rows are unique per (topic, key) across all repos, so a bare
+    feature name would merge same-named features from different repos. Topics
+    elsewhere are kebab-case slugs with no ``/`` (export writes ``<topic>.md``),
+    and slugify never emits ``--``, so the double dash separates repo from
+    feature without ambiguity. Repos that share a directory name still share
+    a namespace.
     """
-    escaped = re.escape(heading)
-    pattern = re.compile(rf"(### {escaped})\s*(?:\[(\d+)x\])?")
-    match = pattern.search(content)
-    if match:
-        count = int(match.group(2) or 1) + 1
-        replacement = f"{match.group(1)} [{count}x]"
-        return content[: match.start()] + replacement + content[match.end() :], True
-    return content, False
+    return f"{slugify(root.name) or 'repo'}--{feature}"
 
 
-def _regenerate_l1(retro_dir: Path) -> None:
-    """Regenerate retro/L1.md from all retro/L2/*.md files.
+def _archive_retro_knowledge(root: Path, feature_dir: Path, state: FeatureState) -> tuple[int, int]:
+    """Record a feature's L2 knowledge in learning.db on completion.
 
-    Reads all L2 files, groups learnings by tags, and writes a compact
-    ~20 line summary to retro/L1.md.
+    Sources: MEDIUM/HIGH retro_records from the feature state, plus promoted
+    .feature/context/<phase>/*.md files not already covered by a record.
+    Each becomes a learning with topic=feature_topic(root, feature),
+    source=feature:<feature>, and project_path=<root>. Nothing is written to
+    the working repo.
+
+    After each successful write the entry is marked ``db_recorded`` in
+    state.retro_records (context files get a record with ``source: context``)
+    and the state is saved, so a retried complete skips entries already saved
+    instead of counting them twice.
+
+    A record's per-feature ``observations`` count is not carried into
+    observation_count: record_learning has no way to set it, and calling it
+    once per observation would fake new sightings. The count is kept as text
+    in source_detail (``feature-observations=N``) for reference only;
+    graduation and ranking do not read it.
+
+    Returns:
+        (saved, skipped): learnings saved in total including earlier runs, and
+        how many of those were skipped because an earlier run saved them.
+
+    Raises:
+        LearningDBError: a learning could not be written. The message starts
+            with "N of M learnings saved".
     """
-    l2_dir = retro_dir / "L2"
-    if not l2_dir.is_dir():
-        return
+    feature = state.name
+    entries: dict[str, tuple[str, str, int]] = {}  # key -> (value, confidence, observations)
+    for key, record in state.retro_records.items():
+        confidence = str(record.get("confidence", "low")).lower()
+        if confidence in ("medium", "high"):
+            entries[key] = (str(record.get("value", "")), confidence, int(record.get("observations", 1)))
 
-    l2_files = sorted(l2_dir.glob("*.md"))
-    if not l2_files:
-        return
-
-    # Parse each L2 file: extract tags and ### headings with first paragraph
-    topic_groups: dict[str, list[str]] = {}  # tag_group -> list of learnings
-
-    for l2_file in l2_files:
-        try:
-            content = l2_file.read_text()
-        except OSError:
-            continue
-
-        # Extract tags and build a readable section heading
-        tags_match = re.search(r"\*\*Tags\*\*:\s*(.+)", content)
-        if tags_match:
-            raw_tags = [t.strip() for t in tags_match.group(1).split(",")]
-            # Use first 2-3 distinctive tags as section heading
-            heading_tags = [t for t in raw_tags if t not in ("go", "python", "typescript")][:3]
-            if not heading_tags:
-                heading_tags = raw_tags[:2]
-            tag_key = " / ".join(t.replace("-", " ").title() for t in heading_tags) + " Patterns"
-        else:
-            tag_key = l2_file.stem.replace("-", " ").title() + " Patterns"
-
-        # Extract ### headings with first paragraph
-        sections = re.findall(r"###\s+(.+?)(?:\n\n|\n)(.+?)(?:\n\n|\n---|$)", content, re.DOTALL)
-        learnings = []
-        for heading, body in sections:
-            # Take first sentence or first 100 chars
-            first_line = body.strip().split("\n")[0][:100]
-            learnings.append(f"{heading.strip()}: {first_line}")
-
-        if not learnings:
-            # Fallback: use ## headings
-            h2_sections = re.findall(r"##\s+(.+)", content)
-            learnings = [h.strip() for h in h2_sections if not h.startswith("#")]
-
-        if learnings:
-            if tag_key not in topic_groups:
-                topic_groups[tag_key] = []
-            topic_groups[tag_key].extend(learnings)
-
-    # Build L1 with ~20 line budget
-    lines = ["# Accumulated Knowledge (L1 Summary)", ""]
-    line_budget = 20
-    lines_used = 2  # header + blank
-
-    for group_name, learnings in topic_groups.items():
-        if lines_used >= line_budget:
-            break
-        lines.append(f"## {group_name}")
-        lines_used += 1
-        for learning in learnings:
-            if lines_used >= line_budget:
-                break
-            lines.append(f"- {learning}")
-            lines_used += 1
-        lines.append("")
-        lines_used += 1
-
-    l1_path = retro_dir / "L1.md"
-    l1_path.write_text("\n".join(lines) + "\n")
-    print(f"[retro-archive] Regenerated L1 from {len(l2_files)} L2 files", file=sys.stderr)  # nosec: log, not SQL
-
-
-def _archive_retro_knowledge(root: Path, feature_dir: Path, feature: str) -> bool:
-    """Archive L2 retro knowledge from .feature/ to retro/L2/ on completion.
-
-    Copies promoted L2 context files to the persistent retro store so they
-    are available for future features via the retro-knowledge-injector hook.
-    Also regenerates the L1 summary from all L2 files.
-
-    Returns True if any knowledge was archived.
-    """
-    retro_dir = root / "retro"
-    l2_dest = retro_dir / "L2"
-
-    archived = False
-
-    # Primary path: build enriched L2 file from retro_records (has tags + languages)
-    if hasattr(feature_dir, "exists"):
-        state = load_state(feature_dir, feature)
-        if state and state.retro_records:
-            promoted = {
-                k: v for k, v in state.retro_records.items() if v.get("confidence", "low").upper() in ("MEDIUM", "HIGH")
-            }
-            if promoted:
-                l2_dest.mkdir(parents=True, exist_ok=True)
-                dest_file = l2_dest / f"{feature}.md"
-                lines = [f"# Retro: {feature.replace('-', ' ').title()}"]
-                lines.append(f"**Source**: feature/{feature}")
-                lines.append("**Confidence**: MEDIUM")
-
-                # Collect tags from record keys and expand with synonyms
-                tags: set[str] = set()
-                for key in promoted:
-                    tags.update(key.replace("-", " ").split())
-                tags = _expand_tags(tags)
-                lines.append(f"**Tags**: {', '.join(sorted(tags))}")
-
-                # Detect languages from feature state files
-                languages = _detect_languages(feature_dir, feature)
-                lines.append(f"**Languages**: {', '.join(languages)}")
-                lines.append("")
-
-                for key, record in promoted.items():
-                    heading = key.replace("-", " ").title()
-                    obs_count = record.get("observations", 1)
-                    count_tag = f" [{obs_count}x]" if obs_count > 1 else ""
-                    lines.append(f"### {heading}{count_tag}")
-                    lines.append(record.get("value", ""))
-                    lines.append("")
-
-                content = "\n".join(lines)
-                if dest_file.exists():
-                    existing = dest_file.read_text()
-                    # Observation clustering: increment counts for existing headings
-                    for key, record in promoted.items():
-                        heading = key.replace("-", " ").title()
-                        updated, clustered = _increment_observation(existing, heading)
-                        if clustered:
-                            existing = updated
-                        elif f"### {heading}" not in existing:
-                            obs = record.get("observations", 1)
-                            tag = f" [{obs}x]" if obs > 1 else ""
-                            existing += f"\n### {heading}{tag}\n{record.get('value', '')}\n"
-                    dest_file.write_text(existing)
-                else:
-                    dest_file.write_text(content)
-                archived = True
-
-    # Fallback path: copy any L2 context files not already captured via retro_records
     for phase in PHASES:
-        l2_src = feature_dir / "context" / phase
-        if not l2_src.is_dir():
+        context_dir = feature_dir / "context" / phase
+        if not context_dir.is_dir():
             continue
-
-        for f in l2_src.glob("*.md"):
+        for path in sorted(context_dir.glob("*.md")):
             try:
-                content = f.read_text().strip()
-                if not content or "(populated by retro loop)" in content:
-                    continue
-
-                l2_dest.mkdir(parents=True, exist_ok=True)
-                dest_file = l2_dest / f"{feature}.md"
-
-                if dest_file.exists():
-                    existing = dest_file.read_text()
-                    if content not in existing:
-                        dest_file.write_text(existing + "\n\n---\n\n" + content)
-                else:
-                    dest_file.write_text(content)
-                archived = True
+                content = path.read_text().strip()
             except OSError:
                 continue
+            if content and "(populated by retro loop)" not in content and path.stem not in entries:
+                entries[path.stem] = (content, "medium", 1)
 
-    # Regenerate L1 summary from all L2 files
-    if archived:
-        _regenerate_l1(retro_dir)
+    if not entries:
+        return 0, 0
 
-    return archived
+    tags: set[str] = set()
+    for key in entries:
+        tags.update(key.split("-"))
+    tags = _expand_tags(tags)
+    tags.update(lang for lang in _detect_languages(feature_dir, feature) if lang != "*")
+
+    done = {key for key in entries if state.retro_records.get(key, {}).get("db_recorded")}
+    topic = feature_topic(root, feature)
+    skipped = len(done)
+    for key, (value, confidence, observations) in entries.items():
+        if key in done:
+            continue
+        try:
+            _record_learning_db(
+                topic,
+                key,
+                value,
+                confidence=confidence,
+                tags=sorted(tags),
+                source=f"feature:{feature}",
+                source_detail=f"feature-observations={observations}" if observations > 1 else None,
+                project_path=root,
+            )
+        except LearningDBError as err:
+            raise LearningDBError(f"{len(done)} of {len(entries)} learnings saved: {err}") from err
+        record = state.retro_records.setdefault(key, {"value": value, "confidence": confidence, "source": "context"})
+        record["db_recorded"] = True
+        save_state(feature_dir, state)
+        done.add(key)
+    return len(done), skipped
 
 
 def cmd_retro_audit(args: argparse.Namespace) -> int:
-    """Audit retro/L2 files for staleness, orphans, and quality issues."""
+    """Legacy: audit old per-repo retro/L2 files for staleness, orphans, and quality issues.
+
+    Nothing writes retro/ any more; learnings live in learning.db. This only
+    reads retro/L2 files left in a repo by older versions of this script.
+    """
     root = find_project_root()
     retro_dir = root / "retro"
     l2_dir = retro_dir / "L2"
@@ -1134,15 +1096,15 @@ def cmd_retro_audit(args: argparse.Namespace) -> int:
 
 
 def cmd_retro_candidates(args: argparse.Namespace) -> int:
-    """Identify L2 entries mature enough for graduation into agents/skills.
+    """Legacy: list entries in old per-repo retro/L2 files that meet graduation criteria.
 
-    Graduation criteria (ALL must be met):
-    - Confidence: HIGH
-    - Observation count: >= 3 (clustered [Nx] >= 3)
-    - Content is specific and actionable (not generic advice) — left to AI reviewer
+    Nothing writes retro/ any more; learnings live in learning.db. This only
+    reads retro/L2 files left in a repo by older versions of this script, and
+    nothing in the toolkit consumes its output.
 
-    This command does the deterministic pre-filtering. The AI skill
-    (/retro graduate) evaluates the candidates for actual graduation.
+    Criteria (all must hold):
+    - File confidence: HIGH
+    - Observation count from the old ``### Heading [Nx]`` suffix: >= --min-observations
     """
     root = find_project_root()
     retro_dir = root / "retro"
@@ -1332,9 +1294,9 @@ def main() -> int:
     p_rr.add_argument("--confidence", default="low", choices=["low", "medium", "high"])
 
     # retro-record-adhoc
-    p_rra = subparsers.add_parser("retro-record-adhoc", help="Write retro record directly to L2 (no feature needed)")
-    p_rra.add_argument("topic", help="L2 topic file name (e.g., go-patterns, testing)")
-    p_rra.add_argument("key", help="Record key (becomes ### heading)")
+    p_rra = subparsers.add_parser("retro-record-adhoc", help="Record a learning in learning.db (no feature needed)")
+    p_rra.add_argument("topic", help="Learning topic (e.g., go-patterns, testing)")
+    p_rra.add_argument("key", help="Learning key, kebab-case")
     p_rra.add_argument("value", help="Record value")
     p_rra.add_argument(
         "--confidence",
@@ -1364,10 +1326,13 @@ def main() -> int:
     p_done.add_argument("feature", help="Feature name")
 
     # retro-audit
-    subparsers.add_parser("retro-audit", help="Audit retro/L2 for stale/orphan files")
+    subparsers.add_parser("retro-audit", help="Legacy: audit old retro/L2 files left by older versions (read-only)")
 
     # retro-candidates
-    p_rc = subparsers.add_parser("retro-candidates", help="Identify L2 entries mature enough for graduation")
+    p_rc = subparsers.add_parser(
+        "retro-candidates",
+        help="Legacy: list graduation candidates from old retro/L2 files (read-only)",
+    )
     p_rc.add_argument("--min-observations", type=int, default=3, help="Minimum observation count (default: 3)")
 
     # abandon

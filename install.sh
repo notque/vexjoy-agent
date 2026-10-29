@@ -2,7 +2,7 @@
 #
 # VexJoy Agent installer: a thin wrapper around the vexinstall engine
 # (scripts/vexinstall). The engine installs every runtime (claude, codex,
-# factory, hermes, reasonix), keeps a ledger in ~/.claude/vexjoy/, and moves
+# factory, hermes, reasonix, antigravity), keeps a ledger in ~/.claude/vexjoy/, and moves
 # anything it removes to ~/.claude/vexjoy/trash/. Layout: docs/installer-layout.md.
 #
 # Usage:
@@ -49,7 +49,7 @@ Usage: ./install.sh [options]
   --dry-run            Print the vexinstall plan; write nothing
   --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
   --rollback           Restore the newest settings.json backup and the newest trash session
-  --target T           claude|codex|factory|hermes|reasonix|all (default: all present)
+  --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
   --no-takeover        Leave unowned entries at desired paths in place (default: trash and replace)
   --allow-mass-remove  Allow a plan that removes more than 10 entries or 20% of a target
   --configure          Run the interactive profile picker, then install
@@ -89,18 +89,29 @@ while [[ $# -gt 0 ]]; do
 done
 
 check_python() {
-    if command -v python3 &> /dev/null; then
-        PYTHON_CMD="python3"
-    elif command -v python &> /dev/null; then
-        PYTHON_CMD="python"
-    else
-        echo -e "${RED}Error: Python 3.10+ not found${NC}"
+    # Run the engine with a python 3.10+. A bare python3 can be a pyenv shim that picks 3.9
+    # in some dirs, or /usr/bin/python3 3.9 on macOS, so try the known locations too.
+    # The engine separately links ~/.claude/vexjoy/bin/python3 for hooks (VEXJOY_PYTHON overrides).
+    local cand
+    PYTHON_CMD=""
+    if [[ -n "${VEXJOY_PYTHON:-}" ]]; then
+        if "$VEXJOY_PYTHON" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then
+            PYTHON_CMD="$VEXJOY_PYTHON"
+            return
+        fi
+        echo -e "${RED}Error: VEXJOY_PYTHON=${VEXJOY_PYTHON} is not a runnable python 3.10+${NC}"
         exit 1
     fi
-    if ! "$PYTHON_CMD" -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
-        echo -e "${RED}Error: Python 3.10+ required, found $("$PYTHON_CMD" -V 2>&1)${NC}"
-        exit 1
-    fi
+    for cand in python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3 \
+        python3.14 python3.13 python3.12 python3.11 python3.10 python; do
+        command -v "$cand" &> /dev/null || continue
+        if "$cand" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then
+            PYTHON_CMD="$cand"
+            return
+        fi
+    done
+    echo -e "${RED}Error: Python 3.10+ not found (python3 is $(python3 -V 2>&1 || echo missing)); install it or set VEXJOY_PYTHON=/path/to/python3${NC}"
+    exit 1
 }
 
 vexinstall() {
@@ -152,6 +163,13 @@ ensure_runtime_dirs() {
             fi
         fi
     done
+    if { command -v agy &> /dev/null || command -v antigravity &> /dev/null; } && [ ! -d "${HOME}/.gemini" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would create ${HOME}/.gemini (agy is on PATH)${NC}"
+        else
+            mkdir -p "${HOME}/.gemini"
+        fi
+    fi
 }
 
 _write_git_hook() {
@@ -201,16 +219,34 @@ exit 0
 HOOK
 }
 
-install_deps() {
-    [ "${VEXJOY_NO_DEPS:-0}" = "1" ] && return 0
-    local -a pip=("$PYTHON_CMD" -m pip) args=(install -r "${SCRIPT_DIR}/requirements.txt" --quiet)
+# pip_requirements PYTHON: install requirements.txt into PYTHON; --break-system-packages when pip knows
+# it, then --user as a fallback. Prints the manual command on failure.
+pip_requirements() {
+    local -a pip=("$1" -m pip) args=(install -r "${SCRIPT_DIR}/requirements.txt" --quiet)
     if "${pip[@]}" install --help 2>/dev/null | grep -q -- "--break-system-packages"; then
         args+=(--break-system-packages)
     fi
     if "${pip[@]}" "${args[@]}" 2>/dev/null || "${pip[@]}" "${args[@]}" --user 2>/dev/null; then
-        echo -e "${GREEN}  ✓ Python dependencies installed${NC}"
+        echo -e "${GREEN}  ✓ Python dependencies installed for $1${NC}"
     else
-        echo -e "${YELLOW}  ⚠ Could not install Python dependencies. Run: ${pip[*]} ${args[*]}${NC}"
+        echo -e "${YELLOW}  ⚠ Could not install Python dependencies for $1. Hooks and scripts need them. Run: ${pip[*]} ${args[*]}${NC}"
+    fi
+}
+
+# Hooks run under the interpreter linked at ~/.claude/vexjoy/bin/python3 (chosen by the engine during
+# apply), which can differ from PYTHON_CMD. Install deps there too, so call this after apply.
+install_deps() {
+    [ "${VEXJOY_NO_DEPS:-0}" = "1" ] && return 0
+    pip_requirements "$PYTHON_CMD"
+    local linked="${HOME}/.claude/vexjoy/bin/python3" real_linked real_cmd
+    if [ -x "$linked" ]; then
+        real_linked=$("$linked" -I -c 'import os, sys; print(os.path.realpath(sys.executable))' 2>/dev/null) || real_linked=""
+        real_cmd=$("$PYTHON_CMD" -I -c 'import os, sys; print(os.path.realpath(sys.executable))' 2>/dev/null) || real_cmd=""
+        if [ -z "$real_linked" ]; then
+            echo -e "${YELLOW}  ⚠ Hook python ${linked} does not run; rerun ./install.sh after fixing it${NC}"
+        elif [ "$real_linked" != "$real_cmd" ]; then
+            pip_requirements "$linked"
+        fi
     fi
     # Vercel Jev gateway: the repo plus every real (copied) scripts dir.
     command -v npm &> /dev/null || { echo -e "${YELLOW}  ⚠ npm unavailable; /d falls back to /do${NC}"; return 0; }
@@ -232,7 +268,7 @@ install_deps() {
 harden_permissions() {
     chmod 700 "${CLAUDE_DIR}" "${CLAUDE_DIR}/learning" 2>/dev/null || true
     chmod 600 "${CLAUDE_DIR}/settings.json" "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
-    chmod 600 "${HOME}/.factory/settings.json" "${HOME}/.reasonix/settings.json" 2>/dev/null || true
+    chmod 600 "${HOME}/.factory/settings.json" "${HOME}/.reasonix/settings.json" "${HOME}/.gemini/config/hooks.json" 2>/dev/null || true
 }
 
 check_python
@@ -298,6 +334,9 @@ if [ "$rc" -ne 0 ]; then
     echo -e "${RED}vexinstall apply failed (exit ${rc}). Nothing was forced. Review:${NC}"
     echo -e "${RED}  PYTHONPATH=${SCRIPT_DIR}/scripts python3 -m vexinstall plan --target ${TARGET} --takeover${NC}"
     exit "$rc"
+fi
+if [ "$TAKEOVER" = true ]; then
+    vexinstall prune --unowned --confirm --target "$TARGET" || true
 fi
 install_git_hooks
 install_deps

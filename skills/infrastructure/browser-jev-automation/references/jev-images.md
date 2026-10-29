@@ -36,6 +36,10 @@ elif res.status == "found":
 - Capture at the viewport size you convert with. The driver's device scale factor must match, or scale the point.
 - If the click does not change the page, the verify phase catches it. Do not retry the same box more than once.
 
+## Defect checks
+
+A broad "is something broken" Noul over-flags intentional patterns (scrolling tab strips, placeholder avatars). Ask one Noul per defect kind, hide fixed bars, capture viewport slices, and read the DOM fault count first. Rules and numbers: [images.md](../../../meta/building-with-jev/references/images.md) (Defect checks).
+
 ## Other uses
 
 - **Verify a visual goal:** put before and after screenshots in `state`, ask `goal_met` as a Noul, and keep the text and URL checks as the veto.

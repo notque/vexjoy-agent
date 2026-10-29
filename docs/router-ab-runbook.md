@@ -131,7 +131,7 @@ from `feat/outcome-routing-loop:scripts/route-value-eval.py`.
 
 ## Adding corpus cases or buckets
 
-Corpus: `scripts/routing-ab-corpus.json` (v1.3, 269 cases). Rules:
+Corpus: `scripts/routing-ab-corpus.json` (v1.3, 274 cases). Rules:
 
 - **Append only.** The 49 legacy v1.0 cases are pinned by SHA-256 in
   `scripts/tests/test_routing_ab_harness.py`; editing them breaks CI.

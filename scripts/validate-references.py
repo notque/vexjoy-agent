@@ -8,8 +8,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-AGENTS_DIR = Path(__file__).parent.parent / "agents"
-REPO_ROOT = Path(__file__).parent.parent
+AGENTS_DIR = Path(__file__).resolve().parent.parent / "agents"
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------------------
 # Do-framing validation

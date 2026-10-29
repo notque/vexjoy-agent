@@ -28,7 +28,7 @@ vexjoy-agent/
   plugins/                 # UI panel plugins (custom-panel, example-panel)
   ~/private-skills/        # User private skills repo (separate private repo, discovered by sync hook)
   research/                # Research pipeline artifacts
-  retro/                   # Retrospective data
+  retro/                   # Legacy, gitignored; learnings live in ~/.claude/learning/learning.db
   services/                # Service configurations
   templates/               # Scaffolding templates
   tests/                   # Cross-component test suites

@@ -265,6 +265,8 @@ SUPPLEMENTAL_TRIGGERS: dict[str, tuple[str, ...]] = {
 #                           skill (e.g. "repo" disambiguates "make it public"
 #                           but must not suppress "deploy website").
 SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
+    # "make a game trailer" is trailer work (game-trailer), not game building.
+    "game-dev": {"make game": {"trailer"}},
     "pr-workflow": {
         "back",
         "against",
@@ -421,6 +423,18 @@ _DEPLOY_COMPANIONS: set[str] = {
     "vps",
     "droplet",
 }
+_PR_FIX_COMPANIONS: set[str] = {
+    "fix",
+    "fixes",
+    "fixing",
+    "implement",
+    "implementing",
+    "address",
+    "addressing",
+    "patch",
+    "resolve",
+    "rework",
+}
 SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
     "deploy": {
         "go live": _DEPLOY_COMPANIONS,
@@ -473,6 +487,18 @@ SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
             "criminals",
         },
     },
+    # pr-fix-loop: every trigger routes only with a change verb nearby. "fix
+    # the comments on my upstream PR" routes; "summarize the upstream PR" and
+    # "explain how the pr fix loop works" fall through. "run"/"start" also
+    # confirm an explicit "run the pr fix loop" invocation.
+    "pr-fix-loop": {
+        "upstream pr": _PR_FIX_COMPANIONS,
+        "upstream pull request": _PR_FIX_COMPANIONS,
+        "repo i don't own": _PR_FIX_COMPANIONS,
+        "repo we don't own": _PR_FIX_COMPANIONS,
+        "someone else's repo": _PR_FIX_COMPANIONS,
+        "pr fix loop": _PR_FIX_COMPANIONS | {"run", "start"},
+    },
 }
 
 # Multi-word disqualifying phrases (substring match in lowered request).
@@ -505,6 +531,39 @@ SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
 # owns the same external action. Otherwise a pipeline synonym can bypass the
 # skill guard while selecting the same workflow.
 GUARD_POLICY_ALIASES = {"pr-pipeline": "pr-workflow"}
+
+# pr-fix-loop keeps every pr-workflow guard and adds its own: read-only or
+# meta phrasing ("explain", "what does", "docs for") and porting upstream
+# changes into the user's own repo ("into my fork", "in our repo") are not
+# fixing a PR the user does not own. "notque" is the toolkit owner's own
+# GitHub account, so a PR there is never a foreign repo. A regex cannot tell
+# own from foreign repos in general; Phase 0 of the pipeline checks that.
+_PR_WORKFLOW_GUARDS = SEMANTIC_GUARDS["pr-workflow"]
+assert isinstance(_PR_WORKFLOW_GUARDS, set)
+SEMANTIC_GUARDS["pr-fix-loop"] = _PR_WORKFLOW_GUARDS | {
+    "explain",
+    "explains",
+    "describe",
+    "summarize",
+    "summary",
+    "notque",
+}
+SEMANTIC_GUARD_PHRASES["pr-fix-loop"] = SEMANTIC_GUARD_PHRASES["pr-workflow"] | {
+    "what does",
+    "what is",
+    "how does",
+    "how do",
+    "docs for",
+    "docs about",
+    "documentation for",
+    "into my fork",
+    "to my fork",
+    "into our repo",
+    "in our repo",
+    "to our repo",
+    "into my repo",
+    "in my repo",
+}
 
 
 @dataclass
@@ -632,17 +691,21 @@ def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
         escaped = re.escape(words[0])
         return re.compile(rf"\b{escaped}\b", re.IGNORECASE)
 
-    # Multi-word: allow up to 2 words between each trigger word.
+    # Multi-word: allow up to 2 words between each trigger word. A hyphen or
+    # underscore counts as a space between trigger words ("pr-review" and
+    # "pr_review" match "pr review"), so interior edges use an alphanumeric
+    # lookaround instead of \b (\b does not break at "_").
     parts = []
     for i, word in enumerate(words):
         escaped = re.escape(word)
+        start = r"\b" if i == 0 else r"(?<![^\W_])"
         if i == len(words) - 1:
-            parts.append(rf"\b{escaped}{TRIGGER_INFLECTION}\b")
+            parts.append(rf"{start}{escaped}{TRIGGER_INFLECTION}\b")
         else:
-            parts.append(rf"\b{escaped}\b")
+            parts.append(rf"{start}{escaped}(?![^\W_])")
 
     # Join with "up to 2 intervening words" gap
-    gap = r"(?:\s+\S+){0,2}\s+"
+    gap = r"(?:[\s_-]+\S+){0,2}[\s_-]+"
     full_pattern = gap.join(parts)
     return re.compile(full_pattern, re.IGNORECASE)
 

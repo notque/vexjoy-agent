@@ -48,6 +48,12 @@ Do not collapse distinct decisions into one broad `same` label. Keep classificat
 - Keep specific names and values in `examples`; keep general rules in `what`.
 - Option names and descriptions are both sent. The API accepts 255 options and any value shape, including `null` and nested subtrees. The keys `what`, `not_for`, and `examples` are our convention, not API fields: you may pick other names.
 - Give the full legitimate option list, not a shortlist: options cost a few tokens each. Code removes options that are illegal or irrelevant for this state before the call. Offered impossible or degenerate options, Jev picks them (a game agent took "1 plate" 25 times in a row when every amount was offered).
+- Merge equivalent options (same template, cost, effect) into one before you send, or sum their probability by class before you read the margin. Identical options split the mass and make a flat answer look like a split. When goals are vague the options are near-equal and the Choice is flat by nature: give it a goal that has an answer, and let code break a remaining tie.
+- Give a placement or variant Choice a "leave as is" or `none` option. A Choice over variants picked a winner at 0.79 and 0.84 while `better` for every variant was 0.37 to 0.40.
+- Count distinct options before you ask. Code-enumerated options that collapse to one or none (6 seed salts gave 1 distinct card) mean the generator is broken, not Jev: fail loudly instead of calling.
+- Adding an option can flip the pick: a near-duplicate of the winner took it (0.79 to 0.76 for the new option). Rerun after any change to the option set, fold near-duplicates into the option they copy, and reconcile sub-answers that contradict the headline in code. Dedupe code-generated options by label.
+- The same Choice can answer differently by evidence: a placement Choice split with the screenshot (margin 1.05) and was decisive text-only (0.74, margin 2.96). On a visual question the image wins. A split there means the options are near-equivalent: take the argmax only when both options are harmless, and keep a before/after keep-bar check on the result.
+- A category Choice ("weakest category", "which section needs work") can flip with option order: one run said navigation forward and clarity reversed. Ask category Choices in both orders and report the order-averaged margin (`jev_choice.order_averaged_margin`); below the bar, treat the answer as unsure.
 - Jev leans toward the first option on some inputs (jaggedness page, "Choice option order"). For a high-stakes pick, ask again with the options reversed in the same request (two questions, same state) and act only when both agree; otherwise treat the answer as unsure.
 
 ### Score
@@ -57,6 +63,7 @@ Do not collapse distinct decisions into one broad `same` label. Keep classificat
 - One dimension per Score. "Punctual and smart and experienced" cannot place an input that is high on one and low on another.
 - Give a rare extreme its own level when code must treat it differently ("abusive or threatening" above "very angry").
 - Level objects: `{"summary": ..., "signals": [...]}`; same keys on every level.
+- Tailor ladder signals per audience. A signal such as "names the next action" is structurally false on a page whose audience has no actions: it read 0.21 there against 0.95 with an audience-fit signal.
 - Two wordings of one scale behave differently on your data. Test levels against labeled inputs; higher confidence alone is not evidence.
 
 ### Noul
@@ -75,6 +82,9 @@ Criteria optional. When the boundary is subtle:
 - Phrase it so a high value means yes: "Does the message contain personal data?", never "Is it free of personal data?". A statement works too ("The customer requests a refund"). Try both phrasings on labeled data.
 - "Any" removes the middle ground: "Does the resume show any Python use?" beats "Is the candidate strong in Python?". For degree, use a Score.
 - Test with and without `criteria`; keep whichever scores better on labeled cases.
+- Examples act as a near-exhaustive set: a form you leave out is pushed toward no (a sort control read 0.27 with narrow examples, 0.95 with broad ones, 0.73 with none). List every form that should count, or drop the examples.
+- A Noul whose median sits near 0.5 to 0.7 across all items is probably compound or under-evidenced. Split it into one Noul per condition to see which one fails; do not expect splitting to fix separation on easy items.
+- A design fork ("which approach") over bare options can come back confident and wrong; add the measured facts (counts, latencies, what already exists) before you trust it. If it stays split after the facts, ask a narrower Noul on the leading option.
 - Several labels that can all apply: one Noul per label, not one Choice.
 
 ### Progress comparison
@@ -102,6 +112,12 @@ Each option's `what` summarizes its resulting state, not the action that produce
 Scores calibrate magnitude; Nouls decide. Do not use a Score as a boolean proxy. When the answer has no in-between, use a Choice or several Nouls. If two types fit, prefer the one code acts on directly.
 
 Use all three where they fit and ask them in the same call: "is the commit ready" (Noul), designated readiness dimensions (Nouls), "overall readiness" (Score), "what happens next: commit, cleanup, block" (Choice).
+
+## Do not ask Jev about facts the code can check
+
+A Noul that stays undecided in both option orders (0.42 each) on a code fact ("is the Strategy chip gated on the same capability as the Game Plan screen?") is not a judgment question. Settle it in code with a test. Keep Jev for what code cannot measure or compare.
+
+Decide lost features from a measured DOM diff of the features present before and after, and use Jev only for features that are genuinely absent. A lost-feature Noul counts relocated or below-the-fold content as lost (0.74 to 0.88 even with an explicit list).
 
 ## Which one: Choice, not a Noul per candidate
 

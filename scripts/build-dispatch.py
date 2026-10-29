@@ -89,6 +89,7 @@ import subprocess
 import sys
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 # INSTALL_ROOT keeps the invoked path: through ~/.claude/scripts -> <repo>/scripts,
 # inventories (INDEX.json, settings, hook_utils) must come from the deploy dir,
@@ -96,7 +97,9 @@ from pathlib import Path
 # the gather/validation fallback only, since ~/.claude is not a git repo.
 INSTALL_ROOT = Path(__file__).absolute().parent.parent
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SETTINGS_PATH = INSTALL_ROOT / ".claude" / "settings.json"
+# Repo checkout keeps settings under .claude/; an installed ~/.claude holds settings.json directly.
+_SETTINGS_CANDIDATES = (INSTALL_ROOT / ".claude" / "settings.json", INSTALL_ROOT / "settings.json")
+SETTINGS_PATH = next((c for c in _SETTINGS_CANDIDATES if c.is_file()), _SETTINGS_CANDIDATES[0])
 DEFAULT_TOKEN_BUDGET = 500000
 
 # ---------------------------------------------------------------------------
@@ -160,8 +163,22 @@ VALID_COMPLEXITY = ("trivial", "simple", "medium", "complex")
 GPT_56_MODELS = ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna")
 GPT_56_EFFORTS = ("low", "medium", "high", "xhigh", "max")
 LEGACY_GPT_55 = "gpt-5.5"
-VALID_MODELS = ("inherit", "haiku", "sonnet", "opus", "codex", LEGACY_GPT_55, *GPT_56_MODELS)
-VALID_PROVIDERS = ("anthropic", "openai", "other")
+GOOGLE_MODELS = (
+    "gemini-4-argon",
+    "gemini-4-argon-low",
+    "gemini-4-argon-medium",
+    "gemini-4-argon-high",
+    "gemini-3.8-flash",
+    "gemini-3.8-flash-low",
+    "gemini-3.8-flash-medium",
+    "gemini-3.8-flash-high",
+    "argon",
+    "flash",
+    "flash_lite",
+    "pro",
+)
+VALID_MODELS = ("inherit", "haiku", "sonnet", "opus", "codex", LEGACY_GPT_55, *GPT_56_MODELS, *GOOGLE_MODELS)
+VALID_PROVIDERS = ("anthropic", "openai", "google", "antigravity", "other")
 ANTHROPIC_MODELS = ("opus", "sonnet", "haiku")
 
 # DeepSWE Pass@1 / cost benchmark defaults per provider lane.
@@ -172,7 +189,7 @@ OPENAI_AUTO_POLICIES = {
     "high-risk": ("gpt-5.6-sol", "xhigh"),  # 71 / $4.70
     "max-power": ("gpt-5.6-sol", "max"),  # 73 / $8.39, explicit only
 }
-# Anthropic lane: tiers follow the blind Jev task-fit eval (2026-10), see
+# Anthropic lane: tiers follow the blind Jev task-fit evaluation, 2026-10; see
 # skills/meta/d/references/model-task-fit.md. Opus never won a measured task, so
 # it is the unmeasured high-risk tier only; escalate haiku -> sonnet -> opus on a miss.
 ANTHROPIC_AUTO_POLICIES = {
@@ -181,9 +198,21 @@ ANTHROPIC_AUTO_POLICIES = {
     "high-risk": ("opus", "high"),
     "max-power": ("opus", "xhigh"),  # explicit only
 }
+# Google / Antigravity CLI lane (Gemini 4 Argon & Gemini 3.8 Flash):
+# low-risk routes to Flash (fast mechanical/scouting work), standard routes to
+# Argon at medium effort, high-risk routes to Argon-High at high effort, and
+# max-power escalates Argon-High to max effort (requires manual_model_override).
+GOOGLE_AUTO_POLICIES = {
+    "low-risk": ("gemini-3.8-flash", "low"),
+    "standard": ("gemini-4-argon", "medium"),
+    "high-risk": ("gemini-4-argon-high", "high"),
+    "max-power": ("gemini-4-argon-high", "max"),  # explicit only
+}
 AUTO_POLICIES_BY_PROVIDER = {
     "anthropic": ANTHROPIC_AUTO_POLICIES,
     "openai": OPENAI_AUTO_POLICIES,
+    "google": GOOGLE_AUTO_POLICIES,
+    "antigravity": GOOGLE_AUTO_POLICIES,
 }
 # Backward compat: tests and the OpenAI-only path reference this name.
 AUTO_MODEL_POLICIES = OPENAI_AUTO_POLICIES
@@ -205,7 +234,14 @@ AGENT_INDEX_PATH = INSTALL_ROOT / "agents" / "INDEX.json"
 AGENT_INDEX_LOCAL = "INDEX.local.json"
 SKILL_INDEX_PATH = INSTALL_ROOT / "skills" / "INDEX.json"
 SKILL_INDEX_LOCAL = "INDEX.local.json"
-PIPELINE_INDEX_PATH = INSTALL_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
+# Installed layout links skills per skill (~/.claude/skills/workflow -> <repo>/skills/process/workflow),
+# so the nested repo path is absent there. Installed first, then the repo checkout.
+PIPELINE_INDEX_CANDIDATES = (
+    INSTALL_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
+    INSTALL_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
+    REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
+)
+PIPELINE_INDEX_PATH = next((c for c in PIPELINE_INDEX_CANDIDATES if c.is_file()), PIPELINE_INDEX_CANDIDATES[1])
 SHARED_PATTERNS_DIR = INSTALL_ROOT / "skills" / "shared-patterns"
 # Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
 # ~/.<runtime>/vexjoy/index/<kind>.json, then the deploy-dir index + legacy
@@ -341,7 +377,7 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
         policies = AUTO_POLICIES_BY_PROVIDER.get(provider)
         if policies is None:
             raise InputError(
-                f"model_policy requires provider 'anthropic' or 'openai', got {provider!r}; "
+                f"model_policy requires provider 'anthropic', 'openai', or 'google'/'antigravity', got {provider!r}; "
                 "use an explicit model for other harnesses"
             )
 
@@ -359,6 +395,8 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
                 raise InputError("OpenAI model_policy overrides must use a GPT-5.6 model")
             if provider == "anthropic" and override_model not in ANTHROPIC_MODELS:
                 raise InputError("Anthropic model_policy overrides must use a Claude model")
+            if provider in ("google", "antigravity") and override_model not in GOOGLE_MODELS:
+                raise InputError("Google/Antigravity model_policy overrides must use a Google/Gemini model")
             if model is not None and model != expected_model and effort is None:
                 raise InputError("manual model overrides require 'model_effort'")
             return override_model, effort or expected_effort
@@ -383,11 +421,11 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
             raise InputError("legacy gpt-5.5 requires manual_model_override=true")
         return model, effort
 
-    # Claude models (opus, sonnet, haiku) and codex wrapper.
-    # Effort is optional and advisory for Claude lanes — recorded in the
-    # marker (model@effort) for telemetry but not passed to the Agent tool.
-    if model == "opus" and effort == "max" and not manual:
-        raise InputError("opus/max requires manual_model_override=true (unmeasured top tier; escalate on a miss)")
+    # Claude models (opus, sonnet, haiku), Google models (gemini-4-argon*, gemini-3.8-flash*,
+    # flash_lite, flash, pro), and codex wrapper.
+    # Effort is optional and recorded in the marker (model@effort) for telemetry.
+    if model in ("opus", "gemini-4-argon", "gemini-4-argon-high", "argon", "pro") and effort == "max" and not manual:
+        raise InputError(f"{model}/max requires manual_model_override=true (unmeasured top tier; escalate on a miss)")
     return model, effort
 
 
@@ -461,6 +499,57 @@ def _load_index_names(index_path: Path, field: str, local_name: str | None = Non
     return frozenset(names)
 
 
+@lru_cache(maxsize=8)
+def _load_index_entries(index_path: Path, field: str, local_name: str | None = None) -> dict[str, dict]:
+    """Load dictionary entries from a tracked index and local overlay."""
+    entries: dict[str, dict] = {}
+    paths = [index_path]
+    if local_name:
+        paths.append(index_path.parent / local_name)
+    for path in paths:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        data = raw.get(field)
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, dict):
+                    entries[str(k).strip().lower()] = v
+    return entries
+
+
+def load_skill_index_entries() -> dict[str, dict]:
+    """Return dictionary of known skill entries from the resolved skills index."""
+    path, local = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
+    return _load_index_entries(path, "skills", local)
+
+
+def get_skill_operational_summary(skill_name: str) -> str:
+    """Return the operational description/summary of a skill if available."""
+    clean_name = skill_name.strip().lower()
+    entries = load_skill_index_entries()
+    if clean_name in entries:
+        desc = entries[clean_name].get("description")
+        if isinstance(desc, str) and desc.strip():
+            return " ".join(desc.strip().split())
+    # Fallback to checking deployed skill or repo file
+    candidates = [
+        Path.home() / ".gemini" / "skills" / clean_name / "SKILL.md",
+        INSTALL_ROOT / "skills" / clean_name / "SKILL.md",
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            try:
+                txt = cand.read_text(encoding="utf-8")
+                match = re.search(r"^---\n.*?\ndescription:\s*([^\n]+)", txt, re.DOTALL)
+                if match:
+                    return match.group(1).strip().strip("\"'")
+            except OSError:
+                pass
+    return ""
+
+
 def load_known_skills(index_path: Path | None = None) -> frozenset[str]:
     """Return active skill names from the resolved index (installed first), else
     the tracked index plus local overlay."""
@@ -482,6 +571,38 @@ def load_known_stack_patterns(patterns_dir: Path = SHARED_PATTERNS_DIR) -> froze
         return frozenset(path.stem.lower() for path in patterns_dir.glob("*.md") if path.is_file())
     except OSError:
         return frozenset()
+
+
+@lru_cache(maxsize=1)
+def _trigger_to_skill_map() -> dict[str, str]:
+    """Map every trigger phrase and category name → canonical skill name.
+
+    Used by _canonical_skill_for_trigger to coerce router mistakes where the
+    LLM outputs a trigger phrase or manifest category label instead of the
+    canonical skill name (e.g. skill="pr-review" → "review", or
+    skill="code-review" when that is review's category).  Returns an empty
+    dict on read failure (callers then fall through to the original InputError).
+    """
+    mapping: dict[str, str] = {}
+    try:
+        path, _ = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        for skill_name, data in (raw.get("skills") or {}).items():
+            name_lc = skill_name.strip().lower()
+            for t in data.get("triggers") or []:
+                mapping.setdefault(str(t).strip().lower(), name_lc)
+            cat = (data.get("category") or "").strip().lower()
+            if cat:
+                mapping.setdefault(cat, name_lc)
+    except (OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
+        print(f"[build-dispatch] warning: could not load trigger map: {exc}", file=sys.stderr)
+    return mapping
+
+
+def _canonical_skill_for_trigger(name: str, known_skills: frozenset[str]) -> str | None:
+    """Return the canonical skill name when *name* is a trigger phrase or category alias."""
+    canon = _trigger_to_skill_map().get(name.lower())
+    return canon if canon and canon in known_skills else None
 
 
 def ordered_skill_calls(decision: dict) -> list[str]:
@@ -516,13 +637,35 @@ def ordered_skill_calls(decision: dict) -> list[str]:
             raise InputError(f"skill call {name!r} names an agent; dispatch it with the Agent tool")
         if name in known_pipelines:
             raise InputError(f"skill call {name!r} names a pipeline; run it through workflow dispatch")
+        # Coerce trigger phrases and category aliases to the canonical skill name.
+        # The LLM router may output a trigger from the manifest (e.g. "pr-review"
+        # instead of "review") or a category label rendered as "(code-review)" in
+        # the manifest line for the "review" skill.
+        canonical = _canonical_skill_for_trigger(name, known_skills)
+        if canonical is not None:
+            if canonical not in seen:
+                seen.add(canonical)
+                ordered.append(canonical)
+            continue
         raise InputError(f"skill call {name!r} is absent from skills/INDEX.json")
     return ordered
 
 
 def render_skill_calls(decision: dict) -> str:
     """Render the A/B-winning action contract once per callable skill."""
-    return "\n".join(f"Call the Skill tool with `{name}`." for name in ordered_skill_calls(decision))
+    provider = str(decision.get("provider") or "").strip().lower()
+    calls = ordered_skill_calls(decision)
+    if provider in ("google", "antigravity"):
+        directives = []
+        for i, name in enumerate(calls):
+            line = f"Read and follow ~/.gemini/skills/{name}/SKILL.md before starting work."
+            if i == 0:
+                summary = get_skill_operational_summary(name)
+                if summary:
+                    line += f"\nOperational Summary ({name}): {summary}"
+            directives.append(line)
+        return "\n".join(directives)
+    return "\n".join(f"Call the Skill tool with `{name}`." for name in calls)
 
 
 def resolve_pipeline(decision: dict) -> str:
@@ -534,7 +677,8 @@ def resolve_pipeline(decision: dict) -> str:
         raise InputError(f"'pipeline' {pipeline!r} — must match [a-z0-9-]+")
     known = load_known_pipelines()
     if not known:
-        raise InputError("cannot validate pipeline: pipeline-index.json is unreadable or empty")
+        tried = ", ".join(str(c) for c in dict.fromkeys((PIPELINE_INDEX_PATH, *PIPELINE_INDEX_CANDIDATES)))
+        raise InputError(f"cannot validate pipeline: pipeline-index.json is unreadable or empty (tried: {tried})")
     if pipeline not in known:
         raise InputError(f"'pipeline' {pipeline!r} is absent from pipeline-index.json")
     return pipeline
@@ -620,7 +764,9 @@ def build_marker(decision: dict) -> str:
 
     # Validate the primary and stack names before emitting telemetry. This also
     # prevents an agent or pipeline token from later becoming a Skill-tool call.
-    ordered_skill_calls(decision)
+    calls = ordered_skill_calls(decision)
+    if skill != "-" and calls:
+        skill = calls[0]  # a coerced trigger/category alias is recorded as its canonical skill
     pipeline = resolve_pipeline(decision)
 
     parts = [f"[do-route] agent={agent}", f"skill={skill}", f"complexity={complexity}"]
@@ -1055,12 +1201,67 @@ def build_preamble(
     return "\n\n".join(block for block in blocks if block) + "\n"
 
 
+def load_build_subagent_spec_fn():
+    """Dynamically load build_subagent_spec helper from build-subagent-spec.py."""
+    spec_path = Path(__file__).resolve().parent / "build-subagent-spec.py"
+    if not spec_path.is_file():
+        return None
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("build_subagent_spec", spec_path)
+    if not spec or not spec.loader:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return getattr(mod, "build_subagent_spec", None)
+
+
+def build_subagent_dispatch(
+    decision: dict,
+    *,
+    gather: bool = True,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    """Combine subagent persona generation with task dispatch preamble for Antigravity."""
+    agent_name = str(decision.get("agent") or "").strip()
+    fn = load_build_subagent_spec_fn()
+    subagent_spec: dict[str, Any] = {}
+    if fn:
+        try:
+            subagent_spec = fn(agent_name, repo_root=repo_root)
+        except Exception:
+            subagent_spec = {}
+
+    preamble = build_preamble(decision, gather=gather, repo_root=repo_root)
+
+    category = subagent_spec.get("category", "implementer")
+    default_workspace = "inherit" if category in ("reviewer", "scout") else "branch"
+
+    return {
+        "subagent_spec": subagent_spec,
+        "preamble": preamble,
+        "define_subagent": subagent_spec.get("define_subagent", {}),
+        "invoke_subagent": {
+            "TypeName": subagent_spec.get("Name", agent_name),
+            "Role": subagent_spec.get("Description", agent_name),
+            "Prompt": preamble,
+            "Workspace": default_workspace,
+            "Model": decision.get("model", "gemini-4-argon"),
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build the /do Phase 4 dispatch preamble from a routing decision.")
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--json", help="Routing decision as a JSON string")
     source.add_argument("--json-file", help="Path to a routing-decision JSON file ('-' = stdin)")
     parser.add_argument("--no-gather", action="store_true", help="Skip the '## Repo state (auto-gathered)' block")
+    parser.add_argument(
+        "--subagent-spec",
+        action="store_true",
+        help="Output full Antigravity define_subagent and invoke_subagent JSON spec alongside preamble",
+    )
     parser.add_argument(
         "--repo-root",
         type=Path,
@@ -1085,7 +1286,16 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        sys.stdout.write(build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root))
+        if args.subagent_spec or decision.get("subagent_spec"):
+            sys.stdout.write(
+                json.dumps(
+                    build_subagent_dispatch(decision, gather=not args.no_gather, repo_root=args.repo_root),
+                    indent=2,
+                )
+                + "\n"
+            )
+        else:
+            sys.stdout.write(build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root))
     except InputError as exc:
         print(f"build-dispatch: {exc}", file=sys.stderr)
         return 2

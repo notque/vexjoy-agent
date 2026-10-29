@@ -1,0 +1,86 @@
+"""Read a Jev Choice's probabilities: top, margin over the runner-up, and a consequence-gated escalation test.
+
+A flat Choice over many near-equal options is normal, not a failure.
+Two reads matter: ``margin`` (``p_max / p_second``) says whether the argmax is stable, and whether
+the split options differ in outcome cost says whether a stronger model is worth paying for.
+``classes`` sums the probability of options that are the same thing (duplicate cards, one action
+reachable two ways) before the margin is read, so identical options do not look like a split.
+
+Thresholds are provisional: measured 2026-10-16 on jev-1.14.0, synthetic nav Choices (n=50). Re-measure.
+"""
+
+from __future__ import annotations
+
+import math
+from collections import defaultdict
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+MARGIN_MIN = 2.0  # at or above this p_max / p_second the pick agreed under reversed option order 29/29
+# Two-option Choices flip only at the bottom: on 112 synthetic winner Choices (60 near-equal pairs, 2026-10-16,
+# jev-1.14.0) all 4 order flips had margin under 1.5 (p_max under 0.6); none at 1.5 or more. Few binaries fell in
+# 1.5 to 2.0 (n=2), so 1.5 is provisional. Margin 2.0 on a binary means p_max 0.667, which many valid picks miss.
+MARGIN_MIN_BY_ARITY: dict[int, float] = {2: 1.5}
+
+
+@dataclass(frozen=True)
+class ChoiceRead:
+    """The top class of a Choice, its probability, and how far it leads the runner-up."""
+
+    choice: str
+    p_max: float
+    p_second: float
+    margin: float
+    n: int
+
+
+def choice_margin(probabilities: Mapping[str, float], classes: Mapping[str, str] | None = None) -> ChoiceRead:
+    """Return the top option (or class), ``p_max``, ``p_second``, and ``margin = p_max / p_second``.
+
+    ``classes`` maps an option to the class it belongs to; probabilities of one class are summed.
+    An option missing from ``classes`` is its own class. ``margin`` is ``math.inf`` when the runner-up has
+    no mass. Raises ValueError on an empty mapping or a negative probability.
+    """
+    if not probabilities:
+        raise ValueError("probabilities is empty")
+    mass: dict[str, float] = defaultdict(float)
+    for option, p in probabilities.items():
+        if p < 0:
+            raise ValueError(f"negative probability for {option!r}")
+        mass[classes.get(option, option) if classes else option] += p
+    ranked = sorted(mass.items(), key=lambda kv: kv[1], reverse=True)
+    top, p_max = ranked[0]
+    p_second = ranked[1][1] if len(ranked) > 1 else 0.0
+    margin = p_max / p_second if p_second > 0 else math.inf
+    return ChoiceRead(choice=top, p_max=p_max, p_second=p_second, margin=margin, n=len(ranked))
+
+
+def order_averaged_margin(forward: Mapping[str, float], reverse: Mapping[str, float]) -> float:
+    """Margin of the mean of two answers to the same Choice asked in forward and reversed option order.
+
+    Averaging cancels first-option lean. Below ``MARGIN_MIN`` the pick is a split. Raises ValueError when the
+    two answers cover different options.
+    """
+    if set(forward) != set(reverse):
+        raise ValueError("forward and reverse cover different options")
+    return choice_margin({k: (forward[k] + reverse[k]) / 2 for k in forward}).margin
+
+
+def margin_min_for(n_options: int) -> float:
+    """The margin bar for a Choice with ``n_options`` options: ``MARGIN_MIN_BY_ARITY`` or ``MARGIN_MIN``."""
+    return MARGIN_MIN_BY_ARITY.get(n_options, MARGIN_MIN)
+
+
+def is_settled(read: ChoiceRead, *, margin_min: float | None = None) -> bool:
+    """True when the lead over the runner-up meets the bar for this arity (``read.n`` classes)."""
+    return read.margin >= (margin_min if margin_min is not None else margin_min_for(read.n))
+
+
+def should_escalate(read: ChoiceRead, *, consequences_differ: bool, margin_min: float | None = None) -> bool:
+    """True only when the leading options differ in outcome cost AND the pick is not settled.
+
+    Consequence gating comes first: a low-consequence or reversible pick takes the argmax at any margin, and
+    the margin bar applies only to consequential decisions. The caller decides ``consequences_differ`` from
+    state (lethal possible, irreversible, money, owner-visible). ``margin_min`` defaults to the per-arity bar.
+    """
+    return consequences_differ and not is_settled(read, margin_min=margin_min)

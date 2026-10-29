@@ -494,6 +494,49 @@ class TestPipelineForceRoute:
         result = pre_route.route(query, entries=real_entries)
         assert result.get("pipeline") == "pr-pipeline", result
 
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "address review comments on an upstream PR in a repo I don't own",
+            "implement the fixes on these open PRs in someone else's repo",
+            "fix the Copilot comments on my upstream PR",
+            "run the pr fix loop on these PRs",
+            "fix review feedback on my upstream pull request",
+            # The PR lives on the upstream repo, opened from the user's fork:
+            # still a PR in a repo the user does not own.
+            "fix the lint failure on the upstream PR i opened from my fork",
+        ],
+    )
+    def test_pr_fix_loop_matches_fix_work_on_foreign_prs(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["matched"] is True, result
+        assert result.get("pipeline") == "pr-fix-loop", result
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "summarize the upstream PR",
+            "review this upstream PR for me",
+            "push back against the upstream PR fix",
+            # Read-only or meta requests about the pipeline itself.
+            "explain how the pr fix loop works",
+            "what does the pr fix loop pipeline do",
+            "update the docs for the pr fix loop pipeline",
+            # Porting upstream changes into the user's own repo.
+            "apply upstream PR changes to my fork",
+            "implement what upstream PR 42 does in our repo",
+            # The toolkit owner's own repo is never foreign.
+            "fix the failing test in the upstream PR in notque/vexjoy-agent",
+            # No foreign-repo signal at all.
+            "fix the failing test in my PR",
+            "fix the failing test in my PR in notque/vexjoy-agent",
+            "update my branch from upstream and resolve the conflicts",
+        ],
+    )
+    def test_pr_fix_loop_needs_a_change_verb(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result.get("pipeline") != "pr-fix-loop", result
+
     def test_fallthrough_has_pipeline_none(self, pre_route, real_entries) -> None:
         """Fallthrough results include pipeline: None."""
         result = pre_route.route("tell me about quantum physics", entries=real_entries)
@@ -505,3 +548,63 @@ class TestPipelineForceRoute:
         assert result["matched"] is True
         assert result["skill"] == "deploy"
         assert result.get("pipeline") is None
+
+
+class TestSeparatorEquivalence:
+    """A hyphen or underscore between trigger words counts as a space."""
+
+    @pytest.mark.parametrize(
+        "query",
+        ["pr-review this", "pr_review it", "code-review the diff", "pr-review our agent"],
+    )
+    def test_hyphen_underscore_matches_review_force_route(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["matched"] is True, result
+        assert result["skill"] == "review"
+        assert result["match_type"] == "force_route"
+
+    def test_spaced_form_still_matches(self, pre_route, real_entries) -> None:
+        result = pre_route.route("pr review our agent", entries=real_entries)
+        assert result["skill"] == "review"
+
+    @pytest.mark.parametrize(
+        ("query", "skill"),
+        [("push back on this frontend", "pr-workflow"), ("fish for bugs", "deploy")],
+    )
+    def test_idioms_do_not_match(self, pre_route, real_entries, query: str, skill: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result.get("skill") != skill, result
+
+
+class TestGameTrailerRoute:
+    """Trailer requests reach game-trailer; plain game building stays on game-dev."""
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "make a game trailer",
+            "cut a trailer for my game",
+            "edit the trailer for road to aew",
+            "I need a trailer cut of the new build",
+            "make me a trailer for my game",
+        ],
+    )
+    def test_trailer_requests_route_to_game_trailer(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["matched"] is True, result
+        assert result["skill"] == "game-trailer"
+        assert result["match_type"] == "force_route"
+
+    @pytest.mark.parametrize("query", ["make a game", "make game levels"])
+    def test_make_game_still_routes_to_game_dev(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["skill"] == "game-dev"
+        assert result["match_type"] == "force_route"
+
+    def test_make_game_guard_blocks_only_trailer_requests(self, pre_route, real_entries) -> None:
+        table = pre_route.build_match_table(real_entries)
+        make_game = next(e for e in table if e.name == "game-dev" and e.trigger == "make game")
+        launch = "make a game launch video"
+        trailer = "make a game trailer"
+        assert pre_route._is_semantically_guarded("game-dev", launch, "make game", make_game.pattern) is False
+        assert pre_route._is_semantically_guarded("game-dev", trailer, "make game", make_game.pattern) is True

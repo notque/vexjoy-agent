@@ -179,6 +179,13 @@ Plus `actions` (`e2:fill`, `e3:sel:ca`, `scroll_down`, `wait`), `page_key`, `gua
 
 **Gate**: loop or stop. Every exit carries `reason`.
 
+### Walkthrough validity
+
+- Count coverage without direct-URL fallbacks. A fallback navigates by URL when the player could not find the control, so it hides sections a player cannot reach (field case: 88 fallbacks on mobile against 43 on desktop, hiding 6 sections).
+- Assert the landing route before you count a probe. A deep-link probe that lands on the wrong screen is inconclusive, not a negative.
+- Check each tile's screen identity before you score it. When the layout has no nav rail (mobile), screen detection can fall back and score a tile as the wrong screen, which invalidates its scores; the screen under the viewport centre wins.
+- Close open overlays (a command palette, a modal) before each click, and tag each failure as a harness failure or a product failure. Most click failures in one field walkthrough were the harness clicking behind an open overlay.
+
 ---
 
 ## Long tasks: checkpoint search
@@ -215,7 +222,7 @@ Every Jev failure resolves to BLOCKED or a bounded WAIT retry. Scripts exit 0 wi
 | `scripts/tests/test_jev_browser_harness.py` | Offline: decide payload/parse, verify parse and veto, agent loop with fake driver (secrets, stale, stall, budget, rejected DONE, Jev-error retry, preflight, scrub) |
 | `scripts/tests/test_jev_browser_live.py` | Real Chromium on a loopback fixture: snapshot contract, password masking, isolated world, covered-target rejection, stale guard, select/checkbox/scroll/submit, end-to-end secret scrubbing. Skips without Node + Chromium |
 
-Field-tested on 5 Star Booker (loopback dev server): closes the help modal, selects promotions, picks a mode, starts booking, spins the venue; the three-page audit from `mmr-ratings-dev/scripts/jev_browser_validate.py` runs through `--audit-file` unchanged.
+Field-tested on a booking-sim web app (loopback dev server): closes the help modal, selects promotions, picks a mode, starts booking, spins the venue; a three-page audit script runs through `--audit-file` unchanged.
 
 ## References
 

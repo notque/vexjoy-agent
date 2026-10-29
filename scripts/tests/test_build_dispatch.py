@@ -305,11 +305,70 @@ def test_skill_calls_are_primary_first_ordered_and_deduplicated():
     ]
 
 
+@pytest.mark.parametrize("provider", ("google", "antigravity"))
+def test_skill_calls_for_google_antigravity_emit_read_skill_directive(provider):
+    decision = _decision(
+        skill="review",
+        stack=["review", "quick"],
+        provider=provider,
+    )
+    rendered = bd.render_skill_calls(decision)
+    assert "Read and follow ~/.gemini/skills/review/SKILL.md before starting work." in rendered
+    assert "Operational Summary (review):" in rendered
+    assert "Read and follow ~/.gemini/skills/quick/SKILL.md before starting work." in rendered
+
+
+def test_render_skill_calls_without_summary_falls_back_to_reference(monkeypatch):
+    monkeypatch.setattr(bd, "get_skill_operational_summary", lambda _name: "")
+    decision = _decision(skill="pr-workflow", stack=[], provider="google")
+    calls = bd.render_skill_calls(decision)
+    assert calls == "Read and follow ~/.gemini/skills/pr-workflow/SKILL.md before starting work."
+
+
+def test_trigger_phrase_and_category_alias_coerce_to_canonical_skill():
+    mapping = bd._trigger_to_skill_map()
+    alias = next(
+        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
+    )
+    calls = bd.render_skill_calls(_decision(skill=alias, stack=[]))
+    assert calls == "Call the Skill tool with `review`."
+
+
+def test_marker_records_the_canonical_skill_for_a_coerced_alias():
+    mapping = bd._trigger_to_skill_map()
+    alias = next(
+        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
+    )
+    first_line = _preamble(_decision(skill=alias, stack=[])).splitlines()[0]
+    assert " skill=review " in first_line + " "
+
+
+def test_coerced_alias_is_deduplicated_against_its_canonical_skill():
+    mapping = bd._trigger_to_skill_map()
+    alias = next(
+        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
+    )
+    calls = bd.render_skill_calls(_decision(skill="review", stack=[alias]))
+    assert calls == "Call the Skill tool with `review`."
+
+
+def test_alias_to_unknown_skill_still_fails_closed():
+    with pytest.raises(bd.InputError, match="absent from"):
+        _preamble(_decision(skill="zz-no-such-trigger", stack=[]))
+
+
 def test_shared_pattern_stack_entry_is_not_a_skill_call():
     decision = _decision(stack=["anti-rationalization-core", "testing"])
     calls = bd.render_skill_calls(decision)
     assert "anti-rationalization-core" not in calls
     assert calls.endswith("Call the Skill tool with `testing`.")
+
+
+def test_render_skill_calls_renders_antigravity_instruction_for_google_provider():
+    decision = _decision(skill="pr-workflow", stack=[], provider="google")
+    calls = bd.render_skill_calls(decision)
+    assert "Read and follow ~/.gemini/skills/pr-workflow/SKILL.md before starting work." in calls
+    assert "Operational Summary (pr-workflow):" in calls
 
 
 @pytest.mark.parametrize("name", ["reviewer-code", "agent-upgrade", "not-a-real-component"])
@@ -858,6 +917,77 @@ def test_provider_openai_uses_openai_table():
     assert "effort=high" in marker
 
 
+@pytest.mark.parametrize("provider", ("google", "antigravity"))
+@pytest.mark.parametrize(
+    ("task_class", "model", "effort"),
+    [
+        ("low-risk", "gemini-3.8-flash", "low"),
+        ("standard", "gemini-4-argon", "medium"),
+        ("high-risk", "gemini-4-argon-high", "high"),
+    ],
+)
+def test_google_antigravity_policy_maps_tiers_to_argon_and_flash(provider, task_class, model, effort):
+    """Google/Antigravity lane maps low-risk to Flash, standard to Argon, and high-risk to Argon-High."""
+    decision = _decision(model=None, model_policy=task_class, provider=provider)
+    marker = bd.build_marker(decision)
+    assert f"model={model}" in marker
+    assert f"effort={effort}" in marker
+    assert recorder.parse_model(marker) == model
+    assert recorder.parse_model_effort(marker) == effort
+
+
+@pytest.mark.parametrize("provider", ("google", "antigravity"))
+def test_google_max_power_requires_manual_override(provider):
+    """Google max-power requires manual_model_override=true."""
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model=None, model_policy="max-power", provider=provider))
+    marker = bd.build_marker(
+        _decision(model=None, model_policy="max-power", manual_model_override=True, provider=provider)
+    )
+    assert "model=gemini-4-argon-high" in marker
+    assert "effort=max" in marker
+
+
+@pytest.mark.parametrize(
+    "model",
+    (
+        "gemini-4-argon",
+        "gemini-4-argon-low",
+        "gemini-4-argon-medium",
+        "gemini-4-argon-high",
+        "gemini-3.8-flash",
+        "gemini-3.8-flash-low",
+        "gemini-3.8-flash-medium",
+        "gemini-3.8-flash-high",
+        "argon",
+        "flash",
+        "flash_lite",
+        "pro",
+    ),
+)
+def test_explicit_google_models_round_trip_with_recorder(model):
+    """All Google AI / Antigravity subagent and CLI models are accepted and parsed by the recorder."""
+    marker = bd.build_marker(_decision(model=model, model_effort="medium", provider="google"))
+    assert f"model={model}" in marker
+    assert "effort=medium" in marker
+    assert recorder.parse_model(marker) == model
+    assert recorder.parse_model_effort(marker) == "medium"
+
+
+def test_google_cross_provider_policy_override_rejected():
+    """Google policy cannot be overridden with a non-Google model."""
+    with pytest.raises(bd.InputError, match="Google/Gemini model"):
+        bd.build_marker(
+            _decision(
+                model_policy="standard",
+                model="opus",
+                model_effort="high",
+                manual_model_override=True,
+                provider="google",
+            )
+        )
+
+
 def test_provider_other_rejects_model_policy():
     """provider='other' cannot use model_policy — no hardcoded table."""
     with pytest.raises(bd.InputError, match="other"):
@@ -1078,6 +1208,31 @@ def test_symlinked_script_from_non_repo_cwd_gathers_real_git_output(tmp_path):
     assert "gather:" not in result.stdout
 
 
+def test_installed_layout_with_per_skill_symlinks_validates_pipeline(tmp_path):
+    # Real install shape: skills/ holds flat per-skill symlinks (skills/workflow -> <repo>/skills/process/workflow,
+    # skills/process -> <repo>/skills/process/process), so skills/process/workflow does not exist.
+    for name in ("scripts", "agents", "hooks"):
+        (tmp_path / name).symlink_to(REPO_ROOT / name)
+    skills = tmp_path / "skills"
+    skills.mkdir()
+    for extra in ("INDEX.json", "shared-patterns"):
+        (skills / extra).symlink_to(REPO_ROOT / "skills" / extra)
+    for category in sorted((REPO_ROOT / "skills").iterdir()):
+        if not category.is_dir() or category.name == "shared-patterns":
+            continue
+        for child in sorted(category.iterdir()):
+            if child.is_dir() and not (skills / child.name).exists():
+                (skills / child.name).symlink_to(child)
+    assert not (skills / "process" / "workflow").exists()
+    decision_file = tmp_path / "d.json"
+    decision_file.write_text(json.dumps(_decision(pipeline="explore-pipeline")))
+    result = _run_cli_from(
+        tmp_path, tmp_path / "scripts" / "build-dispatch.py", "--no-gather", "--json-file", str(decision_file)
+    )
+    assert result.returncode == 0, result.stderr
+    assert "pipeline=explore-pipeline" in result.stdout
+
+
 def test_cwd_inside_a_git_repo_picks_that_repo(tmp_path):
     repo = _git_repo(tmp_path / "repo")
     decision = _decision(task_spec={"intent": "x", "files": "tracked.md"})
@@ -1235,3 +1390,35 @@ def test_none_context_does_not_gather_or_drop_task_spec(tmp_path):
 def test_invalid_context_mode_fails_even_without_gather(mode):
     with pytest.raises(bd.InputError, match="context_mode"):
         _preamble(_decision(context_mode=mode))
+
+
+def test_build_subagent_dispatch():
+    decision = _decision(agent="python-general-engineer", skill="testing")
+    payload = bd.build_subagent_dispatch(decision, repo_root=REPO_ROOT)
+    assert "subagent_spec" in payload
+    assert payload["subagent_spec"]["Name"] == "python-general-engineer"
+    assert payload["define_subagent"]["EnableWriteTools"] is True
+    assert payload["invoke_subagent"]["TypeName"] == "python-general-engineer"
+    assert payload["invoke_subagent"]["Workspace"] == "branch"
+    assert "[do-route]" in payload["preamble"]
+
+
+def test_build_dispatch_cli_subagent_spec(tmp_path):
+    decision_file = tmp_path / "route.json"
+    decision = _decision(agent="reviewer-code", skill="review")
+    decision_file.write_text(json.dumps(decision), encoding="utf-8")
+
+    cmd = [
+        sys.executable,
+        str(SCRIPT_PATH),
+        "--json-file",
+        str(decision_file),
+        "--subagent-spec",
+        "--no-gather",
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT, check=False)
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["define_subagent"]["Name"] == "reviewer-code"
+    assert data["define_subagent"]["EnableWriteTools"] is False
+    assert data["invoke_subagent"]["Workspace"] == "inherit"

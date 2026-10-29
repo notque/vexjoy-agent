@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.3.0
+# hook-version: 1.3.2
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
@@ -30,6 +30,8 @@ Term set, three sources:
    - MINUS the toolkit's own name (pyproject `name` and its first hyphen
      segment). This is the only "already public" exemption: exempting every
      name already in the tracked tree made a leak self-perpetuating.
+   - MINUS harness built-in and slash commands (_BUILTIN_COMMANDS)
+   - MINUS common words that appear routinely in documentation or code (_COMMON_WORDS)
 2. BRAND terms: a first hyphen segment shared by at least 2 private leaf
    names, at least 4 chars, not a common word (_COMMON_WORDS), not the
    toolkit's own name, and not a segment of any public skill or agent name.
@@ -63,6 +65,25 @@ Allow-through conditions:
   detected in the command string itself. Owner approval only; every
   bypass is logged to stderr.
 """
+
+import sys  # vexjoy-pyguard
+
+if sys.version_info < (3, 10):  # vexjoy-pyguard gate
+    import os
+
+    if not os.environ.get("VEXJOY_PYGUARD_REEXEC"):
+        os.environ["VEXJOY_PYGUARD_REEXEC"] = "1"
+        for _d in [*os.environ.get("PATH", "").split(os.pathsep), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]:
+            for _v in ("14", "13", "12", "11", "10"):
+                _p = os.path.join(_d, "python3." + _v)
+                if _d and "/shims" not in _d and os.access(_p, os.X_OK):
+                    os.execv(_p, [_p, *sys.argv])
+    sys.stderr.write(
+        "[vexjoy] hook %s needs Python 3.10+, got %s (%s); run ./install.sh in vexjoy-agent from a terminal"
+        " outside Claude Code (gated tool calls stay blocked until then)\n"
+        % (__file__.rsplit("/", 1)[-1], sys.version.split()[0], sys.executable)
+    )
+    sys.exit(2)
 
 import json
 import os
@@ -163,6 +184,7 @@ _COMMON_WORDS = frozenset(
         "review",
         "social",
         "story",
+        "teach",
         "test",
         "text",
         "tool",
@@ -170,9 +192,34 @@ _COMMON_WORDS = frozenset(
         "user",
         "video",
         "voice",
+        "wizard",
         "write",
         "writer",
         "writing",
+    }
+)
+
+_BUILTIN_COMMANDS = frozenset(
+    {
+        "goal",
+        "compact",
+        "schedule",
+        "browser",
+        "plan",
+        "grill-me",
+        "teamwork",
+        "learn",
+        "boost",
+        "help",
+        "clear",
+        "cost",
+        "doctor",
+        "init",
+        "login",
+        "logout",
+        "review",
+        "pr-comments",
+        "bug",
     }
 )
 
@@ -376,6 +423,8 @@ def _private_names(toolkit_root: Path) -> set[str]:
     names = _raw_leaf_names()
     names -= _public_skill_names(toolkit_root)
     names -= _toolkit_identity(toolkit_root)
+    names -= _BUILTIN_COMMANDS
+    names -= _COMMON_WORDS
     return names
 
 
@@ -424,7 +473,7 @@ def private_terms(toolkit_root: Path) -> tuple[set[str], set[str]]:
     already appearing in the public tree.
     """
     leaves = _private_names(toolkit_root)
-    strong = _brand_terms(toolkit_root, _raw_leaf_names()) | _owner_terms()
+    strong = _brand_terms(toolkit_root, _raw_leaf_names() - _BUILTIN_COMMANDS) | _owner_terms()
     return leaves, strong
 
 

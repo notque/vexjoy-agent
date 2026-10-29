@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 from . import accounts as accounts_mod
-from . import external
+from . import external, interp
 from . import index as index_mod
 from . import ledger as ledger_mod
 from . import settings as settings_mod
@@ -32,9 +32,19 @@ from .context import Options, Result, guard_for, load_context, state_dir
 from .fsops import Guard, Trash, atomic_symlink, copy_entry, mkdirs, prune_trash, restore_trash
 from .ledger import STATUS_OK, STATUS_STALE, Ledger, LedgerEntry
 from .lock import LockHeld, engine_lock
-from .plan import Action, Context, Plan, TargetPlan, build_plan, source_refusal
+from .plan import (
+    Action,
+    Context,
+    Plan,
+    TargetPlan,
+    build_plan,
+    dir_of_adoptable_links,
+    link_points_into,
+    source_refusal,
+)
 from .profile import filter_settings_hooks
 from .report import plan_diff, summary_line, write_report
+from .sources import skill_md_of
 
 
 def repo_root_refusal(ctx: Context, targets: list[str]) -> str | None:
@@ -97,6 +107,7 @@ def run_plan(opts: Options) -> Result:
                 plan.notes.append(f"external {f.path}: would write")
     res = Result(data=plan.to_json(), out=_plan_lines(plan))
     if "claude" in targets:
+        res.out.append(_python_plan_line(ctx.home))
         acct = accounts_mod.plan_all(ctx)
         res.out.extend(a.summary() for a in acct)
         res.data["accounts"] = [a.to_json() for a in acct]
@@ -104,6 +115,31 @@ def run_plan(opts: Options) -> Result:
         res.code = int(ExitCode.COLLISION)
         res.err.extend(f"collision: {c.describe()}" for c in plan.collisions)
     return res
+
+
+def _python_plan_line(home: Path) -> str:
+    link = interp.link_path(home)
+    try:
+        found = interp.resolve()
+    except interp.InterpreterError as exc:
+        return f"python: apply would fail: {exc}"
+    return f"python: {link} -> {found.label}"
+
+
+def _resolve_python(home: Path, sync: bool) -> tuple[interp.Interpreter | None, str | None]:
+    """(interpreter to link, error), decided before any write.
+
+    Sync re-resolves only a link that is missing, dangling, broken, or older than 3.10.
+    """
+    blocker = interp.link_blocker(home)
+    if blocker:
+        return None, blocker
+    if sync and interp.link_ok(home):
+        return None, None
+    try:
+        return interp.resolve(), None
+    except interp.InterpreterError as exc:
+        return None, str(exc)
 
 
 def _install(a: Action, guard: Guard) -> None:
@@ -284,6 +320,14 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             return Result(code=0, err=[msg + "; run apply --allow-mass-remove after review"], data=plan.to_json())
         return Result(code=int(ExitCode.MASS_REMOVE), err=[msg + "; review with plan, then --allow-mass-remove"])
 
+    python: interp.Interpreter | None = None
+    if "claude" in targets:
+        python, python_err = _resolve_python(ctx.home, sync)
+        if python_err and not sync:
+            return Result(code=int(ExitCode.ERROR), err=[f"[apply] {python_err}"])
+        if python_err:
+            res.err.append(f"[sync] warning: {python_err}")
+
     ts = utc_ts()
     trash = Trash(root=sdir / "trash", ts=ts, guard=guard)
     report: dict = {
@@ -299,6 +343,9 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     try:
         for t in targets:
             execute_target(plan.targets[t], ctx, trash, guard, ledger, skip)
+        if python is not None:
+            changed = interp.write_link(ctx.home, python, guard)
+            report["python"] = {"link": str(interp.link_path(ctx.home)), "target": python.label, "changed": changed}
         if "claude" in targets:
             report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
             report["accounts"] = accounts_mod.apply_all(ctx, guard)
@@ -335,6 +382,8 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     res.data = report
     line = summary_line(label, plan, ledger)
     res.out.append(line)
+    if report.get("python", {}).get("changed") and not sync:
+        res.out.append(f"[{label}] python: {report['python']['link']} -> {report['python']['target']}")
     res.out.extend(accounts_mod.report_lines(report.get("accounts", [])))
     for a in report.get("accounts", []):
         if a.get("error"):
@@ -385,6 +434,10 @@ def run_uninstall(opts: Options) -> Result:
                 settings_report = apply_settings(ctx, ctx.ledger, guard, desired={})
                 accounts_report = accounts_mod.apply_all(ctx, guard, desired={}, links=False)
                 ctx.ledger.settings.pop("claude", None)
+                link = interp.link_path(ctx.home)
+                if os.path.islink(link):
+                    trash.move(link, ctx.home, "uninstall")
+                    removed.append(str(link))
             ledger_mod.save(ledger_mod.ledger_path(sdir), ctx.ledger, guard)
             report = {
                 "ts": ts,
@@ -406,12 +459,14 @@ def run_uninstall(opts: Options) -> Result:
 
 
 def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
-    """(path, reason) for unowned dangling links and category entries in managed containers."""
+    """(path, reason) for unowned dangling links, category entries, shadowed commands, and legacy toolkit entries."""
     out: list[tuple[str, str]] = []
     owned = set(ctx.ledger.entries)
+    roots = ctx.known_roots()
     for t in targets:
         adapter = ctx.adapter(t)
-        for container in adapter.containers(ctx.home):
+        containers = adapter.containers(ctx.home)
+        for container in containers:
             if os.path.islink(container) or not os.path.isdir(container):
                 continue
             root = adapter.root_path(ctx.home)
@@ -422,6 +477,8 @@ def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
                 path = container / child
                 if str(path) in owned or child.startswith("."):
                     continue
+                if any(is_inside(str(o), str(path)) for o in containers):
+                    continue
                 if is_dangling(path):
                     out.append((str(path), "dangling link"))
                 elif is_skills and is_category_entry(path):
@@ -430,9 +487,11 @@ def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
                     is_commands
                     and skills_root is not None
                     and child.endswith(".md")
-                    and (skills_root / child[:-3] / "SKILL.md").exists()
+                    and skill_md_of(skills_root / child[:-3]) is not None
                 ):
                     out.append((str(path), "command shadows a skill of the same name"))
+                elif (os.path.islink(path) and link_points_into(path, roots)) or dir_of_adoptable_links(path, roots):
+                    out.append((str(path), "legacy toolkit entry"))
     return out
 
 
@@ -440,10 +499,10 @@ def is_category_entry(path: Path) -> bool:
     """A skills-root entry without SKILL.md that holds nested skills (not a support dir)."""
     if path.name in SUPPORT_DIRS or path.name in DATA_DIRS or not path.is_dir():
         return False
-    if (path / "SKILL.md").exists() or (path / "skill" / "SKILL.md").exists():
+    if skill_md_of(path) is not None:
         return False
     try:
-        return any((child / "SKILL.md").is_file() for child in path.iterdir() if child.is_dir())
+        return any(skill_md_of(child) is not None for child in path.iterdir() if child.is_dir())
     except OSError:
         return False
 
@@ -464,6 +523,8 @@ def run_prune(opts: Options) -> Result:
     lines = [f"  {p}  ({why})" for p, why in items]
     if not opts.confirm or opts.dry_run:
         return Result(out=[f"[prune] {len(items)} unowned candidate(s); pass --confirm to trash them", *lines])
+    if not items:
+        return Result(out=["[prune] 0 unowned candidate(s); nothing to trash"])
     guard = guard_for(ctx)
     sdir = state_dir(ctx.home)
     try:

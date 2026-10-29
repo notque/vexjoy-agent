@@ -8,6 +8,10 @@ Usage:
     python3 scripts/grill-jev.py --file task_plan.md --mode plan
     python3 scripts/grill-jev.py --text "..." --mode plan
     python3 scripts/grill-jev.py --file design.md --questions-file /tmp/questions.json
+    python3 scripts/grill-jev.py --images-dir shots/ --questions-file /tmp/questions.json
+    python3 scripts/grill-jev.py --image home=home.png --image cpu.png --text "dashboard review"
+
+Images (--image, --images-dir) force the direct Jev API and need TYPESAFE_API_KEY.
 
 Exit codes:
     0 — no high-signal findings or all below threshold
@@ -20,12 +24,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+import jev_images
 import jev_limits
 import jev_transport
 
@@ -111,9 +118,14 @@ def _load_questions(path: str) -> dict[str, Any]:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"invalid question battery: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"invalid question battery: top level is a JSON {type(payload).__name__}; "
+            'expected {"questions": {"<id>": {...}}}'
+        )
     questions = payload.get("questions", payload)
     if not isinstance(questions, dict) or not questions:
-        raise ValueError("question battery must be a non-empty JSON object")
+        raise ValueError('question battery must be a non-empty JSON object: {"questions": {"<id>": {...}}}')
     problems = _battery_problems(questions)
     if problems:
         raise ValueError("invalid question battery: " + "; ".join(problems))
@@ -452,10 +464,16 @@ def _answer_problem(question: dict[str, Any], answer: Any) -> str | None:
     return None
 
 
+_BATCH_FATAL = frozenset(
+    {jev_transport.REQUEST_TOO_LARGE, jev_transport.IMAGES_UNSUPPORTED, jev_transport.INVALID_IMAGE}
+)
+
+
 def _run_battery(
     state: dict[str, Any],
     questions: dict[str, Any],
     timeout: float,
+    images: dict[str, jev_images.JevImage] | None = None,
 ) -> dict[str, Any]:
     """Run all questions in batches, returning merged answers dict.
 
@@ -463,16 +481,41 @@ def _run_battery(
     or oversized question costs only its own answer. A question that still
     fails is recorded as ``{"error": ...}`` (unknown, never a pass). If the
     first single-question failure also fails a tiny probe, Jev is down: raise.
+
+    With ``images`` ({name: JevImage}), each request carries only the images its
+    questions use (see ``_image_plan``), and all requests go to the direct API.
     """
-    batches = _pack_batches(state, questions)
     all_answers: dict[str, Any] = {}
     service_ok: list[bool] = []  # set once by the probe
+    plans: dict[str, tuple[list[str], dict[str, int]]] = {}
+
+    if images:
+        names = list(images)
+        plans = {qid: _image_plan(qid, q, names) for qid, q in questions.items()}
+        tokens = {n: img.resolve().est_tokens for n, img in images.items()}
+        batches, refused = _image_batches(state, questions, plans, tokens)
+        for qid, reason in refused.items():
+            all_answers[qid] = {"type": questions[qid].get("type"), "error": reason}
+    else:
+        batches = _pack_batches(state, questions)
+
+    def build(batch_qs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any] | None]:
+        if not images:
+            return state, batch_qs, None
+        carried = [n for n in images if any(n in plans[qid][0] for qid in batch_qs)]
+        inline = {n for qid in batch_qs for n in plans[qid][1]}
+        batch_state = dict(state)
+        if carried:
+            batch_state[IMAGES_KEY] = {n: images[n] for n in carried}
+        batch_images = {n: images[n] for n in images if n in carried or n in inline}
+        return batch_state, {qid: _wire_question(q) for qid, q in batch_qs.items()}, batch_images
 
     def send(batch_qs: dict[str, Any]) -> None:
+        batch_state, wire_qs, batch_images = build(batch_qs)
         try:
-            reply = jev_transport.evaluate(state, batch_qs, timeout=timeout)
+            reply = jev_transport.evaluate(batch_state, wire_qs, timeout=timeout, images=batch_images)
         except jev_transport.JevTransportError as exc:
-            if exc.source == jev_transport.REQUEST_TOO_LARGE:
+            if exc.source in _BATCH_FATAL:
                 raise
             if len(batch_qs) > 1:
                 ids = list(batch_qs)
@@ -492,8 +535,18 @@ def _run_battery(
                 problem = _answer_problem(question, answer)
                 all_answers[qid] = {"type": question.get("type"), "error": problem} if problem else answer
 
-    for batch in batches:
-        send({qid: questions[qid] for qid in batch})
+    for i, batch in enumerate(batches):
+        try:
+            send({qid: questions[qid] for qid in batch})
+        except (RequestTooLarge, jev_transport.JevTransportError) as exc:
+            if isinstance(exc, jev_transport.JevTransportError) and exc.source not in _BATCH_FATAL:
+                exc.partial_answers = all_answers  # type: ignore[attr-defined]  # outage: main reports what was paid for
+                raise
+            # Keep every answer already paid for; list what did not run and why.
+            for qid in (q for later in batches[i:] for q in later):
+                if qid not in all_answers:
+                    all_answers[qid] = {"type": questions[qid].get("type"), "error": f"not run: {exc}"}
+            break
     return all_answers
 
 
@@ -502,6 +555,165 @@ _PROBE_STATE = {"artifact": "The sky is blue."}
 _PROBE_QUESTION = {
     "probe": {"type": "noul", "report_when": "true", "instructions": {"question": "Does the artifact name a color?"}}
 }
+
+
+# ---------------------------------------------------------------------------
+# Images
+# ---------------------------------------------------------------------------
+
+IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp"})
+_NAME_OK = re.compile(r"^[A-Za-z0-9_.-]+$")
+_PLACEHOLDER = re.compile(r"\{img:([A-Za-z0-9_.-]+)\}")
+IMAGES_KEY = "images"  # state key that holds the batch's images, and the per-question field
+
+
+def _safe_name(stem: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", stem) or "image"
+
+
+def _parse_image_specs(specs: list[str], images_dir: str | None) -> dict[str, Path]:
+    """Map image name -> file from ``--image`` values (``PATH`` or ``name=PATH``) and ``--images-dir``.
+
+    An unnamed image is named by its file stem. Raises ValueError on a missing
+    file, a bad name, or a duplicate name.
+    """
+    found: dict[str, Path] = {}
+
+    def add(name: str, path: Path, origin: str) -> None:
+        if name in found:
+            raise ValueError(f"duplicate image name {name!r}; name one with name=PATH")
+        if not path.is_file():
+            raise ValueError(f"image not found: {path} (from {origin!r}; use NAME=PATH to name an image)")
+        found[name] = path
+
+    for spec in specs:
+        name, sep, rest = spec.partition("=")
+        if sep and _NAME_OK.match(name) and not Path(spec).is_file():
+            add(name, Path(rest), spec)
+        else:
+            add(_safe_name(Path(spec).stem), Path(spec), spec)
+    if images_dir:
+        root = Path(images_dir)
+        if not root.is_dir():
+            raise ValueError(f"images dir not found: {images_dir}")
+        files = sorted(f for f in root.iterdir() if f.is_file() and f.suffix.lower() in IMAGE_SUFFIXES)
+        if not files:
+            raise ValueError(f"no png/jpg/jpeg/webp files in {images_dir}")
+        for f in files:
+            add(_safe_name(f.stem), f, str(f))
+    return found
+
+
+def _image_plan(qid: str, question: dict[str, Any], names: list[str]) -> tuple[list[str], dict[str, int]]:
+    """Which images a question needs: (names carried in state, placeholder name -> uses).
+
+    ``"images": [names]`` on the question carries those in state. ``{img:name}``
+    in the question text references an image inline. A question with neither gets
+    every image in state. Raises ValueError on an unknown name.
+    """
+    explicit = question.get(IMAGES_KEY)
+    if explicit is not None and not (isinstance(explicit, list) and all(isinstance(n, str) for n in explicit)):
+        raise ValueError(f"{qid}: images must be a list of image names")
+    wire_text = json.dumps({k: v for k, v in question.items() if k != IMAGES_KEY}, ensure_ascii=False)
+    inline: dict[str, int] = {}
+    for name in _PLACEHOLDER.findall(wire_text):
+        inline[name] = inline.get(name, 0) + 1
+    unknown = sorted({*(explicit or []), *inline} - set(names))
+    if unknown:
+        raise ValueError(f"{qid}: unknown image name(s) {unknown}; have {sorted(names)}")
+    if explicit is None and not inline:
+        return list(names), {}
+    return [n for n in names if n in (explicit or [])], inline
+
+
+def _neutralize_placeholders(text: str) -> str:
+    """Break ``{img:name}`` in free text so it is sent literally and never binds to an image."""
+    return text.replace("{img:", "{img :")
+
+
+def _fallback_per_image(questions: dict[str, Any], names: list[str]) -> dict[str, Any]:
+    """One copy of each fallback question per image, so no request has to carry every image."""
+    expanded: dict[str, Any] = {}
+    for name in names:
+        for qid, q in questions.items():
+            copy = json.loads(json.dumps(q))
+            instructions = copy.get("instructions")
+            note = f" Judge only the image named {name!r}."
+            if isinstance(instructions, dict) and isinstance(instructions.get("question"), str):
+                instructions["question"] += note
+            elif isinstance(instructions, str):
+                copy["instructions"] = instructions + note
+            copy[IMAGES_KEY] = [name]
+            expanded[f"{qid}@{name}"] = copy
+    return expanded
+
+
+def _wire_question(question: dict[str, Any]) -> dict[str, Any]:
+    """The question as Jev sees it: without the grill-jev-only ``images`` field."""
+    return {k: v for k, v in question.items() if k != IMAGES_KEY}
+
+
+def _image_batches(
+    base_state: dict[str, Any],
+    questions: dict[str, Any],
+    plans: dict[str, tuple[list[str], dict[str, int]]],
+    tokens: dict[str, int],
+    target: int = jev_limits.IMAGE_REQUEST_TARGET_TOKENS,
+) -> tuple[list[list[str]], dict[str, str]]:
+    """Pack question ids into requests that each fit ``target`` tokens, images included.
+
+    Questions with the same image set share requests; an image is resent once
+    for each request that uses it. A question whose own request (its images plus state) is
+    over ``target`` is not sent: it is returned in the second value with the reason.
+    """
+
+    def question_cost(qid: str) -> int:
+        inline = plans[qid][1]
+        return jev_limits.estimate_tokens(_wire_question(questions[qid])) + sum(
+            tokens[n] * uses for n, uses in inline.items()
+        )
+
+    def images_cost(names: list[str]) -> int:
+        stub = {n: "0" * 32 for n in names}
+        return jev_limits.estimate_tokens(stub) + sum(tokens[n] for n in names) if names else 0
+
+    state_cost = jev_limits.estimate_tokens(base_state)
+    refused: dict[str, str] = {}
+    by_set: dict[tuple[str, ...], list[str]] = {}
+    for qid in questions:
+        carried = tuple(plans[qid][0])
+        if state_cost + images_cost(list(carried)) + question_cost(qid) > target:
+            all_refs = not _explicit_images(questions[qid]) and not plans[qid][1]
+            refused[qid] = (
+                f"no image reference and all {len(carried)} images do not fit one request "
+                f"(~{state_cost + images_cost(list(carried)) + question_cost(qid)} tokens, target {target}); "
+                f'pass --questions-file and give this question "images": ["{carried[0]}"] (one or more image names)'
+                if all_refs
+                else f"its images and state are ~{state_cost + images_cost(list(carried)) + question_cost(qid)} "
+                f"tokens (target {target}); reference fewer or smaller images"
+            )
+            continue
+        by_set.setdefault(carried, []).append(qid)
+
+    batches: list[list[str]] = []
+    for carried, qids in by_set.items():
+        fixed = state_cost + images_cost(list(carried))
+        current: list[str] = []
+        used = fixed
+        for qid in qids:
+            cost = question_cost(qid)
+            if current and (used + cost > target or len(current) >= BATCH_SIZE):
+                batches.append(current)
+                current, used = [], fixed
+            current.append(qid)
+            used += cost
+        if current:
+            batches.append(current)
+    return batches, refused
+
+
+def _explicit_images(question: dict[str, Any]) -> bool:
+    return question.get(IMAGES_KEY) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -517,7 +729,7 @@ def _print_report(
     generated: bool,
 ) -> int:
     """Print findings report. Returns exit code (0=clean, 1=findings, 2=unanswered questions)."""
-    source_label = "generated" if generated else "static fallback"
+    source_label = "questions file" if generated else "static fallback"
     print(f"\nGRILL-JEV FINDINGS — mode: {mode} — {len(questions)} questions ({source_label})")
     print("=" * 60)
 
@@ -584,7 +796,7 @@ def _print_report(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Grill-Jev: context-specific Jev interrogation battery")
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument("--file", help="Path to artifact file to evaluate")
     group.add_argument("--text", help="Artifact text to evaluate")
     parser.add_argument(
@@ -615,12 +827,46 @@ def main() -> None:
         help="Optional context about the system (supplements the artifact in state)",
     )
     parser.add_argument(
+        "--image",
+        action="append",
+        default=[],
+        metavar="[NAME=]PATH",
+        help="Image to judge; repeat for more. NAME= sets the name (default: file stem) that questions "
+        "use as {img:NAME} or in an 'images' list. Forces the direct Jev API (needs TYPESAFE_API_KEY)",
+    )
+    parser.add_argument(
+        "--images-dir",
+        metavar="DIR",
+        help="Add every png/jpg/jpeg/webp in DIR, named by file stem",
+    )
+    parser.add_argument(
         "--json",
         dest="output_json",
         action="store_true",
         help="Emit raw answers as JSON instead of the findings report",
     )
     args = parser.parse_args()
+
+    images: dict[str, jev_images.JevImage] = {}
+    if args.image or args.images_dir:
+        if not os.environ.get("TYPESAFE_API_KEY", "").strip():
+            print(
+                "error: images need the direct Jev API: set TYPESAFE_API_KEY (the Vercel gateway cannot carry images)",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        requested = os.environ.get("JEV_TRANSPORT", "").strip().lower()
+        if jev_transport._ALIASES.get(requested) == jev_transport.VERCEL:
+            print(f"warning: JEV_TRANSPORT={requested} ignored: images need the direct Jev API", file=sys.stderr)
+        os.environ["JEV_TRANSPORT"] = "direct"  # never Vercel, including the outage probe
+        try:
+            paths = _parse_image_specs(args.image, args.images_dir)
+            images = {name: jev_images.JevImage(path) for name, path in paths.items()}
+            for img in images.values():
+                img.resolve()
+        except (ValueError, jev_images.JevImageError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            sys.exit(2)
 
     # Load artifact
     if args.file:
@@ -629,16 +875,25 @@ def main() -> None:
             print(f"error: file not found: {args.file}", file=sys.stderr)
             sys.exit(2)
         artifact_text = artifact_path.read_text(encoding="utf-8")
-    else:
+    elif args.text is not None:
         artifact_text = args.text
+    elif images:
+        artifact_text = "Review the attached images. Images are attached to the questions that reference them."
+    else:
+        print("error: give --file, --text, or an image", file=sys.stderr)
+        sys.exit(2)
 
     if not artifact_text.strip():
         print("error: artifact is empty", file=sys.stderr)
         sys.exit(2)
 
+    context_text = args.context
+    if images:  # a literal {img:x} in artifact or context must not bind to an image or abort the run
+        artifact_text = _neutralize_placeholders(artifact_text)
+        context_text = _neutralize_placeholders(context_text) if context_text else context_text
     state: dict[str, Any] = {"artifact": artifact_text}
-    if args.context:
-        state["context"] = args.context
+    if context_text:
+        state["context"] = context_text
 
     generated = bool(args.questions_file)
     try:
@@ -647,14 +902,37 @@ def main() -> None:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(2)
 
+    if images and not generated and len(images) > 1:
+        questions = _fallback_per_image(questions, list(images))
+        print(
+            f"note: no --questions-file; fallback battery sent once per image: {len(questions)} questions "
+            f"over {len(images)} images (each image is billed once per request that carries it)",
+            file=sys.stderr,
+        )
+
     try:
-        answers = _run_battery(state, questions, timeout=args.timeout)
+        if images:
+            for qid, q in questions.items():
+                _image_plan(qid, q, list(images))
+        elif any(isinstance(q, dict) and IMAGES_KEY in q for q in questions.values()):
+            raise ValueError('questions use "images" but no --image or --images-dir was given')
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+    try:
+        answers = _run_battery(state, questions, timeout=args.timeout, images=images or None)
     except RequestTooLarge as exc:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(2)
     except jev_transport.JevTransportError as exc:
         print(f"error: Jev transport failed: {exc}", file=sys.stderr)
-        sys.exit(2)
+        partial = getattr(exc, "partial_answers", None)
+        if not partial:
+            sys.exit(2)
+        answers = dict(partial)  # report what was already paid for; the rest is unknown
+        for qid, q in questions.items():
+            answers.setdefault(qid, {"type": q.get("type"), "error": f"not run: {exc}"})
 
     if args.output_json:
         print(json.dumps({"questions": questions, "answers": answers}, indent=2))

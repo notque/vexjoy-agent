@@ -42,7 +42,7 @@ self-contained packages.
 **Files to read**:
 - `docs/PHILOSOPHY.md`
 - `skills/meta/do/SKILL.md` — the router
-- `skills/workflow/references/` — 3-4 representative pipelines
+- `skills/process/workflow/references/` — 3-4 representative pipelines
 - `agents/` — 3-4 representative agents
 - `CLAUDE.md`
 
@@ -79,7 +79,7 @@ whether critical paths have deterministic validation.
 hooks have tests, whether scripts have tests.
 
 **Files to read**:
-- `tests/` — all test files
+- `scripts/tests/`, `hooks/tests/`, `tests/` — all test files
 - `scripts/` — check which scripts have corresponding tests
 - `hooks/` — check which hooks have tests
 - `Makefile` or equivalent — understand how tests are run
@@ -101,7 +101,7 @@ components, SKILL.md descriptions that don't match behavior, README accuracy.
 - `docs/` — all files
 - `README.md`
 - `skills/INDEX.json` — compare against actual skills directory
-- `skills/INDEX.json (workflow section)` — compare against actual pipelines directory
+- `skills/process/workflow/references/pipeline-index.json` — compare against actual pipelines directory
 - A sample of 5 SKILL.md files — check description accuracy
 
 **Output format**: Standard finding report. Note specific inaccuracies with before/after
@@ -121,7 +121,7 @@ files that should be renamed.
 **Files to read**:
 - `agents/` — list all agent filenames
 - `skills/` — list all skill directory names
-- `skills/workflow/references/` — list all pipeline directory names
+- `skills/process/workflow/references/` — list all pipeline directory names
 - `scripts/` — list all script filenames
 - `hooks/` — list all hook filenames
 
@@ -232,7 +232,7 @@ has an ADR and that ADR decisions are reflected in the implementation.
 Proposed but never implemented, ADR decisions that were overridden in implementation
 without a follow-up ADR.
 
-**Files to read**: `adr/` — all ADR files, `agents/`, `skills/`, `skills/workflow/references/`.
+**Files to read**: `adr/` — all ADR files, `agents/`, `skills/`, `skills/process/workflow/references/`.
 
 ---
 
@@ -258,7 +258,7 @@ upgraded without breaking existing user configurations.
 renames that break existing trigger habits, removed skills without deprecation notices,
 hook registration changes that could deadlock.
 
-**Files to read**: `scripts/sync-to-user-claude.py`, `docs/`, `CHANGELOG` if present,
+**Files to read**: `hooks/sync-to-user-claude.py`, `docs/`,
 representative SKILL.md version fields.
 
 ---
@@ -310,7 +310,7 @@ artifact-over-memory pattern and have proper phase gates.
 without verifying prior phase output exists, missing interactive gates where operator
 input is needed, pipelines that hardcode paths.
 
-**Files to read**: `skills/workflow/references/` — all SKILL.md files.
+**Files to read**: `skills/process/workflow/references/` — all SKILL.md files.
 
 ---
 
@@ -323,7 +323,7 @@ likely need but the toolkit doesn't cover.
 cover a workflow but miss important cases, domains with agents but no corresponding
 skills.
 
-**Files to read**: `skills/INDEX.json`, `agents/` — list all agents, `skills/workflow/references/` —
+**Files to read**: `skills/INDEX.json`, `agents/` — list all agents, `skills/process/workflow/references/` —
 list all pipelines, `docs/` for stated use cases.
 
 ---
@@ -337,7 +337,7 @@ trigger lists, and force_route flags are correct and consistent.
 missing from INDEX.json, triggers that are too broad or too narrow, pairs_with
 references to non-existent skills.
 
-**Files to read**: `skills/INDEX.json`, `skills/INDEX.json (workflow section)`, representative
+**Files to read**: `skills/INDEX.json`, `skills/process/workflow/references/pipeline-index.json`, representative
 SKILL.md files — check frontmatter routing blocks.
 
 ---

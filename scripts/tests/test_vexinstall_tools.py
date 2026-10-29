@@ -224,6 +224,47 @@ def test_prune_lists_command_that_shadows_a_skill(world: Env) -> None:
     assert f"  {shim}  (command shadows a skill of the same name)" in listing.out
 
 
+def test_adopt_and_prune_legacy_checkout_links_and_dir_of_links(world: Env) -> None:
+    """Legacy category dirs holding symlinks and links to a prior vexjoy-agent checkout are adopted/prunable."""
+    old_repo = world.work / "old" / "vexjoy-agent"
+    (old_repo / "skills" / "business" / "biz-one").mkdir(parents=True)
+    (old_repo / "skills" / "business" / "biz-one" / "SKILL.md").write_text(skill_md("biz-one"))
+    (old_repo / "agents" / "retired-agent").mkdir(parents=True)
+    (old_repo / "agents" / "retired-agent" / "references").mkdir(parents=True)
+    (old_repo / "agents" / "retired-agent.md").write_text("---\nname: retired-agent\n---\n")
+
+    # Real category dir populated with symlinks to the old checkout on first apply.
+    cat_dir = world.skills("claude") / "business"
+    cat_dir.mkdir(parents=True)
+    os.symlink(old_repo / "skills" / "business" / "biz-one", cat_dir / "biz-one")
+    assert world.run("apply", "--target", "claude").code == 0
+    assert not os.path.lexists(cat_dir)
+
+    # After ledger exists, leftover links/dirs pointing to old vexjoy-agent checkout are prunable.
+    agents_dir = world.home / ".claude" / "agents"
+    legacy_md = agents_dir / "retired-agent.md"
+    legacy_dir = agents_dir / "retired-agent"
+    os.symlink(old_repo / "agents" / "retired-agent.md", legacy_md)
+    legacy_dir.mkdir()
+    os.symlink(old_repo / "agents" / "retired-agent" / "references", legacy_dir / "references")
+    foreign = world.work / "foreign-tool"
+    foreign.mkdir()
+    user_link = agents_dir / "user-custom.md"
+    os.symlink(foreign, user_link)
+
+    listing = "\n".join(world.run("prune", "--unowned", "--target", "claude").out)
+    assert f"{legacy_md}  (legacy toolkit entry)" in listing
+    assert f"{legacy_dir}  (legacy toolkit entry)" in listing
+    assert str(user_link) not in listing
+
+    assert world.run("prune", "--unowned", "--confirm", "--target", "claude").code == 0
+    assert not os.path.lexists(legacy_md)
+    assert not os.path.lexists(legacy_dir)
+    assert os.path.islink(user_link)
+    noop = world.run("prune", "--unowned", "--confirm", "--target", "claude")
+    assert noop.code == 0 and "nothing to trash" in noop.out[0]
+
+
 # ---------------------------------------------------------------- leak + repair
 
 
@@ -247,6 +288,85 @@ def test_check_private_leak_reports_path_and_name_only(world: Env, capsys: pytes
     assert "repo-private-leak" in doctor and "PRIVATE-BODY" not in doctor
     git(world.repo, "rm", "-r", "-q", "docs")
     commit_all(world.repo, "unleak")
+
+
+def test_check_private_leak_common_words_and_builtin_commands(world: Env, capsys: pytest.CaptureFixture[str]) -> None:
+    teach_dir = world.priv / "priv" / "teach"
+    teach_dir.mkdir(parents=True)
+    (teach_dir / "SKILL.md").write_text(skill_md("teach"))
+    grill_dir = world.priv / "priv" / "grill-me"
+    grill_dir.mkdir(parents=True)
+    (grill_dir / "SKILL.md").write_text(skill_md("grill-me"))
+
+    assert world.run("apply", "--target", "claude").code == 0
+    leak = _load_script("check-private-leak")
+
+    # Mentioning common word 'teach', 'wizard', or built-in command 'grill-me' in content does not leak.
+    (world.repo / "docs").mkdir(exist_ok=True)
+    (world.repo / "docs" / "guide.md").write_text("We teach users how to use the setup wizard and /grill-me.\n")
+    commit_all(world.repo, "test-common-words")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 0
+
+    # However, tracking a path matching 'teach' still triggers a path leak.
+    (world.repo / "skills" / "teach").mkdir(parents=True)
+    (world.repo / "skills" / "teach" / "other.md").write_text("not the skill body\n")
+    commit_all(world.repo, "test-path-leak")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 1
+    out = capsys.readouterr().out
+    assert "skills/teach/other.md: path 'teach'" in out
+
+    git(world.repo, "rm", "-r", "-q", "skills/teach")
+
+    # Built-in commands (like grill-me) are filtered in overlay_names() and must NOT cause a path leak,
+    # unlike common words which intentionally trigger path leaks.
+    (world.repo / "skills" / "grill-me").mkdir(parents=True)
+    (world.repo / "skills" / "grill-me" / "other.md").write_text("not the skill body\n")
+    commit_all(world.repo, "test-builtin-path")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 0
+
+    git(world.repo, "rm", "-r", "-q", "skills/grill-me")
+    git(world.repo, "rm", "-r", "-q", "docs/guide.md")
+    commit_all(world.repo, "cleanup")
+
+
+def test_check_private_leak_custom_common_words_file(world: Env, capsys: pytest.CaptureFixture[str]) -> None:
+    custom_dir = world.priv / "priv" / "customterm"
+    custom_dir.mkdir(parents=True)
+    (custom_dir / "SKILL.md").write_text(skill_md("customterm"))
+    assert world.run("apply", "--target", "claude").code == 0
+    leak = _load_script("check-private-leak")
+
+    (world.repo / "docs").mkdir(exist_ok=True)
+    (world.repo / "docs" / "mention.md").write_text("mention customterm here\n")
+    commit_all(world.repo, "leak-custom")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 1
+
+    # Adding customterm to common-words.txt suppresses content-name leak
+    common_file = world.home / ".claude" / "vexjoy" / "common-words.txt"
+    common_file.write_text("# comments allowed\ncustomterm\n")
+    capsys.readouterr()
+    assert leak.main(["--repo", str(world.repo), "--home", str(world.home)]) == 0
+
+    git(world.repo, "rm", "-r", "-q", "docs/mention.md")
+    commit_all(world.repo, "cleanup")
+
+
+def test_private_leak_sets_parity_with_pretool_hook() -> None:
+    """Ensure BUILTIN_COMMANDS and COMMON_WORDS sets in leak.py and the pretool hook stay identical."""
+    from vexinstall import leak
+
+    hook_path = SCRIPTS_DIR.parent / "hooks" / "pretool-private-name-leak-gate.py"
+    spec = importlib.util.spec_from_file_location("_leak_gate", hook_path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    assert leak.BUILTIN_COMMANDS == mod._BUILTIN_COMMANDS
+    assert leak.COMMON_WORDS == mod._COMMON_WORDS
 
 
 def test_repair_repo_restores_contaminated_tracked_file(world: Env) -> None:

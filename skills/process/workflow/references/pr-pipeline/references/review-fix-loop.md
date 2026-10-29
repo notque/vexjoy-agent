@@ -1,10 +1,10 @@
 # Review-Fix Loop
 
-Full details for Phase 4b of the PR Pipeline (personal repos only).
+Full details for the PR Pipeline review-fix loop.
 
 ## Loop Logic
 
-Up to 3 iterations of `/pr-review` -> fix -> amend commit -> push.
+Before each commit, run `ruff check`/`ruff format` and the repo's own formatters and linters. Up to 3 iterations of `/pr-review` -> fix -> commit, all local. Push once, after the loop exits clean and `/pr-review` recorded the final SHA. Each fix commit is a new SHA and needs its own review.
 
 ```
 ITERATION = 0
@@ -14,9 +14,9 @@ while ITERATION < MAX_ITERATIONS:
     ITERATION += 1
 
     Step 1: Run /pr-review
-    Step 2: If no issues found -> EXIT LOOP (proceed to Phase 5)
+    Step 2: If no issues found -> EXIT LOOP: record, push, then Phase 5
     Step 3: Fix all reported issues
-    Step 4: Stage fixes, amend commit, force push to branch
+    Step 4: Stage fixes and commit (no push)
     Step 5: Report iteration results
 ```
 
@@ -28,9 +28,9 @@ Invoke the `/pr-review` command, which launches specialized review agents (code-
 
 | Result | Action |
 |--------|--------|
-| No issues found | **Exit loop**. Proceed to Phase 5 (CREATE PR). |
+| No issues found | **Exit loop**. `/pr-review` records the SHA (Phase 6b), push the branch, then Phase 5 (CREATE PR). |
 | Issues found (iteration < 3) | Fix issues in Step 3, then re-review. |
-| Issues remaining after iteration 3 | **Exit loop**. Include remaining issues in PR body as known items. Proceed to Phase 5. |
+| Issues remaining after iteration 3 | **Exit loop**. Repos that are not non-fork notque repos: stop and report; do not push. Non-fork notque repos: list remaining issues in the PR body as known items and proceed to Phase 5. |
 
 ## Step 3: Fix Reported Issues
 
@@ -39,12 +39,13 @@ Address each issue found by the review. This includes:
 - Documentation updates (stale references, missing README entries)
 - Test gaps (if flagged)
 
-## Step 4: Amend and Push
+## Step 4: Commit, then push after the loop
 
 ```bash
 git add [fixed files]
-git commit --amend --no-edit
-CLAUDE_GATE_BYPASS=1 git push --force-with-lease
+git commit -m "fix review findings"
+# after the loop exits clean and /pr-review recorded HEAD:
+git push -u origin "$(git branch --show-current)"
 ```
 
 ## Step 5: Iteration Report Format

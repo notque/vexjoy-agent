@@ -102,6 +102,10 @@ The decision definition stays model-neutral: code creates evidence bundles and s
 
 Programs decide the obvious ends; Jev judges the middle. In compaction, deterministic result classes may always drop or keep when representative evidence supports those rules, and Jev judges the rest. Per-class policy thresholds can differ. A `referenced` Noul ("was this result cited later?") can boost keep probability in code. Missing answers default to keep.
 
+## Tier instead of choosing a threshold
+
+When two thresholds differ only in the cost of a cheap review, do not pick one: tier the list. A review list can use "likely" at 0.8 or more and "check" at 0.6 to 0.8, sorted by probability, with each tier's hit rate tracked. In one field case Jev's own pick (0.7, at 0.57/0.53, order-averaged margin about 2.0) was borderline, so code settled it. Pick a single threshold only when the actions differ in cost or risk.
+
 ## History injection and stall detection
 
 Put a bounded action history in state as a plain list (`actions_already_taken`). Put the rule ("do not repeat an action listed in `actions_already_taken`") in the instructions: state holds facts, instructions hold the judgment. This keeps Jev from choosing the same action again. Fingerprint each observed state (hash of role:label:value); an unchanged fingerprint after an action means no effect, and repeated fingerprints are a cycle. Both end the loop in code with policy-defined limits. When an action had no effect and confidence was low, retry with the runner-up from `probabilities` rather than the same pick.

@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from . import accounts as accounts_mod
-from . import gitutil
+from . import gitutil, interp
 from . import index as index_mod
 from . import settings as settings_mod
 from .adapters import resolve_targets
@@ -225,6 +225,20 @@ def _check_settings(ctx: Context, findings: list[Finding]) -> None:
             )
 
 
+def _check_python(ctx: Context, findings: list[Finding]) -> None:
+    """Interpreter drift: the hook python link is missing, dangling, or older than 3.10."""
+    link = str(interp.link_path(ctx.home))
+    for check, detail in interp.drift(ctx.home):
+        findings.append(Finding(ERROR, check, "claude", link, detail))
+    if not interp.drift(ctx.home):
+        missing = interp.missing_modules(ctx.home)
+        if missing:
+            detail = (
+                f"hook python cannot import {', '.join(missing)}; rerun ./install.sh or pip install -r requirements.txt"
+            )
+            findings.append(Finding(WARN, "python-deps-missing", "claude", link, detail))
+
+
 def _check_accounts(ctx: Context, findings: list[Finding]) -> None:
     for plan in accounts_mod.plan_all(ctx):
         spath = str(plan.settings_path)
@@ -274,6 +288,7 @@ def run_doctor(opts: Options) -> Result:
     if "claude" in targets:
         _check_scan_roots(ctx, findings)
         _check_settings(ctx, findings)
+        _check_python(ctx, findings)
         _check_accounts(ctx, findings)
     _check_repo(ctx, findings)
     errors = sum(1 for f in findings if f.level == ERROR)

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -14,6 +15,8 @@ MODEL_RE = re.compile(r"^model:\s*(.+)$", re.MULTILINE)
 ALLOWED_MODELS = {"sonnet", "opus"}
 EXEMPT_COMPONENTS: set[tuple[str, str]] = {
     ("skill", "do"),
+    # image-generation skill; its Gemini image model is legitimate
+    ("skill", "image-gen"),
 }
 
 
@@ -31,9 +34,9 @@ def scan_targets() -> list[tuple[str, str, Path]]:
         if path.name == "README.md":
             continue
         targets.append(("agent", path.stem, path))
-    for path in sorted((REPO_ROOT / "skills").glob("*/SKILL.md")):
+    for path in sorted((REPO_ROOT / "skills").glob("*/*/SKILL.md")):
         targets.append(("skill", path.parent.name, path))
-    for path in sorted((REPO_ROOT / "skills" / "workflow" / "references").glob("*.md")):
+    for path in sorted((REPO_ROOT / "skills" / "process" / "workflow" / "references").glob("*.md")):
         targets.append(("workflow_ref", path.stem, path))
     return targets
 
@@ -69,13 +72,20 @@ def main() -> int:
     parser.add_argument("--json", dest="json_output", action="store_true", help="Emit JSON output")
     args = parser.parse_args()
 
+    targets = scan_targets()
+    empty = sorted({"agent", "skill", "workflow_ref"} - {kind for kind, _, _ in targets})
+    if empty:
+        print(f"error: no files found for target class(es): {', '.join(empty)}", file=sys.stderr)
+        return 2
+
     violations = validate_models()
-    payload = {"count": len(violations), "violations": [asdict(v) for v in violations]}
+    payload = {"scanned": len(targets), "count": len(violations), "violations": [asdict(v) for v in violations]}
     if args.json_output:
         print(json.dumps(payload, indent=2))
     else:
         for violation in violations:
             print(f"{violation.file}: {violation.issue}")
+        print(f"scanned: {len(targets)}")
         print(f"count: {len(violations)}")
     return 1 if violations else 0
 

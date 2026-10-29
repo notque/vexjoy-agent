@@ -39,7 +39,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/my-hook.py\"",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/my-hook.py\"",
             "description": "One-line description of what the hook does",
             "timeout": 2000,
             "once": true
@@ -52,7 +52,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttool-security-scan.py\"",
             "description": "Scan edited files for security risks",
             "timeout": 1000
           }
@@ -66,7 +66,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `type` | yes | `"command"` | Only `"command"` is currently supported |
-| `command` | yes | string | Shell command; always quote paths with spaces |
+| `command` | yes | string | Use the launcher form shown above, exactly; it runs the installer-linked python 3.10+ (`docs/installer-layout.md`, Hook interpreter). Before registering, stamp the version guard: `python3 scripts/hook-pyguard.py --apply --file hooks/<file>.py` |
 | `description` | yes | string | Shown in session startup output |
 | `timeout` | recommended | integer (ms) | Omitting allows hooks to hang indefinitely |
 | `once` | no | boolean | `true` = run only once per session (SessionStart default) |
@@ -180,7 +180,7 @@ print("[hook-name] Action suggested: fix the broken reference")
 
 PreToolUse hooks split into **gates** (can block tool execution) and **advisory** (context injection only). This distinction matters for exit code behavior and testing.
 
-### Gates (8 hooks — block on violation)
+### Gates (9 hooks — block on violation)
 
 | Hook | Matcher | Blocking Mechanism |
 |------|---------|-------------------|
@@ -188,6 +188,7 @@ PreToolUse hooks split into **gates** (can block tool execution) and **advisory*
 | `pretool-branch-safety.py` | Bash | JSON `permissionDecision: deny` (exit 0) |
 | `ci-merge-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0) — **non-functional**: uses `gh pr checks --json conclusion` but `conclusion` is invalid; use `bucket` |
 | `pretool-ruff-format-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0) |
+| `pretool-review-before-push-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0); denies on crash once a push or PR is detected |
 | `pretool-synthesis-gate.py` | Write\|Edit | JSON `permissionDecision: deny` (exit 0) |
 | `pretool-plan-gate.py` | Write\|Edit | JSON `permissionDecision: deny` (exit 0) |
 | `pretool-adr-creation-gate.py` | Write | JSON `permissionDecision: deny` (exit 0) |
@@ -246,7 +247,7 @@ for event, groups in settings.get('hooks', {}).items():
 ```json
 {
   "type": "command",
-  "command": "python3 \"$HOME/.claude/hooks/my-hook.py\"",
+  "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/my-hook.py\"",
   "description": "Does something"
 }
 ```

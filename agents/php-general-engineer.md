@@ -15,24 +15,24 @@ hooks:
 
             if tool in ('Edit', 'Write'):
                 filepath = inp.get('file_path', '')
-                if not filepath.endswith('.programming'):
+                if not filepath.endswith('.php'):
                     sys.exit(0)
 
                 # Format reminder
-                print('[programming-agent] Format: ./vendor/bin/pint ' + filepath + '  OR  programming-cs-fixer fix ' + filepath)
+                print('[php-agent] Format: ./vendor/bin/pint ' + filepath + '  OR  php-cs-fixer fix ' + filepath)
 
                 # Static analysis reminder
-                print('[programming-agent] Analyse: ./vendor/bin/programmingstan analyse ' + filepath + '  OR  ./vendor/bin/psalm --show-info=true')
+                print('[php-agent] Analyse: ./vendor/bin/phpstan analyse ' + filepath + '  OR  ./vendor/bin/psalm --show-info=true')
 
                 # Debug output detection
                 try:
                     result = subprocess.run(['grep', '-nE', r'var_dump\s*\(|dd\s*\(|dump\s*\(|die\s*\(', filepath],
                                             capture_output=True, text=True, timeout=5)
                     if result.stdout.strip():
-                        print('[programming-agent] WARNING: debug output found in ' + filepath + ':')
+                        print('[php-agent] WARNING: debug output found in ' + filepath + ':')
                         for line in result.stdout.strip().splitlines():
                             print('  ' + line)
-                        print('[programming-agent] Remove var_dump/dd/dump/die() before committing.')
+                        print('[php-agent] Remove var_dump/dd/dump/die() before committing.')
                 except Exception:
                     pass
 
@@ -42,8 +42,8 @@ hooks:
                         ['grep', '-nE', r'(query|exec|prepare)\s*\(\s*[\"' + \"'\" + r']\s*(SELECT|INSERT|UPDATE|DELETE).*\$', filepath],
                         capture_output=True, text=True, timeout=5)
                     if result.stdout.strip():
-                        print('[programming-agent] SECURITY WARNING: possible raw SQL interpolation in ' + filepath)
-                        print('[programming-agent] Use prepared statements (PDO), Doctrine QueryBuilder, or Eloquent query builder instead.')
+                        print('[php-agent] SECURITY WARNING: possible raw SQL interpolation in ' + filepath)
+                        print('[php-agent] Use prepared statements (PDO), Doctrine QueryBuilder, or Eloquent query builder instead.')
                 except Exception:
                     pass
 
@@ -53,8 +53,8 @@ hooks:
                         ['grep', '-nE', r'VerifyCsrfToken|withoutMiddleware.*csrf|csrf.*except|session_regenerate_id.*false', filepath],
                         capture_output=True, text=True, timeout=5)
                     if result.stdout.strip():
-                        print('[programming-agent] SECURITY WARNING: possible CSRF/session protection bypass in ' + filepath)
-                        print('[programming-agent] Ensure CSRF exclusions and session_regenerate_id(true) are intentional and documented.')
+                        print('[php-agent] SECURITY WARNING: possible CSRF/session protection bypass in ' + filepath)
+                        print('[php-agent] Ensure CSRF exclusions and session_regenerate_id(true) are intentional and documented.')
                 except Exception:
                     pass
 
@@ -65,7 +65,7 @@ hooks:
 memory: project
 routing:
   triggers:
-    - programming
+    - php
     - laravel
     - symfony
     - composer
@@ -73,20 +73,20 @@ routing:
     - eloquent
     - blade
     - twig
-    - programmingunit
+    - phpunit
     - pest
     - psr-12
     - psr standards
     - hybris
     - sapcc
-    - ".programming files"
+    - ".php files"
     - doctrine
-    - programming-cs-fixer
-    - programmingstan
+    - php-cs-fixer
+    - phpstan
     - psalm
   not_for: "running or configuring PHP quality or test tooling in isolation (use programming skill); Go SAP Commerce Cloud patterns (use programming skill); Python pip/packaging (use python-general-engineer). This agent writes and debugs PHP features."
   process-topics:
-    - programming-patterns
+    - php-patterns
     - security
     - debugging
     - laravel
@@ -146,7 +146,7 @@ You provide practical, implementation-ready solutions that follow PHP idioms and
 
 ## Operator Context
 
-Configures Claude for idiomatic, production-ready PHP code following PSR-12 and modern PHP 8.2+ patterns. See [`references/hooks-and-behaviors.md`](programming-general-engineer/references/hooks-and-behaviors.md) for:
+Configures Claude for idiomatic, production-ready PHP code following PSR-12 and modern PHP 8.2+ patterns. See [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-and-behaviors.md) for:
 
 - **PHP version assumptions** (8.2+ default, feature-to-version table)
 - **Framework variants** (Laravel, Symfony, plain PHP, SAP Commerce Cloud idioms)
@@ -160,13 +160,13 @@ Configures Claude for idiomatic, production-ready PHP code following PSR-12 and 
 
 ## PHP Conventions, Security & Testing
 
-See [`references/programming-conventions.md`](programming-general-engineer/references/programming-conventions.md) for hard gates with fixes, per-repo detection commands, SQL/session/dependency rules, and testing conventions.
+See [`references/php-conventions.md`](php-general-engineer/references/php-conventions.md) for hard gates with fixes, per-repo detection commands, SQL/session/dependency rules, and testing conventions.
 
 ---
 
 ## Core Expertise, Capabilities, Output Format
 
-See [`references/hooks-and-behaviors.md`](programming-general-engineer/references/hooks-and-behaviors.md) for operator behaviors, tooling tier, framework variants, and the Implementation Schema output format.
+See [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-and-behaviors.md) for operator behaviors, tooling tier, framework variants, and the Implementation Schema output format.
 
 ---
 
@@ -174,8 +174,8 @@ See [`references/hooks-and-behaviors.md`](programming-general-engineer/reference
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| pint, programmingstan, psalm, composer.json programming version, strict_types, feature branch, SAP Commerce, Hybris, companion skills, Implementation Schema, PostToolUse | [`references/hooks-and-behaviors.md`](programming-general-engineer/references/hooks-and-behaviors.md) | Full PostToolUse hook block, hardcoded/default/optional behaviors, tooling tier, framework variants, output schema |
-| prepared statements, PDO, $fillable, $guarded, mass assignment, session_regenerate_id, csrf except, mysql_, preg_replace /e, extract, unserialize, composer audit, PHPUnit, Pest, factories, coverage | [`references/programming-conventions.md`](programming-general-engineer/references/programming-conventions.md) | Hard-gate table with fixes, per-repo detection commands, SQL/session/dependency rules, testing conventions |
+| pint, phpstan, psalm, composer.json php version, strict_types, feature branch, SAP Commerce, Hybris, companion skills, Implementation Schema, PostToolUse | [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-and-behaviors.md) | Full PostToolUse hook block, hardcoded/default/optional behaviors, tooling tier, framework variants, output schema |
+| prepared statements, PDO, $fillable, $guarded, mass assignment, session_regenerate_id, csrf except, mysql_, preg_replace /e, extract, unserialize, composer audit, PHPUnit, Pest, factories, coverage | [`references/php-conventions.md`](php-general-engineer/references/php-conventions.md) | Hard-gate table with fixes, per-repo detection commands, SQL/session/dependency rules, testing conventions |
 
 ### Companion Skills
 

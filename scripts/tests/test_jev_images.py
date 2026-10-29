@@ -391,6 +391,23 @@ def test_split_sends_each_part_only_the_assets_it_references(wire: list[Any], tm
     assert by_question["q2"] == 2
 
 
+def test_split_reports_state_image_tokens_resent(wire: list[Any], tmp_path: Path) -> None:
+    state_img = JevImage(_png(tmp_path / "s.png", (1568, 1568)))
+    filler = "z" * 60_000
+    questions = {f"q{i}": {"type": "noul", "instructions": "state only " + filler} for i in range(3)}
+    with pytest.warns(UserWarning, match="resends the state images"):
+        result = jev_transport.evaluate({"frame": state_img}, questions, timeout=5)
+    split = result["_meta"]["split"]
+    assert split["requests"] >= 2
+    assert split["state_image_tokens_resent"] > 0
+
+
+def test_unsplit_image_request_has_no_resend_note(wire: list[Any], tmp_path: Path) -> None:
+    shot = JevImage(_png(tmp_path / "a.png", (800, 600)))
+    result = jev_transport.evaluate({"frame": shot}, {"q": {"type": "noul", "instructions": "ok?"}}, timeout=5)
+    assert "split" not in result.get("_meta", {})
+
+
 def test_text_only_path_is_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
     _clear(monkeypatch)
     monkeypatch.setenv("JEV_TRANSPORT", "direct")
