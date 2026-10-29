@@ -50,12 +50,14 @@ Checked on 2026-09-22 against these pages:
 | factory | `~/.factory` | `<root>/skills/<name>`, mode | `<root>/droids/<entry>`, mode | `commands/<name>.md`, mode | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `settings.json`: external |
 | hermes | `~/.hermes` | `<root>/skills/<name>`, mode | none | none | none | `<root>/scripts/<entry>` | none |
 | reasonix | `~/.reasonix` | `<root>/skills/<name>`, mode; support copy | none | none | `<root>/hooks/<allowlisted>` + `hooks/lib` | `<root>/scripts/<entry>` | `settings.json`: external |
+| antigravity | `~/.gemini` | `<root>/skills/<name>`, mode | `<root>/agents/<entry>`, mode | none | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `config/hooks.json`: external |
 
 Allowlists:
 
 - Codex hooks: `scripts/codex-hooks-allowlist.txt`, rendered to `hooks.json`; `config.toml` gets `[features] hooks = true`.
 - Factory hooks: the repo `.claude/settings.json` hooks with `~/.claude/` rewritten to `~/.factory/`.
 - Reasonix hooks: `scripts/reasonix-hooks-allowlist.txt`, which also selects the mirrored hook files.
+- Antigravity hooks: `scripts/agy-hooks-allowlist.txt`, rendered via `scripts/generate-agy-hooks-json.py` and `hooks/agy-hook-adapter.py` to `~/.gemini/config/hooks.json`.
 
 A target other than claude is planned only when its root dir exists (`--target all`).
 

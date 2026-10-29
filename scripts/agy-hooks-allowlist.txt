@@ -1,0 +1,93 @@
+# Antigravity CLI (agy) hooks compatibility allowlist (verified on agy cli-1.4.7)
+#
+# Format:
+#   EVENT:filename [matcher=REGEX] failure=open|closed
+#
+# Antigravity hooks.json events:
+#   - SessionStart, PreInvocation, PostInvocation, Stop: FLAT list of handler objects (no matcher)
+#   - PreToolUse, PostToolUse: GROUPED list of {matcher, hooks: [...]} objects
+#
+# Tool name mapping (handled by hooks/agy-hook-adapter.py):
+#   run_command      -> Bash
+#   write_file       -> Write
+#   edit_file        -> Edit
+#   read_file        -> Read
+#   invoke_subagent  -> Agent
+#   run_workflow     -> Workflow
+
+# SessionStart (14) — flat handler list
+SessionStart:afk-mode.py failure=open
+SessionStart:session-context.py failure=open
+SessionStart:cross-repo-agents.py failure=open
+SessionStart:fish-shell-detector.py failure=open
+SessionStart:zsh-shell-detector.py failure=open
+SessionStart:sapcc-go-detector.py failure=open
+SessionStart:operator-context-detector.py failure=open
+SessionStart:session-github-briefing.py failure=open
+SessionStart:session-adr-health-check.py failure=open
+SessionStart:team-config-loader.py failure=open
+SessionStart:rules-distill-injector.py failure=open
+SessionStart:session-manifest-cache.py failure=open
+SessionStart:session-task-registry.py failure=open
+SessionStart:hook-version-parity-check.py failure=open
+
+# PreInvocation (6) — flat handler list (maps to Claude UserPromptSubmit; first hook drains PostToolUse advisories)
+PreInvocation:review-false-positive-capture.py failure=open
+PreInvocation:prompt-capture.py failure=open
+PreInvocation:routing-outcome-finalizer.py failure=open
+PreInvocation:pipeline-context-detector.py failure=open
+PreInvocation:jev-route-injector-userprompt.py failure=open
+PreInvocation:gemini-turn-gate-userprompt.py failure=open
+
+# PreToolUse run_command -> Bash enforcement (7)
+PreToolUse:pretool-routing-gate.py matcher=run_command failure=closed
+PreToolUse:pretool-branch-safety.py matcher=run_command failure=closed
+PreToolUse:ci-merge-gate.py matcher=run_command failure=closed
+PreToolUse:pretool-review-before-push-gate.py matcher=run_command failure=closed
+PreToolUse:pretool-ruff-format-gate.py matcher=run_command failure=closed
+PreToolUse:pretool-private-name-leak-gate.py matcher=run_command failure=closed
+PreToolUse:security-review-hook.py matcher=run_command failure=closed
+
+# PreToolUse edit_file|write_file -> Edit|Write enforcement (10)
+PreToolUse:pretool-routing-gate.py matcher=edit_file|write_file failure=closed
+PreToolUse:suggest-compact.py matcher=edit_file|write_file failure=open
+PreToolUse:pretool-unified-gate.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-worktree-edit-guard.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-synthesis-gate.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-plan-gate.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-prompt-injection-scanner.py matcher=edit_file|write_file failure=closed
+PreToolUse:pipeline-phase-gate.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-adr-creation-gate.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-file-backup.py matcher=edit_file|write_file failure=open
+
+# PreToolUse invoke_subagent -> Agent dispatch gates (4)
+PreToolUse:reference-loading-enforcer.py matcher=invoke_subagent failure=open
+PreToolUse:creation-protocol-enforcer.py matcher=invoke_subagent failure=open
+PreToolUse:pretool-section-integrity-validator.py matcher=invoke_subagent failure=open
+PreToolUse:pretool-dispatch-spec-gate.py matcher=invoke_subagent failure=closed
+
+# PostToolUse run_command -> Bash observers (4)
+PostToolUse:adr-lifecycle-on-merge.py matcher=run_command failure=open
+PostToolUse:posttool-bash-injection-scan.py matcher=run_command failure=open
+PostToolUse:posttool-rename-sweep.py matcher=run_command failure=open
+PostToolUse:posttool-session-reads.py matcher=run_command failure=open
+
+# PostToolUse edit_file|write_file -> Edit|Write observers (8)
+PostToolUse:adr-enforcement.py matcher=edit_file|write_file failure=open
+PostToolUse:posttool-security-scan.py matcher=edit_file|write_file failure=open
+PostToolUse:posttool-skill-frontmatter-check.py matcher=edit_file|write_file failure=open
+PostToolUse:posttooluse-joy-check-warn.py matcher=edit_file|write_file failure=open
+PostToolUse:posttooluse-sync-skill-index.py matcher=edit_file|write_file failure=open
+PostToolUse:posttooluse-sync-agent-index.py matcher=edit_file|write_file failure=open
+PostToolUse:posttool-docs-drift-alert.py matcher=edit_file|write_file failure=open
+PostToolUse:security-review-hook.py matcher=edit_file|write_file failure=open
+
+# PostToolUse invoke_subagent|run_workflow -> Agent|Workflow [do-route] telemetry (2)
+PostToolUse:routing-decision-recorder.py matcher=invoke_subagent|run_workflow failure=open
+PostToolUse:session-task-registry.py matcher=invoke_subagent force_unique=true failure=open
+
+# Stop (4) — flat handler list
+Stop:stop-drift-guard.py failure=open
+Stop:session-summary.py failure=open
+Stop:rules-distill-trigger.py failure=open
+Stop:routing-outcome-stop-fallback.py failure=open

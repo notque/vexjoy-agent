@@ -2,7 +2,7 @@
 #
 # VexJoy Agent installer: a thin wrapper around the vexinstall engine
 # (scripts/vexinstall). The engine installs every runtime (claude, codex,
-# factory, hermes, reasonix), keeps a ledger in ~/.claude/vexjoy/, and moves
+# factory, hermes, reasonix, antigravity), keeps a ledger in ~/.claude/vexjoy/, and moves
 # anything it removes to ~/.claude/vexjoy/trash/. Layout: docs/installer-layout.md.
 #
 # Usage:
@@ -49,7 +49,7 @@ Usage: ./install.sh [options]
   --dry-run            Print the vexinstall plan; write nothing
   --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
   --rollback           Restore the newest settings.json backup and the newest trash session
-  --target T           claude|codex|factory|hermes|reasonix|all (default: all present)
+  --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
   --no-takeover        Leave unowned entries at desired paths in place (default: trash and replace)
   --allow-mass-remove  Allow a plan that removes more than 10 entries or 20% of a target
   --configure          Run the interactive profile picker, then install
@@ -163,6 +163,13 @@ ensure_runtime_dirs() {
             fi
         fi
     done
+    if { command -v agy &> /dev/null || command -v antigravity &> /dev/null; } && [ ! -d "${HOME}/.gemini" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would create ${HOME}/.gemini (agy is on PATH)${NC}"
+        else
+            mkdir -p "${HOME}/.gemini"
+        fi
+    fi
 }
 
 _write_git_hook() {
@@ -261,7 +268,7 @@ install_deps() {
 harden_permissions() {
     chmod 700 "${CLAUDE_DIR}" "${CLAUDE_DIR}/learning" 2>/dev/null || true
     chmod 600 "${CLAUDE_DIR}/settings.json" "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
-    chmod 600 "${HOME}/.factory/settings.json" "${HOME}/.reasonix/settings.json" 2>/dev/null || true
+    chmod 600 "${HOME}/.factory/settings.json" "${HOME}/.reasonix/settings.json" "${HOME}/.gemini/config/hooks.json" 2>/dev/null || true
 }
 
 check_python
@@ -327,6 +334,9 @@ if [ "$rc" -ne 0 ]; then
     echo -e "${RED}vexinstall apply failed (exit ${rc}). Nothing was forced. Review:${NC}"
     echo -e "${RED}  PYTHONPATH=${SCRIPT_DIR}/scripts python3 -m vexinstall plan --target ${TARGET} --takeover${NC}"
     exit "$rc"
+fi
+if [ "$TAKEOVER" = true ]; then
+    vexinstall prune --unowned --confirm --target "$TARGET" || true
 fi
 install_git_hooks
 install_deps

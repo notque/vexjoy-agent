@@ -12,8 +12,14 @@ reg  = scripts/workflow-registry.py                 # auto-derived {meta.name: p
 complex4 = (complexity == Complex) or (tier == 4)   # ADR native-fast-path Stage 2
 
 if pick is not None and reg.get(pick) and cap.workflow_capable and (Workflow tool in MY tool list):
-        # NAMED pipeline: env proxy AND LLM tool-list self-check (authoritative gate)
+        # Claude Code NAMED pipeline: env proxy AND LLM tool-list self-check
                                                             -> Workflow.run(reg[pick], {scope, tier})
+elif cap.harness == "antigravity" and (run_workflow tool in MY tool list) and (pick is not None or complex4):
+        # Antigravity CLI Python run_workflow path (skills/process/workflow/references/fan-out-workflow.py)
+                                                            -> run_workflow(fan-out-workflow.py, {scope, tier, roster})
+elif cap.harness == "antigravity" and complex4:
+        # Antigravity CLI /teamwork subagent path (define_subagent + invoke_subagent Workspace="branch"|"share")
+                                                            -> dispatch parallel subagents via invoke_subagent (antigravity-execution.md)
 elif pick is not None and reg.get(pick):                    -> run the prose pipeline markdown (unchanged)
 elif pick is None and complex4 and cap.workflow_capable and (Workflow tool in MY tool list):
         # NO named pipeline + Complex/tier-4: generic native fan-out (Stage 2)

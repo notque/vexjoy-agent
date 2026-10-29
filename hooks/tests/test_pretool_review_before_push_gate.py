@@ -431,6 +431,25 @@ class TestContract:
         ):
             assert needle in reason
 
+    def test_deny_message_in_antigravity_runtime(self, env: Env, sapcc: Path):
+        head = _git(sapcc, "rev-parse", "HEAD")
+        antigravity_env = {**env.env(), "VEXJOY_HOOK_RUNTIME": "antigravity"}
+        proc = subprocess.run(
+            [sys.executable, str(HOOK)],
+            input=json.dumps({"tool_name": "run_command", "tool_input": {"command": "git push"}}),
+            capture_output=True,
+            text=True,
+            env=antigravity_env,
+            cwd=str(sapcc),
+            timeout=15,
+        )
+        out = json.loads(proc.stdout)
+        reason = out["hookSpecificOutput"]["permissionDecisionReason"]
+        assert head[:12] in reason
+        assert ".gemini/scripts/review-record.py" in reason
+        assert "/do review" in reason
+        assert "run /pr-review" not in reason
+
     @pytest.mark.parametrize("stdin", ["", "not json", "[]", '{"tool_input": "x"}', '{"tool_input": {"command": 5}}'])
     def test_bad_input_exits_zero_silently(self, env: Env, stdin: str):
         proc = subprocess.run(

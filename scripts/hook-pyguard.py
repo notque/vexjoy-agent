@@ -44,8 +44,13 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 HOOKS = REPO / "hooks"
 SETTINGS = REPO / ".claude" / "settings.json"
-ALLOWLISTS = (REPO / "scripts" / "codex-hooks-allowlist.txt", REPO / "scripts" / "reasonix-hooks-allowlist.txt")
+ALLOWLISTS = (
+    REPO / "scripts" / "codex-hooks-allowlist.txt",
+    REPO / "scripts" / "reasonix-hooks-allowlist.txt",
+    REPO / "scripts" / "agy-hooks-allowlist.txt",
+)
 ADAPTER = "codex-hook-adapter.py"
+ADAPTERS = ("codex-hook-adapter.py", "agy-hook-adapter.py")
 MARK = "# vexjoy-pyguard"
 GATES = frozenset(
     {
@@ -57,6 +62,7 @@ GATES = frozenset(
         "pretool-plan-gate.py",
         "pretool-private-name-leak-gate.py",
         "pretool-review-before-push-gate.py",
+        "pretool-routing-gate.py",
         "pretool-ruff-format-gate.py",
         "pretool-synthesis-gate.py",
         "pretool-unified-gate.py",
@@ -104,14 +110,14 @@ def guard_block(mode: str) -> str:
 
 def mode_for(name: str) -> str:
     """Guard mode for hook file *name*."""
-    if name == ADAPTER:
+    if name == ADAPTER or name in ADAPTERS:
         return "adapter"
     return "gate" if name in GATES else "advisory"
 
 
 def registered() -> list[str]:
     """Every hook file name a runtime config names, sorted."""
-    names: set[str] = {ADAPTER}
+    names: set[str] = {ADAPTER, *ADAPTERS}
     try:
         names.update(_HOOK_RE.findall(SETTINGS.read_text(encoding="utf-8")))
     except OSError:

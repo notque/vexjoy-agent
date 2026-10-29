@@ -109,6 +109,13 @@ ADAPTERS: dict[str, Adapter] = {
         hooks="allowlist",
         scripts="per-entry",
     ),
+    "antigravity": Adapter(
+        name="antigravity",
+        root=".gemini",
+        agents="agents",
+        hooks="whole",
+        scripts="whole",
+    ),
 }
 
 
@@ -273,7 +280,7 @@ def resolve_targets(spec: str, home: Path) -> list[str]:
     if spec != "all":
         return [spec]
     out = ["claude"]
-    for name in ("codex", "factory", "hermes", "reasonix"):
+    for name in ("codex", "factory", "hermes", "reasonix", "antigravity"):
         if ADAPTERS[name].root_path(home).is_dir():
             out.append(name)
     return out

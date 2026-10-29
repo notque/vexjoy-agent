@@ -32,9 +32,19 @@ from .context import Options, Result, guard_for, load_context, state_dir
 from .fsops import Guard, Trash, atomic_symlink, copy_entry, mkdirs, prune_trash, restore_trash
 from .ledger import STATUS_OK, STATUS_STALE, Ledger, LedgerEntry
 from .lock import LockHeld, engine_lock
-from .plan import Action, Context, Plan, TargetPlan, build_plan, source_refusal
+from .plan import (
+    Action,
+    Context,
+    Plan,
+    TargetPlan,
+    build_plan,
+    dir_of_adoptable_links,
+    link_points_into,
+    source_refusal,
+)
 from .profile import filter_settings_hooks
 from .report import plan_diff, summary_line, write_report
+from .sources import skill_md_of
 
 
 def repo_root_refusal(ctx: Context, targets: list[str]) -> str | None:
@@ -449,12 +459,14 @@ def run_uninstall(opts: Options) -> Result:
 
 
 def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
-    """(path, reason) for unowned dangling links and category entries in managed containers."""
+    """(path, reason) for unowned dangling links, category entries, shadowed commands, and legacy toolkit entries."""
     out: list[tuple[str, str]] = []
     owned = set(ctx.ledger.entries)
+    roots = ctx.known_roots()
     for t in targets:
         adapter = ctx.adapter(t)
-        for container in adapter.containers(ctx.home):
+        containers = adapter.containers(ctx.home)
+        for container in containers:
             if os.path.islink(container) or not os.path.isdir(container):
                 continue
             root = adapter.root_path(ctx.home)
@@ -465,6 +477,8 @@ def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
                 path = container / child
                 if str(path) in owned or child.startswith("."):
                     continue
+                if any(is_inside(str(o), str(path)) for o in containers):
+                    continue
                 if is_dangling(path):
                     out.append((str(path), "dangling link"))
                 elif is_skills and is_category_entry(path):
@@ -473,9 +487,11 @@ def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
                     is_commands
                     and skills_root is not None
                     and child.endswith(".md")
-                    and (skills_root / child[:-3] / "SKILL.md").exists()
+                    and skill_md_of(skills_root / child[:-3]) is not None
                 ):
                     out.append((str(path), "command shadows a skill of the same name"))
+                elif (os.path.islink(path) and link_points_into(path, roots)) or dir_of_adoptable_links(path, roots):
+                    out.append((str(path), "legacy toolkit entry"))
     return out
 
 
@@ -483,10 +499,10 @@ def is_category_entry(path: Path) -> bool:
     """A skills-root entry without SKILL.md that holds nested skills (not a support dir)."""
     if path.name in SUPPORT_DIRS or path.name in DATA_DIRS or not path.is_dir():
         return False
-    if (path / "SKILL.md").exists() or (path / "skill" / "SKILL.md").exists():
+    if skill_md_of(path) is not None:
         return False
     try:
-        return any((child / "SKILL.md").is_file() for child in path.iterdir() if child.is_dir())
+        return any(skill_md_of(child) is not None for child in path.iterdir() if child.is_dir())
     except OSError:
         return False
 
@@ -507,6 +523,8 @@ def run_prune(opts: Options) -> Result:
     lines = [f"  {p}  ({why})" for p, why in items]
     if not opts.confirm or opts.dry_run:
         return Result(out=[f"[prune] {len(items)} unowned candidate(s); pass --confirm to trash them", *lines])
+    if not items:
+        return Result(out=["[prune] 0 unowned candidate(s); nothing to trash"])
     guard = guard_for(ctx)
     sdir = state_dir(ctx.home)
     try:
