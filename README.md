@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-44 agents, 63 skills, 82 hooks, 161 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+44 agents, 63 skills, 83 hooks, 161 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -200,7 +200,7 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 |---|---|---|
 | Agents | 44 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 63 | Reusable guidance and methodology for recurring work. |
-| Hooks | 82 | Lifecycle checks, context injection, and telemetry. |
+| Hooks | 83 | Lifecycle checks, context injection, and telemetry. |
 | Scripts | 161 | Repeatable validation, orchestration, and plumbing. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
