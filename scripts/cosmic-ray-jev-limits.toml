@@ -1,0 +1,40 @@
+# Scoped, local-only mutation testing for jev_limits.py's split/budget math
+# (request_tokens, pack_questions, check_run, check_request_size,
+# split_and_run, backoff_delay). Not wired into CI: mutation testing re-runs
+# the test command once per mutant, which is slow by nature. This runs on
+# request, the same tradeoff the switch project makes for its own Stryker
+# (JS mutation testing) setup -- real, but local-only.
+#
+# Run (from the repo root, inside a disposable venv):
+#   python3 -m venv .venv && ./.venv/bin/python -m pip install cosmic-ray
+#   ./.venv/bin/cosmic-ray init scripts/cosmic-ray-jev-limits.toml /tmp/jev-limits-mutation.sqlite
+#   ./.venv/bin/cr-filter-operators /tmp/jev-limits-mutation.sqlite scripts/cosmic-ray-jev-limits.toml
+#   ./.venv/bin/cosmic-ray exec scripts/cosmic-ray-jev-limits.toml /tmp/jev-limits-mutation.sqlite
+#   ./.venv/bin/cr-report /tmp/jev-limits-mutation.sqlite
+#
+# Baseline score, the paired jev_router_common.py session, and the
+# mutmut-vs-cosmic-ray choice: see skills/process/testing/SKILL.md
+# ("Mutation testing: jev_limits.py, jev_router_common.py").
+[cosmic-ray]
+module-path = ["scripts/jev_limits.py"]
+timeout = 30.0
+excluded-modules = []
+test-command = "python3 -m pytest -q -n0 scripts/tests/test_jev_budget_check.py scripts/tests/test_jev_request_size.py scripts/tests/test_jev_search.py"
+
+[cosmic-ray.distributor]
+name = "local"
+
+[cosmic-ray.filters.operators-filter]
+# cosmic-ray's "core" operators generate every pairwise cross-operator swap
+# (11 arithmetic/bitwise ops x each other, 7 comparison ops x each other).
+# Most of that matrix is noise here: both files use `X | None` PEP 604 type
+# unions, which Python parses as a BitOr AST node; `from __future__ import
+# annotations` stores every annotation as a string, so a mutant that swaps
+# that BitOr for anything else is never evaluated and can never be killed.
+# This keeps one classic, meaningful mutant per real operator family
+# (adjacent arithmetic swap, comparison boundary swap, is/is-not, boolean
+# and control-flow negation, number and exception replacement) and excludes
+# the rest of the matrix via one negative-lookahead pattern.
+exclude-operators = [
+    '''^(?!core/ReplaceBinaryOperator_(Add_Sub|Sub_Add|Mul_Div|Div_Mul|Mod_FloorDiv|FloorDiv_Mod|Mul_Pow|Pow_Mul)$)(?!core/ReplaceComparisonOperator_(Lt_LtE|LtE_Lt|Gt_GtE|GtE_Gt|Eq_NotEq|NotEq_Eq|Is_IsNot|IsNot_Is)$)(?!core/ReplaceUnaryOperator_(USub_UAdd|UAdd_USub|Delete_USub|Delete_Not)$)(?!core/(AddNot|ReplaceTrueWithFalse|ReplaceFalseWithTrue|ReplaceAndWithOr|ReplaceOrWithAnd|ReplaceBreakWithContinue|ReplaceContinueWithBreak|ZeroIterationForLoop|NumberReplacer|ExceptionReplacer)$).*''',
+]
