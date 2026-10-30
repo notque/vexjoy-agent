@@ -66,7 +66,9 @@ One Jev call per decision cycle. Speculative fan-out: operation Choice + per-ope
 | `--allow-host HOST` | Permit one host and its subdomains (repeatable). Off-origin navigation elsewhere is reverted |
 | `--allow-remote` | Permit any host. Page text then reaches Jev and, for composed text, the text model |
 | `--header NAME=ENV_VAR` | Send a header on every request with the variable's value (staging bypass tokens). Never logged |
-| `--trace FILE` | Write every observed, scrubbed snapshot to FILE |
+| `--trace FILE` | Write every observed snapshot, decision, and verification (scrubbed) to FILE |
+| `--replay FILE` | Answer every decision and verification from a `--trace` FILE instead of calling Jev, at zero Jev cost; still drives a real browser |
+| `--fork N` | With `--replay`: replay steps 1..N for free, then resume live Jev calls from step N+1. The result's `replay` key reports any mismatch against the recorded path and how many live calls ran |
 | `--headed` | Show the browser window |
 | `--max-steps` (60), `--max-requests` (120) | Budgets; requests count Jev calls including text picks and verifies |
 | `--json-compact` | Single-line output |

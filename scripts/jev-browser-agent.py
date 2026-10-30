@@ -8,11 +8,21 @@ called only to produce the string for TYPE_TEXT, never to choose actions.
 Usage:
     python3 scripts/jev-browser-agent.py --url http://127.0.0.1:8000/ --goal "..." \\
         [--max-steps 60] [--max-requests 120] [--allow-remote] [--headed] \\
-        [--check-url-contains X] [--check-text-contains Y] [--json-compact]
+        [--check-url-contains X] [--check-text-contains Y] [--json-compact] \\
+        [--trace FILE] [--replay FILE [--fork N]]
 
 Output: one JSON object on stdout:
     {"status": "done|blocked|budget|error", "steps": N, "requests": N,
      "final_url", "verify": {...}, "log": [...], "latency_ms", "usage"}
+
+Trace replay:
+    --trace FILE records every step's observed snapshot, decision, and
+    verification. --replay FILE reads that trace back and answers every
+    decide_fn/verify_fn call from it instead of calling Jev, at zero Jev
+    cost; the browser is still driven for real. Add --fork N to replay
+    steps 1..N for free, then resume live Jev calls from step N+1. The
+    result's "replay" key reports any mismatch against the recorded path
+    and how many live calls were actually made.
 
 Safety:
     * Remote URLs are refused unless --allow-remote (default loopback-only).
@@ -39,7 +49,9 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -472,9 +484,17 @@ def preflight(
     secret_specs: list[str],
     allow_hosts: set[str] | None = None,
     header_specs: list[str] | None = None,
+    *,
+    require_jev: bool = True,
 ) -> tuple[dict[str, str], str | None, dict[str, str]]:
     """Resolve secrets and headers, check prerequisites before launching Chromium.
-    Returns (secrets, error, headers)."""
+
+    `require_jev` is False only for a pure trace replay (no `--fork`), where
+    every decision and verification is read back from a recorded trace and
+    Jev is never called.
+
+    Returns (secrets, error, headers).
+    """
     headers: dict[str, str] = {}
     for spec in header_specs or []:
         name, _, var = spec.partition("=")
@@ -485,11 +505,12 @@ def preflight(
         headers[name] = os.environ[var]
     if not _host_allowed(url, allow_hosts or set(), allow_remote):
         return {}, "remote URL refused; pass --allow-host HOST or --allow-remote", headers
-    import jev_router_common
+    if require_jev:
+        import jev_router_common
 
-    available, reason = jev_router_common.typesafe_available()
-    if not available:
-        return {}, f"Jev unavailable: {reason}", headers
+        available, reason = jev_router_common.typesafe_available()
+        if not available:
+            return {}, f"Jev unavailable: {reason}", headers
     if secret_specs and allow_remote:
         return {}, "--secret-env refuses --allow-remote; name the host with --allow-host", headers
     secrets: dict[str, str] = {}
@@ -783,10 +804,17 @@ def run(
                 stale_count = 0
             last_fingerprint = fp
 
+            trace_entry: dict[str, Any] | None = None
             if trace:
-                traces.append(
-                    {"step": step, "url": snap.get("url"), "elements": snap.get("elements"), "text": snap.get("text")}
-                )
+                trace_entry = {
+                    "step": step,
+                    "url": snap.get("url"),
+                    "elements": snap.get("elements"),
+                    "text": snap.get("text"),
+                    "decision": None,
+                    "verify": None,
+                }
+                traces.append(trace_entry)
             cur_host = (urlparse(snap.get("url") or "").hostname or "").lower()
             if cur_host != home_host and not _host_allowed(snap.get("url") or "", allow_hosts, allow_remote):
                 # The page left the allowed origin (sign-in redirect, external link).
@@ -822,6 +850,8 @@ def run(
 
             decision = decide_fn({"goal": goal, "elements": snap.get("elements", []), "page": page, "history": history})
             _account(decision)
+            if trace_entry is not None:
+                trace_entry["decision"] = decision
             op = decision.get("operation", "BLOCKED")
             target = decision.get("target")
             entry = {
@@ -864,6 +894,8 @@ def run(
                     }
                 )
                 _account(verify_result)
+                if trace_entry is not None:
+                    trace_entry["verify"] = verify_result
                 entry["verify"] = {
                     k: verify_result.get(k)
                     for k in ("goal_met", "goal_met_probability", "confidence", "has_error", "source")
@@ -1124,7 +1156,19 @@ def run(
     if status == "done":
         reason = "goal verified"
     if trace:
-        Path(trace).write_text(json.dumps(traces, indent=1))
+        Path(trace).write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "goal": goal,
+                    "url": url,
+                    "final": {"status": status, "reason": reason, "final_url": final_url},
+                    "steps": traces,
+                },
+                indent=1,
+            ),
+            encoding="utf-8",
+        )
     return {
         "status": status,
         "reason": reason,
@@ -1137,6 +1181,102 @@ def run(
         "usage": usage,
         "text_model": TEXT_MODEL,
     }
+
+
+# ---------------------------------------------------------------------------
+# Trace replay and fork-from-step-n
+# ---------------------------------------------------------------------------
+#
+# A `--trace FILE` run records every step's observed snapshot plus the
+# decide_fn/verify_fn output that snapshot produced. `run()` already accepts
+# `decide_fn`/`verify_fn` as injectable (tests do this); replay builds those
+# same hooks from a saved trace instead of a live Jev call, and `run()`'s own
+# control flow (stall/cycle detection, retries, the driver) runs unchanged.
+# Only the Jev decision is cached or live; the browser is driven for real
+# throughout, exactly as it was when the trace was recorded.
+
+
+class ReplayExhausted(RuntimeError):
+    """Raised when a replay runs out of recorded decide_fn/verify_fn calls."""
+
+
+def load_trace(path: str | Path) -> dict[str, Any]:
+    """Load a trace written by `run(..., trace=...)`.
+
+    Raises:
+        ValueError: `path` does not hold a `--trace` file (wrong shape).
+    """
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or not isinstance(data.get("steps"), list):
+        raise ValueError(f"{path} is not a jev-browser-agent trace (expected an object with a 'steps' list)")
+    return data
+
+
+class ReplayFn:
+    """A decide_fn- or verify_fn-shaped replacement fed from a recorded trace.
+
+    A call for a recorded step at or below `fork_at` returns the recorded
+    value at zero cost. A call for a step past `fork_at` dispatches to `live`
+    (a real decide_fn or verify_fn) and counts toward `live_calls`, so a
+    caller can confirm "zero live Jev calls" instead of assuming it.
+    `fork_at=None` replays every recorded call; `live` is then never used.
+    """
+
+    def __init__(
+        self,
+        steps: list[dict[str, Any]],
+        field: str,
+        fork_at: int | None,
+        live: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
+        """Build the replacement from `steps`' recorded `field` ("decision" or "verify")."""
+        self._calls = [(step["step"], step[field]) for step in steps if step.get(field) is not None]
+        self._fork_at = fork_at
+        self._live = live
+        self._cursor = 0
+        self._gone_live = False
+        self.live_calls = 0
+
+    def __call__(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Return the next recorded value, or call `live` from the fork point on.
+
+        Once a call goes live, every later call goes live too, even past the
+        end of the recording: a live decision can steer the browser down a
+        path the trace never recorded, so the trace has nothing left to say.
+        """
+        if not self._gone_live and self._cursor < len(self._calls):
+            step_number, value = self._calls[self._cursor]
+            self._cursor += 1
+            if self._fork_at is None or step_number <= self._fork_at:
+                return dict(value)
+            self._gone_live = True
+        else:
+            self._gone_live = True
+        if self._live is None:
+            raise ReplayExhausted(f"replay has only {len(self._calls)} recorded call(s)")
+        self.live_calls += 1
+        return self._live(payload)
+
+
+def check_replay(trace: dict[str, Any], result: dict[str, Any]) -> list[str]:
+    """Compare a replayed `run()` result against its recorded trace.
+
+    Returns a list of mismatch descriptions; an empty list means the replay
+    reproduced the same decision path and final status as the recording.
+    """
+    mismatches: list[str] = []
+    final = trace.get("final") or {}
+    if "status" in final and result.get("status") != final["status"]:
+        mismatches.append(f"status: recorded {final['status']!r}, replayed {result.get('status')!r}")
+    recorded = [
+        (step["step"], step["decision"].get("operation"), step["decision"].get("target"))
+        for step in trace.get("steps", [])
+        if step.get("decision") is not None
+    ]
+    replayed = [(entry.get("step"), entry.get("operation"), entry.get("target")) for entry in result.get("log", [])]
+    if recorded != replayed:
+        mismatches.append(f"decision path diverged: recorded {recorded!r}, replayed {replayed!r}")
+    return mismatches
 
 
 def main() -> int:
@@ -1181,12 +1321,47 @@ def main() -> int:
         metavar="HOST",
         help="Also send --header values to this host (default: only the --url host). Repeatable.",
     )
-    p.add_argument("--trace", metavar="FILE", help="Write every observed snapshot (scrubbed) to FILE as JSON.")
+    p.add_argument(
+        "--trace", metavar="FILE", help="Write every observed snapshot, decision, and verification to FILE as JSON."
+    )
+    p.add_argument(
+        "--replay",
+        metavar="FILE",
+        help="Replay decisions and verifications from a --trace FILE at zero Jev cost. Still drives a "
+        "real browser. Combine with --fork to resume live Jev calls partway through.",
+    )
+    p.add_argument(
+        "--fork",
+        type=int,
+        metavar="N",
+        help="With --replay: replay steps 1..N for free, then resume live Jev calls from step N+1.",
+    )
     p.add_argument("--json-compact", action="store_true")
     args = p.parse_args()
 
+    if args.fork is not None and not args.replay:
+        print(json.dumps(_error("--fork requires --replay FILE"), indent=None if args.json_compact else 2))
+        return 0
+
+    trace_data: dict[str, Any] | None = None
+    replay_decide: ReplayFn | None = None
+    replay_verify: ReplayFn | None = None
+    if args.replay:
+        try:
+            trace_data = load_trace(args.replay)
+        except (ValueError, OSError, json.JSONDecodeError) as exc:
+            print(json.dumps(_error(f"--replay: {exc}"), indent=None if args.json_compact else 2))
+            return 0
+        live_decide = _load("jev-browser-decide").decide if args.fork is not None else None
+        live_verify = _load("jev-browser-verify").verify if args.fork is not None else None
+        replay_decide = ReplayFn(trace_data["steps"], "decision", args.fork, live_decide)
+        replay_verify = ReplayFn(trace_data["steps"], "verify", args.fork, live_verify)
+
     allow_hosts = {h.lower().lstrip(".") for h in args.allow_host}
-    secrets, err, headers = preflight(args.url, args.allow_remote, args.secret_env, allow_hosts, args.header)
+    require_jev = not (args.replay and args.fork is None)
+    secrets, err, headers = preflight(
+        args.url, args.allow_remote, args.secret_env, allow_hosts, args.header, require_jev=require_jev
+    )
     if err:
         print(json.dumps(_error(err), indent=None if args.json_compact else 2))
         return 0
@@ -1206,6 +1381,8 @@ def main() -> int:
             headed=args.headed,
             checks=checks,
             secrets=secrets,
+            decide_fn=replay_decide,
+            verify_fn=replay_verify,
             trace=args.trace,
             allow_hosts=allow_hosts,
             headers=headers,
@@ -1214,6 +1391,12 @@ def main() -> int:
         )
     except Exception as exc:
         result = _error(f"{type(exc).__name__}: {str(exc)[:200]}")
+    if trace_data is not None and replay_decide is not None and replay_verify is not None:
+        result["replay"] = {
+            "mismatches": check_replay(trace_data, result),
+            "decide_live_calls": replay_decide.live_calls,
+            "verify_live_calls": replay_verify.live_calls,
+        }
     print(json.dumps(result, indent=None if args.json_compact else 2))
     return 0
 

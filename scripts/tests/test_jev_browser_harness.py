@@ -1074,6 +1074,166 @@ def test_driver_spawns_node_with_filtered_environment(monkeypatch):
     assert "TYPESAFE_API_KEY" not in seen and "JEV_TEST_LOGIN" not in seen and "PATH" in seen
 
 
+def test_trace_records_decisions_and_verify_per_step(tmp_path):
+    """--trace's format (extended from a one-way snapshot log) must carry
+    enough per step to replay: the observed snapshot, the decision, and,
+    for a DONE step, the verification."""
+    trace_path = tmp_path / "trace.json"
+    drv = FakeDriver()
+    r = agent.run(
+        "http://127.0.0.1:1/",
+        "click sign in",
+        decide_fn=_scripted([("CLICK", "4"), ("DONE", None)]),
+        verify_fn=lambda _req: {"goal_met": True, "source": "test", "usage": {}},
+        driver=drv,
+        trace=str(trace_path),
+    )
+    assert r["status"] == "done"
+    saved = agent.load_trace(trace_path)
+    assert saved["version"] == 2
+    assert saved["goal"] == "click sign in" and saved["url"] == "http://127.0.0.1:1/"
+    assert saved["final"]["status"] == "done"
+    assert [s["step"] for s in saved["steps"]] == [1, 2]
+    assert saved["steps"][0]["decision"]["operation"] == "CLICK"
+    assert saved["steps"][0]["verify"] is None
+    assert saved["steps"][1]["decision"]["operation"] == "DONE"
+    assert saved["steps"][1]["verify"]["goal_met"] is True
+    assert saved["steps"][0]["elements"] == ELEMENTS  # the existing per-step snapshot fields survive
+
+
+def test_load_trace_rejects_a_file_that_is_not_a_trace(tmp_path):
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps([1, 2, 3]))
+    with pytest.raises(ValueError, match="not a jev-browser-agent trace"):
+        agent.load_trace(bad)
+
+
+def _record_and_load(tmp_path, plan, verify_results):
+    """Run once with a scripted decide/verify, writing a trace; return (original result, loaded trace)."""
+    trace_path = tmp_path / "trace.json"
+    verdicts = iter(verify_results)
+    r = agent.run(
+        "http://127.0.0.1:1/",
+        "g",
+        decide_fn=_scripted(plan),
+        verify_fn=lambda _req: next(verdicts),
+        driver=FakeDriver(),
+        trace=str(trace_path),
+    )
+    return r, agent.load_trace(trace_path)
+
+
+def test_replay_fn_reproduces_the_same_path_with_zero_live_calls(tmp_path):
+    original, trace = _record_and_load(
+        tmp_path,
+        [("CLICK", "4"), ("DONE", None)],
+        [{"goal_met": True, "source": "test", "usage": {}}],
+    )
+    assert original["status"] == "done"
+
+    replay_decide = agent.ReplayFn(trace["steps"], "decision", None)
+    replay_verify = agent.ReplayFn(trace["steps"], "verify", None)
+    replayed = agent.run(
+        "http://127.0.0.1:1/", "g", decide_fn=replay_decide, verify_fn=replay_verify, driver=FakeDriver()
+    )
+
+    assert replayed["status"] == original["status"]
+    assert agent.check_replay(trace, replayed) == []
+    assert replay_decide.live_calls == 0 and replay_verify.live_calls == 0
+
+
+def test_replay_fn_exhausted_raises_instead_of_guessing(tmp_path):
+    _original, trace = _record_and_load(
+        tmp_path,
+        [("CLICK", "4"), ("DONE", None)],
+        [{"goal_met": True, "source": "test", "usage": {}}],
+    )
+    replay_decide = agent.ReplayFn(trace["steps"], "decision", None)
+    # Drive the driver so it never produces a DONE claim: the recorded 2 decide
+    # calls run out, and a 3rd would have to guess instead of replaying.
+    with pytest.raises(agent.ReplayExhausted, match="only 2 recorded"):
+        agent.run("http://127.0.0.1:1/", "g", decide_fn=replay_decide, driver=FakeDriver(), max_steps=5)
+
+
+def test_fork_at_n_replays_then_resumes_live_calls(tmp_path):
+    """Fork at step 1: step 1's CLICK must come from the trace (never touching
+    `live_decide`); step 2 must call `live_decide`/`live_verify` for real."""
+    original, trace = _record_and_load(
+        tmp_path,
+        [("CLICK", "4"), ("DONE", None)],
+        [{"goal_met": True, "source": "test", "usage": {}}],
+    )
+
+    live_decide_calls = []
+    live_verify_calls = []
+
+    def live_decide(payload):
+        live_decide_calls.append(payload)
+        return {"operation": "DONE", "target": None, "confidence": 0.9, "needs_text": False, "source": "live"}
+
+    def live_verify(payload):
+        live_verify_calls.append(payload)
+        return {"goal_met": True, "source": "live", "usage": {}}
+
+    fork_decide = agent.ReplayFn(trace["steps"], "decision", 1, live_decide)
+    fork_verify = agent.ReplayFn(trace["steps"], "verify", 1, live_verify)
+    drv = FakeDriver()
+    forked = agent.run("http://127.0.0.1:1/", "g", decide_fn=fork_decide, verify_fn=fork_verify, driver=drv)
+
+    assert forked["status"] == original["status"] == "done"
+    assert len(live_decide_calls) == 1 and len(live_verify_calls) == 1
+    assert fork_decide.live_calls == 1 and fork_verify.live_calls == 1
+    # Step 1's CLICK actually executed against the driver: replay still drives
+    # a real browser, it only skips the Jev decision.
+    acts = [c["action"]["id"] for c in drv.calls if c["cmd"] == "act"]
+    assert acts == ["e4:click"]
+
+
+def test_fork_zero_never_consults_the_recording(tmp_path):
+    """fork_at=0 is a pure live run from step 1: a malformed recorded decision
+    must never be read, because replay is never consulted at any step."""
+    trace_path = tmp_path / "trace.json"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "goal": "g",
+                "url": "http://127.0.0.1:1/",
+                "final": {"status": "done"},
+                "steps": [{"step": 1, "decision": {"operation": "BOGUS"}, "verify": None}],
+            }
+        )
+    )
+    trace = agent.load_trace(trace_path)
+    live_decide = _scripted([("CLICK", "4"), ("BLOCKED", None)])
+    fork_decide = agent.ReplayFn(trace["steps"], "decision", 0, live_decide)
+    r = agent.run("http://127.0.0.1:1/", "g", decide_fn=fork_decide, driver=FakeDriver())
+    assert r["status"] == "blocked"
+    assert fork_decide.live_calls == 2
+
+
+def test_check_replay_flags_a_diverged_status():
+    trace = {"final": {"status": "done"}, "steps": [{"step": 1, "decision": {"operation": "CLICK", "target": "4"}}]}
+    matched = {"status": "done", "log": [{"step": 1, "operation": "CLICK", "target": "4"}]}
+    assert agent.check_replay(trace, matched) == []
+    diverged = {"status": "blocked", "log": [{"step": 1, "operation": "WAIT", "target": None}]}
+    mismatches = agent.check_replay(trace, diverged)
+    assert any("status" in m for m in mismatches)
+    assert any("decision path diverged" in m for m in mismatches)
+
+
+def test_preflight_pure_replay_skips_jev_availability_check(monkeypatch):
+    """A pure replay (no --fork) must not require Jev to be configured: it
+    never calls Jev. A forked replay still needs it for the live calls."""
+    import jev_router_common
+
+    monkeypatch.setattr(jev_router_common, "typesafe_available", lambda: (False, "no key"))
+    secrets, err, headers = agent.preflight("http://127.0.0.1/", False, [], require_jev=False)
+    assert err is None and secrets == {} and headers == {}
+    err_with_jev = agent.preflight("http://127.0.0.1/", False, [])[1]
+    assert err_with_jev is not None and err_with_jev.startswith("Jev unavailable")
+
+
 def test_jev_pick_prompts_carry_flattened_capped_field_strings(monkeypatch):
     import jev_router_common
 

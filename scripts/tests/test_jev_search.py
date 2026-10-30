@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 import re
 import subprocess
@@ -376,3 +377,107 @@ def test_import_does_not_load_transport() -> None:
     code = "import sys, jev_search; sys.exit('jev_transport' in sys.modules)"
     proc = subprocess.run([sys.executable, "-c", code], cwd=SCRIPTS, capture_output=True, check=False)
     assert proc.returncode == 0, proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# Trace, replay, and fork-from-call-N
+# ---------------------------------------------------------------------------
+
+
+def test_trace_recorder_saves_calls_in_order(tmp_path: Path) -> None:
+    jev = FakeJev(target=6)
+    rec = jev_search.TraceRecorder(jev)
+    res = beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=rec, describe=describe)
+    assert res.status == "done"
+    assert len(rec.calls) == res.calls > 0
+    trace_path = tmp_path / "trace.json"
+    rec.save(trace_path)
+    loaded = jev_search.load_trace(trace_path)
+    assert loaded == rec.calls
+
+
+def test_load_trace_rejects_a_file_that_is_not_a_trace(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({"not": "a trace"}))
+    with pytest.raises(ValueError, match="not a jev_search trace"):
+        jev_search.load_trace(bad)
+
+
+def test_replay_evaluate_reproduces_the_same_path_at_zero_cost(tmp_path: Path) -> None:
+    """Record a full search, then replay it: the replay must reach the same
+    status and path while never calling the wrapped (recorded) evaluate again."""
+    jev = FakeJev(target=6)
+    rec = jev_search.TraceRecorder(jev)
+    original = beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=rec, describe=describe)
+    rec.save(tmp_path / "trace.json")
+
+    calls = jev_search.load_trace(tmp_path / "trace.json")
+    replay = jev_search.ReplayEvaluate(calls)
+    replayed = beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=replay, describe=describe)
+
+    assert (replayed.status, replayed.path, replayed.state) == (original.status, original.path, original.state)
+    assert replay.calls_made == len(calls)  # every recorded call was consumed, none skipped
+
+
+def test_replay_evaluate_raises_on_a_diverged_request() -> None:
+    jev = FakeJev(target=6)
+    rec = jev_search.TraceRecorder(jev)
+    beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=rec, describe=describe)
+    replay = jev_search.ReplayEvaluate(rec.calls)
+    recorded_state, recorded_questions = rec.calls[0]["state"], rec.calls[0]["questions"]
+    replay(recorded_state, recorded_questions, timeout=1.0)  # consume call 1 to line up with call 2's divergence
+    with pytest.raises(jev_search.TraceMismatch, match="call 2 diverged"):
+        replay({"different": True}, recorded_questions, timeout=1.0)
+
+
+def test_replay_evaluate_non_strict_ignores_a_diverged_request() -> None:
+    jev = FakeJev(target=6)
+    rec = jev_search.TraceRecorder(jev)
+    beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=rec, describe=describe)
+    replay = jev_search.ReplayEvaluate(rec.calls, strict=False)
+    out = replay({"different": True}, {"different": True}, timeout=1.0)
+    assert out == rec.calls[0]["response"]
+
+
+def test_replay_evaluate_exhausted_past_the_last_recorded_call() -> None:
+    jev = FakeJev(target=6)
+    rec = jev_search.TraceRecorder(jev)
+    beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=rec, describe=describe)
+    replay = jev_search.ReplayEvaluate(rec.calls, strict=False)
+    for call in rec.calls:
+        replay(call["state"], call["questions"], timeout=1.0)
+    with pytest.raises(jev_search.TraceExhausted, match=f"only {len(rec.calls)} recorded"):
+        replay({}, {}, timeout=1.0)
+
+
+def test_fork_evaluate_rejects_a_negative_fork_at() -> None:
+    with pytest.raises(ValueError, match="fork_at must be >= 0"):
+        jev_search.fork_evaluate([], -1, lambda *_a, **_kw: {})
+
+
+def test_fork_evaluate_replays_then_resumes_live_calls() -> None:
+    """Record a 2-call search, then fork at call 1: call 1 must come from the
+    trace (the original FakeJev is never touched again) and call 2 must reach
+    a fresh, live evaluate, landing on the same answer."""
+    recorded_jev = FakeJev(target=6)
+    rec = jev_search.TraceRecorder(recorded_jev)
+    original = beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=rec, describe=describe)
+    assert len(rec.calls) == 2  # fixture of this test: exactly one call to fork after
+
+    live_jev = FakeJev(target=6)
+    fork = jev_search.fork_evaluate(rec.calls, 1, live_jev)
+    forked = beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=fork, describe=describe)
+
+    assert (forked.status, forked.path, forked.state) == (original.status, original.path, original.state)
+    assert len(live_jev.requests) == 1  # only the call past fork_at reached the live evaluate
+
+
+def test_fork_evaluate_at_zero_never_touches_the_recording() -> None:
+    """fork_at=0 is a pure live run: the replay side must never be consulted,
+    so a trace with a mismatched (even malformed) call 1 is never read."""
+    bad_calls = [{"state": {"wrong": True}, "questions": {}, "response": {}}]
+    live_jev = FakeJev(target=6)
+    fork = jev_search.fork_evaluate(bad_calls, 0, live_jev)
+    res = beam_search(0, expand, "reach 6", is_done=lambda n: n == 6, width=1, evaluate=fork, describe=describe)
+    assert res.status == "done"
+    assert len(live_jev.requests) == 2
