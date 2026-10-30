@@ -281,7 +281,7 @@ mutants are mixed into that denominator. Read the score as killed /
 | File | Ran | Killed | Survived | Other | Score |
 |---|---|---|---|---|---|
 | `jev_limits.py` | 203 | 90 | 113 | -- | 44% |
-| `jev_router_common.py` | 433 | 188 | 245 | 2 incompetent | 43% |
+| `jev_router_common.py` | 435 | 188 | 245 | 2 incompetent | 43% |
 
 The 2 incompetent `jev_router_common.py` mutants are a cosmic-ray 8.7.0
 `ExceptionReplacer` bug (`AttributeError: 'PythonNode' object has no

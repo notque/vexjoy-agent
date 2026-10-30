@@ -11,16 +11,11 @@ any mutation testing itself.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import tomllib
 
-_SCRIPTS_DIR = Path(__file__).resolve().parents[1]
-if str(_SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS_DIR))
-
-REPO_ROOT = _SCRIPTS_DIR.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 LIMITS_CONFIG = REPO_ROOT / "scripts" / "cosmic-ray-jev-limits.toml"
 ROUTER_CONFIG = REPO_ROOT / "scripts" / "cosmic-ray-jev-router-common.toml"
 
