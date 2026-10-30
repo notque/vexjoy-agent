@@ -159,6 +159,19 @@ A plan can be complete, feasible, and safe and still fail in production because 
 3. **Treat "each request fits" as unproven.** A plan that shows every request under the per-request limit has not shown the run fits. Look for the per-second number.
 4. **Diagnoses need measurements.** When the artifact explains a failure (an outage, a size cap, a bad payload), ask whether it measured the run's own rate and retry count and tested a small known-good request on the same transport before concluding.
 
+## Alt-model fallback and second opinion: not used here
+
+`scripts/grill-jev.py` calls `jev_transport.evaluate` directly and deliberately
+stays Jev-only: when a tiny probe also fails, Jev is down and the run stops
+(see "How it works," step 3). It does not call `evaluate_with_fallback` or
+`evaluate_second_opinion` (`building-with-jev`, "Fallback and second-opinion
+modes") — a 50-question interrogation battery answered by the alt model
+instead of Jev is a different, unvalidated review quality, not a drop-in
+substitute. If a caller wants a second or different opinion on one specific
+finding from a grill-jev run, ask it as its own Noul/Choice/Score question
+through `evaluate_second_opinion` directly, and report the alt model's answer
+labeled and separate from Jev's, never folded into the grill-jev findings list.
+
 ## Plans that use Jev's judgments
 
 A plan whose steps call Jev can fail on the questions rather than the volume. Grill it on the model's known edges (`skills/meta/building-with-jev/references/question-design.md`, Known model edges), as Noul or Choice questions with named evidence:

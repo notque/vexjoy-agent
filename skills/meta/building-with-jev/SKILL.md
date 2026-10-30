@@ -89,6 +89,29 @@ A program reaches Jev through one of two transports. Use Vercel AI Gateway (`JEV
 
 Both transports share the same account-level rate limits. A direct-API probe that succeeds says nothing about the Gateway path, and the reverse; a direct-key 401/402 says nothing about a Gateway-routed app.
 
+## Fallback and second-opinion modes
+
+A plain `evaluate`/`evaluate_packed` call still raises `JevTransportError` on
+failure with no alt model involved. Two scoped exceptions exist in
+`scripts/jev_transport.py` for the single named alt model in
+`scripts/jev_alt_model.py` (the Anthropic API when a key is configured, else
+the logged-in `claude -p` CLI — the same dual-backend pattern
+`jev-browser-agent.py`'s `generate_text` already uses for "ask the session's
+own model"). A caller opts into one mode explicitly; neither runs by default.
+
+| Mode | Function | When it calls the alt model | Returns |
+|---|---|---|---|
+| Availability fallback | `jev_transport.evaluate_with_fallback(state, questions, timeout=..., alt_timeout=...)` | Only after Jev raises `JevTransportError` (no credentials, network or API failure, rate-limited, oversized request) | A normal Jev-shaped response (`answers`, `_meta`). `_meta["is_jev"]` is `True` on the Jev path, `False` on the fallback path; `_meta["fallback_reason"]` is set only on the fallback path. |
+| Explicit second opinion | `jev_transport.evaluate_second_opinion(state, questions, timeout=..., alt_timeout=...)` | Always, alongside Jev, only when the caller explicitly asked for a second or different opinion | `{"jev": ..., "alt_model": ..., "_meta": {"mode": "second_opinion"}}`. Either side is `{"error": ..., "source": ...}` on its own failure; the other side's answer still returns. |
+
+Rules for both modes:
+
+- **Never silently present an alt-model answer as Jev's.** Read `_meta["is_jev"]` (fallback) or use the separate `jev`/`alt_model` keys (second opinion) before reporting a number; name the alt model in any report that uses its answer.
+- **Never merge or average the two answers.** Second-opinion mode always returns both `answers` dicts untouched; code that wants one number picks one side explicitly and says which.
+- **Never fabricate.** `evaluate_with_fallback` raises `JevTransportError` (source `"fallback_failed"`) when Jev AND the alt model both fail. `evaluate_second_opinion` reports each side's own failure; it never substitutes one side's answer for the other's.
+- **Text-only.** Neither mode supports images or Box questions; both raise `JevTransportError` (source `"images_unsupported"`) rather than silently dropping an image.
+- **Not a provider plugin architecture.** There is exactly one named alt model, no registry, no discovery, and no caller-supplied provider. A generic, model-agnostic multi-provider abstraction was already evaluated and rejected (Noul 0.09: no driving need, one provider in use). This sharper, scoped pair of modes was evaluated separately and cleared the bar (fresh Noul 0.75 worth-building, 0.04 same-as-the-rejected-abstraction, 2026-10-30) — keep it that narrow; do not grow it into a registry.
+
 ## The three tiers
 
 Three things run this toolkit: deterministic programs, Jev, and LLMs. Apply the lowest tier that can do the job.

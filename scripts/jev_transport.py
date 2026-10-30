@@ -4,6 +4,16 @@
 Auto selects Vercel AI Gateway when its key is configured; otherwise it
 selects TypeSafe's direct Jev API. A failed selected transport is not retried
 through the other provider.
+
+Two scoped exceptions to that last rule (owner, 2026-10-30; a fresh Jev Noul
+on this exact framing scored 0.75 worth-building, 0.04 same-as-the-rejected
+generic-abstraction -- see the PR description for the full question and
+state): ``evaluate_with_fallback`` and ``evaluate_second_opinion``, both
+calling the single named alt model in ``jev_alt_model.py``. Neither is a
+provider plugin architecture -- there is no registry, no discovery, and
+callers do not choose a provider by name. Every alt-model answer is tagged
+``is_jev: False`` and must be reported as such, never silently presented as
+if Jev had answered.
 """
 
 from __future__ import annotations
@@ -13,6 +23,7 @@ import time
 import warnings
 from typing import Any
 
+import jev_alt_model
 import jev_images
 import jev_limits
 import jev_router_common
@@ -250,3 +261,123 @@ def evaluate_packed(
     so an image is not resent for every question.
     """
     return _evaluate(state, questions, timeout=timeout, limit=jev_limits.TARGET_REQUEST_TOKENS, images=images)
+
+
+# ---------------------------------------------------------------------------
+# Fallback and second-opinion modes (owner, 2026-10-30)
+#
+# Exactly two modes, each calling the one named alt model in jev_alt_model.py.
+# Neither mode changes `evaluate`/`evaluate_packed`'s own behavior; a plain
+# Jev call still raises JevTransportError on failure with no alt-model
+# involved, unless the caller opts into one of the two functions below.
+# ---------------------------------------------------------------------------
+
+FALLBACK_FAILED = "fallback_failed"
+
+
+def _reject_images_for_alt_model(
+    state: Any, questions: dict[str, Any], images: dict[str, jev_images.JevImage] | None
+) -> None:
+    """The alt-model path is text-only; refuse rather than silently drop an image."""
+    if jev_images.contains_images(state, questions, images) or jev_images.has_box(questions):
+        raise JevTransportError(
+            "the alt-model fallback and second-opinion modes do not support images or Box questions",
+            source=IMAGES_UNSUPPORTED,
+        )
+
+
+def _log_alt_model_event(questions: dict[str, Any], *, mode: str, reason: str | None) -> None:
+    """Best-effort telemetry so a fallback or second-opinion call shows up in the cost report."""
+    try:
+        jev_router_common._count_call(
+            ok=reason is None,
+            latency_ms=None,
+            data=None,
+            n_questions=len(questions),
+            n_redacted=0,
+            error=reason,
+            script_name=f"jev_transport.py:{mode}",
+        )
+    except Exception:
+        pass
+
+
+def evaluate_with_fallback(
+    state: Any,
+    questions: dict[str, Any],
+    *,
+    timeout: float,
+    alt_timeout: float | None = None,
+    images: dict[str, jev_images.JevImage] | None = None,
+) -> dict[str, Any]:
+    """Availability fallback: answer with Jev; on failure, answer with the alt model instead.
+
+    Tries ``evaluate_packed`` first. Only when that raises ``JevTransportError``
+    (no credentials, network or API failure, rate-limited, oversized request)
+    does this call ``jev_alt_model.answer`` on the SAME ``state`` and
+    ``questions``. The returned dict always has the normal Jev response shape
+    (``answers``, ``_meta``); ``_meta["is_jev"]`` is ``True`` on the Jev path
+    and ``False`` on the fallback path, and ``_meta["fallback_reason"]`` is
+    set only on the fallback path. A caller must read ``is_jev`` before
+    treating the answer as Jev's.
+
+    Raises ``JevTransportError`` (source ``"fallback_failed"``) when Jev fails
+    AND the alt model also fails to answer; never fabricates an answer.
+    """
+    try:
+        result = evaluate_packed(state, questions, timeout=timeout, images=images)
+        result.setdefault("_meta", {})["is_jev"] = True
+        return result
+    except JevTransportError as exc:
+        _reject_images_for_alt_model(state, questions, images)
+        reason = f"{exc.source}: {str(exc)[:200]}"
+        try:
+            alt = jev_alt_model.answer(state, questions, timeout=alt_timeout or timeout)
+        except jev_alt_model.AltModelError as alt_exc:
+            _log_alt_model_event(questions, mode="fallback", reason=f"jev={reason} alt={alt_exc.reason}")
+            raise JevTransportError(
+                f"Jev unavailable ({reason}); alt-model fallback also failed: {alt_exc.reason}",
+                source=FALLBACK_FAILED,
+            ) from alt_exc
+        alt["_meta"]["fallback_reason"] = reason
+        _log_alt_model_event(questions, mode="fallback", reason=None)
+        return alt
+
+
+def evaluate_second_opinion(
+    state: Any,
+    questions: dict[str, Any],
+    *,
+    timeout: float,
+    alt_timeout: float | None = None,
+    images: dict[str, jev_images.JevImage] | None = None,
+) -> dict[str, Any]:
+    """Explicit second opinion: ask Jev and the alt model on the SAME question set.
+
+    Both calls run; a caller uses this only when it has explicitly asked for a
+    second or different opinion, not as a silent default. Returns
+    ``{"jev": ..., "alt_model": ..., "_meta": {"mode": "second_opinion"}}``.
+    Either side is its own normal response dict on success, or
+    ``{"error": <message>, "source": <label>}`` on failure. The two answers
+    are never merged or averaged into one number -- each keeps its own
+    ``answers`` dict with its own Noul/Choice/Score values, and
+    ``alt_model["_meta"]["is_jev"]`` is always ``False``.
+    """
+    _reject_images_for_alt_model(state, questions, images)
+    try:
+        jev_result = evaluate_packed(state, questions, timeout=timeout, images=images)
+        jev_result.setdefault("_meta", {})["is_jev"] = True
+    except JevTransportError as exc:
+        jev_result = {"error": str(exc)[:300], "source": exc.source}
+
+    try:
+        alt_result = jev_alt_model.answer(state, questions, timeout=alt_timeout or timeout)
+    except jev_alt_model.AltModelError as exc:
+        alt_result = {"error": str(exc)[:300], "source": jev_alt_model.SOURCE}
+
+    _log_alt_model_event(
+        questions,
+        mode="second_opinion",
+        reason=None if "error" not in jev_result and "error" not in alt_result else "partial_or_full_failure",
+    )
+    return {"jev": jev_result, "alt_model": alt_result, "_meta": {"mode": "second_opinion"}}
