@@ -24,6 +24,11 @@ dev = [
     "pytest>=8.0.0",
     "pytest-xdist>=3.5",
 ]
+# Local-only mutation testing (scripts/cosmic-ray-jev-*.toml). Not a CI
+# dependency: see skills/process/testing/SKILL.md, "Mutation testing".
+mutation = [
+    "cosmic-ray>=8.7,<9",
+]
 
 [tool.ruff]
 line-length = 120

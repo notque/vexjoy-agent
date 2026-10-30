@@ -225,6 +225,81 @@ To find hook or validator tests that miss real bugs, run
 bugs, runs the tests, and lists surviving mutants. Use `--all` for every hook
 (about 30 minutes) and `--json` for machine output. Run it on demand, not in CI.
 
+### Mutation testing: jev_limits.py, jev_router_common.py
+
+Real mutation testing (cosmic-ray, not the homegrown AST checker above, which
+is scoped to `hooks/` and `scripts/validate-*.py`) for two load-bearing,
+deterministic scripts outside that checker's scope: `scripts/jev_limits.py`
+(split/budget math) and `scripts/jev_router_common.py` (retry/backoff logic).
+Local-only, on request, same as the AST checker above -- not wired into CI.
+Mirrors the switch project's own tradeoff of keeping its Stryker (JS mutation
+testing) run local for speed rather than gating CI on it.
+
+**Tool choice: cosmic-ray over mutmut.** mutmut 3.x copies the mutated
+source into a sandboxed `mutants/` tree and imports it from there; that
+breaks on this repo's convention of `scripts/tests/conftest.py` inserting
+`scripts/` onto `sys.path` so tests can `import jev_limits` as a flat
+top-level module (mutmut's own code warns this exact pattern causes a
+silent "No Tests" result for every mutant). cosmic-ray mutates the real
+file on disk, runs the configured test command, and restores the file --
+no sandbox, no import-path mismatch, no extra `also_copy` plumbing needed
+for `hooks/lib/`, `scripts/jev_images.py`, etc.
+
+**Run** (installs cosmic-ray into a disposable venv; never committed):
+
+```bash
+python3 -m venv .venv && ./.venv/bin/python -m pip install cosmic-ray
+./.venv/bin/cosmic-ray init scripts/cosmic-ray-jev-limits.toml /tmp/jev-limits-mutation.sqlite
+./.venv/bin/cr-filter-operators /tmp/jev-limits-mutation.sqlite scripts/cosmic-ray-jev-limits.toml
+./.venv/bin/cosmic-ray exec scripts/cosmic-ray-jev-limits.toml /tmp/jev-limits-mutation.sqlite
+./.venv/bin/cr-report /tmp/jev-limits-mutation.sqlite
+
+./.venv/bin/cosmic-ray init scripts/cosmic-ray-jev-router-common.toml /tmp/jev-router-common-mutation.sqlite
+./.venv/bin/cr-filter-operators /tmp/jev-router-common-mutation.sqlite scripts/cosmic-ray-jev-router-common.toml
+./.venv/bin/cosmic-ray exec scripts/cosmic-ray-jev-router-common.toml /tmp/jev-router-common-mutation.sqlite
+./.venv/bin/cr-report /tmp/jev-router-common-mutation.sqlite
+```
+
+Each config's `[cosmic-ray.filters.operators-filter]` excludes cosmic-ray's
+full pairwise operator-swap matrix (every arithmetic/bitwise operator
+replaced by every other, every comparison operator by every other) down to
+one classic mutant per real operator family. Most of that matrix is noise
+here: both files use `X | None` PEP 604 type unions, which Python parses as
+a `BitOr` node, and `from __future__ import annotations` stores every
+annotation as a string, so a mutant that swaps that `BitOr` is never
+evaluated and can never be killed. Without the filter, `cosmic-ray init`
+reports 714 candidates for `jev_limits.py` and 1200 for
+`jev_router_common.py`; with it, 203 and 435 actually run.
+
+`cr-report`'s own percentage divides survivors by the *unfiltered* total
+job count (714 / 1200), which understates survivors once filtered-out
+mutants are mixed into that denominator. Read the score as killed /
+(killed + survived) over the mutants that actually ran instead.
+
+**Baseline** (run 2026-10-30, cosmic-ray 8.7.0):
+
+| File | Ran | Killed | Survived | Other | Score |
+|---|---|---|---|---|---|
+| `jev_limits.py` | 203 | 90 | 113 | -- | 44% |
+| `jev_router_common.py` | 435 | 188 | 245 | 2 incompetent | 43% |
+
+The 2 incompetent `jev_router_common.py` mutants are a cosmic-ray 8.7.0
+`ExceptionReplacer` bug (`AttributeError: 'PythonNode' object has no
+attribute 'value'`) on an `except (A, B, ...)` tuple; it is a tool
+limitation, not a test gap, and is excluded from the score above.
+
+Most survivors are `NumberReplacer` hits on policy constants the tests
+check relationally (over/under a limit) rather than pin to an exact value
+(`REQUEST_TOKEN_LIMIT`, `SAFE_FRACTION`, cache TTLs), plus `check_run`'s
+`>`/`>=` boundary comparisons and `call_jev`'s untested telemetry/logging
+branches. `_retry_max`'s default-retry-count constant also survives --
+worth a boundary test (`JEV_RETRY_MAX=0` and the documented default) if this
+module changes again.
+
+Treat a re-run that drops either score below 35% as a regression signal
+worth investigating before merging whatever change caused it; this baseline
+is not a CI gate, just a documented trip wire for local, on-request runs.
+
 ---
 
 ## Agent Testing

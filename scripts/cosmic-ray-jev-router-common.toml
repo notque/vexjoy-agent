@@ -1,0 +1,33 @@
+# Scoped, local-only mutation testing for jev_router_common.py's retry/backoff
+# logic (_retry_delay, _retry_after_seconds, _retry_max, the breaker, and
+# call_jev's retry loop). Not wired into CI: mutation testing re-runs the test
+# command once per mutant, which is slow by nature. This runs on request, the
+# same tradeoff the switch project makes for its own Stryker (JS mutation
+# testing) setup -- real, but local-only.
+#
+# Run (from the repo root, inside a disposable venv):
+#   python3 -m venv .venv && ./.venv/bin/python -m pip install cosmic-ray
+#   ./.venv/bin/cosmic-ray init scripts/cosmic-ray-jev-router-common.toml /tmp/jev-router-common-mutation.sqlite
+#   ./.venv/bin/cr-filter-operators /tmp/jev-router-common-mutation.sqlite scripts/cosmic-ray-jev-router-common.toml
+#   ./.venv/bin/cosmic-ray exec scripts/cosmic-ray-jev-router-common.toml /tmp/jev-router-common-mutation.sqlite
+#   ./.venv/bin/cr-report /tmp/jev-router-common-mutation.sqlite
+#
+# Baseline score, the paired jev_limits.py session, and the
+# mutmut-vs-cosmic-ray choice: see skills/process/testing/SKILL.md
+# ("Mutation testing: jev_limits.py, jev_router_common.py").
+[cosmic-ray]
+module-path = ["scripts/jev_router_common.py"]
+timeout = 30.0
+excluded-modules = []
+test-command = "python3 -m pytest -q -n0 scripts/tests/test_jev_router_common.py"
+
+[cosmic-ray.distributor]
+name = "local"
+
+[cosmic-ray.filters.operators-filter]
+# Same exclude pattern as scripts/cosmic-ray-jev-limits.toml -- see that
+# file's comment for why. Keeping both patterns identical is deliberate: a
+# future change to the keep-list should update both configs together.
+exclude-operators = [
+    '''^(?!core/ReplaceBinaryOperator_(Add_Sub|Sub_Add|Mul_Div|Div_Mul|Mod_FloorDiv|FloorDiv_Mod|Mul_Pow|Pow_Mul)$)(?!core/ReplaceComparisonOperator_(Lt_LtE|LtE_Lt|Gt_GtE|GtE_Gt|Eq_NotEq|NotEq_Eq|Is_IsNot|IsNot_Is)$)(?!core/ReplaceUnaryOperator_(USub_UAdd|UAdd_USub|Delete_USub|Delete_Not)$)(?!core/(AddNot|ReplaceTrueWithFalse|ReplaceFalseWithTrue|ReplaceAndWithOr|ReplaceOrWithAnd|ReplaceBreakWithContinue|ReplaceContinueWithBreak|ZeroIterationForLoop|NumberReplacer|ExceptionReplacer)$).*''',
+]
