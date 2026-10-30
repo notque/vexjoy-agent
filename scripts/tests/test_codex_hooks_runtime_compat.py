@@ -70,6 +70,7 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("SessionStart", "context:[team-config]", "team-config-loader.py")
     add("SessionStart", "context:<rules-distill-candidates>", "rules-distill-injector.py")
     add("SessionStart", "context:[manifest-cache] refreshed", "session-manifest-cache.py")
+    add("SessionStart", "context:agent-summary blocker", "session-no-agent-summary-check.py")
     add("SessionStart", "noaction:herdr-absent", "herdr-state-reporter.py")
     add("SessionStart", "noaction:empty-registry", "session-task-registry.py")
     add("SessionStart", "noaction:ephemeral-worktree-guard", "sync-to-user-claude.py")
@@ -616,9 +617,9 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    assert len(REGISTRATIONS) == 60, "runtime matrix must execute every supported registration"
+    assert len(REGISTRATIONS) == 61, "runtime matrix must execute every supported registration"
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 60
+    assert len(registrations) == 61
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 
