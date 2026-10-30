@@ -271,6 +271,55 @@ harden_permissions() {
     chmod 600 "${HOME}/.factory/settings.json" "${HOME}/.reasonix/settings.json" "${HOME}/.gemini/config/hooks.json" 2>/dev/null || true
 }
 
+# no-agent-summary: Bun preload that suppresses Claude Code's agent_summary side-query.
+# Deploys the JS file to a space-free path (BUN_OPTIONS splits on whitespace) and adds
+# an idempotent managed block to ~/.bashrc exporting BUN_OPTIONS.
+# MIT: Flamerix AI (upstream), declanbx (fork). Vendored in hooks/no-agent-summary/.
+NAS_DEST="$HOME/.local/share/no-agent-summary"
+NAS_HOOK="$NAS_DEST/no-agent-summary.js"
+NAS_BEGIN="# >>> no-agent-summary >>>"
+NAS_END="# <<< no-agent-summary <<<"
+NAS_RC="$HOME/.bashrc"
+
+install_no_agent_summary() {
+    local src="$SCRIPT_DIR/hooks/no-agent-summary/no-agent-summary.js"
+    if [ ! -f "$src" ]; then
+        echo -e "${YELLOW}  no-agent-summary: source not found at ${src}; skipping${NC}"
+        return 0
+    fi
+    mkdir -p "$NAS_DEST"
+    cp "$src" "$NAS_HOOK"
+    cp "$SCRIPT_DIR/hooks/no-agent-summary/status.sh" "$NAS_DEST/status.sh"
+
+    # Idempotent bashrc block: strip any existing block, then append.
+    if [ -f "$NAS_RC" ]; then
+        sed -i "/^${NAS_BEGIN}\$/,/^${NAS_END}\$/d" "$NAS_RC"
+    fi
+    cat >> "$NAS_RC" <<NASEOF
+${NAS_BEGIN}
+# Bun preload that stops Claude Code's agent_summary side-query (status-line labels
+# for background agents, each a full-transcript model call every 30 s).
+# Installed from: ${SCRIPT_DIR}
+case " \${BUN_OPTIONS-} " in
+  *" --preload=${NAS_HOOK} "*) ;;
+  *) export BUN_OPTIONS="\${BUN_OPTIONS:+\$BUN_OPTIONS }--preload=${NAS_HOOK}" ;;
+esac
+${NAS_END}
+NASEOF
+    echo -e "${GREEN}  ✓ no-agent-summary: deployed ${NAS_HOOK} and block in ${NAS_RC}${NC}"
+}
+
+uninstall_no_agent_summary() {
+    # Remove the bashrc block.
+    if [ -f "$NAS_RC" ]; then
+        sed -i "/^${NAS_BEGIN}\$/,/^${NAS_END}\$/d" "$NAS_RC"
+        echo -e "${GREEN}  ✓ no-agent-summary: removed block from ${NAS_RC}${NC}"
+    fi
+    # Remove the deployed JS file and status script.
+    rm -f "$NAS_HOOK" "$NAS_DEST/status.sh"
+    echo -e "${GREEN}  ✓ no-agent-summary: removed ${NAS_HOOK}${NC}"
+}
+
 check_python
 
 if [ "$ACTION" = "migrate-overlays" ]; then
@@ -284,6 +333,7 @@ if [ "$ACTION" = "uninstall" ]; then
     args=(uninstall --target "$TARGET")
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
+    [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
     exit $?
 fi
 
@@ -340,5 +390,6 @@ if [ "$TAKEOVER" = true ]; then
 fi
 install_git_hooks
 install_deps
+install_no_agent_summary
 harden_permissions
 echo -e "${GREEN}✓ Installed. Check with: PYTHONPATH=${SCRIPT_DIR}/scripts python3 -m vexinstall doctor${NC}"

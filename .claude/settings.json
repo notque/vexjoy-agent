@@ -126,6 +126,13 @@
             "description": "Inject incomplete tasks from previous sessions at session start",
             "timeout": 3000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/session-no-agent-summary-check.py\"",
+            "description": "Warn inside session when agent_summary preload is not loaded or build anchors are missing; silent when working",
+            "timeout": 3000,
+            "once": true
           }
         ]
       }
