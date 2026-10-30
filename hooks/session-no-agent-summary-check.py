@@ -45,8 +45,14 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 EVENT = "SessionStart"
 
+_BYPASS_ENV = "SESSION_NO_AGENT_SUMMARY_CHECK_BYPASS"
+
 
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        print("[session-no-agent-summary-check] Bypassed via %s=1" % _BYPASS_ENV, file=sys.stderr)
+        return
+
     state_dir = os.environ.get(
         "CC_AGENT_SUMMARY_STATE",
         os.path.join(
@@ -68,7 +74,8 @@ def main() -> None:
 
     # Read the exe path from the marker and check the static verdict.
     try:
-        exe = open(marker, "r").readline().strip()
+        with open(marker, "r") as fh:
+            exe = fh.readline().strip()
     except OSError:
         return  # can't read marker; don't warn
 

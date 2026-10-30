@@ -12,9 +12,9 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   71 registrations = 30 native + 30 adapted + 11 unsupported.
+#   72 registrations = 31 native + 30 adapted + 11 unsupported.
 
-# Native SessionStart (12)
+# Native SessionStart (13)
 SessionStart:afk-mode.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-context.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:cross-repo-agents.py matcher=startup|resume|clear|compact class=native mode=native failure=open
@@ -27,6 +27,7 @@ SessionStart:session-adr-health-check.py matcher=startup|resume|clear|compact cl
 SessionStart:team-config-loader.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:rules-distill-injector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-manifest-cache.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:session-no-agent-summary-check.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:herdr-state-reporter.py matcher=* class=native mode=native failure=open
 SessionStart:session-task-registry.py matcher=* class=native mode=native failure=open
 
