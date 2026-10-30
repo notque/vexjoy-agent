@@ -20,7 +20,6 @@ from __future__ import annotations
 import ipaddress
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -34,6 +33,7 @@ from urllib.parse import urlparse
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+import jev_images
 import jev_router_common
 
 SOURCE = "alt-model"
@@ -43,9 +43,17 @@ ALT_MODEL_BASE_URL = os.environ.get("JEV_ALT_MODEL_BASE_URL", "https://api.anthr
 # CLI, no key needed), or "auto" (api when a key is set, else claude-cli).
 ALT_MODEL_BACKEND = os.environ.get("JEV_ALT_MODEL_BACKEND", "auto")
 DEFAULT_TIMEOUT_S = 60.0
+# The CLI backend starts a full `claude -p` subprocess; it routinely needs
+# more wall time than the API backend's typical call. `answer()` floors the
+# caller's timeout at this value on the CLI path only, so a timeout sized
+# for a fast API/Gateway call does not starve the slower CLI fallback.
 CLAUDE_CLI_TIMEOUT_S = 90.0
-
-_JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
+# Output budget scales with question count (each Choice/Score answer carries
+# a probabilities entry per option/level); capped so one malformed request
+# cannot ask for an unbounded reply.
+_BASE_OUTPUT_TOKENS = 512
+_OUTPUT_TOKENS_PER_QUESTION = 256
+_MAX_OUTPUT_TOKENS = 4096
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -84,12 +92,27 @@ class AltModelError(RuntimeError):
         self.reason = reason
 
 
-def available() -> tuple[bool, str]:
-    """Return whether this process can reach the alt model right now, and how."""
-    api_key = os.environ.get("JEV_ALT_MODEL_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or ""
+def _alt_model_api_key() -> str:
+    """Return the configured alt-model API key, or ``""`` when none is set."""
+    return os.environ.get("JEV_ALT_MODEL_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or ""
+
+
+def _resolve_backend(api_key: str) -> str:
+    """Resolve ``ALT_MODEL_BACKEND`` to ``"api"`` or ``"claude-cli"`` (or pass through an invalid value).
+
+    One place for the ``"auto"`` rule so ``available()`` and ``answer()`` can never drift apart on
+    which backend a given key/env combination actually resolves to.
+    """
     backend = ALT_MODEL_BACKEND
     if backend == "auto":
-        backend = "api" if api_key else "claude-cli"
+        return "api" if api_key else "claude-cli"
+    return backend
+
+
+def available() -> tuple[bool, str]:
+    """Return whether this process can reach the alt model right now, and how."""
+    api_key = _alt_model_api_key()
+    backend = _resolve_backend(api_key)
     if backend == "api":
         return (True, "JEV_ALT_MODEL_API_KEY or ANTHROPIC_API_KEY set") if api_key else (False, "no alt-model API key")
     if backend == "claude-cli":
@@ -115,13 +138,68 @@ def _prompt(state: Any, questions: dict[str, Any]) -> str:
     )
 
 
+def _find_json_object(text: str) -> str | None:
+    """Return the first ``{...}`` substring that is both balanced and valid JSON.
+
+    A greedy ``{.*}`` regex would span from the first ``{`` to the LAST ``}`` in
+    the whole reply, swallowing any aside the alt model adds before or after
+    the answer object. A single depth-tracking scan anchored at the very first
+    ``{`` is not enough either: a short aside placed before the real object
+    (for example "for {ambiguous} cases...") is itself a balanced brace pair,
+    so anchoring at the first ``{`` returns that aside, not the real answer.
+    Instead, try each ``{`` in the text as a candidate start, extract its
+    balanced span (tracking depth through string literals so a nested object
+    like ``{"answers": {"ok": {...}}}`` stays whole), and return the first
+    span that actually parses as JSON -- an aside's brace pair almost never
+    does, since bare words are not valid JSON, so this skips past it to the
+    real object.
+    """
+    pos = 0
+    while True:
+        start = text.find("{", pos)
+        if start == -1:
+            return None
+        depth = 0
+        in_string = False
+        escape = False
+        end = None
+        for i in range(start, len(text)):
+            ch = text[i]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        if end is not None:
+            candidate = text[start : end + 1]
+            try:
+                json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+            else:
+                return candidate
+        pos = start + 1
+
+
 def _parse_reply(text: str) -> dict[str, Any] | None:
     """Extract the first JSON object from a reply that may carry code fences or prose around it."""
-    match = _JSON_OBJECT.search(text)
-    if not match:
+    candidate = _find_json_object(text)
+    if candidate is None:
         return None
     try:
-        parsed = json.loads(match.group(0))
+        parsed = json.loads(candidate)
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
@@ -150,9 +228,9 @@ def _answer_cli(prompt: str, timeout: float) -> tuple[dict[str, Any] | None, str
     return (parsed, "claude-cli") if parsed is not None else (None, "claude-cli-unparseable")
 
 
-def _answer_api(prompt: str, timeout: float, api_key: str) -> tuple[dict[str, Any] | None, str]:
+def _answer_api(prompt: str, timeout: float, api_key: str, max_tokens: int) -> tuple[dict[str, Any] | None, str]:
     """Answer via the Anthropic Messages API."""
-    body = {"model": ALT_MODEL, "max_tokens": 1024, "messages": [{"role": "user", "content": prompt}]}
+    body = {"model": ALT_MODEL, "max_tokens": max_tokens, "messages": [{"role": "user", "content": prompt}]}
     request = urllib.request.Request(
         f"{ALT_MODEL_BASE_URL}/v1/messages",
         data=json.dumps(body).encode(),
@@ -178,20 +256,29 @@ def answer(state: Any, questions: dict[str, Any], *, timeout: float = DEFAULT_TI
     drops a question the caller asked. The returned dict's ``_meta`` always carries
     ``is_jev: False`` and ``source: "alt-model"`` so a caller cannot mistake this for
     a Jev response.
+
+    Text-only: raises ``AltModelError("images-unsupported")`` when ``state`` or
+    ``questions`` carries a ``JevImage`` or a Box question, even when the caller
+    did not route through `jev_transport.py`'s own image guard.
     """
-    api_key = os.environ.get("JEV_ALT_MODEL_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or ""
-    backend = ALT_MODEL_BACKEND
-    if backend == "auto":
-        backend = "api" if api_key else "claude-cli"
+    if jev_images.contains_images(state, questions) or jev_images.has_box(questions):
+        raise AltModelError("images-unsupported")
+
+    api_key = _alt_model_api_key()
+    backend = _resolve_backend(api_key)
     prompt = _prompt(state, questions)
     if backend == "claude-cli":
-        parsed, source = _answer_cli(prompt, timeout)
+        # The CLI starts a full subprocess and routinely needs more wall time
+        # than a caller sizes for a fast API/Gateway call; never starve it
+        # below its own measured floor.
+        parsed, source = _answer_cli(prompt, max(timeout, CLAUDE_CLI_TIMEOUT_S))
     elif backend == "api":
         if not api_key:
             raise AltModelError("no-alt-model-key")
         if not _base_url_ok(ALT_MODEL_BASE_URL):
             raise AltModelError("alt-model-insecure-url")
-        parsed, source = _answer_api(prompt, timeout, api_key)
+        max_tokens = min(_MAX_OUTPUT_TOKENS, _BASE_OUTPUT_TOKENS + _OUTPUT_TOKENS_PER_QUESTION * max(1, len(questions)))
+        parsed, source = _answer_api(prompt, timeout, api_key, max_tokens)
     else:
         raise AltModelError(f"invalid-backend:{backend}")
     if parsed is None:

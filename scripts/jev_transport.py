@@ -335,9 +335,19 @@ def evaluate_with_fallback(
             alt = jev_alt_model.answer(state, questions, timeout=alt_timeout or timeout)
         except jev_alt_model.AltModelError as alt_exc:
             _log_alt_model_event(questions, mode="fallback", reason=f"jev={reason} alt={alt_exc.reason}")
+            # Both the Jev and alt-model failures survive as structured fields
+            # on `telemetry`, not only as text in the message: `exc.source`
+            # and `exc.telemetry` would otherwise be reachable only by
+            # walking `__cause__.__context__`, which no caller does.
             raise JevTransportError(
                 f"Jev unavailable ({reason}); alt-model fallback also failed: {alt_exc.reason}",
                 source=FALLBACK_FAILED,
+                telemetry={
+                    "jev_source": exc.source,
+                    "jev_error": str(exc)[:200],
+                    "jev_telemetry": exc.telemetry,
+                    "alt_error": alt_exc.reason,
+                },
             ) from alt_exc
         alt["_meta"]["fallback_reason"] = reason
         _log_alt_model_event(questions, mode="fallback", reason=None)

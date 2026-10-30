@@ -87,6 +87,13 @@ def test_fallback_raises_when_both_jev_and_alt_model_fail(monkeypatch: pytest.Mo
         jev_transport.evaluate_with_fallback(STATE, QUESTIONS, timeout=5)
     assert exc_info.value.source == jev_transport.FALLBACK_FAILED
     assert "claude-cli-missing" in str(exc_info.value)
+    # Regression: the original Jev failure's structured fields must survive on
+    # the raised error's `telemetry`, not just inside the stringified message --
+    # a caller reading `exc_info.value.telemetry` (not `__cause__.__context__`)
+    # must still see what Jev itself reported.
+    assert exc_info.value.telemetry["jev_source"] == "unavailable"
+    assert "boom" in exc_info.value.telemetry["jev_error"]
+    assert exc_info.value.telemetry["alt_error"] == "claude-cli-missing"
 
 
 def test_fallback_refuses_images_without_calling_alt_model(monkeypatch: pytest.MonkeyPatch) -> None:
