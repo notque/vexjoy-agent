@@ -11,18 +11,46 @@ any mutation testing itself.
 
 from __future__ import annotations
 
+import ast
+import re
 from pathlib import Path
 
-import tomllib
-
+# `tomllib` is stdlib only from Python 3.11; this repo's CI matrix still runs
+# 3.10 (no `tomli` fallback is installed there, and these configs are
+# deliberately NOT a CI dependency -- see either .toml file's own comment).
+# A real TOML parser is unnecessary for what this test actually checks: two
+# single-line scalars/arrays and one multi-line array whose exact text must
+# match byte-for-byte across both files. Targeted regexes on the raw text
+# cover that without adding a parser or a new dependency.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LIMITS_CONFIG = REPO_ROOT / "scripts" / "cosmic-ray-jev-limits.toml"
 ROUTER_CONFIG = REPO_ROOT / "scripts" / "cosmic-ray-jev-router-common.toml"
 
+_MODULE_PATH_RE = re.compile(r"^module-path\s*=\s*(\[.*\])\s*$", re.MULTILINE)
+_EXCLUDE_OPERATORS_RE = re.compile(r"^exclude-operators\s*=\s*\[(.*?)^\]\s*$", re.MULTILINE | re.DOTALL)
 
-def _load(path: Path) -> dict:
-    with path.open("rb") as f:
-        return tomllib.load(f)
+
+def _module_path(path: Path) -> list[str]:
+    """Return the config's `module-path` array, e.g. `["scripts/jev_limits.py"]`."""
+    text = path.read_text(encoding="utf-8")
+    match = _MODULE_PATH_RE.search(text)
+    assert match is not None, f"{path} has no top-level module-path = [...] line"
+    return ast.literal_eval(match.group(1))
+
+
+def _exclude_operators_block(path: Path) -> str:
+    """Return the raw text inside `exclude-operators = [ ... ]`, whitespace-normalized.
+
+    Returned as text, not a parsed list: the value is a single TOML
+    triple-quoted literal string holding a regex, and comparing the raw
+    block is exactly as strict as comparing a parsed value for this test's
+    purpose (byte-for-byte drift between the two files) without needing a
+    TOML string-literal parser.
+    """
+    text = path.read_text(encoding="utf-8")
+    match = _EXCLUDE_OPERATORS_RE.search(text)
+    assert match is not None, f"{path} has no top-level exclude-operators = [...] block"
+    return re.sub(r"\s+", " ", match.group(1)).strip()
 
 
 def test_both_configs_exist() -> None:
@@ -38,11 +66,8 @@ def test_exclude_operators_identical_across_both_configs() -> None:
     format has no include/anchor mechanism), so this is the guard that
     replaces sharing a single source of truth.
     """
-    limits_cfg = _load(LIMITS_CONFIG)
-    router_cfg = _load(ROUTER_CONFIG)
-
-    limits_exclude = limits_cfg["cosmic-ray"]["filters"]["operators-filter"]["exclude-operators"]
-    router_exclude = router_cfg["cosmic-ray"]["filters"]["operators-filter"]["exclude-operators"]
+    limits_exclude = _exclude_operators_block(LIMITS_CONFIG)
+    router_exclude = _exclude_operators_block(ROUTER_CONFIG)
 
     assert limits_exclude == router_exclude, (
         "scripts/cosmic-ray-jev-limits.toml and scripts/cosmic-ray-jev-router-common.toml "
@@ -52,8 +77,5 @@ def test_exclude_operators_identical_across_both_configs() -> None:
 
 def test_both_configs_scope_module_path_to_one_file_each() -> None:
     """Each config mutates exactly the one script it is named for."""
-    limits_cfg = _load(LIMITS_CONFIG)
-    router_cfg = _load(ROUTER_CONFIG)
-
-    assert limits_cfg["cosmic-ray"]["module-path"] == ["scripts/jev_limits.py"]
-    assert router_cfg["cosmic-ray"]["module-path"] == ["scripts/jev_router_common.py"]
+    assert _module_path(LIMITS_CONFIG) == ["scripts/jev_limits.py"]
+    assert _module_path(ROUTER_CONFIG) == ["scripts/jev_router_common.py"]
