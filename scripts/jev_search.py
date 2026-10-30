@@ -25,10 +25,12 @@ imported on first use.
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Generic, Literal, TypeVar, cast
 
 import jev_limits
@@ -562,3 +564,118 @@ def checkpoint_search(
         ledger=ledger,
         checkpoints_reached=len(subgoals),
     )
+
+
+# --- Trace, replay, and fork-from-call-N ---
+#
+# `evaluate` is the only network touchpoint `beam_search`/`checkpoint_search`
+# use; `expand`, `describe`, and `is_done` are the caller's own deterministic
+# code. Recording and replaying `evaluate` alone is therefore enough to debug
+# a multi-step search without re-spending Jev calls: wrap the real `evaluate`
+# with `TraceRecorder`, save it, then feed the saved calls back with
+# `ReplayEvaluate` (whole trace, zero cost) or `fork_evaluate` (first `fork_at`
+# calls for free, live calls after). A call here is one `evaluate` request,
+# not one search step; a step can fan out into several calls (see
+# `_plan_requests`).
+
+
+class TraceExhausted(RuntimeError):
+    """Raised when a replay runs out of recorded Jev calls."""
+
+
+class TraceMismatch(RuntimeError):
+    """Raised when a replayed call's request diverges from the recorded trace."""
+
+
+@dataclass
+class TraceRecorder:
+    """Wrap an `Evaluate` so every request and response is recorded, in call order.
+
+    Pass an instance as the `evaluate=` argument to `beam_search` or
+    `checkpoint_search`; call `save` afterward so the run can be replayed later.
+    """
+
+    evaluate: Evaluate
+    calls: list[dict[str, Any]] = field(default_factory=list)
+
+    def __call__(self, state: dict[str, Any], questions: dict[str, Any], *, timeout: float) -> dict[str, Any]:
+        """Call the wrapped evaluate and record the request alongside its response."""
+        response = self.evaluate(state, questions, timeout=timeout)
+        self.calls.append({"state": state, "questions": questions, "response": response})
+        return response
+
+    def save(self, path: str | Path) -> None:
+        """Write every recorded call, in order, as JSON to `path`."""
+        Path(path).write_text(json.dumps(self.calls, indent=1), encoding="utf-8")
+
+
+def load_trace(path: str | Path) -> list[dict[str, Any]]:
+    """Load a trace written by `TraceRecorder.save`.
+
+    Raises:
+        ValueError: `path` does not hold a list of recorded state/questions/response calls.
+    """
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, list) or not all(
+        isinstance(call, dict) and {"state", "questions", "response"} <= call.keys() for call in data
+    ):
+        raise ValueError(f"{path} is not a jev_search trace (expected a list of state/questions/response records)")
+    return cast(list[dict[str, Any]], data)
+
+
+class ReplayEvaluate:
+    """Replay recorded Jev calls in call order, at zero cost.
+
+    Each call's incoming request is checked against the recorded one
+    (`strict=True`, the default); a mismatch raises `TraceMismatch` instead of
+    silently returning a stale answer, so a caller can assert that a replay
+    reproduces the same search path rather than merely hoping it does.
+    """
+
+    def __init__(self, calls: Sequence[Mapping[str, Any]], *, strict: bool = True) -> None:
+        """Create a replay over `calls` (from `TraceRecorder` or `load_trace`), in their recorded order."""
+        self._calls = list(calls)
+        self._strict = strict
+        self.calls_made = 0
+
+    def __call__(self, state: dict[str, Any], questions: dict[str, Any], *, timeout: float) -> dict[str, Any]:  # noqa: ARG002
+        """Return the next recorded response; never touches the network."""
+        if self.calls_made >= len(self._calls):
+            raise TraceExhausted(f"replay has only {len(self._calls)} recorded call(s)")
+        recorded = self._calls[self.calls_made]
+        self.calls_made += 1
+        if self._strict and (recorded["state"] != state or recorded["questions"] != questions):
+            raise TraceMismatch(f"call {self.calls_made} diverged from the recorded trace")
+        return cast(dict[str, Any], recorded["response"])
+
+
+def fork_evaluate(calls: Sequence[Mapping[str, Any]], fork_at: int, live: Evaluate, *, strict: bool = True) -> Evaluate:
+    """Replay the first `fork_at` recorded calls for free, then call `live` for every call after.
+
+    Lets a caller resume spending Jev calls partway through a saved trace
+    instead of re-paying for the whole search, e.g. to debug a prompt or
+    scoring change against calls `fork_at + 1` onward while calls `1..fork_at`
+    stay cached.
+
+    Args:
+        calls: Recorded calls from `TraceRecorder` or `load_trace`.
+        fork_at: Number of calls to replay before switching to `live`; 0 replays nothing.
+        live: The real evaluate function used from call `fork_at + 1` onward.
+        strict: Verify every replayed call's request against the recording (see `ReplayEvaluate`).
+
+    Raises:
+        ValueError: `fork_at` is negative.
+    """
+    if fork_at < 0:
+        raise ValueError("fork_at must be >= 0")
+    replay = ReplayEvaluate(calls, strict=strict)
+    made = 0
+
+    def evaluate(state: dict[str, Any], questions: dict[str, Any], *, timeout: float) -> dict[str, Any]:
+        nonlocal made
+        made += 1
+        if made <= fork_at:
+            return replay(state, questions, timeout=timeout)
+        return live(state, questions, timeout=timeout)
+
+    return evaluate
