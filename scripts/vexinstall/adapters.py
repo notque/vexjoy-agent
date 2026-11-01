@@ -13,6 +13,7 @@ external.py.
 | hermes   | skills/<n>, mode        | -             | -            | -                        | per entry | -        |
 | reasonix | skills/<n>, mode;       | -             | -            | hooks/<allowlisted> +    | per entry | external |
 |          | support copy            |               |              | hooks/lib                |           |          |
+| cline    | <root>/<n>, mode        | -             | -            | -                        | -         | -        |
 
 "external" settings files (codex hooks.json, factory/reasonix settings.json)
 stay with their existing generator scripts; the engine does not write them.
@@ -115,6 +116,11 @@ ADAPTERS: dict[str, Adapter] = {
         agents="agents",
         hooks="whole",
         scripts="whole",
+    ),
+    "cline": Adapter(
+        name="cline",
+        root=".cline",
+        skills=".",
     ),
 }
 
@@ -280,7 +286,7 @@ def resolve_targets(spec: str, home: Path) -> list[str]:
     if spec != "all":
         return [spec]
     out = ["claude"]
-    for name in ("codex", "factory", "hermes", "reasonix", "antigravity"):
+    for name in ("codex", "factory", "hermes", "reasonix", "antigravity", "cline"):
         if ADAPTERS[name].root_path(home).is_dir():
             out.append(name)
     return out

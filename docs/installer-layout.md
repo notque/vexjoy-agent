@@ -27,6 +27,16 @@ Checked on 2026-09-22 against these pages:
 | Unknown keys inside a hook entry in `settings.json` are accepted. | Undocumented | Not relied on. Owned hook entries carry no marker key. Ownership comes from the command path (spec 10) and the ledger hashes. |
 | Stray non-skill dirs in a skills root (no `SKILL.md`) are ignored. | Undocumented | Only `SUPPORT_DIRS` are installed there. `doctor` warns on any other non-skill dir. |
 
+## Verified Cline behavior
+
+Checked against [Skills](https://docs.cline.bot/customization/skills).
+
+| Fact | Status | What the engine does about it |
+|---|---|---|
+| Cline reads skills from `~/.cline/<name>/SKILL.md` directly; no `skills/` subdirectory. | Documented | `adapter.skills="."` installs skills at `root/./<name>`, which resolves to `root/<name>`. |
+| No `settings.json` equivalent for hooks; hooks are SDK/plugin-only. | Documented | No hook entries are written. |
+| Dirs without `SKILL.md` (support dirs) are ignored by Cline. | Documented | Support dirs (`shared-patterns`, `kb`, `voice-shared`) are not installed for the cline target. |
+
 ## Shared rules
 
 - **Flat names.** `<root>/skills/<category>/<name>` installs as `<name>`. `scripts/validate-skill-names.py` fails CI when two public skills share a name. Overlay entries may add a prefix, such as `voice-`.
@@ -51,6 +61,7 @@ Checked on 2026-09-22 against these pages:
 | hermes | `~/.hermes` | `<root>/skills/<name>`, mode | none | none | none | `<root>/scripts/<entry>` | none |
 | reasonix | `~/.reasonix` | `<root>/skills/<name>`, mode; support copy | none | none | `<root>/hooks/<allowlisted>` + `hooks/lib` | `<root>/scripts/<entry>` | `settings.json`: external |
 | antigravity | `~/.gemini` | `<root>/skills/<name>`, mode | `<root>/agents/<entry>`, mode | none | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `config/hooks.json`: external |
+| cline | `~/.cline` | `<root>/<name>`, mode; no support dirs | none | none | none | none | none |
 
 Allowlists:
 
