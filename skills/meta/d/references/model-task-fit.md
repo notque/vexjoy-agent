@@ -1,5 +1,19 @@
 # Model task fit
 
+## Owner override (2026-11-01)
+
+Owner (notque), verbatim: "I like opus running actual code and making decisions, as it's the best model. everything else is worse, and then i don't save any tokens have to redo the work, and fix it." / "haiku for read only gathering has been fine, i just find sonnet for code and work, isn't as strong as opus."
+
+The owner's observed experience supersedes the tables below: Sonnet code work needed redo. Current policy:
+
+- Opus: all code writing, edits, debugging, features, reviews that decide, and decisions. Default for anything not read-only. `build-dispatch.py` maps standard and high-risk to opus/high.
+- Haiku: read-only gathering only (locate, lookup, cite lines, collect excerpts, research fetch and executor work) that an Opus thread judges. low-risk maps to haiku/low.
+- Sonnet: no row's or tier's default. A haiku read-only miss retries on opus.
+
+The rest of this file is the historical 2026-10 record, kept for re-measurement.
+
+## Historical record (2026-10)
+
 Decision record for the `model` field in `build-dispatch.py` and every Agent call. Source: blind Jev eval, 2026-10. Skills `d` (Phase 5) and `do` (Step 2) carry the short table and link here.
 
 ## Setup
@@ -23,9 +37,9 @@ Cost is Opus / Sonnet / Haiku per run.
 | long_lane (9-10 files, UI text, 89-135k prompt) | $1.66 / $0.46 / $0.25 | all player-facing level 2 after evidence fix; test Sonnet 2.97 | sonnet 0.77, haiku 0.21 |
 | unmatched task | n/a | n/a | sonnet 0.54, haiku 0.45 (split after one sharpening; sonnet chosen as safer) |
 
-Opus won no measured task.
+In this 2026-10 eval, Opus topped none of the five task types; the owner override above supersedes that reading.
 
-## Tier choice
+## Tier choice (2026-10, superseded)
 
 | Tier | Choice | Probability | Rationale |
 |---|---|---|---|
@@ -33,11 +47,11 @@ Opus won no measured task.
 | standard | sonnet | 0.90 | Won deep_debug, ts_feature, long_lane; safer default for unmatched work. |
 | high-risk | opus | 1.00 | Unmeasured, and a miss is costly. Opus is the paid-for insurance, not a measured winner. |
 
-`build-dispatch.py` maps `model_policy` low-risk / standard / high-risk to haiku/low, sonnet/medium, opus/high. `max-power` stays opus/xhigh and needs `manual_model_override=true`.
+In 2026-10, `build-dispatch.py` mapped these tiers to haiku/low, sonnet/medium, opus/high. It now maps them to haiku/low, opus/high, opus/high. `max-power` stays opus/xhigh and needs `manual_model_override=true`.
 
 ## Escalate on a miss
 
-Order: haiku, sonnet, opus. Retry once on the next model when either holds:
+Order: haiku, then opus (2026-10 order was haiku, sonnet, opus). Retry once on the next model when either holds:
 
 - an objective check fails (tests, `tsc`, `ruff`, acceptance command);
 - a Jev blocker Noul ("anything worse or blocking") is at least 0.6.

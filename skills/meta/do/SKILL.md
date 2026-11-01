@@ -22,9 +22,9 @@ routing:
 
 # /do - Smart Router
 
-ROUTER, not worker. Classify → agent+skill → dispatch. All execution goes to agents. Catching yourself reading/writing code or analyzing — pause and route to an agent. Exception: reading to fill the Task Spec is routing work — up to 5 files as excerpts; more → one read-only Explore dispatch whose deliverable is the excerpt list. Main: Classify→Select→Dispatch→Evaluate→Re-route→Report.
+ROUTER first, worker when dispatch does not pay. Classify → skill (+agent when dispatching) → execute or dispatch. Trivial and Simple on the Anthropic lane: the main thread loads the skill and does the work itself, because a dispatched worker cold-reloads ~12k tokens of instructions and re-reads files this thread already holds. Dispatch only when it pays: parallel fan-out (independent parts), long lanes (about 5+ files, or work that would bloat this thread's context), worktree isolation, or read-only Haiku gathering. Medium and Complex dispatch to agents. Exception: reading to fill the Task Spec is routing work — up to 5 files as excerpts; more → one read-only Explore dispatch whose deliverable is the excerpt list. Main: Classify→Select→Execute or Dispatch→Evaluate→Re-route→Report.
 
-Do the whole thing (tests+docs). Product, not plan. Permanent solve over workaround. Search before building; test before shipping. Decompose into agent-sized tasks. The result reads as "that's done," not "that's a start." Partial → follow-up. Inject Simple+. Confidence in handling directly is a signal to route.
+Do the whole thing (tests+docs). Product, not plan. Permanent solve over workaround. Search before building; test before shipping. Decompose into agent-sized tasks. The result reads as "that's done," not "that's a start." Partial → follow-up. Inject Simple+. Confidence in handling Medium+ directly is a signal to route.
 
 Dense-Complete Writing (`build-dispatch.py` injects; `skills/shared-patterns/dense-complete-writing.md`). User: banners+summary. Internal: JSON/reasoning/stacking (Verbose overrides).
 
@@ -45,12 +45,12 @@ Read CLAUDE.md (or GEMINI.md on Antigravity CLI) first.
 
 | Complexity | Agent | Skill | Direct |
 |---|---|---|---|
-| Trivial | No | No | ONLY user-named file by path |
-| Simple | Yes | Yes | Route |
+| Trivial | No | No | Main thread; ONLY user-named file by path |
+| Simple | Only when dispatch pays | Yes | Main thread (Anthropic lane); dispatch when it pays |
 | Medium | Required | Required | Route |
 | Complex | 2+ | 2+ | Route |
 
-Beyond user-named file = Simple+, must route. Uncertain → UP. Depth: `references/progressive-depth.md`. NOT Trivial: repos/URLs, opinions, git, codebase Qs, process, comparisons.
+Beyond user-named file = Simple+: pick and load a skill, emit the marker, then execute or route. Uncertain → UP. Depth: `references/progressive-depth.md`. NOT Trivial: repos/URLs, opinions, git, codebase Qs, process, comparisons.
 
 Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→research-coordinator-engineer; coord→project-coordinator-engineer; plan+exec→process; feature→workflow (.feature/→feature-state.py status). Force Direct: OFF.
 
@@ -233,9 +233,9 @@ rm -f "$REQUEST_FILE"
 ===================================================================
 ```
 
-Trivial: `Classification: Trivial - [reason]`, `Handling directly`.
+Trivial: `Classification: Trivial - [reason]`, `Handling directly`. Main-thread Simple: the banner shows `-> Agent: main - main thread, dispatch does not pay`.
 
-**Gate**: Agent+skill set, banner shown. Phase 3.
+**Gate**: Agent (or `main`) and skill set, banner shown. Phase 3.
 
 ---
 
@@ -304,6 +304,8 @@ Reuse reads only while their source and task context remain unchanged; a fresh w
 
 **Step 2: Invoke agent**
 
+**Main thread (Trivial, and Simple when dispatch does not pay; Anthropic lane):** run `build-dispatch.py` with `{"execution": "main", "skill": "<skill, or - for Trivial>", "complexity": "<trivial|simple>", "task_spec": {"intent": "..."}}` and no model fields. It prints `[do-route] agent=main skill={s} complexity={c} model=inherit health=- exec=main` plus the Skill-tool calls, and feeds the marker to `routing-decision-recorder`, so telemetry counts the route (`--no-record` skips that). Then call the Skill tool as printed and do the work in this thread. Do not dispatch an Agent for it.
+
 **`build-dispatch.py`** — source for `[do-route]`, exact Skill-tool calls, thinking, budget, Task Spec, injections, worktree/local-only. Do not hand-assemble it.
 
 ```bash
@@ -313,7 +315,7 @@ cat > "$DISPATCH_JSON" << 'DISPATCH_EOF'
   "agent": "<agent>", "skill": "<skill; omit when agent-only>",
   "pipeline": "<pipeline; omit when Phase 2 returned null>",
   "complexity": "<trivial|simple|medium|complex>",
-  "model": "<haiku|sonnet|opus or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high from Model choice>",
+  "model": "<opus (code, edits, decisions) | haiku (read-only gathering) or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high from Model choice>",
   "context_mode": "summary",
   "provider": "<anthropic|openai|google|antigravity|other>",
   "manual_model_override": false,
@@ -336,7 +338,7 @@ rm -f "$DISPATCH_JSON"
 
 `agent`/`skill`/`complexity`: Phase 2 (null→`-`). `pipeline`: the Phase 2 pick, passed so the marker carries it; omit when null. The builder validates each name against its index, then emits this exact action contract once per callable skill, primary first with ordered stack de-duplication: `Call the Skill tool with \`skill-name\`.` Shared-pattern stack entries remain prompt injections. Agents and pipelines stay out of Skill-tool calls. Fan-out: one call per agent, same `skill`/`pipeline`. `model`: **required Medium+**; pick from **Model choice** below. Override rules: `references/model-selection.md`. `provider` describes the active harness (anthropic|openai|other), not an installed directory. `health`: `-` (in-context weights read retired — `docs/route-loop-validation.md`). `fallback_reason`: **required when `agent=general-purpose`** — the one-line reason from the Agent-greediness gate, any prose; `build-dispatch.py` slugifies it and appends `fallback=<slug>` to the marker so every fallback is countable. Dispatch fails without it. `stack`: Phase 3. `task_spec`: mandatory Simple+ (Phase 3 Step G); the script rejects an empty spec at Medium+; creation+"match ADR". `thinking_override`: slow=security/arch/5+files; fast=lookups.
 
-`[do-route]` = SOLE signal for `routing-decision-recorder`. Sub-agents excluded.
+`[do-route]` = SOLE signal for `routing-decision-recorder`. Sub-agents excluded. Main-thread routes reach it through `build-dispatch.py` (`agent=main`, `exec=main`).
 
 **PR work briefs:** put in `constraints`: commit locally, report the SHA, never push or open a PR without the coordinator's go-ahead.
 
@@ -344,25 +346,23 @@ rm -f "$DISPATCH_JSON"
 
 **Model choice.** Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
 
-| Task type | Model | Cost O/S/H per run (USD) | Deciding Jev evidence |
-|---|---|---|---|
-| locate, lookup, cite lines | haiku | 0.43 / 0.19 / 0.02 | haiku 0.91 |
-| mechanical edit (rename, 11 files) | haiku | 0.26 / 0.11 / 0.007 | haiku 0.93 with scope evidence |
-| review, find planted bugs | haiku | 0.4 / 0.15 / 0.01 | haiku 0.95 (n=1) |
-| debug: root cause + regression test | sonnet | 0.39 / 0.20 / 0.015 | sonnet 0.88; haiku test 2.00 vs 2.86 |
-| feature in an existing pattern (7 files) | sonnet | 1.30 / 0.32 / 0.088 | sonnet 0.64; Opus edited unrequested docs |
-| long lane (9-10 files, UI text) | sonnet | 1.66 / 0.46 / 0.25 | sonnet 0.77 |
-| no row fits | sonnet | n/a | sonnet 0.54 / haiku 0.45 (split) |
+| Task type | Model | Why |
+|---|---|---|
+| code writing and edits, including mechanical renames | opus | Owner, 2026-11-01: Sonnet code work needed redo |
+| debugging, features, long lanes | opus | Same; a redo costs more than the Opus premium |
+| review that decides (verdict, ship or merge call) | opus | Decisions stay on Opus |
+| decisions, design, no row fits | opus | Default for anything not read-only |
+| read-only gathering: locate, lookup, cite lines, collect excerpts, fetch research (executor work) | haiku | An Opus thread judges the result; haiku 0.91 on locate |
 
-Opus won no measured task.
+Sonnet is no row's default.
 
-Tiers (`model_policy`): low-risk = haiku, standard = sonnet, high-risk (unmeasured, costly miss) = opus. `max-power` stays opus/xhigh and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
+Tiers (`model_policy`): low-risk = haiku (read-only gathering only), standard = opus/high, high-risk = opus/high. `max-power` stays opus/xhigh and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
 
-**Antigravity CLI (`agy`) & Google AI (Argon):** When `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`. Set `provider="google"` in `build-dispatch.py` (`low-risk` = `gemini-3.8-flash` / `low`, `standard` = `gemini-4-argon` / `medium`, `high-risk` = `gemini-4-argon-high` / `high`, `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`). For all Simple+ tasks (Simple, Medium, Complex), dispatch subagents via native Antigravity primitives (register specialist via `define_subagent` from `agents/*.md` if not already defined, dispatch via `invoke_subagent` with `Workspace="inherit"` for single-agent tasks, `Workspace="branch"|"share"` for parallel code isolation, `send_message` for stateful continuation, `manage_subagents` for 3-strike circuit breaking) or Python `run_workflow` (`skills/process/workflow/references/fan-out-workflow.py`). When a task or approved plan specifies multiple subagents (e.g. Subagents A/B/C/D), dispatch every planned subagent individually; never consolidate them into a single monolithic worker prompt. Only Trivial tasks execute directly in the main thread. For deep autonomous work (`/goal`), enforce Phase 4.5 verification before emitting `<!-- GOAL_COMPLETE -->`.
+**Antigravity CLI (`agy`) & Google AI (Argon):** When `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`. Set `provider="google"` in `build-dispatch.py` (`low-risk` = `gemini-3.8-flash` / `low`, `standard` = `gemini-4-argon` / `medium`, `high-risk` = `gemini-4-argon-high` / `high`, `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`). For all Simple+ tasks (Simple, Medium, Complex), dispatch subagents via native Antigravity primitives (register specialist via `define_subagent` from `agents/*.md` if not already defined, dispatch via `invoke_subagent` with `Workspace="inherit"` for single-agent tasks, `Workspace="branch"|"share"` for parallel code isolation, `send_message` for stateful continuation, `manage_subagents` for 3-strike circuit breaking) or Python `run_workflow` (`skills/process/workflow/references/fan-out-workflow.py`). When a task or approved plan specifies multiple subagents (e.g. Subagents A/B/C/D), dispatch every planned subagent individually; never consolidate them into a single monolithic worker prompt. On Antigravity, only Trivial tasks execute directly in the main thread; the Anthropic-lane main-thread rule for Simple tasks does not apply here. For deep autonomous work (`/goal`), enforce Phase 4.5 verification before emitting `<!-- GOAL_COMPLETE -->`.
 
-Escalate on a miss: haiku, then sonnet, then opus (or `gemini-3.8-flash` → `gemini-4-argon` → `gemini-4-argon-high` on Google AI). Retry once on the next model when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
+Escalate on a miss: a haiku read-only miss retries on opus (on Google AI: `gemini-3.8-flash` → `gemini-4-argon` → `gemini-4-argon-high`). Retry once when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
 
-Evidence limits: one repo, one run per cell; the review row is n=1. Full record, Jev questions, probabilities, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
+Evidence: the owner's 2026-11-01 override supersedes the 2026-10 task-fit table. The historical record, Jev questions, probabilities, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
 The marker records the requested selection, not an observed worker model. Report actual identity only from harness metadata. Use scripts for deterministic work. Session configuration stays under the user's control. Codex prompts stay read-only and public unless the task requires otherwise.
 
@@ -373,7 +373,7 @@ The marker records the requested selection, not an observed worker model. Report
 | list/count/extract/inventory/search/check/find/grep | Scripts when deterministic; otherwise readers → synthesis, model per **Model choice** |
 | review/audit/assess/analyze/debug/investigate/evaluate | Single agent, model per **Model choice** |
 
-Simple/Medium: direct. Feature-branch; mods commit. `isolation:"worktree"`→`flags.worktree`. Non-org: 3 reviews→fix→PR. Org: confirm git.
+Simple: main thread unless dispatch pays (Phase 1). Medium: one direct dispatch. Feature-branch; mods commit. `isolation:"worktree"`→`flags.worktree`. Non-org: 3 reviews→fix→PR. Org: confirm git.
 
 **Step 3: Multi-part / fan-out** — deps sequential; independent parallel (max 10). Phase 2 `agents` → ONE `build-dispatch.py` call and ONE Agent dispatch per agent: N agents = N calls = N markers, one marker each. Emit the parallel Agent calls in a single message. Each agent gets its own `files` and scope. Sequential stages pass relevant prior results and evidence locations; synthesis receives the findings and access to evidence from every required stage. Packing several markers into one Bash/Workflow script keeps them recorded but forfeits route-fit scoring, which reads a lone marker per event.
 

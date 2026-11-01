@@ -28,9 +28,9 @@ Measurement cells: Pass@1 / average USD per task / output tokens / steps. Higher
 | Task class | Selection | pts/$ | Why |
 |---|---|---|---|
 | deterministic | no LLM | — | Run the script directly. |
-| low-risk | `haiku` / `low` | n/a | Task-fit eval: matched quality on lookup, rename, review at the lowest cost. |
-| standard | `sonnet` / `medium` | n/a | Task-fit eval: won debug, feature, long-lane work. |
-| high-risk | `opus` / `high` | n/a | Unmeasured tier; a miss is costly. |
+| low-risk | `haiku` / `low` | n/a | Read-only gathering only (locate, lookup, cite lines, excerpts, research fetch); an Opus thread judges the result. |
+| standard | `opus` / `high` | n/a | Owner, 2026-11-01: all code, edits, debugging, deciding reviews, and decisions. Sonnet code work needed redo. |
+| high-risk | `opus` / `high` | n/a | A miss is costly. |
 | max-power | `opus` / `xhigh` | n/a | `manual_model_override=true`; state justification in task_spec intent. |
 
 | Variant | max | xhigh | high | medium | low |

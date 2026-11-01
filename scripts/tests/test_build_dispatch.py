@@ -23,6 +23,7 @@ Run with: python3 -m pytest scripts/tests/test_build_dispatch.py -v
 import functools
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import time
@@ -829,12 +830,12 @@ SUPPLIED_CLAUDE_POINTS = {
     ("task_class", "model", "effort"),
     [
         ("low-risk", "haiku", "low"),
-        ("standard", "sonnet", "medium"),
+        ("standard", "opus", "high"),
         ("high-risk", "opus", "high"),
     ],
 )
 def test_anthropic_policy_maps_tiers_to_measured_models(task_class, model, effort):
-    """Task-fit eval: low-risk haiku, standard sonnet, high-risk opus; effort rises with risk."""
+    """Owner policy 2026-11-01: low-risk haiku (read-only), standard and high-risk opus."""
     decision = _decision(model=None, model_policy=task_class, provider="anthropic")
     marker = bd.build_marker(decision)
 
@@ -844,15 +845,80 @@ def test_anthropic_policy_maps_tiers_to_measured_models(task_class, model, effor
     assert recorder.parse_model_effort(marker) == effort
 
 
-def test_anthropic_policy_models_are_known_and_effort_rises_with_risk():
-    """Every tier names a known Claude model; effort still rises with risk."""
+def test_anthropic_policy_models_are_known_and_effort_never_falls_with_risk():
+    """Every tier names a known Claude model; effort never falls as risk rises."""
     order = ["low", "medium", "high", "xhigh", "max"]
     previous = -1
     for policy in ("low-risk", "standard", "high-risk", "max-power"):
         model, effort = bd.ANTHROPIC_AUTO_POLICIES[policy]
         assert model in bd.ANTHROPIC_MODELS, f"{policy} selects unknown model {model}"
-        assert order.index(effort) > previous, f"{policy} breaks the start-low effort ordering"
+        assert order.index(effort) >= previous, f"{policy} breaks the start-low effort ordering"
         previous = order.index(effort)
+
+
+def test_anthropic_policy_sonnet_is_no_tier_default():
+    """Owner policy 2026-11-01: opus for all non-read-only tiers, haiku for read-only, sonnet for none."""
+    tiers = bd.ANTHROPIC_AUTO_POLICIES
+    assert all(model != "sonnet" for model, _ in tiers.values())
+    assert tiers["low-risk"][0] == "haiku"
+    assert {tiers[p][0] for p in ("standard", "high-risk", "max-power")} == {"opus"}
+
+
+def _main_decision(**overrides):
+    base = {"execution": "main", "skill": "testing", "complexity": "simple", "task_spec": {"intent": "fix a typo"}}
+    base.update(overrides)
+    return base
+
+
+def test_main_thread_marker_records_agent_main_and_exec_token():
+    """Main-thread routes keep a valid, recorder-parseable marker with no fallback."""
+    marker = bd.build_marker(_main_decision())
+    assert marker == "[do-route] agent=main skill=testing complexity=simple model=inherit health=- exec=main"
+    assert recorder.parse_do_route_marker(marker) == ("main", "testing")
+    assert recorder.parse_fallback_reason(marker) is None
+
+
+def test_agent_main_implies_main_thread_execution():
+    marker = bd.build_marker({"agent": "main", "skill": "testing", "complexity": "simple"})
+    assert marker.startswith("[do-route] agent=main ") and marker.endswith(" exec=main")
+
+
+def test_main_thread_preamble_omits_worker_handoff_blocks():
+    out = _preamble(_main_decision(complexity="medium"))
+    assert out.splitlines()[0].endswith(" exec=main")
+    assert "Call the Skill tool with `testing`." in out
+    assert bd.MAIN_THREAD_NOTE in out
+    assert bd.INJ_ROUTE_FIT not in out and "Task Specification" not in out
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [{"model": "opus"}, {"model_policy": "standard"}, {"flags": {"worktree": True}}, {"execution": "elsewhere"}],
+)
+def test_main_thread_rejects_dispatch_only_fields(overrides):
+    with pytest.raises(bd.InputError):
+        bd.build_marker(_main_decision(**overrides))
+
+
+def test_cli_main_thread_feeds_the_recorder(tmp_path):
+    """The CLI hands main-thread markers to the real recorder; --no-record skips it."""
+    env = {
+        **os.environ,
+        "CLAUDE_LEARNING_DIR": str(tmp_path / "ld"),
+        "CLAUDE_ROUTING_STATE_DIR": str(tmp_path / "rs"),
+        "CLAUDE_CODE_SESSION_ID": "main-thread-test",
+    }
+    payload = json.dumps(_main_decision())
+    run = functools.partial(subprocess.run, capture_output=True, text=True, env=env, check=False)
+    skipped = run([sys.executable, str(SCRIPT_PATH), "--json", payload, "--no-record"])
+    assert skipped.returncode == 0 and not (tmp_path / "ld" / "route-events.jsonl").exists()
+    result = run([sys.executable, str(SCRIPT_PATH), "--json", payload])
+    assert result.returncode == 0
+    events = (tmp_path / "ld" / "route-events.jsonl").read_text().splitlines()
+    decision = json.loads(events[-1])
+    assert (decision["agent"], decision["skill"], decision["model"]) == ("main", "testing", "inherit")
+    pending = json.loads((tmp_path / "rs" / "claude-routing-outcomes-main-thread-test.json").read_text())["pending"]
+    assert pending[-1]["key"] == "main:testing"
 
 
 def test_opus_max_requires_manual_override():
@@ -904,9 +970,9 @@ def test_provider_absent_defaults_to_anthropic():
     """Missing provider field defaults to 'anthropic' (Claude Code is primary)."""
     decision = _decision(model=None, model_policy="standard")
     marker = bd.build_marker(decision)
-    # Should resolve via Anthropic table: sonnet/medium
-    assert "model=sonnet" in marker
-    assert "effort=medium" in marker
+    # Should resolve via Anthropic table: opus/high (owner policy 2026-11-01)
+    assert "model=opus" in marker
+    assert "effort=high" in marker
 
 
 def test_provider_openai_uses_openai_table():

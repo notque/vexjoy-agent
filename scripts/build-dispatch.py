@@ -33,10 +33,17 @@ truth for every one of them ("LLMs orchestrate, programs execute"):
      completeness, Dense-Complete Writing, base instructions.
   8. Optional worktree rules and LOCAL-ONLY block, on flags.
 
+Main-thread execution (`"execution": "main"` or `"agent": "main"`): the marker
+reads `agent=main ... model=inherit ... exec=main` and the output is the marker,
+the Skill-tool calls, and a one-line main-thread note; worker handoff blocks
+are omitted. The CLI then feeds the marker to hooks/routing-decision-recorder.py
+(`--no-record` skips it). Model fields and `flags.worktree` are input errors.
+
 Input schema (missing optional fields degrade gracefully — block omitted):
 
     {
       "agent": "python-general-engineer",          // required; unknown => coerced
+      "execution": "dispatch",                     // optional: dispatch (default) | main
       "fallback_reason": "no-specialist-match",    // required when the agent is
                                                    // general-purpose; slugified
       "skill": "testing",          // required for simple/medium/
@@ -84,6 +91,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import subprocess
 import sys
@@ -189,12 +197,14 @@ OPENAI_AUTO_POLICIES = {
     "high-risk": ("gpt-5.6-sol", "xhigh"),  # 71 / $4.70
     "max-power": ("gpt-5.6-sol", "max"),  # 73 / $8.39, explicit only
 }
-# Anthropic lane: tiers follow the blind Jev task-fit evaluation, 2026-10; see
-# skills/meta/d/references/model-task-fit.md. Opus never won a measured task, so
-# it is the unmeasured high-risk tier only; escalate haiku -> sonnet -> opus on a miss.
+# Anthropic lane: owner policy, 2026-11-01. It supersedes the 2026-10 task-fit
+# table in skills/meta/d/references/model-task-fit.md (Sonnet code work needed
+# redo). Opus does all code, edits, debugging, deciding reviews, and decisions.
+# Haiku does read-only gathering that an Opus thread judges. Sonnet is no tier's
+# default. A read-only miss retries on opus.
 ANTHROPIC_AUTO_POLICIES = {
-    "low-risk": ("haiku", "low"),
-    "standard": ("sonnet", "medium"),
+    "low-risk": ("haiku", "low"),  # read-only gathering only
+    "standard": ("opus", "high"),
     "high-risk": ("opus", "high"),
     "max-power": ("opus", "xhigh"),  # explicit only
 }
@@ -221,6 +231,18 @@ VALID_MODEL_POLICIES = ("deterministic", *AUTO_MODEL_POLICIES)
 # Trivial/simple retain their existing optional-model behavior.
 _MODEL_REQUIRED_COMPLEXITY = frozenset({"medium", "complex"})
 VALID_ACTIONS = ("keep", "demote", "tiebreak")
+# Main-thread execution (Anthropic lane, owner 2026-11-01). Trivial and Simple
+# work runs in the /do thread: a dispatched worker cold-reloads ~12k tokens of
+# instructions and re-reads files the main thread already holds. The marker
+# records the route as `agent=main ... model=inherit ... exec=main`, and the CLI
+# feeds it to hooks/routing-decision-recorder.py, so route telemetry still
+# counts work that fires no PostToolUse:Agent event.
+MAIN_THREAD_AGENT = "main"
+VALID_EXECUTIONS = ("dispatch", "main")
+MAIN_THREAD_NOTE = (
+    "Execution: main thread. Load the skill(s) above and do the work in this thread. "
+    "Do not dispatch an Agent for this route."
+)
 
 _AGENT_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _SKILL_RE = re.compile(r"^[a-z0-9-]+$")
@@ -348,8 +370,9 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
     """Return the validated ``(model, effort)`` for one dispatch decision.
 
     Harness-aware: ``provider`` selects the automatic policy table.
-    Anthropic lane defaults map low-risk to haiku, standard to sonnet, and
-    high-risk to opus (task-fit eval); haiku and sonnet need no override.
+    Anthropic lane defaults map low-risk to haiku (read-only gathering) and
+    standard and high-risk to opus (owner policy, 2026-11-01); haiku, sonnet,
+    and opus need no override.
     OpenAI lane defaults select GPT-5.6 Sol/Terra.  Effort is recorded in
     the marker for all models; for Claude lanes it is advisory (the harness
     Agent tool does not accept per-call effort).
@@ -701,8 +724,27 @@ def slugify_fallback_reason(value: object) -> str:
     return slug
 
 
+def resolve_execution(decision: dict) -> str:
+    """Return ``dispatch`` or ``main``; ``agent='main'`` implies main-thread execution."""
+    raw = decision.get("execution")
+    execution = str(raw).strip().lower() if raw is not None else ""
+    if not execution:
+        agent = str(decision.get("agent") or "").strip().lower()
+        execution = "main" if agent == MAIN_THREAD_AGENT else "dispatch"
+    if execution not in VALID_EXECUTIONS:
+        raise InputError(f"'execution' {raw!r} — must be one of {'/'.join(VALID_EXECUTIONS)}")
+    if execution == "main":
+        flags = decision.get("flags") or {}
+        if isinstance(flags, dict) and flags.get("worktree"):
+            raise InputError("execution='main' cannot use flags.worktree; worktree isolation needs a dispatch")
+    return execution
+
+
 def resolve_agent(decision: dict) -> tuple[str, str]:
     """Return the validated ``(agent, fallback_reason)`` for one dispatch.
+
+    Main-thread execution always records ``agent=main`` with no fallback: no
+    agent was dispatched, so neither index coercion nor a fallback reason applies.
 
     Two rules the router already had but nothing enforced:
 
@@ -717,6 +759,8 @@ def resolve_agent(decision: dict) -> tuple[str, str]:
        non-empty reason, so every fallback is justified and countable instead
        of being an invisible default.
     """
+    if resolve_execution(decision) == "main":
+        return MAIN_THREAD_AGENT, ""
     agent = _require_str(decision, "agent").lower()
     if not _AGENT_RE.match(agent):
         raise InputError(f"'agent' {agent!r} — must match [a-z0-9][a-z0-9-]*")
@@ -777,7 +821,14 @@ def build_marker(decision: dict) -> str:
     # Effort token included for all models so telemetry can distinguish each
     # benchmarked point; advisory for Claude lanes (Agent tool has no effort param).
     provider = _resolve_provider(decision)
-    model, effort = resolve_model_selection(decision, provider)
+    main_thread = agent == MAIN_THREAD_AGENT
+    if main_thread:
+        # The work runs on the session model; no per-route model applies.
+        if any(decision.get(k) not in (None, "", "-", "inherit") for k in ("model", "model_policy", "model_effort")):
+            raise InputError("execution='main' runs on the session model; omit model, model_policy, and model_effort")
+        model, effort = "inherit", None
+    else:
+        model, effort = resolve_model_selection(decision, provider)
     if model is not None:
         parts.append(f"model={model}")
         if effort is not None:
@@ -829,6 +880,9 @@ def build_marker(decision: dict) -> str:
     # against the real recorder in scripts/tests/test_build_dispatch.py.
     if fallback_reason:
         parts.append(f"fallback={fallback_reason}")
+    # `exec=main` last for the same reason; main-thread routes carry no fallback.
+    if main_thread:
+        parts.append("exec=main")
 
     return " ".join(parts)
 
@@ -1177,6 +1231,10 @@ def build_preamble(
     context_mode(decision)
     marker = build_marker(decision)
     skill_calls = render_skill_calls(decision)
+    if marker.endswith(" exec=main"):
+        # Main thread: the worker handoff blocks (Task Spec, repo state,
+        # injections) have no reader; the thread already holds that context.
+        return "\n\n".join(block for block in (marker, skill_calls, MAIN_THREAD_NOTE) if block) + "\n"
     thinking = build_thinking(decision)
     token_line = build_token_line(decision, settings_path)
     task_spec = build_task_spec(decision)
@@ -1251,6 +1309,46 @@ def build_subagent_dispatch(
     }
 
 
+RECORDER_CANDIDATES = (
+    INSTALL_ROOT / "hooks" / "routing-decision-recorder.py",
+    REPO_ROOT / "hooks" / "routing-decision-recorder.py",
+)
+
+
+def record_main_thread_route(marker: str, decision: dict) -> bool:
+    """Feed a main-thread marker to the routing-decision recorder; never raises.
+
+    Main-thread work fires no PostToolUse:Agent event, so the recorder never
+    sees it. This hands the recorder the same event shape an Agent dispatch
+    produces, so one code path writes the decision row and the pending outcome
+    that the next-turn finalizer resolves. Returns True when the recorder ran.
+    """
+    recorder = next((c for c in RECORDER_CANDIDATES if c.is_file()), None)
+    if recorder is None:
+        return False
+    spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
+    snippet = str(spec.get("intent") or spec.get("request_verbatim") or "").strip()
+    event = {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "session_id": os.environ.get("CLAUDE_CODE_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID") or "",
+        "tool_input": {"prompt": marker, "description": f"main-thread: {snippet}"[:200]},
+        "tool_response": "",
+    }
+    try:
+        subprocess.run(
+            [sys.executable, str(recorder)],
+            input=json.dumps(event),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build the /do Phase 4 dispatch preamble from a routing decision.")
     source = parser.add_mutually_exclusive_group(required=True)
@@ -1267,6 +1365,11 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=None,
         help="Root for path validation and repo-state gathering (default: cwd's git toplevel, else this script's repo)",
+    )
+    parser.add_argument(
+        "--no-record",
+        action="store_true",
+        help="Main-thread routes only: skip feeding the marker to routing-decision-recorder",
     )
     args = parser.parse_args(argv)
 
@@ -1295,7 +1398,11 @@ def main(argv: list[str] | None = None) -> int:
                 + "\n"
             )
         else:
-            sys.stdout.write(build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root))
+            preamble = build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root)
+            sys.stdout.write(preamble)
+            marker = preamble.split("\n", 1)[0]
+            if marker.endswith(" exec=main") and not args.no_record:
+                record_main_thread_route(marker, decision)
     except InputError as exc:
         print(f"build-dispatch: {exc}", file=sys.stderr)
         return 2

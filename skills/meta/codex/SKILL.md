@@ -57,7 +57,7 @@ These are defaults, not limits. Standing permission to escalate when output miss
 
 Pick the direct-Bash form when the calling agent already holds the task context; pick the thin wrapper agent for fan-out (one wrapper per data source) so the orchestrator stays lean.
 
-**Availability check first**: `command -v codex` — when absent, fall back to the policy's Claude pick (`model: "sonnet"` for mechanical work) and tell the user in one line which lane ran.
+**Availability check first**: `command -v codex` — when absent, fall back to the policy's Claude pick (`model: "opus"` for code work) and tell the user in one line which lane ran.
 
 ## Phase 3: PROMPT — write a self-contained prompt
 
@@ -105,7 +105,7 @@ cat "$TMPFILE"
 
 ### `codex: command not found`
 Cause: Codex CLI not installed on this host.
-Solution: fall back to the policy's Claude pick (`model: "sonnet"` for mechanical work) and report which lane ran; install via the owner's codex setup when authorized.
+Solution: fall back to the policy's Claude pick (`model: "opus"` for code work) and report which lane ran; install via the owner's codex setup when authorized.
 
 ### Sandbox error mentioning bwrap / `Failed RTM_NEWADDR`
 Cause: the bwrap sandbox fails in some containerized/VM environments.

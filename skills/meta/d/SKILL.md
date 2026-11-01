@@ -271,7 +271,7 @@ python3 "$SDIR/build-dispatch.py" --json '{
   "agent": "<ROUTE.agent>", "skill": "<ROUTE.skill; omit when agent-only>",
   "pipeline": "<ROUTE.pipeline; omit when null>",
   "complexity": "<ROUTE.complexity>",
-  "model": "<haiku|sonnet|opus or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high from Model choice>",
+  "model": "<opus (code, edits, decisions) | haiku (read-only gathering) or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high from Model choice>",
   "context_mode": "summary",
   "provider": "<anthropic|openai|google|antigravity|other>",
   "manual_model_override": false,
@@ -294,23 +294,21 @@ python3 "$SDIR/build-dispatch.py" --json '{
 
 Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
 
-| Task type | Model | Cost O/S/H per run (USD) | Deciding Jev evidence |
-|---|---|---|---|
-| locate, lookup, cite lines | haiku | 0.43 / 0.19 / 0.02 | haiku 0.91 |
-| mechanical edit (rename, 11 files) | haiku | 0.26 / 0.11 / 0.007 | haiku 0.93 with scope evidence |
-| review, find planted bugs | haiku | 0.4 / 0.15 / 0.01 | haiku 0.95 (n=1) |
-| debug: root cause + regression test | sonnet | 0.39 / 0.20 / 0.015 | sonnet 0.88; haiku test 2.00 vs 2.86 |
-| feature in an existing pattern (7 files) | sonnet | 1.30 / 0.32 / 0.088 | sonnet 0.64; Opus edited unrequested docs |
-| long lane (9-10 files, UI text) | sonnet | 1.66 / 0.46 / 0.25 | sonnet 0.77 |
-| no row fits | sonnet | n/a | sonnet 0.54 / haiku 0.45 (split) |
+| Task type | Model | Why |
+|---|---|---|
+| code writing and edits, including mechanical renames | opus | Owner, 2026-11-01: Sonnet code work needed redo |
+| debugging, features, long lanes | opus | Same; a redo costs more than the Opus premium |
+| review that decides (verdict, ship or merge call) | opus | Decisions stay on Opus |
+| decisions, design, no row fits | opus | Default for anything not read-only |
+| read-only gathering: locate, lookup, cite lines, collect excerpts, fetch research (executor work) | haiku | An Opus thread judges the result; haiku 0.91 on locate |
 
-Opus won no measured task.
+Sonnet is no row's default.
 
-Tiers (`model_policy`): low-risk = haiku, standard = sonnet, high-risk (unmeasured, costly miss) = opus (on Antigravity / Google AI with `provider="google"`: `low-risk` = `gemini-3.8-flash`, `standard` = `gemini-4-argon`, `high-risk` = `gemini-4-argon-high`, `max-power` = `gemini-4-argon-high` / `max`; see `skills/meta/do/references/antigravity-execution.md`). `max-power` stays opus/xhigh (or `gemini-4-argon-high`/`max`) and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
+Tiers (`model_policy`): low-risk = haiku (read-only gathering only), standard = opus/high, high-risk = opus/high (on Antigravity / Google AI with `provider="google"`: `low-risk` = `gemini-3.8-flash`, `standard` = `gemini-4-argon`, `high-risk` = `gemini-4-argon-high`, `max-power` = `gemini-4-argon-high` / `max`; see `skills/meta/do/references/antigravity-execution.md`). `max-power` stays opus/xhigh (or `gemini-4-argon-high`/`max`) and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
 
-Escalate on a miss: haiku, then sonnet, then opus. Retry once on the next model when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
+Escalate on a miss: a haiku read-only miss retries on opus. Retry once when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
 
-Evidence limits: one repo, one run per cell; the review row is n=1. Full record, Jev questions, probabilities, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
+Evidence: the owner's 2026-11-01 override supersedes the 2026-10 task-fit table. The historical record, Jev questions, probabilities, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
 The builder validates each name against its index, then emits the dispatch
 action. For Complex or creation requests, apply creation detection, plan-file

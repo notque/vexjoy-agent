@@ -22,6 +22,9 @@ def run_hook(
     env_remove: list[str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
+    # Simulate a non-Claude harness: the turn gate skips Claude Code sessions
+    # (CLAUDECODE=1), and this suite itself often runs inside one.
+    env.pop("CLAUDECODE", None)
     if env_remove:
         for k in env_remove:
             env.pop(k, None)
