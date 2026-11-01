@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.0
+# hook-version: 1.2.0
 """PreInvocation / UserPromptSubmit Hook: Gemini Turn Gate
 
 Detects incoming user prompts, evaluates task complexity, initializes
@@ -127,6 +127,24 @@ _CLAUDE_MODEL_RE = re.compile(
 )
 
 
+def _is_claude_code_session() -> bool:
+    """True inside Claude Code (CLAUDECODE=1) unless an Antigravity signal is set.
+
+    Claude Code's UserPromptSubmit event carries no model field and
+    ANTHROPIC_MODEL is often unset, so the model check alone let this
+    Gemini-only mandate ("Only Trivial tasks may execute directly") reach
+    Claude sessions, contradicting the Anthropic-lane rule that Simple work
+    runs in the main thread (skills/meta/do/SKILL.md, owner 2026-11-01).
+    """
+    if (
+        os.environ.get("HARNESS", "").lower() == "agy"
+        or os.environ.get("AGY_SESSION", "") == "1"
+        or os.environ.get("ANTIGRAVITY_BRAIN_DIR", "")
+    ):
+        return False
+    return os.environ.get("CLAUDECODE", "") == "1"
+
+
 def main() -> None:
     if os.environ.get(_BYPASS_ENV) == "1":
         return
@@ -144,7 +162,7 @@ def main() -> None:
 
     # Skip injection for Claude/Anthropic sessions — this hook targets Gemini models only.
     model = str(event.get("model") or os.environ.get("ANTHROPIC_MODEL") or os.environ.get("CLAUDE_MODEL") or "")
-    if _CLAUDE_MODEL_RE.search(model):
+    if _CLAUDE_MODEL_RE.search(model) or _is_claude_code_session():
         empty_output(EVENT_NAME).print_and_exit()
         return
 

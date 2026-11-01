@@ -9,11 +9,11 @@ The toolkit uses **agents, skills, hooks, and scripts** to absorb complexity
 that would otherwise fall on the user. Behavioral enforcement lives in these
 mechanisms, not in this file.
 
-**Route to agents.** The main thread is an orchestrator. It classifies
-requests, dispatches agents, and evaluates results. It delegates source code
-reading, file edits, and analysis to specialized agents. Dispatch an agent for
-all work. The main thread orchestrates, agents execute. See your tool's
-instruction file (CLAUDE.md or GEMINI.md) for dispatch mechanics.
+**Route to agents when it pays.** The main thread is an orchestrator. It
+classifies requests, picks the skill, dispatches agents, and evaluates results.
+Medium and Complex work goes to specialized agents. Which Trivial and Simple
+work the main thread runs itself is set per tool: see your tool's instruction
+file (CLAUDE.md or GEMINI.md) for dispatch mechanics.
 
 **Load only what you need.** Context is a scarce resource. Agents carry domain
 knowledge, skills carry methodology, and reference files carry deep content,

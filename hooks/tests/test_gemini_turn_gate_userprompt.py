@@ -33,6 +33,7 @@ def _run(
     env_remove: list[str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
+    env.pop("CLAUDECODE", None)  # simulate a non-Claude harness unless a test sets it
     for key in env_remove or []:
         env.pop(key, None)
     if env_override:
@@ -134,6 +135,30 @@ class TestClaudeModelSkipGuard:
                 "prompt": _NON_TRIVIAL_PROMPT,
             },
             {"VEXJOY_ROUTING_STATE_DIR": str(tmp_path / "state")},
+            env_remove=["ANTHROPIC_MODEL", "CLAUDE_MODEL"],
+        )
+        assert res.returncode == 0
+        assert "[VEXJOY ROUTING MANDATE]" in res.stdout
+
+
+_AGY_ENV = ("HARNESS", "AGY_SESSION", "ANTIGRAVITY_BRAIN_DIR")
+
+
+class TestClaudeCodeSessionSkip:
+    """CLAUDECODE=1 skips the Gemini-only mandate; Simple work may run in the Claude main thread."""
+
+    def test_claude_code_env_skips_injection_without_model(self, tmp_path: Path) -> None:
+        res = _run(
+            {"session_id": "test-claudecode", "prompt": _NON_TRIVIAL_PROMPT},
+            {"VEXJOY_ROUTING_STATE_DIR": str(tmp_path / "state"), "CLAUDECODE": "1"},
+            env_remove=["ANTHROPIC_MODEL", "CLAUDE_MODEL", *_AGY_ENV],
+        )
+        _assert_valid_json_skip(res)
+
+    def test_antigravity_signal_overrides_claude_code_env(self, tmp_path: Path) -> None:
+        res = _run(
+            {"session_id": "test-claudecode-agy", "prompt": _NON_TRIVIAL_PROMPT},
+            {"VEXJOY_ROUTING_STATE_DIR": str(tmp_path / "state"), "CLAUDECODE": "1", "AGY_SESSION": "1"},
             env_remove=["ANTHROPIC_MODEL", "CLAUDE_MODEL"],
         )
         assert res.returncode == 0
