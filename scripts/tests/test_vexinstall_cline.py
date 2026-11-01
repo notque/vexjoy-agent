@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 from vexinstall.adapters import resolve_targets
@@ -10,6 +11,7 @@ from vexinstall.adapters import resolve_targets
 from scripts.tests.vexinstall_support import ADAPTERS, Env, expected_skill_names, world
 
 MODES = ("symlink", "copy")
+SUPPORT_DIRS = ("shared-patterns", "kb", "voice-shared")
 
 
 def _ok(res) -> None:
@@ -25,7 +27,8 @@ def test_cline_adapter_fields() -> None:
     adapter = ADAPTERS["cline"]
     assert adapter.name == "cline"
     assert adapter.root == ".cline"
-    assert adapter.skills == "."
+    assert adapter.skills == "skills"
+    assert adapter.no_support is True
     assert adapter.agents is None
     assert adapter.commands is None
     assert adapter.hooks is None
@@ -38,7 +41,7 @@ def test_cline_adapter_fields() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_targets_includes_cline_when_dir_exists(tmp_path: pytest.TempPathFactory) -> None:
+def test_resolve_targets_includes_cline_when_dir_exists(tmp_path: Path) -> None:
     home = tmp_path / "home"
     home.mkdir()
     (home / ".cline").mkdir()
@@ -46,7 +49,7 @@ def test_resolve_targets_includes_cline_when_dir_exists(tmp_path: pytest.TempPat
     assert "cline" in result
 
 
-def test_resolve_targets_excludes_cline_when_dir_absent(tmp_path: pytest.TempPathFactory) -> None:
+def test_resolve_targets_excludes_cline_when_dir_absent(tmp_path: Path) -> None:
     home = tmp_path / "home"
     home.mkdir()
     result = resolve_targets("all", home)
@@ -54,27 +57,32 @@ def test_resolve_targets_excludes_cline_when_dir_absent(tmp_path: pytest.TempPat
 
 
 # ---------------------------------------------------------------------------
-# 3. Skills land flat in root (no skills/ subdir)
+# 3. Skills land under skills/ subdir; no support dirs installed
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("mode", MODES)
-def test_cline_skills_land_in_root(world: Env, mode: str) -> None:
+def test_cline_skills_land_in_skills_subdir(world: Env, mode: str) -> None:
     _ok(world.run("apply", "--target", "cline", "--mode", mode))
 
     root = world.root("cline")
     assert root.is_dir() and not root.is_symlink()
 
-    # skills/ subdir must NOT exist — cline is flat
-    assert not (root / "skills").exists()
+    # skills/ subdir must exist — Cline loads from ~/.cline/skills/<name>/
+    skills = root / "skills"
+    assert skills.is_dir() and not skills.is_symlink()
 
-    # every expected skill name sits directly under root
+    # every expected skill name sits directly under skills/
     expected = expected_skill_names("cline")
-    installed = {p for p in os.listdir(root) if not p.startswith(".")}
+    installed = {p for p in os.listdir(skills) if not p.startswith(".")}
     assert expected <= installed, f"missing: {expected - installed}"
 
+    # support dirs must NOT be installed — cline ignores dirs without SKILL.md
+    for name in SUPPORT_DIRS:
+        assert not (skills / name).exists(), f"support dir {name!r} must not be installed for cline"
+
     # spot-check one public skill
-    alpha = root / "alpha"
+    alpha = skills / "alpha"
     assert alpha.exists(), "alpha not installed"
     assert (alpha / "SKILL.md").is_file(), "alpha/SKILL.md missing"
 

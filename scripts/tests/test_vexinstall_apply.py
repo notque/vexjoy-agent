@@ -96,9 +96,11 @@ def test_layout_matches_adapter_table(world: Env, target: str, mode: str) -> Non
     scripts = root / "scripts"
     if adapter.scripts == "whole":
         assert (scripts / "tool" / "x.py").is_file()
-    else:
+    elif adapter.scripts == "per-entry":
         assert not scripts.is_symlink()
         assert {"s1.py", "s2.py", "tool"} <= _entries(scripts)
+    else:
+        assert not os.path.lexists(scripts)
     index = json.loads((root / "vexjoy" / "index" / "skills.json").read_text())
     assert set(index["skills"]) == {
         "alpha",

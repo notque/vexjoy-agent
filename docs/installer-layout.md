@@ -33,9 +33,9 @@ Checked against [Skills](https://docs.cline.bot/customization/skills).
 
 | Fact | Status | What the engine does about it |
 |---|---|---|
-| Cline reads skills from `~/.cline/<name>/SKILL.md` directly; no `skills/` subdirectory. | Documented | `adapter.skills="."` installs skills at `root/./<name>`, which resolves to `root/<name>`. |
+| Cline reads skills from `~/.cline/skills/<name>/SKILL.md`; uses a `skills/` subdirectory inside the root. | Documented | `adapter.skills="skills"` installs skills at `root/skills/<name>`. |
 | No `settings.json` equivalent for hooks; hooks are SDK/plugin-only. | Documented | No hook entries are written. |
-| Dirs without `SKILL.md` (support dirs) are ignored by Cline. | Documented | Support dirs (`shared-patterns`, `kb`, `voice-shared`) are not installed for the cline target. |
+| Dirs without `SKILL.md` (support dirs) are ignored by Cline. | Documented | `adapter.no_support=True` — `desired_for` skips `pub.support` for this target. |
 
 ## Shared rules
 
@@ -61,7 +61,7 @@ Checked against [Skills](https://docs.cline.bot/customization/skills).
 | hermes | `~/.hermes` | `<root>/skills/<name>`, mode | none | none | none | `<root>/scripts/<entry>` | none |
 | reasonix | `~/.reasonix` | `<root>/skills/<name>`, mode; support copy | none | none | `<root>/hooks/<allowlisted>` + `hooks/lib` | `<root>/scripts/<entry>` | `settings.json`: external |
 | antigravity | `~/.gemini` | `<root>/skills/<name>`, mode | `<root>/agents/<entry>`, mode | none | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `config/hooks.json`: external |
-| cline | `~/.cline` | `<root>/<name>`, mode; no support dirs | none | none | none | none | none |
+| cline | `~/.cline` | `<root>/skills/<name>`, mode; no support dirs | none | none | none | none | none |
 
 Allowlists:
 

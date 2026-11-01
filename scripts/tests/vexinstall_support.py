@@ -29,7 +29,7 @@ from vexinstall.context import Result
 
 __all__ = ["ADAPTERS", "adapters", "common", "fsops", "profile", "settings_mod", "sources"]
 
-TARGETS = ("claude", "codex", "factory", "hermes", "reasonix", "antigravity")
+TARGETS = ("claude", "codex", "factory", "hermes", "reasonix", "antigravity", "cline")
 PUBLIC_SKILLS = {
     "meta": ["alpha", "beta"],
     "process": ["gamma", "delta"],
@@ -235,8 +235,14 @@ def assert_repo_clean(repo: Path) -> None:
 
 
 def expected_skill_names(target: str, *, overlays: bool = True, bulk: bool = False) -> set[str]:
-    """Flat skill-root names a target should hold after apply."""
-    names = {n for ns in PUBLIC_SKILLS.values() for n in ns} | set(SUPPORT)
+    """Flat skill-root names a target should hold after apply.
+
+    Excludes support dirs for targets whose adapter sets ``no_support=True``
+    (e.g. cline, which ignores dirs without SKILL.md).
+    """
+    names = {n for ns in PUBLIC_SKILLS.values() for n in ns}
+    if not ADAPTERS[target].no_support:
+        names |= set(SUPPORT)
     if bulk:
         names |= set(BULK_SKILLS)
     if overlays:
