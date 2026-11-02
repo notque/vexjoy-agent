@@ -27,7 +27,7 @@ from vexinstall.adapters import ADAPTERS
 from vexinstall.cli import build_parser, dispatch, to_options
 from vexinstall.context import Result
 
-__all__ = ["ADAPTERS", "adapters", "common", "fsops", "profile", "settings_mod", "sources"]
+__all__ = ["ADAPTERS", "SUPPORT", "adapters", "common", "fsops", "profile", "settings_mod", "sources"]
 
 TARGETS = ("claude", "codex", "factory", "hermes", "reasonix", "antigravity", "cline")
 PUBLIC_SKILLS = {

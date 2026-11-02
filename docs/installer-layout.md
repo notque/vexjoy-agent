@@ -33,7 +33,7 @@ Checked against [Skills](https://docs.cline.bot/customization/skills).
 
 | Fact | Status | What the engine does about it |
 |---|---|---|
-| Cline reads skills from `~/.cline/skills/<name>/SKILL.md`; uses a `skills/` subdirectory inside the root. | Documented | `adapter.skills="skills"` installs skills at `root/skills/<name>`. |
+| Cline reads skills from `~/.cline/skills/<name>/SKILL.md`. | Documented | `adapter.skills="skills"` installs skills at `root/skills/<name>`. |
 | No `settings.json` equivalent for hooks; hooks are SDK/plugin-only. | Documented | No hook entries are written. |
 | Dirs without `SKILL.md` (support dirs) are ignored by Cline. | Documented | `adapter.no_support=True` — `desired_for` skips `pub.support` for this target. |
 

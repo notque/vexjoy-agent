@@ -41,7 +41,7 @@ class Adapter:
     skills: str | None = "skills"
     skills_mode: str | None = None
     support_mode: str | None = None
-    no_support: bool = False  # True: skip pub.support install (e.g. cline ignores dirs without SKILL.md)
+    no_support: bool = False  # True: skip pub.support install for targets that ignore dirs without SKILL.md
     agents: str | None = None
     agents_mode: str | None = None
     commands: str | None = None
@@ -127,6 +127,9 @@ ADAPTERS: dict[str, Adapter] = {
         no_support=True,
     ),
 }
+assert set(TARGET_NAMES) <= set(ADAPTERS), (
+    f"TARGET_NAMES entries missing from ADAPTERS: {set(TARGET_NAMES) - set(ADAPTERS)}"
+)
 
 
 @dataclass(frozen=True)

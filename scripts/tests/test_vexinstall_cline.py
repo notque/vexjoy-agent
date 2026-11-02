@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from vexinstall.adapters import resolve_targets
 
-from scripts.tests.vexinstall_support import ADAPTERS, Env, expected_skill_names, world
+from scripts.tests.vexinstall_support import ADAPTERS, SUPPORT, Env, expected_skill_names, world
 
 MODES = ("symlink", "copy")
-SUPPORT_DIRS = ("shared-patterns", "kb", "voice-shared")
+SUPPORT_DIRS = SUPPORT
 
 
 def _ok(res) -> None:
@@ -98,14 +98,15 @@ def test_cline_skills_land_in_skills_subdir(world: Env, mode: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_cline_no_agents_commands_hooks(world: Env) -> None:
-    _ok(world.run("apply", "--target", "cline", "--mode", "symlink"))
+@pytest.mark.parametrize("mode", MODES)
+def test_cline_no_agents_commands_hooks(world: Env, mode: str) -> None:
+    _ok(world.run("apply", "--target", "cline", "--mode", mode))
 
     root = world.root("cline")
-    assert not (root / "agents").exists(), "agents must not be installed for cline"
-    assert not (root / "commands").exists(), "commands must not be installed for cline"
-    assert not (root / "hooks").exists(), "hooks must not be installed for cline"
-    assert not (root / "scripts").exists(), "scripts must not be installed for cline"
+    assert not os.path.lexists(root / "agents"), "agents must not be installed for cline"
+    assert not os.path.lexists(root / "commands"), "commands must not be installed for cline"
+    assert not os.path.lexists(root / "hooks"), "hooks must not be installed for cline"
+    assert not os.path.lexists(root / "scripts"), "scripts must not be installed for cline"
 
 
 # ---------------------------------------------------------------------------
