@@ -56,6 +56,12 @@ def test_resolve_targets_excludes_cline_when_dir_absent(tmp_path: Path) -> None:
     assert "cline" not in result
 
 
+def test_resolve_targets_direct_cline(tmp_path: Path) -> None:
+    """Direct --target cline bypasses the dir-existence check."""
+    result = resolve_targets("cline", tmp_path / "home")
+    assert result == ["cline"]
+
+
 # ---------------------------------------------------------------------------
 # 3. Skills land under skills/ subdir; no support dirs installed
 # ---------------------------------------------------------------------------
@@ -91,6 +97,9 @@ def test_cline_skills_land_in_skills_subdir(world: Env, mode: str) -> None:
         assert alpha.is_symlink(), "alpha should be a symlink in symlink mode"
     else:
         assert alpha.is_dir() and not alpha.is_symlink(), "alpha should be a real dir in copy mode"
+
+    # index must be written
+    assert (root / "vexjoy" / "index" / "skills.json").is_file(), "index not written"
 
 
 # ---------------------------------------------------------------------------

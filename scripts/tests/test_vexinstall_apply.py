@@ -100,19 +100,10 @@ def test_layout_matches_adapter_table(world: Env, target: str, mode: str) -> Non
         assert not scripts.is_symlink()
         assert {"s1.py", "s2.py", "tool"} <= _entries(scripts)
     else:
+        assert adapter.scripts is None, f"unhandled adapter.scripts={adapter.scripts!r}"
         assert not os.path.lexists(scripts)
     index = json.loads((root / "vexjoy" / "index" / "skills.json").read_text())
-    assert set(index["skills"]) == {
-        "alpha",
-        "beta",
-        "gamma",
-        "delta",
-        "epsilon",
-        "zeta",
-        "private-one",
-        "private-two",
-        "voice-v1",
-    }
+    assert set(index["skills"]) == expected_skill_names(target, skills_only=True)
 
 
 @pytest.mark.parametrize("target", ["claude", "reasonix"])
@@ -267,7 +258,8 @@ def test_missing_overlay_root_keeps_entries_stale(world: Env, target: str, mode:
 
 
 @pytest.mark.parametrize(
-    ("target", "mode"), [("claude", "symlink"), ("claude", "copy"), ("codex", "symlink"), ("reasonix", "symlink")]
+    ("target", "mode"),
+    [("claude", "symlink"), ("claude", "copy"), ("codex", "symlink"), ("reasonix", "symlink"), ("cline", "symlink")],
 )
 def test_uninstall_removes_owned_leaves_unowned(world: Env, target: str, mode: str) -> None:
     root = world.root(target)

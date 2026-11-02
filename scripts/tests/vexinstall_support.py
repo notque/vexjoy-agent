@@ -27,7 +27,7 @@ from vexinstall.adapters import ADAPTERS
 from vexinstall.cli import build_parser, dispatch, to_options
 from vexinstall.context import Result
 
-__all__ = ["ADAPTERS", "SUPPORT", "adapters", "common", "fsops", "profile", "settings_mod", "sources"]
+__all__ = ["ADAPTERS", "SUPPORT", "TARGETS", "adapters", "common", "fsops", "profile", "settings_mod", "sources"]
 
 TARGETS = ("claude", "codex", "factory", "hermes", "reasonix", "antigravity", "cline")
 PUBLIC_SKILLS = {
@@ -234,19 +234,27 @@ def assert_repo_clean(repo: Path) -> None:
     assert status == "", f"fixture repo dirty:\n{status}"
 
 
-def expected_skill_names(target: str, *, overlays: bool = True, bulk: bool = False) -> set[str]:
+def expected_skill_names(
+    target: str, *, overlays: bool = True, bulk: bool = False, skills_only: bool = False
+) -> set[str]:
     """Flat skill-root names a target should hold after apply.
 
     Excludes support dirs for targets whose adapter sets ``no_support=True``
     (e.g. cline, which ignores dirs without SKILL.md).
+
+    Pass ``skills_only=True`` to exclude support dirs regardless of the target
+    adapter, and to exclude overlay entries that have no SKILL.md (e.g. voice-v2).
+    Use this when asserting against the skills index rather than the filesystem.
     """
     names = {n for ns in PUBLIC_SKILLS.values() for n in ns}
-    if not ADAPTERS[target].no_support:
+    if not skills_only and not ADAPTERS[target].no_support:
         names |= set(SUPPORT)
     if bulk:
         names |= set(BULK_SKILLS)
     if overlays:
-        names |= {"private-one", "private-two", "voice-v1", "voice-v2"}
+        names |= {"private-one", "private-two", "voice-v1"}
+        if not skills_only:
+            names |= {"voice-v2"}
     return names
 
 

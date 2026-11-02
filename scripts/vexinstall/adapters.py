@@ -127,9 +127,9 @@ ADAPTERS: dict[str, Adapter] = {
         no_support=True,
     ),
 }
-assert set(TARGET_NAMES) <= set(ADAPTERS), (
-    f"TARGET_NAMES entries missing from ADAPTERS: {set(TARGET_NAMES) - set(ADAPTERS)}"
-)
+_missing = set(TARGET_NAMES) - set(ADAPTERS)
+if _missing:
+    raise RuntimeError(f"TARGET_NAMES entries missing from ADAPTERS: {_missing}")
 
 
 @dataclass(frozen=True)
@@ -294,6 +294,7 @@ def resolve_targets(spec: str, home: Path) -> list[str]:
     if spec != "all":
         return [spec]
     out = ["claude"]
+    assert TARGET_NAMES[0] == "claude", "TARGET_NAMES must start with 'claude' (always-present target)"
     for name in TARGET_NAMES:
         if name == "claude":
             continue
