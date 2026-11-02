@@ -50,7 +50,9 @@ def _repo(root: Path, name: str = "project", *, ruff: bool = True) -> Path:
     repo = root / name
     repo.mkdir(parents=True)
     _git(repo, "init", "--quiet", "-b", "main")
-    (repo / "pyproject.toml").write_text("[tool.ruff]\nline-length = 88\n" if ruff else "[project]\n", encoding="utf-8")
+    (repo / "pyproject.toml").write_text(
+        "[tool.ruff]\nline-length = 88\n[tool.ruff.format]\n" if ruff else "[project]\n", encoding="utf-8"
+    )
     (repo / "ok.py").write_text(GOOD, encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "--quiet", "-m", "base")
