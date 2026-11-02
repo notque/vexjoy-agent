@@ -53,7 +53,7 @@ def _push_event(cwd, command=PUSH):
 
 @pytest.fixture
 def ruff_project(tmp_path):
-    (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n", encoding="utf-8")
     return tmp_path
 
 
@@ -159,7 +159,7 @@ class TestProjectRootSearch:
         assert mod._find_project_root("") is None
 
     def test_climbs_five_levels_but_not_six(self, tmp_path):
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n", encoding="utf-8")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n", encoding="utf-8")
         near = tmp_path.joinpath(*"abcde")
         far = tmp_path.joinpath(*"abcdef")
         far.mkdir(parents=True)

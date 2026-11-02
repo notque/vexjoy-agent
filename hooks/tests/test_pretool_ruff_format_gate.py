@@ -113,7 +113,7 @@ class TestPushShellParsing:
         assert mod._push_cwds("git -C A status && git -C B push", str(tmp_path)) == [b]
 
     def test_wrapped_pushes_still_block_changed_malformed_python(self, tmp_path):
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         failed = type("R", (), {"returncode": 1, "stdout": "Would reformat: bad.py\n", "stderr": ""})()
         for command in (
             "command git push",
@@ -150,7 +150,7 @@ class TestPushShellParsing:
         malformed = tmp_path / "malformedB"
         for repo in (clean, malformed):
             repo.mkdir()
-            (repo / "pyproject.toml").write_text("[tool.ruff]\n")
+            (repo / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         failed = type("R", (), {"returncode": 1, "stdout": "Would reformat: bad.py\n", "stderr": ""})()
 
         def changed(root):
@@ -197,7 +197,7 @@ class TestNoRuffConfig:
 class TestBypassEnv:
     def test_bypass_allows_push_through(self, tmp_path):
         """RUFF_FORMAT_GATE_BYPASS=1 skips the check entirely."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin main", cwd=str(tmp_path))
         code, _ = _run_main(payload, env={"RUFF_FORMAT_GATE_BYPASS": "1"})
         assert code == 0
@@ -211,7 +211,7 @@ class TestBypassEnv:
 class TestRuffCheckOutcomes:
     def test_only_changed_python_files_are_formatted(self, tmp_path):
         """The formatter receives explicit changed Python paths, never the repository dot."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin feature", cwd=str(tmp_path))
         changed = [Path("src/changed.py"), Path("types/changed.pyi")]
 
@@ -237,7 +237,7 @@ class TestRuffCheckOutcomes:
 
     def test_no_changed_python_files_allows_clean_feature_push(self, tmp_path):
         """A feature push with no changed Python must not invoke Ruff at all."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin feature", cwd=str(tmp_path))
 
         with (
@@ -251,7 +251,7 @@ class TestRuffCheckOutcomes:
 
     def test_unrelated_dirty_markdown_is_ignored(self, tmp_path):
         """Fenced Python in Markdown can never be passed to Ruff."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         (tmp_path / "notes.md").write_text("```python\nx={'bad':1}\n```\n")
         payload = _make_bash_event("git push origin feature", cwd=str(tmp_path))
 
@@ -266,7 +266,7 @@ class TestRuffCheckOutcomes:
 
     def test_ruff_check_passes_allows_push(self, tmp_path):
         """When ruff format --check exits 0, the push is allowed."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin main", cwd=str(tmp_path))
 
         mock_result = type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
@@ -279,7 +279,7 @@ class TestRuffCheckOutcomes:
 
     def test_ruff_check_fails_blocks_push(self, tmp_path):
         """When ruff format --check exits non-zero, the push is blocked."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin main", cwd=str(tmp_path))
 
         mock_result = type("R", (), {"returncode": 1, "stdout": "Would reformat: foo.py\n", "stderr": ""})()
@@ -296,7 +296,7 @@ class TestRuffCheckOutcomes:
 
     def test_ruff_not_installed_allows_push(self, tmp_path):
         """FileNotFoundError (ruff not installed) fails open — push allowed."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin main", cwd=str(tmp_path))
 
         with patch("subprocess.run", side_effect=FileNotFoundError("ruff not found")):
@@ -307,7 +307,7 @@ class TestRuffCheckOutcomes:
         """Timeout in ruff invocation fails open — push allowed."""
         import subprocess
 
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin main", cwd=str(tmp_path))
 
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["ruff"], 15)):
@@ -316,7 +316,7 @@ class TestRuffCheckOutcomes:
 
     def test_deny_reason_includes_ruff_output(self, tmp_path):
         """Ruff violation output is included in the deny reason for visibility."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("git push origin main", cwd=str(tmp_path))
 
         violation_msg = "Would reformat: src/app.py\n1 file would be reformatted"
@@ -340,7 +340,7 @@ class TestRuffCheckOutcomes:
 class TestCwdExtraction:
     def test_cd_prefix_extracts_cwd(self, tmp_path):
         """cd /path && git push correctly uses /path as project root."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         command = f"cd {tmp_path} && git push origin main"
         payload = _make_bash_event(command)
 
@@ -355,7 +355,7 @@ class TestCwdExtraction:
 
     def test_git_C_flag_extracts_cwd(self, tmp_path):
         """git -C /path push correctly uses /path as project root."""
-        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         command = f"git -C {tmp_path} push origin main"
         payload = _make_bash_event(command)
 
@@ -368,7 +368,7 @@ class TestCwdExtraction:
         """A relative cd prefix is resolved against the Bash event's actual cwd."""
         worktree = tmp_path / "trees" / "feature"
         worktree.mkdir(parents=True)
-        (worktree / "pyproject.toml").write_text("[tool.ruff]\n")
+        (worktree / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         payload = _make_bash_event("cd trees/feature && git push origin feature", cwd=str(tmp_path))
 
         with patch.object(mod, "_changed_python_files", return_value=[]) as changed:
@@ -416,7 +416,7 @@ class TestEndToEndWorktreeScope:
         subprocess.run(["git", "init", "-q"], cwd=path, check=True)
         subprocess.run(["git", "config", "user.email", "hook@example.test"], cwd=path, check=True)
         subprocess.run(["git", "config", "user.name", "Hook Test"], cwd=path, check=True)
-        (path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
         (path / "baseline.py").write_text("BASELINE = 1\n")
         subprocess.run(["git", "add", "."], cwd=path, check=True)
         subprocess.run(["git", "commit", "-qm", "baseline"], cwd=path, check=True)
@@ -463,3 +463,96 @@ class TestFailOpen:
     def test_null_json_exits_0(self):
         code, _ = _run_main("null")
         assert code == 0
+
+
+# ---------------------------------------------------------------------------
+# Only gate repos that enforce ruff format themselves
+# ---------------------------------------------------------------------------
+
+_FAILING_RUFF = type("R", (), {"returncode": 1, "stdout": "Would reformat: a.py", "stderr": ""})()
+
+
+def _run_with_failing_ruff(payload: str) -> tuple[int, list]:
+    with (
+        patch.object(mod, "_changed_python_files", return_value=[Path("a.py")]),
+        patch("subprocess.run", return_value=_FAILING_RUFF) as mock_run,
+    ):
+        code, _ = _run_main(payload)
+    return code, mock_run.call_args_list
+
+
+class TestFormatEnforcementDetection:
+    def test_lint_only_repo_is_not_gated(self, tmp_path):
+        """[tool.ruff] plus a ruff lint pre-commit hook does not mean the repo formats."""
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\nline-length = 79\n[tool.ruff.lint]\nselect = ['E']\n")
+        (tmp_path / ".pre-commit-config.yaml").write_text(
+            "repos:\n  - repo: https://github.com/astral-sh/ruff-pre-commit\n    hooks:\n      - id: ruff\n"
+        )
+        code, calls = _run_with_failing_ruff(_make_bash_event("git push origin feature", cwd=str(tmp_path)))
+        assert code == 0
+        assert calls == []
+
+    def test_tool_ruff_format_section_gates(self, tmp_path):
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\nquote-style = 'double'\n")
+        code, _ = _run_with_failing_ruff(_make_bash_event("git push origin feature", cwd=str(tmp_path)))
+        assert code == 2
+
+    def test_precommit_ruff_format_hook_gates(self, tmp_path):
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / ".pre-commit-config.yaml").write_text(
+            "repos:\n  - repo: https://github.com/astral-sh/ruff-pre-commit\n    hooks:\n"
+            "      - id: ruff\n      - id: 'ruff-format'\n"
+        )
+        code, _ = _run_with_failing_ruff(_make_bash_event("git push origin feature", cwd=str(tmp_path)))
+        assert code == 2
+
+    def test_ci_workflow_ruff_format_gates(self, tmp_path):
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        workflows = tmp_path / ".github" / "workflows"
+        workflows.mkdir(parents=True)
+        (workflows / "lint.yml").write_text("jobs:\n  lint:\n    steps:\n      - run: ruff format --check .\n")
+        code, _ = _run_with_failing_ruff(_make_bash_event("git push origin feature", cwd=str(tmp_path)))
+        assert code == 2
+
+    def test_tox_ruff_format_gates(self, tmp_path):
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n")
+        (tmp_path / "tox.ini").write_text("[testenv:fmt]\ncommands = ruff format --check {toxinidir}\n")
+        code, _ = _run_with_failing_ruff(_make_bash_event("git push origin feature", cwd=str(tmp_path)))
+        assert code == 2
+
+    def test_this_repo_is_still_gated(self):
+        """vexjoy-agent enforces ruff format, so its own pushes stay gated."""
+        assert mod._enforces_ruff_format(REPO_ROOT)
+
+
+class TestUnresolvablePushTargets:
+    """A path the hook cannot expand must never fall back to the session cwd."""
+
+    def _gated_repo(self, tmp_path):
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\n[tool.ruff.format]\n")
+        return tmp_path
+
+    def test_cd_into_variable_path_does_not_check_session_cwd(self, tmp_path):
+        repo = self._gated_repo(tmp_path)
+        code, calls = _run_with_failing_ruff(_make_bash_event("cd $W/2025.2 && git push origin b", cwd=str(repo)))
+        assert code == 0
+        assert calls == []
+
+    def test_git_c_variable_path_does_not_check_session_cwd(self, tmp_path):
+        repo = self._gated_repo(tmp_path)
+        code, calls = _run_with_failing_ruff(_make_bash_event('git -C "$W/$v" push origin b', cwd=str(repo)))
+        assert code == 0
+        assert calls == []
+
+    def test_relative_cd_after_unresolvable_cd_stays_unknown(self, tmp_path):
+        repo = self._gated_repo(tmp_path)
+        code, calls = _run_with_failing_ruff(_make_bash_event("cd `pwd`/x && cd sub && git push", cwd=str(repo)))
+        assert code == 0
+        assert calls == []
+
+    def test_literal_git_c_path_is_still_checked(self, tmp_path):
+        repo = tmp_path / "target"
+        repo.mkdir()
+        self._gated_repo(repo)
+        code, _ = _run_with_failing_ruff(_make_bash_event(f"git -C {repo} push origin b", cwd="/"))
+        assert code == 2

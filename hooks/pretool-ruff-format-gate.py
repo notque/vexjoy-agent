@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.1
+# hook-version: 1.3.0
 """
 PreToolUse:Bash Hook: Ruff Format Gate
 
@@ -12,12 +12,17 @@ Detection logic:
 - Tool is Bash
 - Command contains 'git push'
 - pyproject.toml with [tool.ruff] exists in project root
+- The repo enforces ruff format: [tool.ruff.format] in pyproject.toml, a
+  ruff-format pre-commit hook, or `ruff format` in CI workflows, Makefile,
+  tox.ini, noxfile.py or justfile
 - Changed .py/.pyi files are discovered in the command's actual worktree
 - ruff format --check <changed files> --config pyproject.toml exits non-zero
 
 Allow-through conditions:
 - Command does not contain 'git push'
 - No pyproject.toml with [tool.ruff] section (non-Python project)
+- Repo uses ruff only for linting (no ruff format enforcement found)
+- Push target path cannot be resolved (shell variables, command substitution)
 - No changed Python files (Markdown and other languages are ignored)
 - ruff format --check passes for the changed Python files
 - RUFF_FORMAT_GATE_BYPASS=1 env var
@@ -60,6 +65,45 @@ from hook_utils import deny_tool_use, hook_error
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "RUFF_FORMAT_GATE_BYPASS"
+
+_FORMAT_CMD_RE = re.compile(r"\bruff\s+format\b")
+_PRECOMMIT_FORMAT_RE = re.compile(r"^\s*-?\s*id:\s*['\"]?ruff-format\b", re.MULTILINE)
+_FORMAT_TASK_FILES = ("Makefile", "tox.ini", "noxfile.py", "justfile", "Justfile")
+
+
+def _read(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def _enforces_ruff_format(project_root: Path) -> bool:
+    """Return True when the repo itself runs or configures ruff format.
+
+    A [tool.ruff] section alone only means ruff is used, often just for
+    linting; gating those repos on formatting rewrites files they never
+    format.
+    """
+    if "[tool.ruff.format]" in _read(project_root / "pyproject.toml"):
+        return True
+    if _PRECOMMIT_FORMAT_RE.search(_read(project_root / ".pre-commit-config.yaml")):
+        return True
+    workflows = project_root / ".github" / "workflows"
+    candidates = [project_root / name for name in _FORMAT_TASK_FILES]
+    if workflows.is_dir():
+        candidates += sorted(workflows.glob("*.y*ml"))
+    return any(_FORMAT_CMD_RE.search(_read(path)) for path in candidates)
+
+
+# Push context after a cd/-C into a path the hook cannot expand. Distinct from
+# None, which means "no session cwd" and resolves relative paths normally.
+_UNKNOWN = object()
+
+
+def _is_unresolvable(path: str) -> bool:
+    """Shell expansions the hook cannot evaluate; never guess a repo for them."""
+    return "$" in path or "`" in path
 
 
 def _find_project_root(cwd: str | None) -> Path | None:
@@ -113,9 +157,15 @@ def _push_cwds(command: str, default_cwd: str | None) -> list[Path]:
             argv = argv[1:]
 
         if argv[:1] == ["cd"] and len(argv) >= 2:
+            if _is_unresolvable(argv[1]):
+                current = _UNKNOWN
+                return
             path = Path(argv[1]).expanduser()
-            if not path.is_absolute() and current:
-                path = current / path
+            if not path.is_absolute():
+                if current is _UNKNOWN:
+                    return
+                if current:
+                    path = current / path
             current = path.resolve()
             return
         if argv[:1] != ["git"]:
@@ -137,10 +187,14 @@ def _push_cwds(command: str, default_cwd: str | None) -> list[Path]:
             arg = argv[index]
             if arg in value_options and index + 1 < len(argv):
                 if arg == "-C":
-                    path = Path(argv[index + 1]).expanduser()
-                    if not path.is_absolute() and current:
-                        path = current / path
-                    git_cwd = path.resolve()
+                    target = argv[index + 1]
+                    path = Path(target).expanduser()
+                    if _is_unresolvable(target) or (not path.is_absolute() and current is _UNKNOWN):
+                        git_cwd = _UNKNOWN
+                    else:
+                        if not path.is_absolute() and current:
+                            path = current / path
+                        git_cwd = path.resolve()
                 index += 2
                 continue
             if any(arg.startswith(f"{option}=") for option in value_options if option.startswith("--")):
@@ -149,7 +203,7 @@ def _push_cwds(command: str, default_cwd: str | None) -> list[Path]:
             if arg.startswith("-"):
                 index += 1
                 continue
-            if arg == "push" and git_cwd is not None:
+            if arg == "push" and git_cwd is not None and git_cwd is not _UNKNOWN:
                 pushes.append(git_cwd)
             return
 
@@ -283,6 +337,10 @@ def main() -> None:
     for effective_cwd in push_contexts:
         project_root = _find_project_root(str(effective_cwd))
         if project_root is None:
+            continue
+        if not _enforces_ruff_format(project_root):
+            if debug:
+                print(f"[ruff-format-gate] {project_root} does not enforce ruff format; skipping", file=sys.stderr)
             continue
         if debug:
             print(f"[ruff-format-gate] Running ruff format --check in {project_root}", file=sys.stderr)
