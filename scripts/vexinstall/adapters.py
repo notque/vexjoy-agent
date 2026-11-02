@@ -13,6 +13,8 @@ external.py.
 | hermes   | skills/<n>, mode        | -             | -            | -                        | per entry | -        |
 | reasonix | skills/<n>, mode;       | -             | -            | hooks/<allowlisted> +    | per entry | external |
 |          | support copy            |               |              | hooks/lib                |           |          |
+| cline    | skills/<n>, mode;       | -             | -            | -                        | -         | -        |
+|          | no support dirs         |               |              |                          |           |          |
 
 "external" settings files (codex hooks.json, factory/reasonix settings.json)
 stay with their existing generator scripts; the engine does not write them.
@@ -23,6 +25,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from .common import TARGET_NAMES
 from .profile import EMPTY, Profile
 from .sources import OverlayConfig, PublicSources, SourceItem
 
@@ -38,6 +41,7 @@ class Adapter:
     skills: str | None = "skills"
     skills_mode: str | None = None
     support_mode: str | None = None
+    no_support: bool = False  # True: skip pub.support install for targets that ignore dirs without SKILL.md
     agents: str | None = None
     agents_mode: str | None = None
     commands: str | None = None
@@ -116,7 +120,16 @@ ADAPTERS: dict[str, Adapter] = {
         hooks="whole",
         scripts="whole",
     ),
+    "cline": Adapter(
+        name="cline",
+        root=".cline",
+        skills="skills",
+        no_support=True,
+    ),
 }
+_missing = set(TARGET_NAMES) - set(ADAPTERS)
+if _missing:
+    raise RuntimeError(f"TARGET_NAMES entries missing from ADAPTERS: {_missing}")
 
 
 @dataclass(frozen=True)
@@ -206,8 +219,9 @@ def desired_for(
         sk = root / adapter.skills
         for item in pub.skills + pub.data:
             claim(sk / item.name, item, adapter.skills_mode)
-        for item in pub.support:
-            claim(sk / item.name, item, adapter.support_mode or adapter.skills_mode)
+        if not adapter.no_support:
+            for item in pub.support:
+                claim(sk / item.name, item, adapter.support_mode or adapter.skills_mode)
         for ov in cfg.overlays:
             if not ov.available:
                 out.stale_overlays.append(ov.id)
@@ -280,7 +294,10 @@ def resolve_targets(spec: str, home: Path) -> list[str]:
     if spec != "all":
         return [spec]
     out = ["claude"]
-    for name in ("codex", "factory", "hermes", "reasonix", "antigravity"):
+    assert TARGET_NAMES[0] == "claude", "TARGET_NAMES must start with 'claude' (always-present target)"
+    for name in TARGET_NAMES:
+        if name == "claude":
+            continue
         if ADAPTERS[name].root_path(home).is_dir():
             out.append(name)
     return out
