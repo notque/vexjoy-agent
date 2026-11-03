@@ -88,7 +88,7 @@ tokens billed. Long context also degrades answers, while each compaction drops d
 **Recommendation:** Set `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000` in settings. It balances
 long-context cost and quality against compaction loss. This is configured in
 `.claude/settings.json` under `env`; the installer moves installs still on the old shipped
-`400000` to the new value and keeps any other value.
+`400000` to the new value once and keeps any other value, including one set later.
 
 The earlier 400000 value came from
 [anthropics/claude-code#45756](https://github.com/anthropics/claude-code/issues/45756#issuecomment-4231739206).

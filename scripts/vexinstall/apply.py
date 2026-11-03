@@ -209,7 +209,8 @@ def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict 
 
     Env vars are added only on install (``desired`` is None) and never removed on
     uninstall. A user value is never overwritten, except one still holding an old
-    shipped default listed in ``SUPERSEDED_ENV``. Returns a report dict.
+    shipped default listed in ``SUPERSEDED_ENV``, once per install (recorded in the
+    ledger as ``env_migrated``). Returns a report dict.
     """
     home = ctx.home
     spath = home / ".claude" / "settings.json"
@@ -227,12 +228,15 @@ def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict 
     rule = settings_mod.OwnerRule(home=home, hooks_dir=home / ".claude" / "hooks", source_root=ctx.source_root)
     res = settings_mod.merge(current, desired, rule)
     env_added = settings_mod.merge_env(res.settings, desired_env)
-    env_updated = settings_mod.update_superseded_env(res.settings, desired_env)
+    migrated = set(ledger.settings.get("env_migrated", []))
+    env_updated, env_marked = settings_mod.update_superseded_env(res.settings, desired_env, migrated)
     env_removed = settings_mod.remove_retired_env(res.settings) if desired_env else []
     backup_ts = None
     if res.changed or env_added or env_updated or env_removed:
         backup_ts = settings_mod.backup(spath, state_dir(home) / "backups", guard)
         settings_mod.write(spath, res.settings, guard)
+    if env_marked:  # only after a successful write, so a failed write retries the migration
+        ledger.settings["env_migrated"] = sorted(migrated | set(env_marked))
     ledger.settings["claude"] = res.owned_hashes
     return {
         "added": res.added,

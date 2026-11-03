@@ -284,11 +284,11 @@ docs/              ← This documentation
 
 ## Recommended Settings
 
-Environment variables set in `.claude/settings.json` under `"env"`. `install.sh` adds any that are missing from `~/.claude/settings.json`, keeps values you already set, and removes retired variables it used to set (only when the value is still the one it shipped):
+Environment variables set in `.claude/settings.json` under `"env"`. `install.sh` adds any that are missing from `~/.claude/settings.json`, keeps values you already set (except one still on an old shipped default, which it moves to the new value once), and removes retired variables it used to set (only when the value is still the one it shipped):
 
 | Variable | Recommended Value | Why |
 |----------|-------------------|-----|
-| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `500000` | Every turn re-reads the whole conversation, and a cache miss after an idle gap rewrites all of it. Compacting at 500k caps that cost and the quality loss of very long context while compacting less often than 400k did. Installs still on the old shipped `400000` move to `500000`; other values are kept. |
+| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `500000` | Every turn re-reads the whole conversation, and a cache miss after an idle gap rewrites all of it. Compacting at 500k caps that cost and the quality loss of very long context while compacting less often than 400k did. Installs still on the old shipped `400000` move to `500000` once; other values, and any value set after that, are kept. |
 | `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION` | `false` | Turns off the greyed-out next-prompt suggestions, which cost tokens and add noise. |
 
 **Retired:** `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1`. It has no effect on Opus 5.5 and Fable, and on older models such as Opus 4.6 it forces the deprecated fixed thinking budget.
