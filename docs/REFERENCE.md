@@ -288,12 +288,12 @@ Environment variables set in `.claude/settings.json` under `"env"`. `install.sh`
 
 | Variable | Recommended Value | Why |
 |----------|-------------------|-----|
-| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `400000` | Prompt cache TTL is 5 minutes (not 1 hour). Larger conversations miss cache frequently, making each turn reprocess the full context at full cost. Compacting at 400k keeps conversations in the cache-friendly zone. ([anthropics/claude-code#45756](https://github.com/anthropics/claude-code/issues/45756#issuecomment-4231739206)) |
+| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `500000` | Every turn re-reads the whole conversation, and a cache miss after an idle gap rewrites all of it. Compacting at 500k caps that cost and the quality loss of very long context while compacting less often than 400k did. Installs still on the old shipped `400000` move to `500000`; other values are kept. |
 | `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION` | `false` | Turns off the greyed-out next-prompt suggestions, which cost tokens and add noise. |
 
 **Retired:** `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1`. It has no effect on Opus 5.5 and Fable, and on older models such as Opus 4.6 it forces the deprecated fixed thinking budget.
 
-**Context on `AUTO_COMPACT_WINDOW`:** Anthropic's prompt caching currently uses a 5-minute TTL. When conversations grow large and cache entries expire between turns, each API call re-processes the full conversation at uncached token prices. Even though Claude supports a 1M token context window, using the full window without cache hits is prohibitively expensive. Setting `AUTO_COMPACT_WINDOW=400000` triggers compaction earlier, keeping the active context within a size that cache hits can cover. Anthropic is aware of this issue and exploring improvements. Credit: [@bcherny](https://github.com/bcherny).
+**Context on `AUTO_COMPACT_WINDOW`:** Claude supports a 1M token context window, but the model reads the full conversation on every turn. Cache hits bill those tokens at a fraction of the input price (0.05x on Opus 5.5), and a miss after the cache expires bills a full rewrite. Message threads, which Claude Code uses since about 2.1.316, send only new messages each turn and cut time to first token on long requests, but they do not reduce the tokens billed. Answers also degrade as context grows, while each compaction drops detail. 500k is the middle ground between those two costs; it was 400k before message threads. History: [anthropics/claude-code#45756](https://github.com/anthropics/claude-code/issues/45756#issuecomment-4231739206), credit [@bcherny](https://github.com/bcherny).
 
 ### Orchestration (optional)
 

@@ -149,6 +149,28 @@ def remove_retired_env(settings: dict, retired: dict[str, str] = RETIRED_ENV) ->
     return removed
 
 
+SUPERSEDED_ENV: dict[str, tuple[str, ...]] = {
+    # name -> values the installer used to ship; moved to the repo value only while it still holds one
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": ("400000",),
+}
+
+
+def update_superseded_env(
+    settings: dict, desired_env: dict[str, str], superseded: dict[str, tuple[str, ...]] = SUPERSEDED_ENV
+) -> list[str]:
+    """Move env vars still holding an old shipped default to the repo value in place; keep user-changed ones."""
+    env = settings.get("env")
+    if not isinstance(env, dict):
+        return []
+    updated = []
+    for key, old_values in superseded.items():
+        new = desired_env.get(key)
+        if new is not None and env.get(key) in old_values and env[key] != new:
+            env[key] = new
+            updated.append(f"{key}={new}")
+    return updated
+
+
 def merge_env(settings: dict, desired_env: dict[str, str]) -> list[str]:
     """Add desired env vars missing from *settings* in place; never overwrite a user value."""
     if not desired_env:

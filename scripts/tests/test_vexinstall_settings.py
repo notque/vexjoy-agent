@@ -186,3 +186,27 @@ def test_remove_retired_env_only_shipped_value() -> None:
 def test_repo_settings_do_not_ship_retired_env() -> None:
     root = Path(__file__).resolve().parents[2]
     assert not set(sm.desired_env_from_repo(root)) & set(sm.RETIRED_ENV)
+
+
+def test_repo_settings_auto_compact_500k() -> None:
+    root = Path(__file__).resolve().parents[2]
+    assert sm.desired_env_from_repo(root).get("CLAUDE_CODE_AUTO_COMPACT_WINDOW") == "500000"
+
+
+def test_update_superseded_env_moves_only_old_shipped_value() -> None:
+    desired = {"CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"}
+    settings = {"env": {"CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000", "KEEP": "x"}}
+    assert sm.update_superseded_env(settings, desired) == ["CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000"]
+    assert settings["env"] == {"CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000", "KEEP": "x"}
+    assert sm.update_superseded_env(settings, desired) == []
+    custom = {"env": {"CLAUDE_CODE_AUTO_COMPACT_WINDOW": "300000"}}
+    assert sm.update_superseded_env(custom, desired) == []
+    assert custom["env"]["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] == "300000"
+    assert sm.update_superseded_env({"env": {"CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000"}}, {}) == []
+    assert sm.update_superseded_env({}, desired) == []
+
+
+def test_repo_settings_do_not_ship_superseded_value() -> None:
+    desired = sm.desired_env_from_repo(Path(__file__).resolve().parents[2])
+    for key, old_values in sm.SUPERSEDED_ENV.items():
+        assert desired.get(key) not in old_values
