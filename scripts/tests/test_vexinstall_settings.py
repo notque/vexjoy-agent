@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.tests.vexinstall_support import TARGETS, Env, world
+from scripts.tests.vexinstall_support import TARGETS, Env, git, world
 from scripts.tests.vexinstall_support import settings_mod as sm
 
 
@@ -186,3 +186,55 @@ def test_remove_retired_env_only_shipped_value() -> None:
 def test_repo_settings_do_not_ship_retired_env() -> None:
     root = Path(__file__).resolve().parents[2]
     assert not set(sm.desired_env_from_repo(root)) & set(sm.RETIRED_ENV)
+
+
+def test_repo_settings_auto_compact_500k() -> None:
+    root = Path(__file__).resolve().parents[2]
+    assert sm.desired_env_from_repo(root).get("CLAUDE_CODE_AUTO_COMPACT_WINDOW") == "500000"
+
+
+def test_update_superseded_env_moves_only_old_shipped_value_once() -> None:
+    key = "CLAUDE_CODE_AUTO_COMPACT_WINDOW"
+    desired = {key: "500000"}
+    marker = f"{key}=400000"
+    settings = {"env": {key: "400000", "KEEP": "x"}}
+    assert sm.update_superseded_env(settings, desired, set()) == ([f"{key}=500000"], [marker])
+    assert settings["env"] == {key: "500000", "KEEP": "x"}
+    # already migrated: a value the user sets afterwards, even the old default, is kept
+    chosen = {"env": {key: "400000"}}
+    assert sm.update_superseded_env(chosen, desired, {marker}) == ([], [])
+    assert chosen["env"][key] == "400000"
+    # a custom value is kept, but the migration is still marked done
+    custom = {"env": {key: "300000"}}
+    assert sm.update_superseded_env(custom, desired, set()) == ([], [marker])
+    assert custom["env"][key] == "300000"
+    # uninstall (no desired env) and a missing env block do nothing
+    assert sm.update_superseded_env({"env": {key: "400000"}}, {}, set()) == ([], [])
+    assert sm.update_superseded_env({}, desired, set()) == ([], [])
+
+
+def test_apply_settings_migrates_old_default_once(world: Env) -> None:
+    key = "CLAUDE_CODE_AUTO_COMPACT_WINDOW"
+    spath = world.home / ".claude" / "settings.json"
+    spath.write_text(json.dumps({"env": {key: "400000"}}))
+    assert world.run("apply", "--target", "claude").code == 0  # hooks in sync; repo ships no env yet
+    assert json.loads(spath.read_text())["env"][key] == "400000"
+    repo_settings = world.repo / ".claude" / "settings.json"
+    data = json.loads(repo_settings.read_text())
+    data["env"] = {key: "500000"}
+    repo_settings.write_text(json.dumps(data, indent=2))
+    git(world.repo, "commit", "-qam", "ship 500k")
+    assert world.run("apply", "--target", "claude").code == 0  # the env update is the only change
+    assert json.loads(spath.read_text())["env"][key] == "500000"
+    assert f"{key}=400000" in world.ledger()["settings"]["env_migrated"]
+    user = json.loads(spath.read_text())
+    user["env"][key] = "400000"
+    spath.write_text(json.dumps(user))
+    assert world.run("apply", "--target", "claude").code == 0
+    assert json.loads(spath.read_text())["env"][key] == "400000"
+
+
+def test_repo_settings_do_not_ship_superseded_value() -> None:
+    desired = sm.desired_env_from_repo(Path(__file__).resolve().parents[2])
+    for key, old_values in sm.SUPERSEDED_ENV.items():
+        assert desired.get(key) not in old_values
