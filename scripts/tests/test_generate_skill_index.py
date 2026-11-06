@@ -429,3 +429,19 @@ class TestOverwriteWarning:
         assert any("shared-name" in w for w in warnings), (
             f"Expected an overwrite warning for 'shared-name'; got warnings: {warnings}"
         )
+
+
+class TestFallbackTriggers:
+    """Skills without routing.triggers get name-derived triggers, each listed once."""
+
+    def test_single_word_name_not_duplicated(self, tmp_path):
+        """A name with no hyphen must not produce a duplicate trigger."""
+        skill_dir = _make_skill_dir(tmp_path, "wrangler")
+        entry = gsi.build_entry({"name": "wrangler"}, skill_dir, "")
+        assert entry["triggers"] == ["wrangler"]
+
+    def test_hyphenated_name_derives_parts(self, tmp_path):
+        """A hyphenated name yields the full name first, then its significant parts."""
+        skill_dir = _make_skill_dir(tmp_path, "code-cleanup")
+        entry = gsi.build_entry({"name": "code-cleanup"}, skill_dir, "")
+        assert entry["triggers"] == ["code-cleanup", "code", "cleanup"]
