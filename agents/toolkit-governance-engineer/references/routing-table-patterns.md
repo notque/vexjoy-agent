@@ -322,6 +322,6 @@ for f in glob.glob('agents/*.md'):
 
 ## See Also
 
-- `frontmatter-compliance.md` — required fields, tool restrictions, YAML parse error fixes
+- `frontmatter-compliance.md` — required fields, advisory tool lists, YAML parse error fixes
 - `agents/INDEX.json` — coverage index; source of truth for registered components
 - `docs/PHILOSOPHY.md` — specialist selection and deterministic execution principles
