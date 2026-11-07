@@ -2,7 +2,7 @@
 name: kubernetes-helm-engineer
 description: "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure."
 color: green
-memory: project
+memory: user
 routing:
   triggers:
     - kubernetes

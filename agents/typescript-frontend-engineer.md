@@ -2,7 +2,7 @@
 name: typescript-frontend-engineer
 description: "TypeScript frontend architecture: type-safe components, state management, build optimization."
 color: blue
-memory: project
+memory: user
 routing:
   triggers:
     - typescript

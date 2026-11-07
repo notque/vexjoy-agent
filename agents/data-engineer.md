@@ -2,7 +2,7 @@
 name: data-engineer
 description: "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing."
 color: cyan
-memory: project
+memory: user
 routing:
   triggers:
     - data pipeline

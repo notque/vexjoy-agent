@@ -48,7 +48,7 @@ hooks:
             pass
         "
       timeout: 5
-memory: project
+memory: user
 routing:
   triggers:
     - swift

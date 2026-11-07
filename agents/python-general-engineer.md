@@ -19,7 +19,7 @@ hooks:
             print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': note}}))
         "
       timeout: 5
-memory: project
+memory: user
 routing:
   triggers:
     - python

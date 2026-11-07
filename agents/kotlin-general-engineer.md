@@ -47,7 +47,7 @@ hooks:
             pass
         "
       timeout: 10
-memory: project
+memory: user
 routing:
   triggers:
     - kotlin

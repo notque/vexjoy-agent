@@ -2,7 +2,7 @@
 name: typescript-debugging-engineer
 description: "TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions."
 color: blue
-memory: project
+memory: user
 routing:
   triggers:
     - typescript debug

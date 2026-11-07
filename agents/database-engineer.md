@@ -2,7 +2,7 @@
 name: database-engineer
 description: "Database design, optimization, query performance, migrations, indexing strategies."
 color: purple
-memory: project
+memory: user
 routing:
   triggers:
     - database

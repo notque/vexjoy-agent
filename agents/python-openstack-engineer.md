@@ -2,7 +2,7 @@
 name: python-openstack-engineer
 description: "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware."
 color: red
-memory: project
+memory: user
 routing:
   triggers:
     - openstack
