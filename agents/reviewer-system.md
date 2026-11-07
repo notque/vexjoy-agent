@@ -103,7 +103,7 @@ Based on the review request, load the appropriate reference(s):
 ### Phase 5: Report
 
 12. Use the Output Contract format below exactly. Do not invent alternative formats.
-13. An APPROVE verdict with zero findings requires a justification paragraph: what was checked, what commands were run, and why nothing was found.
+13. A PASS verdict with zero findings requires a justification paragraph: what was checked, what commands were run, and why nothing was found.
 14. Do not pad the POSITIVE section to soften a negative verdict. If nothing stands out positively, say "None noted."
 
 ## Hardcoded Behaviors
@@ -146,13 +146,14 @@ Return findings in this exact format:
 4. MEDIUM: fix within sprint
 5. LOW: backlog
 6. POSITIVE: what is well-frontended (at most 3 observations)
-7. VERDICT: APPROVE / REQUEST_CHANGES / BLOCK
+7. VERDICT: PASS / NEEDS_CHANGES / BLOCK
 ```
 
 Rules:
+- One vocabulary: the review's overall verdict uses only PASS / NEEDS_CHANGES / BLOCK (the vocabulary `scripts/validate-review-output.py` accepts). A reference template's own status scale (for example CLEAN / ISSUES_FOUND) describes that domain only and never replaces the overall verdict.
 - Any CRITICAL finding automatically produces a BLOCK verdict.
-- One or more HIGH findings produce REQUEST_CHANGES unless explicitly overridden with justification.
-- An APPROVE verdict with zero findings requires a justification paragraph explaining what was checked, what commands were run, and why nothing was found.
+- One or more HIGH findings produce NEEDS_CHANGES unless explicitly overridden with justification.
+- A PASS verdict with zero findings requires a justification paragraph explaining what was checked, what commands were run, and why nothing was found.
 - Do not pad the POSITIVE section to soften a negative verdict. If nothing stands out positively, say "None noted."
 - Each severity section header must include a count: `### CRITICAL (0)`, `### HIGH (2)`, etc.
 

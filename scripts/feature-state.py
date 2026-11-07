@@ -45,6 +45,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -53,7 +54,7 @@ from typing import Any
 # Constants
 PHASES = ["design", "plan", "implement", "validate", "release"]
 FEATURE_DIR = ".feature"
-CONFIDENCE_THRESHOLD = 0.7  # Auto-flip gate when confidence exceeds this
+CONFIDENCE_THRESHOLD = 0.7  # A human gate runs as auto for this call when confidence reaches this
 DEFAULT_GATES = {
     "design.intent-discussion": "human",
     "design.approach-selection": "human",
@@ -127,8 +128,16 @@ def save_state(feature_dir: Path, state: FeatureState) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
     state_file = state_dir / f"{state.name}.json"
     state.updated = datetime.now().isoformat()
-    with open(state_file, "w") as f:
-        json.dump(asdict(state), f, indent=2)
+    # Write a temp file and rename it over the state file, so a failed write
+    # leaves the previous state readable instead of a truncated file.
+    fd, tmp_name = tempfile.mkstemp(dir=state_dir, prefix=f".{state.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(asdict(state), f, indent=2)
+        os.replace(tmp_name, state_file)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
 
 
 # ── Resume agent-output cache ────────────────────────────────────────────────
@@ -404,23 +413,39 @@ def cmd_gate(args: argparse.Namespace) -> int:
         output_error(f"Feature '{feature}' not found")
         return 1
 
-    mode = state.gates.get(gate_id, "human")
+    stored = state.gates.get(gate_id, "human")
+    mode = stored
 
-    # Check env override for retro gates (e.g., CLAUDE_RETRO_GATE_L2_CONTEXT=human)
-    if gate_id.startswith("retro."):
-        env_key = "CLAUDE_RETRO_GATE_" + gate_id.split(".")[-1].upper().replace("-", "_")
-        env_val = os.environ.get(env_key)
-        if env_val in ("human", "auto"):
-            mode = env_val
-
-    # Check if confidence-based auto-flip applies
+    # Confidence can run a human gate as auto for this call only. The switch is
+    # never saved, so the gate is human again once confidence drops.
     confidence = _get_gate_confidence(gate_id)
     auto_flipped = False
     if mode == "human" and confidence >= CONFIDENCE_THRESHOLD:
         mode = "auto"
         auto_flipped = True
-        state.gates[gate_id] = "auto"
-        save_state(feature_dir, state)
+
+    # An explicit override (e.g., CLAUDE_RETRO_GATE_L2_CONTEXT=human) is applied
+    # last, so confidence never switches a gate the user pinned.
+    override = None
+    if gate_id.startswith("retro."):
+        env_key = "CLAUDE_RETRO_GATE_" + gate_id.split(".")[-1].upper().replace("-", "_")
+        env_val = os.environ.get(env_key)
+        if env_val in ("human", "auto"):
+            override = env_val
+    if override is not None:
+        mode = override
+        auto_flipped = False
+
+    if mode != stored:
+        _log_gate_switch(
+            feature_dir,
+            feature,
+            gate_id,
+            stored,
+            mode,
+            "override" if override is not None else "confidence",
+            confidence,
+        )
 
     result = {
         "gate_id": gate_id,
@@ -432,6 +457,33 @@ def cmd_gate(args: argparse.Namespace) -> int:
 
     output_json(result, args)
     return 2 if mode == "human" else 0
+
+
+def _log_gate_switch(
+    feature_dir: Path,
+    feature: str,
+    gate_id: str,
+    from_mode: str,
+    to_mode: str,
+    reason: str,
+    confidence: float,
+) -> None:
+    """Append one gate switch to .feature/state/gate-switches.jsonl and stderr."""
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "feature": feature,
+        "gate_id": gate_id,
+        "from": from_mode,
+        "to": to_mode,
+        "reason": reason,
+        "confidence": confidence,
+    }
+    line = json.dumps(entry)
+    print(f"feature-state: gate switch {line}", file=sys.stderr)
+    log_dir = feature_dir / "state"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    with open(log_dir / "gate-switches.jsonl", "a") as f:
+        f.write(line + "\n")
 
 
 def _get_gate_confidence(gate_id: str) -> float:
@@ -1170,9 +1222,10 @@ def cmd_retro_candidates(args: argparse.Namespace) -> int:
             if not fm_match:
                 continue
 
-            # Simple YAML extraction for retro-topics list
+            # Simple YAML extraction for the retro-topics list. Some agents still
+            # spell the key process-topics (a rename in #993), so accept both.
             topics_match = re.search(
-                r"retro-topics:\s*\n((?:\s+-\s+.+\n)*)",
+                r"(?:retro|process)-topics:[ \t]*\n((?:[ \t]+-[ \t]+.+(?:\n|$))*)",
                 fm_match.group(1),
             )
             if topics_match:
