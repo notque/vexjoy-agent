@@ -17,6 +17,13 @@
         "hooks": [
           {
             "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/scripts/session-bootstrap.sh\"",
+            "description": "Install the toolkit into ~/.claude when this home has none (cloud sessions, new users, pre-launcher installs)",
+            "timeout": 300000,
+            "once": true
+          },
+          {
+            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
             "description": "Sync agents/skills/hooks/commands to ~/.claude",
             "timeout": 20000,

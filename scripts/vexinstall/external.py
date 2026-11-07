@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 
+from . import settings as settings_mod
 from .common import SETTINGS_BACKUPS_KEEP, utc_ts
 from .fsops import Guard, atomic_write_bytes, mkdirs
 from .profile import Profile, filter_settings_hooks
@@ -129,7 +130,7 @@ def _factory(root: Path, source_root: Path, profile: Profile) -> list[ExternalFi
     if not repo:
         f.error = "repo .claude/settings.json missing or invalid"
         return [f]
-    text = json.dumps(repo.get("hooks", {}))
+    text = json.dumps(settings_mod.drop_repo_only(repo.get("hooks", {})))
     for form in ("$HOME", "${HOME}", "~"):
         text = text.replace(f"{form}/.claude/", f"{form}/.factory/")
     merged = _read_json(f.path)

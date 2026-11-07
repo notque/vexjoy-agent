@@ -467,6 +467,8 @@ def _misclassified(gates: frozenset[str]) -> list[str]:
     for event, groups in data["hooks"].items():
         for g in groups:
             for e in g["hooks"]:
+                if interp.is_repo_only(e["command"]):
+                    continue
                 events.setdefault(e["command"].rstrip('"').rsplit("/", 1)[-1], set()).add(event)
     bad = []
     for name, evs in events.items():
@@ -499,7 +501,8 @@ def test_every_registered_hook_is_guarded() -> None:
 def test_every_repo_hook_command_uses_the_launcher() -> None:
     data = json.loads((REPO / ".claude" / "settings.json").read_text())
     cmds = [e["command"] for groups in data["hooks"].values() for g in groups for e in g["hooks"]]
-    for cmd in cmds:
+    assert sum(interp.is_repo_only(c) for c in cmds) == 1
+    for cmd in (c for c in cmds if not interp.is_repo_only(c)):
         name = cmd.rstrip('"').rsplit("/", 1)[-1]
         assert cmd == interp.hook_command(name), cmd
 

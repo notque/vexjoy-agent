@@ -73,6 +73,18 @@ def link_path(home: Path) -> Path:
     return home / ".claude" / "vexjoy" / "bin" / "python3"
 
 
+# The one hook entry that is not a toolkit hook: the repo-only SessionStart bootstrap. It runs
+# scripts/session-bootstrap.sh from the checkout so a home with no launcher (a cloud session
+# container, a new user, an install older than pyrun.sh) installs itself. Installs and mirrors
+# (user settings, account homes, Factory) never copy it; ``drop_repo_only`` strips it.
+REPO_BOOTSTRAP = 'sh "$CLAUDE_PROJECT_DIR/scripts/session-bootstrap.sh"'
+
+
+def is_repo_only(command: object) -> bool:
+    """True for the repo-only bootstrap entry's command."""
+    return command == REPO_BOOTSTRAP
+
+
 def hook_command(filename: str) -> str:
     """The canonical command for a hook file in ``~/.claude/hooks``."""
     return f'{LAUNCHER}"$HOME/.claude/hooks/{filename}"'

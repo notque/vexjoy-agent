@@ -108,6 +108,11 @@ Runtime scope:
 
 Residual: no 3.10+ anywhere and no `python3` exits 127, which fails open. Windows has no `sh` and is out of scope.
 
+**Homes with no launcher.** A home that never ran `./install.sh` has no `~/.claude/hooks/lib/pyrun.sh`. That covers a Claude cloud session container (a fresh Linux home, usually `/root`), a new user, and an install older than the launcher. There, `sh` cannot open the launcher, exits 2, and every hook blocks with `sh: 0: cannot open .../pyrun.sh`. The repo's sync hook cannot repair this, because it also runs through the launcher. So the first repo SessionStart entry is the one hook that is not a toolkit hook: `sh "$CLAUDE_PROJECT_DIR/scripts/session-bootstrap.sh"`.
+- When the launcher exists, it exits at once (about 4 ms).
+- Otherwise it runs `./install.sh` from the checkout (about 30 s with dependencies, inside its 300 s timeout), logs to `~/.claude/vexjoy/bootstrap.log`, prints one line, and always exits 0.
+- It is repo-only (`interp.REPO_BOOTSTRAP`). `settings.drop_repo_only` keeps it out of user settings, account homes, and the Factory copy, and `validate-hook-health.py` exempts it from the launcher form. `scripts/tests/test_session_bootstrap.py` covers all of this.
+
 After pulling this change, run `./install.sh` once: until the first new-engine sync, repo sessions see the launcher in project settings and bare `python3` in user settings, so each hook runs twice for that session.
 
 ## Account profiles
