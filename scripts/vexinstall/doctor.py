@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from . import accounts as accounts_mod
-from . import gitutil, interp
+from . import githooks, gitutil, interp
 from . import index as index_mod
 from . import settings as settings_mod
 from .adapters import resolve_targets
@@ -267,6 +267,13 @@ def _check_repo(ctx: Context, findings: list[Finding]) -> None:
             findings.append(Finding(ERROR, "repo-tracked-local-index", "repo", sub))
 
 
+def _check_git_hooks(ctx: Context, findings: list[Finding]) -> None:
+    """Pre-engine post-merge in the hooks dir git uses. Report only: the repo guard forbids rewriting it."""
+    found = githooks.find_legacy_post_merge(ctx.source_root)
+    if found is not None:
+        findings.append(Finding(ERROR, "legacy-git-hook", "repo", str(found.path), found.advice))
+
+
 def run_doctor(opts: Options) -> Result:
     """Run every check. Never writes."""
     try:
@@ -291,6 +298,7 @@ def run_doctor(opts: Options) -> Result:
         _check_python(ctx, findings)
         _check_accounts(ctx, findings)
     _check_repo(ctx, findings)
+    _check_git_hooks(ctx, findings)
     errors = sum(1 for f in findings if f.level == ERROR)
     warns = sum(1 for f in findings if f.level == WARN)
     out = [f"[doctor] {errors} error(s), {warns} warning(s) across {', '.join(targets)}"]

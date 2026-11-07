@@ -102,6 +102,95 @@ def test_post_merge_hook_syncs_and_never_links():
     assert "sync-to-user-claude.py" not in body and "rollout" not in body, "no legacy path remains"
 
 
+_LEGACY_HOOK = (
+    "#!/usr/bin/env bash\n# Written by vexjoy-agent install.sh — auto-syncs new items after git pull.\n"
+    'for item in "$REPO_DIR"/skills/*; do ln -s "$item" "$HOME/.claude/skills/"; done\n'
+)
+# Passes install.sh's version probe (`python -c ...`); fails every `-m vexinstall` call.
+_PROBE_ONLY_PYTHON = '#!/bin/sh\n[ "$1" = -c ] && exit 0\nexit 1\n'
+needs_bash = pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+
+
+def _install_world(tmp_path: Path, python: str = _PROBE_ONLY_PYTHON) -> tuple[Path, Path, dict[str, str]]:
+    """install.sh in a fake checkout whose .git/hooks holds a legacy post-merge, and an env to run it.
+
+    No real python runs: VEXJOY_PYTHON is the stub script *python*. HOME is a temp dir.
+    """
+    hooks = tmp_path / "repo" / ".git" / "hooks"
+    hooks.mkdir(parents=True)
+    script = tmp_path / "repo" / "install.sh"
+    script.write_text(INSTALL_SH.read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
+    (hooks / "post-merge").write_text(_LEGACY_HOOK, encoding="utf-8", newline="\n")
+    (hooks / "post-merge").chmod(0o755)
+    stub = tmp_path / "python3"
+    stub.write_text(python, encoding="utf-8", newline="\n")
+    stub.chmod(0o755)
+    (tmp_path / "home").mkdir()
+    env = {
+        "HOME": str(tmp_path / "home"),
+        "PATH": "/usr/bin:/bin",
+        "VEXJOY_PYTHON": stub.as_posix(),
+        "VEXJOY_NO_DEPS": "1",
+        "TERM": "dumb",
+    }
+    return script, hooks, env
+
+
+def _bash(script: Path, env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["bash", script.as_posix(), *args], capture_output=True, text=True, env=env, timeout=60)
+
+
+@needs_bash
+@pytest.mark.parametrize(
+    ("python", "failure"),
+    [
+        pytest.param(_PROBE_ONLY_PYTHON, "vexinstall apply failed", id="apply-fails"),
+        pytest.param("#!/bin/sh\nexit 1\n", "not a runnable python 3.10+", id="no-python-3.10"),
+    ],
+)
+def test_git_hooks_install_before_python_and_apply(tmp_path, python, failure):
+    """A failed install must not leave a pre-engine post-merge running on every pull."""
+    script, hooks, env = _install_world(tmp_path, python)
+    r = _bash(script, env)
+    assert r.returncode == 1 and failure in r.stdout, r.stdout + r.stderr
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _extract_post_merge_hook() + "\n"
+    assert (hooks / "pre-commit").is_file()
+
+
+@needs_bash
+@pytest.mark.parametrize("flag", ["--dry-run", "--configure-only", "--uninstall"])
+def test_runs_that_do_not_apply_write_no_git_hooks(tmp_path, flag):
+    script, hooks, env = _install_world(tmp_path)
+    _bash(script, env, flag)
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
+    assert not (hooks / "pre-commit").exists()
+
+
+@needs_bash
+@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root can write a read-only file")
+def test_unwritable_git_hook_warns_and_install_continues(tmp_path):
+    script, hooks, env = _install_world(tmp_path)
+    (hooks / "post-merge").chmod(0o444)
+    try:
+        r = _bash(script, env)
+    finally:
+        (hooks / "post-merge").chmod(0o644)
+    assert "Could not write post-merge hook" in r.stdout, r.stdout + r.stderr
+    assert "vexinstall apply failed" in r.stdout, r.stdout + r.stderr
+    assert (hooks / "pre-commit").is_file()
+
+
+@needs_bash
+def test_git_hooks_skipped_with_a_note_when_dot_git_is_a_file(tmp_path):
+    """A linked worktree or submodule: install.sh writes no hooks there and says so."""
+    script, hooks, env = _install_world(tmp_path)
+    shutil.rmtree(hooks.parent)
+    (script.parent / ".git").write_text("gitdir: /elsewhere/.git/worktrees/repo\n", encoding="utf-8")
+    r = _bash(script, env)
+    assert "Git hooks skipped" in r.stdout, r.stdout + r.stderr
+    assert "vexinstall apply failed" in r.stdout, r.stdout + r.stderr
+
+
 def _post_merge_world(tmp_path: Path, *, fail: bool = False) -> tuple[Path, Path]:
     """Fake checkout with a stub vexinstall package that logs its argv."""
     repo = tmp_path / "repo"

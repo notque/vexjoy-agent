@@ -16,6 +16,10 @@ from scripts.tests.vexinstall_support import Env, repo_hash
 world = vexinstall_support.world  # pytest fixture
 
 HOOK = Path(__file__).resolve().parents[1] / "sync-to-user-claude.py"
+LEGACY_HOOK = (
+    "#!/bin/sh\n# Written by vexjoy-agent install.sh — auto-syncs new items after git pull.\n"
+    'for d in "$HOME/.claude" "$HOME/.codex"; do ln -s "$PWD/skills/alpha" "$d/skills/alpha"; done\n'
+)
 
 
 def _run(cwd: Path, home: Path, **env: str) -> subprocess.CompletedProcess[str]:
@@ -38,6 +42,44 @@ def _load():
     assert spec.loader is not None
     spec.loader.exec_module(mod)
     return mod
+
+
+@pytest.fixture
+def legacy_world(world: Env, monkeypatch: pytest.MonkeyPatch) -> Env:
+    """World whose main checkout runs a pre-engine post-merge; git reads no host config."""
+    (world.work / "global.gitconfig").write_text("")
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(world.work / "global.gitconfig"))
+    hook = world.repo / ".git" / "hooks" / "post-merge"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text(LEGACY_HOOK, encoding="utf-8", newline="\n")
+    hook.chmod(0o755)
+    return world
+
+
+def test_legacy_git_hook_warns_once_before_the_sync(legacy_world: Env, monkeypatch: pytest.MonkeyPatch, capsys) -> None:
+    mod = _load()
+    monkeypatch.setattr(
+        mod,
+        "build_command",
+        lambda _repo, _scripts: ([sys.executable, "-c", "print('[sync] claude: +0')"], dict(os.environ)),
+    )
+    monkeypatch.chdir(legacy_world.repo)
+    assert mod.main() == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) == 2 and lines[1] == "[sync] claude: +0", lines
+    assert lines[0].startswith("[sync] warning: legacy git hook ") and "delete it" in lines[0], lines
+
+
+def test_worktree_session_warns_about_the_main_checkout_hook(legacy_world: Env) -> None:
+    wt = legacy_world.work / "wt"
+    subprocess.run(
+        ["git", "-C", str(legacy_world.repo), "worktree", "add", "-q", str(wt)], check=True, capture_output=True
+    )
+    r = _run(wt, legacy_world.home)
+    assert r.returncode == 0
+    assert r.stdout.startswith("[sync] warning: legacy git hook "), r.stdout + r.stderr
+    assert "git worktree" in r.stderr
 
 
 def test_sync_runs_engine_and_prints_one_summary_line(world: Env) -> None:
