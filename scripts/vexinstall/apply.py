@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import time
 from pathlib import Path
@@ -184,9 +185,11 @@ def _replace(a: Action, trash: Trash, home: Path, guard: Guard) -> None:
             trashed = trash.move(dest, home, reason)
         place_staged(staged, dest)
     except BaseException:
-        discard_staged(staged)
-        if trashed is not None and not os.path.lexists(dest):
-            trash.put_back(trashed, dest)
+        try:
+            if trashed is not None and not os.path.lexists(dest):
+                trash.put_back(trashed, dest)
+        finally:
+            discard_staged(staged)
         raise
 
 
@@ -198,8 +201,19 @@ def _failure(a: Action, exc: OSError) -> str:
     """One line for an entry left as it was. A busy Windows path names the usual cause."""
     line = f"{a.dest} {_NOT_DONE.get(a.op, 'not updated')}: {exc}"
     if is_busy(exc):
-        line += " (in use: close any terminal, editor, or program working in it, then run again)"
+        line += " (Windows refused: close any terminal, editor, or program working in it, then run again)"
     return line
+
+
+def _forget_inside(ledger: Ledger, dest: str) -> None:
+    """Drop records strictly inside *dest*, which this run just installed whole.
+
+    Their files went to trash with the old entry. A record left behind would make a later
+    run trash that path out of the new copy, which then reads as a user edit for good.
+    """
+    inside = dest + os.sep
+    for d in [d for d in ledger.entries if d.startswith(inside)]:
+        del ledger.entries[d]
 
 
 def _record(ledger: Ledger, a: Action, now: str) -> None:
@@ -260,6 +274,20 @@ def execute_target(
             failed.append(_failure(a, exc))
             continue
         _record(ledger, a, now)
+        if a.op in ("replace", "add"):
+            _forget_inside(ledger, a.dest)
+
+
+def _save_ledger(path: Path, ledger: Ledger, ctx: Context, guard: Guard) -> None:
+    """Save the ledger of this run. It holds only finished steps, so a partial run saves it too.
+
+    Without that save, an entry replaced before the failure keeps its old hash, reads as a
+    user edit after the next source change, and stops updating.
+    """
+    ledger.source_root = str(ctx.source_root)
+    ledger.mode = ctx.mode
+    ledger.overlays_mtime = ctx.overlays.mtime
+    ledger_mod.save(path, ledger, guard)
 
 
 def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict | None) -> dict:
@@ -407,9 +435,13 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     guard_hit: GuardError | None = None
     pin_error: str | None = None
     failed: list[str] = []
+    held_back: list[str] = []
     try:
         for t in targets:
+            before = len(failed)
             execute_target(plan.targets[t], ctx, trash, guard, ledger, skip, failed)
+            if len(failed) > before:
+                held_back.append(t)
         if python is not None:
             link = interp.link_path(ctx.home)
             # A pin that cannot be written must not strand the copies above without settings or a ledger.
@@ -421,25 +453,28 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
                 report["python"] = {"link": str(link), "target": python.label, "error": str(exc)}
             else:
                 report["python"] = {"link": str(link), "target": python.label, "changed": changed, "kind": kind}
-        if "claude" in targets:
+        # A target with a failed entry keeps its settings and hook configs as they are: a new
+        # registration could name a hook whose file did not install, and a PreToolUse hook that
+        # exits 2 (python on a missing script) blocks the tool call.
+        if "claude" in targets and "claude" not in held_back:
             report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
             report["accounts"] = accounts_mod.apply_all(ctx, guard)
         ext: list[external.ExternalFile] = []
         for t in targets:
-            ext.extend(external.desired(t, ADAPTERS[t].root_path(ctx.home), ctx.source_root, ctx.profile))
+            if t not in held_back:
+                ext.extend(external.desired(t, ADAPTERS[t].root_path(ctx.home), ctx.source_root, ctx.profile))
         report["external"] = external.write(ext, sdir / "backups", guard)
         res.err.extend(f"[{label}] warning: external {e}" for e in report["external"]["errors"])
     except GuardError as exc:
         guard_hit = exc
     except OSError as exc:
-        # Save the ledger anyway: it holds only finished steps. Without it, an entry replaced
-        # above keeps its old hash, reads as a user edit, and stops updating.
         failed.append(f"run stopped early: {exc}")
-    ledger.source_root = str(ctx.source_root)
-    ledger.mode = ctx.mode
-    ledger.overlays_mtime = ctx.overlays.mtime
+    except BaseException:
+        with contextlib.suppress(Exception):  # Ctrl-C or a bug: keep what finished, then stop
+            _save_ledger(lpath, ledger, ctx, guard)
+        raise
     try:
-        ledger_mod.save(lpath, ledger, guard)
+        _save_ledger(lpath, ledger, ctx, guard)
     except GuardError as exc:
         guard_hit = guard_hit or exc
     if guard_hit is None:
@@ -450,6 +485,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     report["timings_ms"] = int((time.monotonic() - t0) * 1000)
     report["trash"] = str(trash.dir) if trash.items else None
     report["failed"] = failed
+    report["held_back"] = held_back
     if guard_hit is not None:
         report["guard"] = guard_hit.path
     try:
@@ -476,6 +512,9 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
         res.err.extend(f"{tag} {line}" for line in failed[:_FAILED_SHOWN])
         if len(failed) > _FAILED_SHOWN:
             res.err.append(f"{tag} {len(failed) - _FAILED_SHOWN} more not done; the report in {sdir / 'reports'} lists all")
+        res.err.extend(
+            f"{tag} {t}: settings and hook registrations not updated until every {t} entry installs" for t in held_back
+        )
         if os.name == "nt" and ctx.mode == "symlink":
             res.err.append(f"{tag} Windows installs need copy mode: run ./install.sh --copy")
         if not sync:

@@ -160,11 +160,12 @@ def _copy_file(src: Path, dst: Path) -> None:
 
 
 def discard_staged(tmp: Path) -> None:
-    """Remove a staged temp copy (file, link, or tree)."""
+    """Remove a staged temp copy (file, link, or tree). Never raises: a leftover is only clutter."""
     if os.path.isdir(tmp) and not os.path.islink(tmp):
         shutil.rmtree(tmp, ignore_errors=True)
-    elif os.path.lexists(tmp):
-        os.unlink(tmp)
+    else:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
 
 
 def stage_copy(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | None) -> Path:
@@ -253,7 +254,7 @@ class Trash:
         except OSError as exc:
             if exc.errno != errno.EXDEV:
                 with contextlib.suppress(OSError):
-                    self._save(self.items)
+                    self._forget()
                 raise
             shutil.move(str(path), str(dest))
         self.items.append(item)
@@ -271,10 +272,21 @@ class Trash:
             raise OSError(exc.errno, f"missing; the old entry is in trash at {trashed} ({exc})") from exc
         self.items = [i for i in self.items if i["trashed"] != str(trashed)]
         with contextlib.suppress(OSError):  # restore-trash skips a record whose trashed path is gone
-            self._save(self.items)
+            self._forget()
 
     def _save(self, items: list[dict[str, str]]) -> None:
         atomic_write_json(self.dir / "manifest.json", {"ts": self.ts, "items": items}, self.guard)
+
+    def _forget(self) -> None:
+        """Rewrite the manifest after a move failed or was undone.
+
+        A session left with no items is removed, so ``./install.sh --rollback``, which takes
+        the newest session, still finds the last one that holds something.
+        """
+        if self.items:
+            self._save(self.items)
+        else:
+            shutil.rmtree(self.dir, ignore_errors=True)
 
 
 def _is_empty_real_dir(path: Path) -> bool:

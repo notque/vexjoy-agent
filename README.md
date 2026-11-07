@@ -123,7 +123,7 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Installs into `~/.claude/` and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, and `~/.reasonix/` when the runtime command is on PATH or its home directory exists. `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the repo re-syncs through the same engine. Symlinks (default in a git checkout on Linux and macOS) follow `git pull`; `--copy` gives a stable snapshot and is always used on Windows.
+Installs into `~/.claude/` and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, and `~/.reasonix/` when the runtime command is on PATH or its home directory exists. `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the repo re-syncs through the same engine. Symlinks (default in a git checkout on Linux and macOS) follow `git pull`; `--copy` gives a stable snapshot and is the default on Windows.
 
 | Flag | Effect |
 |---|---|
