@@ -212,7 +212,7 @@ Load `references/html-artifact-refs/design-system.md`. Headings must use Archivo
 
 ### Phase 3: Generate
 
-Dispatch html-builder agent (see `agents/html-builder.md`) with pre-assembled template. Vanilla JS only. Semantic HTML. SVG inline.
+Dispatch a subagent whose prompt is `agents/html-builder.md` (a prompt file in this skill, not a registered agent type) with the pre-assembled template. Vanilla JS only. Semantic HTML. SVG inline.
 
 ### Phase 4: Validate, then look
 
