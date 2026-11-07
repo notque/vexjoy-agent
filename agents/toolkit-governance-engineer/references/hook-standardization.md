@@ -73,7 +73,7 @@ Claude Code reads `timeout` in **seconds**, so `"timeout": 3000` means 50 minute
 | `timeout` | recommended | number (seconds) | Omitting leaves the runtime default kill limit; a value written in milliseconds becomes a very long limit |
 | `once` | no | boolean | `true` = run only once per session (SessionStart default) |
 
-Agent frontmatter `hooks:` use the same shape: each event maps to a list of matcher groups, and each group holds its own `hooks:` list (`- matcher: "Edit|Write"` then `hooks:` then `- type: command`). Claude Code drops a bare `- type: command` entry placed directly under the event ("Hook matcher hooks must be an array of hook entries; entry ignored"), so that hook never runs.
+Agent frontmatter `hooks:` use the same shape: each event maps to a list of matcher groups, and each group holds its own `hooks:` list (`- matcher: "Edit|Write"` then `hooks:` then `- type: command`). When a bare `- type: command` entry sits directly under PostToolUse or another non-guard event, Claude Code drops it with the note `Hook matcher "hooks" must be an array of hook entries; received undefined; entry ignored`, so the hook never runs. Under PreToolUse or PermissionRequest the same mistake is worse: Claude Code applies nothing from the agent file until the entry is fixed.
 
 ---
 
