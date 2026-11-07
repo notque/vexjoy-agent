@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import errno
+import functools
 import json
 import os
 import secrets
 import shutil
 import stat
+import tempfile
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -16,6 +19,49 @@ from pathlib import Path
 from .common import GuardError, is_inside, iter_tree_files, parse_ts, realpath, utc_iso
 
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+
+# Windows refuses to rename a dir while another process holds a file in it open, and to
+# replace a file another process has open: ERROR_ACCESS_DENIED or ERROR_SHARING_VIOLATION.
+# Hooks and virus scanners hold files for under a second. The retries total about 3 s, so
+# the SessionStart sync, which has 18 s, can survive two busy dirs.
+_WIN_BUSY = frozenset({5, 32})
+_BUSY_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8, 1.6)
+
+
+def _rename(src: Path | str, dest: Path | str, *, replace: bool = False) -> None:
+    """``os.rename`` (``os.replace`` with *replace*), retried while Windows reports *src* or *dest* busy."""
+    op = os.replace if replace else os.rename
+    for delay in _BUSY_DELAYS:
+        try:
+            op(src, dest)
+            return
+        except OSError as exc:
+            if getattr(exc, "winerror", None) not in _WIN_BUSY:
+                raise
+        time.sleep(delay)
+    op(src, dest)
+
+
+@functools.cache
+def symlinks_supported() -> bool:
+    """True when this process can create a symlink (probed once in the system temp dir).
+
+    Windows refuses one without Developer Mode or admin rights (WinError 1314). When the
+    probe cannot run at all, assume symlinks work, as before the probe existed.
+    """
+    try:
+        probe = Path(tempfile.mkdtemp(prefix="vexinstall-symlink-probe-"))
+    except OSError:
+        return True
+    try:
+        target = probe / "target"
+        target.touch()
+        os.symlink(target, probe / "link")
+    except (OSError, NotImplementedError):
+        return False
+    finally:
+        shutil.rmtree(probe, ignore_errors=True)
+    return True
 
 
 @dataclass
@@ -95,7 +141,7 @@ def atomic_write_bytes(dest: Path, data: bytes, guard: Guard, mode: int = 0o644)
             fh.flush()
             os.fsync(fh.fileno())
         os.chmod(tmp, mode)
-        os.replace(tmp, dest)
+        _rename(tmp, dest, replace=True)
     except BaseException:
         if os.path.lexists(tmp):
             os.unlink(tmp)
@@ -115,7 +161,7 @@ def atomic_symlink(dest: Path, target: Path, guard: Guard) -> None:
     tmp = _tmp_name(dest)
     os.symlink(str(target), tmp)
     try:
-        os.replace(tmp, dest)
+        _rename(tmp, dest, replace=True)
     except BaseException:
         if os.path.lexists(tmp):
             os.unlink(tmp)
@@ -130,11 +176,17 @@ def _copy_file(src: Path, dst: Path) -> None:
     os.chmod(dst, mode)
 
 
-def copy_entry(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | None) -> None:
-    """Copy a file or tree to an absent *dest* via a temp sibling and rename."""
+def discard_staged(tmp: Path) -> None:
+    """Remove a staged temp copy (file, link, or tree)."""
+    if os.path.isdir(tmp) and not os.path.islink(tmp):
+        shutil.rmtree(tmp, ignore_errors=True)
+    elif os.path.lexists(tmp):
+        os.unlink(tmp)
+
+
+def stage_copy(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | None) -> Path:
+    """Copy a file or tree into a temp sibling of *dest* and return it. *dest* is not touched."""
     guard.check(dest)
-    if os.path.lexists(dest):
-        raise FileExistsError(errno.EEXIST, "dest exists", str(dest))
     tmp = _tmp_name(dest)
     try:
         if src.is_file():
@@ -149,13 +201,29 @@ def copy_entry(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | Non
                 d = tmp / rel
                 d.parent.mkdir(parents=True, exist_ok=True)
                 _copy_file(s, d)
-        os.rename(tmp, dest)
     except BaseException:
-        if os.path.isdir(tmp) and not os.path.islink(tmp):
-            shutil.rmtree(tmp, ignore_errors=True)
-        elif os.path.lexists(tmp):
-            os.unlink(tmp)
+        discard_staged(tmp)
         raise
+    return tmp
+
+
+def place_staged(tmp: Path, dest: Path) -> None:
+    """Rename the staged copy *tmp* onto the absent *dest*. Remove *tmp* when that fails."""
+    try:
+        if os.path.lexists(dest):
+            raise FileExistsError(errno.EEXIST, "dest exists", str(dest))
+        _rename(tmp, dest)
+    except BaseException:
+        discard_staged(tmp)
+        raise
+
+
+def copy_entry(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | None) -> None:
+    """Copy a file or tree to an absent *dest* via a temp sibling and rename."""
+    guard.check(dest)
+    if os.path.lexists(dest):
+        raise FileExistsError(errno.EEXIST, "dest exists", str(dest))
+    place_staged(stage_copy(src, dest, guard, files), dest)
 
 
 @dataclass
@@ -184,7 +252,7 @@ class Trash:
         if os.path.lexists(dest):
             dest = dest.with_name(dest.name + "." + secrets.token_hex(3))
         try:
-            os.rename(path, dest)
+            _rename(path, dest)
         except OSError as exc:
             if exc.errno != errno.EXDEV:
                 raise
@@ -229,7 +297,7 @@ def restore_trash(
             continue
         guard.check(orig)
         mkdirs(orig.parent, guard)
-        os.rename(src, orig)
+        _rename(src, orig)
         restored.append(str(orig))
     return restored, skipped
 

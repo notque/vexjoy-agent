@@ -6,7 +6,7 @@ import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from . import gitutil
+from . import fsops, gitutil
 from .adapters import ADAPTERS, Adapter, Collision, DesiredEntry, desired_for, effective_adapter
 from .common import (
     DATA_DIRS,
@@ -593,9 +593,12 @@ def build_plan(ctx: Context, targets: list[str], full_adoption: bool, *, takeove
 
 
 def default_mode(source_root: Path) -> str:
-    """symlink for a main git checkout outside ephemeral paths, else copy."""
+    """symlink for a main git checkout outside ephemeral paths on a host that allows symlinks, else copy.
+
+    Windows without Developer Mode refuses symlinks, so a fresh install there copies.
+    """
     if gitutil.is_git_checkout(source_root) and not gitutil.is_worktree(source_root):
-        if not gitutil.is_ephemeral(source_root):
+        if not gitutil.is_ephemeral(source_root) and fsops.symlinks_supported():
             return "symlink"
     return "copy"
 

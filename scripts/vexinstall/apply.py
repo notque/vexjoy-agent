@@ -29,7 +29,18 @@ from .common import (
     utc_ts,
 )
 from .context import Options, Result, guard_for, load_context, state_dir
-from .fsops import Guard, Trash, atomic_symlink, copy_entry, mkdirs, prune_trash, restore_trash
+from .fsops import (
+    Guard,
+    Trash,
+    atomic_symlink,
+    copy_entry,
+    discard_staged,
+    mkdirs,
+    place_staged,
+    prune_trash,
+    restore_trash,
+    stage_copy,
+)
 from .ledger import STATUS_OK, STATUS_STALE, Ledger, LedgerEntry
 from .lock import LockHeld, engine_lock
 from .plan import (
@@ -152,6 +163,30 @@ def _install(a: Action, guard: Guard) -> None:
         copy_entry(src, dest, guard, a.files)
 
 
+def _replace(a: Action, trash: Trash, home: Path, guard: Guard) -> None:
+    """Move the entry at ``a.dest`` to trash and install *a* there.
+
+    A copy is staged before the old entry moves. A live dir such as ~/.claude/hooks is then
+    missing only between two renames, and stays in place when Windows keeps it busy.
+    """
+    dest = Path(a.dest)
+    reason = a.reason if a.takeover else f"replaced ({a.reason})"
+    if a.mode == "symlink":
+        if os.path.lexists(dest):
+            trash.move(dest, home, reason)
+        _install(a, guard)
+        return
+    mkdirs(dest.parent, guard)
+    staged = stage_copy(Path(str(a.source)), dest, guard, a.files)
+    try:
+        if os.path.lexists(dest):
+            trash.move(dest, home, reason)
+    except BaseException:
+        discard_staged(staged)
+        raise
+    place_staged(staged, dest)
+
+
 def _record(ledger: Ledger, a: Action, now: str) -> None:
     prev = ledger.entries.get(a.dest)
     ledger.entries[a.dest] = LedgerEntry(
@@ -193,9 +228,7 @@ def execute_target(tp: TargetPlan, ctx: Context, trash: Trash, guard: Guard, led
             if a.mode == "symlink" and os.path.islink(dest) and not a.takeover:
                 atomic_symlink(dest, Path(str(a.source)), guard)
             else:
-                if os.path.lexists(dest):
-                    trash.move(dest, home, a.reason if a.takeover else f"replaced ({a.reason})")
-                _install(a, guard)
+                _replace(a, trash, home, guard)
             _record(ledger, a, now)
         elif a.op == "add":
             _install(a, guard)
