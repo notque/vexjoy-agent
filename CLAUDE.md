@@ -4,6 +4,8 @@ Read `AGENTS.md` first. It holds the shared rules (communication standard, Jev
 loop, trust boundary, writing style, merge gate, project conventions). This
 file adds Claude Code-specific dispatch.
 
+@AGENTS.md
+
 ## Claude Code dispatch
 
 The main thread is an orchestrator. It classifies requests, picks and loads the
