@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.0.3
 """
 Stop Hook: Session Summary and Metrics
 
@@ -57,9 +57,7 @@ def main():
     try:
         event_data = read_stdin(timeout=2)
         cwd = os.getcwd()
-
-        # Generate session ID
-        session_id = get_session_id()
+        event = None
 
         if event_data:
             try:
@@ -81,7 +79,9 @@ def main():
             errors = 0
             resolved = 0
 
-        # Record session
+        # Key the row on the event's session_id so every Stop of one session
+        # updates the same row.
+        session_id = get_session_id(event)
         record_session(
             session_id,
             files_modified=files_modified,

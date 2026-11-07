@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.0.2
+# hook-version: 2.0.3
 """
 Stop Hook: Routing-Outcome Session-End Fallback
 
@@ -122,7 +122,7 @@ def main():
             empty_output(EVENT_NAME).print_and_exit()
 
         event = json.loads(event_data)
-        session_id = event.get("session_id") or get_session_id()
+        session_id = get_session_id(event)
 
         # Stop fallback: resolve routed dispatches the next-turn finalizer never
         # saw (autonomous / no-next-prompt runs).
