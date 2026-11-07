@@ -15,15 +15,17 @@ from pathlib import Path
 
 import pytest
 
-from scripts.tests.vexinstall_support import Env, commit_all, git, world
+from scripts.tests.vexinstall_support import Env, commit_all, git, skill_md, world
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from vexinstall import apply as apply_mod
 from vexinstall import rollback as rollback_mod
 
 __all__ = ["world"]
 
 USER_SETTINGS = {"model": "user-choice", "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "echo mine"}]}]}}
 USER_ALPHA = "---\nname: alpha\ndescription: the user's own alpha\n---\n"
+USER_OMEGA = "---\nname: omega\ndescription: the user's own omega\n---\n"
 
 
 def _ok(res) -> None:
@@ -187,6 +189,72 @@ def test_a_damaged_session_is_reported_and_the_rest_still_comes_back(world: Env)
     assert _users_alpha_is_back(alpha) and not os.path.lexists(gone)
     assert str(alpha) not in world.ledger_dests("claude"), "the displaced entry left the saved ledger"
     assert res.data["failed"] == [prune_ts] and apply_ts not in res.data["failed"]
+
+
+def _fail(*_args: object, **_kwargs: object) -> None:
+    raise PermissionError(13, "simulated write failure")
+
+
+def test_an_apply_that_dies_partway_is_the_run_rolled_back(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    # The run that died after its takeover is what --rollback undoes. The earlier run-1, never rolled
+    # back, used to stand in for it: rollback put back run-1's alpha and the settings.json from before
+    # run-1, and left the failed run's displaced omega in trash.
+    alpha, spath = _user_home(world)
+    _ok(world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-1"))
+    installed = spath.read_bytes()
+    md = world.repo / "skills" / "meta" / "omega" / "SKILL.md"
+    md.parent.mkdir(parents=True)
+    md.write_text(skill_md("omega"))
+    commit_all(world.repo, "add omega")
+    omega = world.skills("claude") / "omega"
+    omega.mkdir()
+    (omega / "SKILL.md").write_text(USER_OMEGA)
+    with monkeypatch.context() as mp:
+        mp.setattr(apply_mod, "apply_settings", _fail)  # dies after the takeover moved omega to trash
+        with pytest.raises(PermissionError):
+            world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-2")
+    assert _point(world)["run"] == "run-2"
+    assert str(omega) in world.ledger_dests("claude"), "the ledger keeps what the failed run installed"
+    res = world.run("rollback")
+    _ok(res)
+    assert res.out[0].startswith("[rollback] run run-2 (apply)"), res.out
+    assert (omega / "SKILL.md").read_text() == USER_OMEGA
+    assert not _users_alpha_is_back(alpha), "run-1 is not part of the run that failed"
+    assert spath.read_bytes() == installed
+
+
+def test_an_uninstall_that_dies_partway_is_the_run_rolled_back(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    alpha, _ = _user_home(world)
+    _ok(world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-1"))
+    beta = world.skills("claude") / "beta"
+    with monkeypatch.context() as mp:
+        mp.setattr(apply_mod, "apply_settings", _fail)  # dies after every owned entry went to trash
+        with pytest.raises(PermissionError):
+            world.run("uninstall", "--target", "claude", "--run-id", "un-1")
+    assert not os.path.lexists(beta)
+    assert str(beta) not in world.ledger_dests("claude"), "the ledger drops what the failed uninstall removed"
+    res = world.run("rollback")
+    _ok(res)
+    assert res.out[0].startswith("[rollback] run un-1 (uninstall)"), res.out
+    assert (beta / "SKILL.md").is_file()
+    assert not _users_alpha_is_back(alpha), "the uninstall trashed the engine's alpha, which comes back"
+
+
+def test_a_prune_that_dies_partway_is_the_run_rolled_back(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    alpha, _ = _user_home(world)
+    _ok(world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-1"))
+    gone = world.skills("claude") / "gone-skill"
+    gone.symlink_to(world.home / "nowhere")
+    with monkeypatch.context() as mp:
+        mp.setattr(apply_mod, "write_report", _fail)  # dies after the move
+        with pytest.raises(PermissionError):
+            world.run("prune", "--unowned", "--confirm", "--target", "claude", "--run-id", "pr-1")
+    assert not os.path.lexists(gone)
+    res = world.run("rollback")
+    _ok(res)
+    assert res.out[0].startswith("[rollback] run pr-1 (prune)"), res.out
+    assert os.path.islink(gone)
+    assert not _users_alpha_is_back(alpha)
 
 
 def test_damaged_point_never_names_a_path_outside_the_state_dir(world: Env) -> None:

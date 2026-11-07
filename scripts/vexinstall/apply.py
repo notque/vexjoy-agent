@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from . import accounts as accounts_mod
@@ -259,6 +261,20 @@ def _write_indexes(ctx: Context, ledger: Ledger, targets: list[str], guard: Guar
     return written
 
 
+def _keep_failed_run(sdir: Path, guard: Guard, ledger: Ledger | None, record_point: Callable[[], None]) -> None:
+    """Save *ledger* and record the rollback point of a run that an error is ending; never raises.
+
+    The run has already moved entries to trash or rewritten settings.json, so ``--rollback`` must
+    undo this run and not the one before it, and the ledger must list what the run installed, so
+    the restore can move those entries aside. The caller re-raises the run's own error.
+    """
+    if ledger is not None:
+        with contextlib.suppress(Exception):
+            ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
+    with contextlib.suppress(Exception):
+        record_point()
+
+
 def run_apply(opts: Options, *, sync: bool) -> Result:
     """apply (sync=False) or sync (sync=True)."""
     label = "sync" if sync else "apply"
@@ -350,52 +366,61 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     }
     guard_hit: GuardError | None = None
     pin_error: str | None = None
+
+    def record_point() -> None:
+        rollback_mod.record(
+            sdir,
+            guard,
+            run=opts.run_id or ts,
+            command=label,
+            trash=ts if trash.items else None,
+            settings_backup=(report.get("settings") or {}).get("backup"),
+        )
+
     try:
-        for t in targets:
-            execute_target(plan.targets[t], ctx, trash, guard, ledger, skip)
-        if python is not None:
-            link = interp.link_path(ctx.home)
-            # A pin that cannot be written must not strand the copies above without settings or a ledger.
-            try:
-                changed = interp.write_link(ctx.home, python, guard)
-                kind = interp.read_pin(link).kind
-            except OSError as exc:
-                pin_error = f"python pin {link} not written: {exc}; hooks fall back to python3 on PATH"
-                report["python"] = {"link": str(link), "target": python.label, "error": str(exc)}
-            else:
-                report["python"] = {"link": str(link), "target": python.label, "changed": changed, "kind": kind}
-        if "claude" in targets:
-            report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
-            report["accounts"] = accounts_mod.apply_all(ctx, guard)
-        ext: list[external.ExternalFile] = []
-        for t in targets:
-            ext.extend(external.desired(t, ADAPTERS[t].root_path(ctx.home), ctx.source_root, ctx.profile))
-        report["external"] = external.write(ext, sdir / "backups", guard)
-        res.err.extend(f"[{label}] warning: external {e}" for e in report["external"]["errors"])
-    except GuardError as exc:
-        guard_hit = exc
-    ledger.source_root = str(ctx.source_root)
-    ledger.mode = ctx.mode
-    ledger.overlays_mtime = ctx.overlays.mtime
-    try:
-        ledger_mod.save(lpath, ledger, guard)
-    except GuardError as exc:
-        guard_hit = guard_hit or exc
-    if guard_hit is None:
         try:
-            report["index"] = _write_indexes(ctx, ledger, targets, guard)
+            for t in targets:
+                execute_target(plan.targets[t], ctx, trash, guard, ledger, skip)
+            if python is not None:
+                link = interp.link_path(ctx.home)
+                # A pin that cannot be written must not strand the copies above without settings or a ledger.
+                try:
+                    changed = interp.write_link(ctx.home, python, guard)
+                    kind = interp.read_pin(link).kind
+                except OSError as exc:
+                    pin_error = f"python pin {link} not written: {exc}; hooks fall back to python3 on PATH"
+                    report["python"] = {"link": str(link), "target": python.label, "error": str(exc)}
+                else:
+                    report["python"] = {"link": str(link), "target": python.label, "changed": changed, "kind": kind}
+            if "claude" in targets:
+                report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
+                report["accounts"] = accounts_mod.apply_all(ctx, guard)
+            ext: list[external.ExternalFile] = []
+            for t in targets:
+                ext.extend(external.desired(t, ADAPTERS[t].root_path(ctx.home), ctx.source_root, ctx.profile))
+            report["external"] = external.write(ext, sdir / "backups", guard)
+            res.err.extend(f"[{label}] warning: external {e}" for e in report["external"]["errors"])
         except GuardError as exc:
             guard_hit = exc
+        ledger.source_root = str(ctx.source_root)
+        ledger.mode = ctx.mode
+        ledger.overlays_mtime = ctx.overlays.mtime
+        try:
+            ledger_mod.save(lpath, ledger, guard)
+        except GuardError as exc:
+            guard_hit = guard_hit or exc
+        if guard_hit is None:
+            try:
+                report["index"] = _write_indexes(ctx, ledger, targets, guard)
+            except GuardError as exc:
+                guard_hit = exc
+    except BaseException:
+        if not sync:  # an apply that dies partway is still the run --rollback undoes
+            _keep_failed_run(sdir, guard, ledger, record_point)
+        raise
     if not sync:  # a session-start sync must never become what --rollback restores
         try:
-            rollback_mod.record(
-                sdir,
-                guard,
-                run=opts.run_id or ts,
-                command=label,
-                trash=ts if trash.items else None,
-                settings_backup=(report.get("settings") or {}).get("backup"),
-            )
+            record_point()
         except GuardError as exc:
             guard_hit = guard_hit or exc
     report["timings_ms"] = int((time.monotonic() - t0) * 1000)
@@ -450,50 +475,58 @@ def run_uninstall(opts: Options) -> Result:
             ts = utc_ts()
             trash = Trash(root=sdir / "trash", ts=ts, guard=guard)
             removed, skipped = [], []
-            for e in sorted(owned, key=lambda x: x.dest, reverse=True):
-                dest = Path(e.dest)
-                if (
-                    e.mode == "copy"
-                    and e.sha256
-                    and os.path.lexists(dest)
-                    and not os.path.islink(dest)
-                    and tree_sha256(dest) != e.sha256
-                ):
-                    skipped.append(e.dest)
-                    continue
-                if os.path.lexists(dest):
-                    trash.move(dest, ctx.home, "uninstall")
-                    removed.append(e.dest)
-                ctx.ledger.entries.pop(e.dest, None)
             settings_report = None
-            accounts_report: list[dict] = []
-            if "claude" in targets:
-                settings_report = apply_settings(ctx, ctx.ledger, guard, desired={})
-                accounts_report = accounts_mod.apply_all(ctx, guard, desired={}, links=False)
-                ctx.ledger.settings.pop("claude", None)
-                link = interp.link_path(ctx.home)
-                if interp.read_pin(link).kind in ("link", "script"):
-                    trash.move(link, ctx.home, "uninstall")
-                    removed.append(str(link))
-            ledger_mod.save(ledger_mod.ledger_path(sdir), ctx.ledger, guard)
-            report = {
-                "ts": ts,
-                "command": "uninstall",
-                "removed": removed,
-                "skipped_user_edited": skipped,
-                "settings": settings_report,
-                "accounts": accounts_report,
-                "trash": str(trash.dir) if trash.items else None,
-            }
-            write_report(sdir / "reports", ts, report, guard)
-            rollback_mod.record(
-                sdir,
-                guard,
-                run=opts.run_id or ts,
-                command="uninstall",
-                trash=ts if trash.items else None,
-                settings_backup=(settings_report or {}).get("backup"),
-            )
+
+            def record_point() -> None:
+                rollback_mod.record(
+                    sdir,
+                    guard,
+                    run=opts.run_id or ts,
+                    command="uninstall",
+                    trash=ts if trash.items else None,
+                    settings_backup=(settings_report or {}).get("backup"),
+                )
+
+            try:
+                for e in sorted(owned, key=lambda x: x.dest, reverse=True):
+                    dest = Path(e.dest)
+                    if (
+                        e.mode == "copy"
+                        and e.sha256
+                        and os.path.lexists(dest)
+                        and not os.path.islink(dest)
+                        and tree_sha256(dest) != e.sha256
+                    ):
+                        skipped.append(e.dest)
+                        continue
+                    if os.path.lexists(dest):
+                        trash.move(dest, ctx.home, "uninstall")
+                        removed.append(e.dest)
+                    ctx.ledger.entries.pop(e.dest, None)
+                accounts_report: list[dict] = []
+                if "claude" in targets:
+                    settings_report = apply_settings(ctx, ctx.ledger, guard, desired={})
+                    accounts_report = accounts_mod.apply_all(ctx, guard, desired={}, links=False)
+                    ctx.ledger.settings.pop("claude", None)
+                    link = interp.link_path(ctx.home)
+                    if interp.read_pin(link).kind in ("link", "script"):
+                        trash.move(link, ctx.home, "uninstall")
+                        removed.append(str(link))
+                ledger_mod.save(ledger_mod.ledger_path(sdir), ctx.ledger, guard)
+                report = {
+                    "ts": ts,
+                    "command": "uninstall",
+                    "removed": removed,
+                    "skipped_user_edited": skipped,
+                    "settings": settings_report,
+                    "accounts": accounts_report,
+                    "trash": str(trash.dir) if trash.items else None,
+                }
+                write_report(sdir / "reports", ts, report, guard)
+            except BaseException:  # an uninstall that dies partway is still the run --rollback undoes
+                _keep_failed_run(sdir, guard, ctx.ledger, record_point)
+                raise
+            record_point()
     except GuardError as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[uninstall] ABORT {exc}"])
     except LockTimeoutError as exc:
@@ -576,17 +609,25 @@ def run_prune(opts: Options) -> Result:
         with engine_lock(sdir / "lock", guard, blocking=True, timeout=APPLY_LOCK_TIMEOUT_S):
             ts = utc_ts()
             trash = Trash(root=sdir / "trash", ts=ts, guard=guard)
-            for p, why in items:
-                trash.move(Path(p), ctx.home, f"prune --unowned: {why}")
-            write_report(sdir / "reports", ts, {"ts": ts, "command": "prune", "trashed": trash.items}, guard)
-            rollback_mod.record(
-                sdir,
-                guard,
-                run=opts.run_id or ts,
-                command="prune",
-                trash=ts if trash.items else None,
-                settings_backup=None,
-            )
+
+            def record_point() -> None:
+                rollback_mod.record(
+                    sdir,
+                    guard,
+                    run=opts.run_id or ts,
+                    command="prune",
+                    trash=ts if trash.items else None,
+                    settings_backup=None,
+                )
+
+            try:
+                for p, why in items:
+                    trash.move(Path(p), ctx.home, f"prune --unowned: {why}")
+                write_report(sdir / "reports", ts, {"ts": ts, "command": "prune", "trashed": trash.items}, guard)
+            except BaseException:  # a prune that dies partway is still the run --rollback undoes
+                _keep_failed_run(sdir, guard, None, record_point)
+                raise
+            record_point()
     except GuardError as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[prune] ABORT {exc}"])
     return Result(out=[f"[prune] moved {len(items)} to trash {ts}", *lines])
