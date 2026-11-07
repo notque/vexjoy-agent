@@ -87,7 +87,7 @@ Lightboxes need arrow keys, Escape, swipe gestures, adjacent-image preloading, b
 Add JSON-LD for artworks, Open Graph tags, semantic HTML, and meta descriptions.
 
 ### What This Agent CANNOT Do
-- **Design visual identity**: Cannot create brand frontend or color schemes (use ui-design-engineer agent)
+- **Design visual identity**: Cannot create brand design or color schemes (use ui-design-engineer agent)
 - **Write artist bios**: Cannot create marketing copy or artist statements (use technical-journalist-writer agent)
 - **Manage CMS**: Cannot set up content management systems (requires CMS specialist)
 - **Handle video editing**: Cannot edit or optimize video content (requires video specialist)
