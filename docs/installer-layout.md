@@ -108,12 +108,19 @@ Runtime scope:
 
 Residual: no 3.10+ anywhere and no `python3` exits 127, which fails open. Windows has no `sh` and is out of scope.
 
-**Homes with no launcher.** A home that never ran `./install.sh` has no `~/.claude/hooks/lib/pyrun.sh`. That covers a Claude cloud session container (a fresh Linux home, usually `/root`), a new user, and an install older than the launcher. There, `sh` cannot open the launcher, exits 2, and every hook blocks with `sh: 0: cannot open .../pyrun.sh`. The repo's sync hook cannot repair this, because it also runs through the launcher. So the first repo SessionStart entry is the one hook that is not a toolkit hook: `sh "$CLAUDE_PROJECT_DIR/scripts/session-bootstrap.sh"`.
-- When the launcher exists, it exits at once (about 4 ms).
-- In a Claude cloud session (`CLAUDE_CODE_REMOTE=true`), or in a local home that already has `~/.claude/vexjoy/ledger.json`, it runs `./install.sh` from the checkout. That takes about 30 s with dependencies, inside its 300 s timeout. It logs to `~/.claude/vexjoy/bootstrap.log` and prints one line.
-- In a local home that never installed, it prints one line saying to run `./install.sh` and leaves `~/.claude` untouched.
-- It always exits 0.
-- It is repo-only (`interp.REPO_BOOTSTRAP`). `settings.drop_repo_only` keeps it out of user settings, account homes, and the Factory copy, and `validate-hook-health.py` exempts it from the launcher form. `scripts/tests/test_session_bootstrap.py` covers all of this.
+**Homes with no launcher.** A home that never ran `./install.sh` has no `~/.claude/hooks/lib/pyrun.sh`. There, `sh` cannot open the launcher, exits 2, and every hook blocks with `sh: 0: cannot open .../pyrun.sh`. The repo's sync hook cannot repair this, because it also runs through the launcher.
+
+A Claude cloud session is always such a home: a fresh VM running as root, where user-level settings do not carry over. The repo handles it with one SessionStart entry that is not a toolkit hook: `sh "$CLAUDE_PROJECT_DIR/scripts/session-bootstrap.sh"` (`scripts/session-bootstrap.sh`).
+- **Launcher present:** it exits at once (about 4 ms).
+- **Cloud session** (`CLAUDE_CODE_REMOTE=true`): it runs `./install.sh` from the checkout, capped at 220 s inside a 240 s hook timeout, and logs to `~/.claude/vexjoy/bootstrap.log`. A full install with dependencies takes about 30 s.
+  - Claude Code starts every SessionStart hook at once, so the toolkit's other SessionStart hooks fail while the install runs.
+  - After the install, `scripts/session-bootstrap-replay.py` runs those hooks again with the same payload and returns their context, plus one status line, as a single SessionStart result.
+  - The first prompt waits for SessionStart hooks, so it reaches Claude with hooks working.
+- **Local home without a launcher:** it prints one line saying to run `./install.sh` and changes nothing. That includes a home that ran `--uninstall`, or a session in a worktree.
+- **Never blocks:** every path exits 0.
+- **Repo-only:** `interp.REPO_BOOTSTRAP` names the entry. `settings.drop_repo_only` keeps it out of user settings, account homes and the Factory copy, and `validate-hook-health.py` exempts it from the launcher form. `scripts/tests/test_session_bootstrap.py` covers it.
+
+**Faster cloud start (optional).** Put `./install.sh` in the cloud environment's setup script (the environment settings at claude.ai/code). The setup script runs as root before Claude Code launches and is cached when it finishes in about five minutes. With it, each session finds the launcher already in place: no 30 s install and no SessionStart failures to replay. The install also adds the repo's git hooks to the cloud clone and a block to `~/.bashrc`, the same as a local install.
 
 After pulling this change, run `./install.sh` once: until the first new-engine sync, repo sessions see the launcher in project settings and bare `python3` in user settings, so each hook runs twice for that session.
 

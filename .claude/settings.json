@@ -18,8 +18,8 @@
           {
             "type": "command",
             "command": "sh \"$CLAUDE_PROJECT_DIR/scripts/session-bootstrap.sh\"",
-            "description": "Install the toolkit into ~/.claude when this home has none (cloud sessions, new users, pre-launcher installs)",
-            "timeout": 300000,
+            "description": "Claude cloud sessions: install the toolkit when this home has no hook launcher, then replay SessionStart context",
+            "timeout": 240,
             "once": true
           },
           {

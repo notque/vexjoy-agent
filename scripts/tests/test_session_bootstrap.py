@@ -18,11 +18,11 @@ REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts" / "session-bootstrap.sh"
 
 
-def _run(home: Path, project: Path | str, *, remote: bool = True) -> subprocess.CompletedProcess:
+def _run(home: Path, project: Path | str, *, remote: bool = True, payload: str = "") -> subprocess.CompletedProcess:
     env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": str(home), "CLAUDE_PROJECT_DIR": str(project)}
     if remote:
         env["CLAUDE_CODE_REMOTE"] = "true"
-    return subprocess.run(["sh", str(SCRIPT)], env=env, capture_output=True, text=True, timeout=60)
+    return subprocess.run(["sh", str(SCRIPT)], env=env, input=payload, capture_output=True, text=True, timeout=60)
 
 
 INSTALLS_LAUNCHER = 'mkdir -p "$HOME/.claude/hooks/lib" && touch "$HOME/.claude/hooks/lib/pyrun.sh"\n'
@@ -56,12 +56,13 @@ def test_cloud_session_without_launcher_runs_the_repo_installer(tmp_path: Path) 
     assert (home / ".claude" / "hooks" / "lib" / "pyrun.sh").is_file()
 
 
-def test_local_home_with_an_earlier_install_is_repaired(tmp_path: Path) -> None:
+def test_local_home_is_told_and_never_installed_even_with_a_ledger(tmp_path: Path) -> None:
     home = _home(tmp_path)
     (home / ".claude" / "vexjoy").mkdir(parents=True)
     (home / ".claude" / "vexjoy" / "ledger.json").write_text("{}")
     proc = _run(home, _fake_repo(tmp_path, INSTALLS_LAUNCHER), remote=False)
-    assert proc.returncode == 0 and proc.stdout.startswith("[session-bootstrap] installed")
+    assert proc.returncode == 0 and "run ./install.sh" in proc.stdout
+    assert not (home / ".claude" / "hooks").exists()
 
 
 def test_local_home_never_installed_is_told_and_left_alone(tmp_path: Path) -> None:
@@ -119,3 +120,64 @@ def test_health_check_exempts_the_same_command() -> None:
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert mod.REPO_BOOTSTRAP == interp.REPO_BOOTSTRAP
+
+
+REPLAY = REPO / "scripts" / "session-bootstrap-replay.py"
+# A launcher that runs the real interpreter, as the real pyrun.sh would.
+REAL_LAUNCHER = (
+    'mkdir -p "$HOME/.claude/hooks/lib" && printf \'#!/bin/sh\\nexec python3 "$@"\\n\' '
+    '> "$HOME/.claude/hooks/lib/pyrun.sh"\n'
+)
+
+
+def _replay_repo(tmp_path: Path, session_start: list[dict]) -> Path:
+    repo = _fake_repo(tmp_path, REAL_LAUNCHER)
+    (repo / "scripts").symlink_to(REPO / "scripts")
+    (repo / ".claude").mkdir()
+    (repo / ".claude" / "settings.json").write_text(json.dumps({"hooks": {"SessionStart": session_start}}))
+    return repo
+
+
+def _context(stdout: str) -> str:
+    return json.loads(stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_cloud_install_replays_session_start_hooks_as_one_context(tmp_path: Path) -> None:
+    hooks = [
+        {"type": "command", "command": interp.REPO_BOOTSTRAP},
+        {"type": "command", "command": 'cat > "$HOME/seen.json"; echo plain-context'},
+        {
+            "type": "command",
+            "command": 'echo \'{"hookSpecificOutput": {"hookEventName": "SessionStart", '
+            '"additionalContext": "json-context"}}\'',
+        },
+        {"type": "command", "command": "echo should-not-appear; exit 2"},
+    ]
+    repo = _replay_repo(tmp_path, [{"hooks": hooks}])
+    home = _home(tmp_path)
+    proc = _run(home, repo, payload='{"source": "startup", "session_id": "s1"}')
+    assert proc.returncode == 0, proc.stderr
+    ctx = _context(proc.stdout)
+    assert ctx.startswith("[session-bootstrap] installed")
+    assert "plain-context" in ctx and "json-context" in ctx and "should-not-appear" not in ctx
+    assert json.loads((home / "seen.json").read_text())["session_id"] == "s1"
+
+
+def test_replay_respects_matchers_and_skips_the_bootstrap() -> None:
+    spec = importlib.util.spec_from_file_location("replay", REPLAY)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    settings = {
+        "hooks": {
+            "SessionStart": [
+                {"hooks": [{"type": "command", "command": interp.REPO_BOOTSTRAP}, {"command": "a"}]},
+                {"matcher": "resume", "hooks": [{"command": "b"}]},
+                {"matcher": "startup|clear", "hooks": [{"command": "c"}]},
+            ]
+        }
+    }
+    assert mod.commands(settings, "startup") == ["a", "c"]
+    assert mod.commands(settings, "resume") == ["a", "b"]
+    assert mod.context_of("") == "" and mod.context_of("text") == "text"
+    assert mod.context_of('{"hookSpecificOutput": {"additionalContext": " x "}}') == "x"
+    assert mod.context_of('{"hookSpecificOutput": {"hookEventName": "SessionStart"}}') == ""
