@@ -64,6 +64,9 @@ KNOWN_EVENTS = {
 CANONICAL_CMD = re.compile(r'^sh "\$HOME/\.claude/hooks/lib/pyrun\.sh" "\$HOME/\.claude/hooks/([A-Za-z0-9._-]+\.py)"$')
 # Extract a hooks/<file>.py basename from any command (looser, for registered set)
 CMD_BASENAME = re.compile(r"hooks/([A-Za-z0-9._-]+\.py)")
+# The repo-only SessionStart bootstrap (scripts/vexinstall/interp.py REPO_BOOTSTRAP): runs
+# scripts/session-bootstrap.sh from the checkout, so it is exempt from the launcher form.
+REPO_BOOTSTRAP = 'sh "$CLAUDE_PROJECT_DIR/scripts/session-bootstrap.sh"'
 
 
 def load_settings() -> dict:
@@ -599,6 +602,8 @@ def check_schema(settings: dict) -> list[str]:
                     msgs.append(f"SCHEMA: {event} hook entry is not an object.")
                     continue
                 cmd = entry.get("command", "")
+                if cmd == REPO_BOOTSTRAP and event == "SessionStart":
+                    continue
                 if not CANONICAL_CMD.match(cmd):
                     msgs.append(
                         f"SCHEMA: {event} command not in canonical launcher form "

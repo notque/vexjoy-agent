@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .common import SETTINGS_BACKUPS_KEEP, is_inside, realpath, utc_ts
 from .fsops import Guard, atomic_write_bytes, mkdirs
-from .interp import strip_launcher
+from .interp import is_repo_only, strip_launcher
 from .legacy import is_legacy_hook_path
 
 _VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
@@ -106,15 +106,35 @@ class MergeResult:
         return bool(self.added or self.removed or self.deduped)
 
 
+def drop_repo_only(hooks: dict) -> dict:
+    """*hooks* without the repo-only bootstrap entry; groups it empties are dropped."""
+    out: dict = {}
+    for event, groups in hooks.items():
+        if not isinstance(groups, list):
+            out[event] = groups
+            continue
+        kept_groups = []
+        for group in groups:
+            if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+                kept_groups.append(group)
+                continue
+            entries = [e for e in group["hooks"] if not (isinstance(e, dict) and is_repo_only(e.get("command")))]
+            if entries:
+                kept_groups.append({**group, "hooks": entries})
+        if kept_groups:
+            out[event] = kept_groups
+    return out
+
+
 def desired_from_repo(source_root: Path) -> dict:
-    """The ``hooks`` key of repo ``.claude/settings.json`` (source of desired entries)."""
+    """The ``hooks`` key of repo ``.claude/settings.json`` (source of desired entries), minus repo-only entries."""
     path = source_root / ".claude" / "settings.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
     hooks = data.get("hooks", {})
-    return hooks if isinstance(hooks, dict) else {}
+    return drop_repo_only(hooks) if isinstance(hooks, dict) else {}
 
 
 def desired_env_from_repo(source_root: Path) -> dict[str, str]:
