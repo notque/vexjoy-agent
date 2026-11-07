@@ -20,6 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from hook_utils import ensure_owner_only_dir, ensure_owner_only_file
+
 # Database location - same directory as learning.db
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
@@ -33,16 +35,23 @@ def _get_db_dir() -> Path:
 
 
 def get_db_path() -> Path:
-    """Get database path, creating directory if needed."""
+    """Get database path, creating the directory (0700 when new) if needed."""
     db_dir = _get_db_dir()
-    db_dir.mkdir(parents=True, exist_ok=True)
+    ensure_owner_only_dir(db_dir)
     return db_dir / "usage.db"
 
 
 @contextmanager
 def get_connection():
-    """Get a database connection with automatic cleanup."""
-    conn = sqlite3.connect(get_db_path(), timeout=5.0)
+    """Get a database connection with automatic cleanup.
+
+    The database file is created 0600 (or tightened if the current user owns
+    it) before SQLite opens it: rows hold prompt-derived arguments, and SQLite
+    gives the -wal/-shm files the database's mode.
+    """
+    db_path = get_db_path()
+    ensure_owner_only_file(db_path)
+    conn = sqlite3.connect(db_path, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=5000")

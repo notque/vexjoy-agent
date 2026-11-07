@@ -26,6 +26,8 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from hook_utils import append_hook_debug_log, ensure_owner_only_file
+
 # ─── Configuration ─────────────────────────────────────────────
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
@@ -94,7 +96,11 @@ def get_db_path() -> Path:
 
 @contextmanager
 def get_connection():
-    conn = sqlite3.connect(get_db_path(), timeout=5.0)
+    db_path = get_db_path()
+    # Create the file 0600 before SQLite opens it (SQLite gives -wal/-shm the
+    # database's mode), so it is never briefly group- or world-readable.
+    ensure_owner_only_file(db_path)
+    conn = sqlite3.connect(db_path, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=5000")
@@ -1764,12 +1770,8 @@ _DEBUG_LOG_PATH = "/tmp/claude_hook_debug.log"
 
 
 def _debug_line(message: str) -> None:
-    """Append one line to the hook debug log; never raises."""
-    try:
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as fh:
-            fh.write(f"[learning_db_v2] {message}\n")
-    except OSError:
-        pass
+    """Append one line to the hook debug log (0600) when CLAUDE_HOOKS_DEBUG is set; never raises."""
+    append_hook_debug_log(Path(_DEBUG_LOG_PATH), f"[learning_db_v2] {message}")
 
 
 def record_evidence_route_decision(

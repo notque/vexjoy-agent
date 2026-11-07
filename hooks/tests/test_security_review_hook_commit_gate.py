@@ -62,6 +62,9 @@ def _run(command: str, cwd: Path, *, hook: Path = HOOK, home: Path | None = None
     if not proc.stdout.strip():
         return False, "", proc.stderr
     out = json.loads(proc.stdout)["hookSpecificOutput"]
+    if "permissionDecision" not in out:
+        # An allowed commit with a warning for the model (an unscanned or incomplete scan).
+        return False, out.get("additionalContext", ""), proc.stderr
     return out["permissionDecision"] == "deny", out["permissionDecisionReason"], proc.stderr
 
 
@@ -137,9 +140,10 @@ def test_missing_scanner_allows_the_commit_with_a_warning(tmp_path):
     home.mkdir()
     repo = _repo(tmp_path)
     _stage(repo, "app.py", "import os\n" + HIGH_LINE)
-    denied, _, stderr = _run(COMMIT, repo, hook=hooks_copy / HOOK.name, home=home)
+    denied, context, stderr = _run(COMMIT, repo, hook=hooks_copy / HOOK.name, home=home)
     assert denied is False
     assert "scanner unavailable" in stderr
+    assert "NOT scanned" in context
 
 
 @pytest.mark.parametrize("command", ["echo git commitment", "git status"])
