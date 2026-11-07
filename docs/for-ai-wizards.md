@@ -22,16 +22,17 @@ routing:
     - ".go files"
     - goroutine
     - gopls
-  retro-topics:
-    - go-patterns
+  process-topics:
+    - programming
     - concurrency
+    - debugging
 ```
 
 Force-route entries bind when their domain matches the request's meaning. If PR or security intent owns the primary skill, the router retains that skill and stacks relevant domain guidance. `scripts/build-dispatch.py` prepares the resulting agent dispatch.
 
 A dispatch should preserve both the selected route and the evidence used to select it. That distinction powers later evaluation: a route can be syntactically valid yet semantically wrong, and a successful task does not prove every stacked enhancement helped. The feedback loop therefore records the agent, primary skill, enhancements, and eventual outcome separately. Health-aware reranking can adjust future choices without rewriting the routing taxonomy after one anecdote.
 
-The former `skill-evaluator` and `auto-plan-detector` hooks are disabled or removed. Their routing and planning responsibilities now live in `/do`; `pretool-plan-gate` enforces any plan requirement before Write/Edit.
+The former `skill-evaluator` and `auto-plan-detector` hooks are disabled or removed. Their routing and planning responsibilities now live in `/do`, whose plan rule is an instruction. The one hook check is narrower: `pretool-plan-gate` blocks Write and Edit under the project root's `agents/` and `skills/` directories until `task_plan.md` exists there.
 
 ## Agent Architecture
 
@@ -40,9 +41,7 @@ An agent is a Markdown file in `agents/` with YAML frontmatter. A representative
 ```yaml
 ---
 name: golang-general-engineer
-version: 3.0.0
-description: |
-  Use this agent when you need expert assistance with Go development...
+description: "Go development: features, debugging, code review, performance."
 color: blue
 memory: project
 hooks:
@@ -52,20 +51,26 @@ hooks:
         python3 -c "
         import sys, json
         data = json.loads(sys.stdin.read())
+        tool = data.get('tool_name', '')
+        command = data.get('tool_input', {}).get('command', '')
         # agent-specific hook logic
         "
-      timeout: 3000
+      timeout: 5  # seconds
 routing:
   triggers: [go, golang, goroutine, gopls]
-  retro-topics: [go-patterns, concurrency]
+  process-topics: [programming, concurrency, debugging]
+  pairs_with: [programming]
+allowed-tools: [Read, Edit, Write, Bash, Glob, Grep, Agent, Skill]
 ---
 ```
 
-`name` identifies the agent in routing. `hooks` registers agent-specific handlers. `routing.triggers` supplies routing hints, while `routing.retro-topics` names knowledge areas that `scripts/feature-state.py` can match to a feature. `memory: project` scopes remembered context to the project.
+`name` identifies the agent in routing. `hooks` registers agent-specific handlers; they read the same JSON payload as settings hooks (see Hook System), and `timeout` is in seconds. `routing.triggers` supplies routing hints. `routing.process-topics` names knowledge areas; no script reads it today (`scripts/feature-state.py` still matches features on the older `retro-topics` key, which no agent carries). `memory: project` scopes remembered context to the project.
+
+`allowed-tools` is advisory for agents. Claude Code restricts a subagent's tools through its `tools:` field, which no toolkit agent sets, so every agent runs with all tools. The list documents intent and feeds `scripts/audit-tool-restrictions.py`.
 
 Agent bodies distinguish hardcoded behaviors, overridable defaults, and opt-in behaviors. Repository and user instructions determine which defaults and options apply.
 
-Reviewer agents (`reviewer-code`, `reviewer-system`, `reviewer-domain`, and `reviewer-perspectives`) are dispatched by review skills. They inspect and report; they do not modify code.
+Reviewer agents (`reviewer-code`, `reviewer-system`, `reviewer-domain`, and `reviewer-perspectives`) are dispatched by review skills. They inspect and report; they do not modify code. That read-only rule is an instruction in their prompts, not a tool restriction: their `allowed-tools` lists are advisory, and no hook stops a reviewer from editing files.
 
 ## Skill System
 
@@ -74,24 +79,22 @@ A skill is `skills/{category}/{name}/SKILL.md`. Agents supply domain expertise; 
 ```yaml
 ---
 name: workflow
-version: 2.0.0
-user-invocable: false
+description: "Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing."
+user-invocable: true
 context: fork
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Task
-  - Skill
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Skill, Agent, Task]
 routing:
-  triggers: [research then write, article with research]
-  pairs_with: [writing]
-  complexity: complex
-  category: content-pipeline
+  force_route: true
+  not_for: "code review (use review), testing (use testing), security (use security)"
+  triggers: [workflow, multi-phase task, write spec, keep working until, hill climb on this metric]
+  category: process
+  pairs_with: [review, testing, security, pr-workflow]
 ---
 ```
 
-`context: fork` isolates execution in a subagent context. `user-invocable: false` hides a skill from the slash menu while leaving it available to routers and other skills. `allowed-tools` is a whitelist.
+This is the real `skills/process/workflow/SKILL.md` frontmatter, with lists shortened.
+
+`context: fork` isolates execution in a subagent context. `user-invocable: false` hides a skill from the slash menu while leaving it available to routers and other skills. On a skill, `allowed-tools` names the tools Claude Code may use without a permission prompt while the skill is active; it does not take other tools away.
 
 Keep the core procedure in `SKILL.md`; put specialized formats and detailed references in `references/` for progressive loading. Skills use explicit exit gates so a phase advances only after its required condition is true.
 
@@ -107,10 +110,13 @@ Input varies by event:
 {
   "hook_event_name": "PostToolUse",
   "tool_name": "Bash",
-  "tool_result": {"output": "..."},
+  "tool_input": {"command": "..."},
+  "tool_response": {"...": "tool-specific result"},
   "cwd": "/path/to/project"
 }
 ```
+
+`hook_utils.get_tool_result()` reads the result from `tool_response` or `tool_result`, whichever the runtime sends.
 
 Output uses `hook_utils.py`:
 
@@ -124,7 +130,17 @@ Output uses `hook_utils.py`:
 }
 ```
 
-Exit `0` passes. Exit `2` blocks a tool and is valid only for `PreToolUse`. Blocking hooks must preserve that denial code. `once: true` limits a hook to the first matching event in a session.
+Exit `0` passes. What exit `2` does depends on the event in Claude Code:
+
+| Event | Exit 2 |
+|---|---|
+| `PreToolUse` | Blocks the tool call and shows stderr to Claude. |
+| `PostToolUse` | Shows stderr to Claude; the tool has already run. |
+| `UserPromptSubmit` | Blocks the prompt. |
+| `Stop`, `SubagentStop` | Blocks stopping, so the model keeps working. |
+| `SessionStart`, `PreCompact` | Blocks nothing. |
+
+A PreToolUse hook can also deny with `permissionDecision: "deny"` in JSON on exit 0; most toolkit gates do. A Stop or SubagentStop hook blocks only with exit 2 or `"decision": "block"`. A PreToolUse-style deny there is ignored, which is why `subagent-completion-guard` never blocks. Blocking hooks must preserve their denial code. `once: true` limits a hook to the first matching event in a session.
 
 Hook output is part of the user-facing contract. `additionalContext` changes the model's working context; `userMessage` is text the user must see. A hook that has nothing actionable to add should stay silent. Blocking decisions must be deterministic enough to explain from the submitted tool call, because retries and alternate clients still need the same boundary.
 
@@ -149,7 +165,7 @@ Four hooks carry most of the architecture:
 - `routing-decision-recorder` reads the `[do-route]` marker after an agent or workflow dispatch and stores one idempotent routing decision per marker.
 - `routing-outcome-finalizer` resolves pending dispatches on the next user prompt: explicit acceptance succeeds, recorded tool errors or clear rejection fail, and unrelated prompts remain neutral.
 - `session-context` injects a fresh pre-built dream payload from `~/.claude/state/` without querying the database.
-- `pretool-unified-gate` blocks prohibited git operations, dangerous commands, unregistered component creation, and sensitive-file writes. Branch safety and CI merge gates add narrower checks.
+- `pretool-unified-gate` blocks `git add -f` on ignored paths, dangerous commands, unregistered component creation, sensitive-file writes, and dev servers bound to public interfaces. Its raw push and PR check runs only when `CLAUDE_OPERATOR_PROFILE` is not `personal`, the default. It fails open if it crashes. Branch safety, review-before-push, and CI merge gates add narrower checks; [Start Here](start-here.md#gates-in-every-repo) lists every blocking hook.
 
 AI attribution is configured declaratively in `settings.json`, not by a hook.
 
@@ -197,6 +213,12 @@ Supporting tables store run envelopes, routing outcome bases, evidence events an
 | `route_failure_dedup` | Idempotency keys that prevent duplicate route-failure reporting. |
 | `sessions`, `session_stats` | Session-level accounting and aggregate metrics. |
 | `learnings_fts`, `schema_migrations` | Search support and database-version history. |
+| `activations` | Learning activations (topic, key, outcome); nothing writes it today, and pruning drops rows after 90 days. |
+| `evidence_events_fts` | Full-text search over evidence events. |
+| `instruction_compliance` | Per-observation compliance with a named instruction. |
+| `jev_calls`, `jev_intent_alignments` | Jev transport calls (latency, tokens, redactions) and `/d` intent-alignment receipts. |
+| `compaction_events`, `session_usage` | Compaction before/after sizes and per-turn context and cost samples. |
+| `harness_runs` | Hill-climbing rounds: lever, variant, metrics, and whether the variant was kept. |
 
 The active `learnings` topics have separate ownership:
 
@@ -239,7 +261,7 @@ The coordinator, not an individual worker, owns fan-in. It resolves duplicated f
 
 ## ADR System
 
-Architectural Decision Records in `adr/` explain consequential design choices and bind component creation to recorded decisions. A pipeline can identify its governing ADR in `.adr-session.json`:
+Architectural Decision Records in `adr/` (gitignored and local-only, so a fresh clone has none) explain consequential design choices and bind component creation to recorded decisions. A pipeline can identify its governing ADR in `.adr-session.json`:
 
 ```json
 {

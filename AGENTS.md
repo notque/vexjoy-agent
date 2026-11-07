@@ -66,9 +66,12 @@ Full rules and scope: `skills/shared-patterns/google-devdocs-style.md`.
 
 ## Use Jev as a map
 
-You drive the work; Jev is the map you keep checking to see if you are closer
-to success. Use it on every non-trivial task, not only at the end. Write
-questions with `building-with-jev`. Run `grill-jev` at the plan step.
+You drive the work and make the calls you are sure of; say why in the report.
+Jev is the map you check when you are unsure: a design, scope, or
+trade-off call, cutting anything, or whether work is ready to report or ship.
+It also serves fast screenshot and information passes. Write questions with
+`building-with-jev`. Run `grill-jev` when someone asks for it or when a plan
+leaves you unsure.
 
 **Run the loop:**
 
@@ -153,6 +156,11 @@ sentence -- pick the most important change or reason. Good:
 `bumped memory limit to 20Gi to unblock wal recovery`. Bad:
 `feat: increase memory allocation for improved stability`.
 
+For a commit, that sentence is the subject line, in the past tense, with no
+type prefix such as `feat:`. Trailer lines such as `Claude-Session: <url>` may
+follow after a blank line. Co-author and "Generated with" lines stay out: the
+repo's `.claude/settings.json` sets `attribution` to empty strings.
+
 ## Merge gate
 
 Never merge a pull request until all GitHub Actions checks have passed. Do not
@@ -165,9 +173,13 @@ green status before merging.
   `ruff format --check . --config pyproject.toml` before pushing. Full CI
   policy: `skills/process/pr-workflow/SKILL.md`.
 - **ADRs:** `adr/` is gitignored (local-only working documents). See
-  `skills/analysis/assessment/SKILL.md`.
+  `skills/analysis/assessment/SKILL.md`. An ADR named in code, comments, or
+  docs (`ADR-103`, an `adr/` path) is not in a clone: cite it by name as
+  local-only, and never link to it.
 - **Agent reference files:** validate with
-  `python3 scripts/validate-references.py`. See
+  `python3 scripts/validate-references.py --agent <name>`, or run the CI
+  checks `--check-do-framing`, `--check-placeholders`, `--check-size`, and
+  `--check-skill-calls`. With no flag it prints usage and exits 2. See
   `agents/toolkit-governance-engineer.md`.
 - **GM evidence and closure:** large GM programs use the canonical registry,
   snapshot, and validator owned by `gm-brilliant-implementation`; this file
