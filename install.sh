@@ -6,7 +6,7 @@
 # anything it removes to ~/.claude/vexjoy/trash/. Layout: docs/installer-layout.md.
 #
 # Usage:
-#   ./install.sh                     # apply (symlink mode for a main checkout, else copy)
+#   ./install.sh                     # apply (symlink mode for a main checkout off Windows, else copy)
 #   ./install.sh --symlink|--copy    # choose the mode (recorded in the ledger)
 #   ./install.sh --dry-run           # show the plan; write nothing
 #   ./install.sh --uninstall         # remove every engine-owned entry (to trash); with no --target,
@@ -45,8 +45,8 @@ usage() {
     cat << 'EOF'
 Usage: ./install.sh [options]
 
-  --symlink            Link entries to this checkout (default for a main git checkout)
-  --copy               Copy entries (default for worktrees and /tmp checkouts)
+  --symlink            Link entries to this checkout (default for a main git checkout off Windows)
+  --copy               Copy entries (default on Windows and for worktrees and /tmp checkouts)
   --dry-run            Print the vexinstall plan; write nothing
   --uninstall          Move every engine-owned entry to trash; remove owned settings hooks.
                        With no --target, also rename install.sh's post-merge git hook so

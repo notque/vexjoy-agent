@@ -35,11 +35,13 @@ from .fsops import (
     atomic_symlink,
     copy_entry,
     discard_staged,
+    is_busy,
     mkdirs,
     place_staged,
     prune_trash,
     restore_trash,
     stage_copy,
+    stage_link,
 )
 from .ledger import STATUS_OK, STATUS_STALE, Ledger, LedgerEntry
 from .lock import LockHeld, engine_lock
@@ -166,25 +168,38 @@ def _install(a: Action, guard: Guard) -> None:
 def _replace(a: Action, trash: Trash, home: Path, guard: Guard) -> None:
     """Move the entry at ``a.dest`` to trash and install *a* there.
 
-    A copy is staged before the old entry moves. A live dir such as ~/.claude/hooks is then
-    missing only between two renames, and stays in place when Windows keeps it busy.
+    The new copy or link is staged before the old entry moves. A live dir such as
+    ~/.claude/hooks is then missing only between two renames, and stays in place when
+    Windows keeps it busy or refuses the link. When the staged entry cannot be placed, the
+    old entry comes back out of trash.
     """
     dest = Path(a.dest)
     reason = a.reason if a.takeover else f"replaced ({a.reason})"
-    if a.mode == "symlink":
-        if os.path.lexists(dest):
-            trash.move(dest, home, reason)
-        _install(a, guard)
-        return
+    src = Path(str(a.source))
     mkdirs(dest.parent, guard)
-    staged = stage_copy(Path(str(a.source)), dest, guard, a.files)
+    staged = stage_link(src, dest, guard) if a.mode == "symlink" else stage_copy(src, dest, guard, a.files)
+    trashed: Path | None = None
     try:
         if os.path.lexists(dest):
-            trash.move(dest, home, reason)
+            trashed = trash.move(dest, home, reason)
+        place_staged(staged, dest)
     except BaseException:
         discard_staged(staged)
+        if trashed is not None and not os.path.lexists(dest):
+            trash.put_back(trashed, dest)
         raise
-    place_staged(staged, dest)
+
+
+_NOT_DONE = {"remove": "not removed", "add": "not installed"}
+_FAILED_SHOWN = 5
+
+
+def _failure(a: Action, exc: OSError) -> str:
+    """One line for an entry left as it was. A busy Windows path names the usual cause."""
+    line = f"{a.dest} {_NOT_DONE.get(a.op, 'not updated')}: {exc}"
+    if is_busy(exc):
+        line += " (in use: close any terminal, editor, or program working in it, then run again)"
+    return line
 
 
 def _record(ledger: Ledger, a: Action, now: str) -> None:
@@ -202,8 +217,14 @@ def _record(ledger: Ledger, a: Action, now: str) -> None:
     )
 
 
-def execute_target(tp: TargetPlan, ctx: Context, trash: Trash, guard: Guard, ledger: Ledger, skip: set[str]) -> None:
-    """Carry out one target's plan. Ops are atomic per file; ledger updated in memory."""
+def execute_target(
+    tp: TargetPlan, ctx: Context, trash: Trash, guard: Guard, ledger: Ledger, skip: set[str], failed: list[str]
+) -> None:
+    """Carry out one target's plan. Ops are atomic per file; ledger updated in memory.
+
+    An entry whose op fails with an OSError (a dir Windows keeps busy, a full disk) stays as
+    it was and keeps its ledger record. Its line goes to *failed*, and the other entries run.
+    """
     now = utc_iso()
     home = ctx.home
     for a in tp.actions:
@@ -214,27 +235,31 @@ def execute_target(tp: TargetPlan, ctx: Context, trash: Trash, guard: Guard, led
         if a.dest in skip:
             continue
         if a.op == "remove":
-            trash.move(Path(a.dest), home, a.reason or "removed")
+            try:
+                trash.move(Path(a.dest), home, a.reason or "removed")
+            except OSError as exc:
+                failed.append(_failure(a, exc))
+                continue
             ledger.entries.pop(a.dest, None)
         elif a.op == "forget":
             ledger.entries.pop(a.dest, None)
         elif a.op == "stale" and a.dest in ledger.entries:
             ledger.entries[a.dest].status = STATUS_STALE
     for a in tp.actions:
-        if a.dest in skip:
+        if a.dest in skip or a.op not in ("replace", "add", "keep", "adopt"):
             continue
         dest = Path(a.dest)
-        if a.op == "replace":
-            if a.mode == "symlink" and os.path.islink(dest) and not a.takeover:
+        try:
+            if a.op == "replace" and a.mode == "symlink" and os.path.islink(dest) and not a.takeover:
                 atomic_symlink(dest, Path(str(a.source)), guard)
-            else:
+            elif a.op == "replace":
                 _replace(a, trash, home, guard)
-            _record(ledger, a, now)
-        elif a.op == "add":
-            _install(a, guard)
-            _record(ledger, a, now)
-        elif a.op in ("keep", "adopt"):
-            _record(ledger, a, now)
+            elif a.op == "add":
+                _install(a, guard)
+        except OSError as exc:
+            failed.append(_failure(a, exc))
+            continue
+        _record(ledger, a, now)
 
 
 def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict | None) -> dict:
@@ -381,9 +406,10 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     }
     guard_hit: GuardError | None = None
     pin_error: str | None = None
+    failed: list[str] = []
     try:
         for t in targets:
-            execute_target(plan.targets[t], ctx, trash, guard, ledger, skip)
+            execute_target(plan.targets[t], ctx, trash, guard, ledger, skip, failed)
         if python is not None:
             link = interp.link_path(ctx.home)
             # A pin that cannot be written must not strand the copies above without settings or a ledger.
@@ -405,6 +431,10 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
         res.err.extend(f"[{label}] warning: external {e}" for e in report["external"]["errors"])
     except GuardError as exc:
         guard_hit = exc
+    except OSError as exc:
+        # Save the ledger anyway: it holds only finished steps. Without it, an entry replaced
+        # above keeps its old hash, reads as a user edit, and stops updating.
+        failed.append(f"run stopped early: {exc}")
     ledger.source_root = str(ctx.source_root)
     ledger.mode = ctx.mode
     ledger.overlays_mtime = ctx.overlays.mtime
@@ -419,6 +449,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             guard_hit = exc
     report["timings_ms"] = int((time.monotonic() - t0) * 1000)
     report["trash"] = str(trash.dir) if trash.items else None
+    report["failed"] = failed
     if guard_hit is not None:
         report["guard"] = guard_hit.path
     try:
@@ -440,6 +471,15 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     elif pin_error:
         res.code = int(ExitCode.ERROR)
         res.err.append(f"[{label}] {pin_error}")
+    if failed:
+        tag = f"[{label}] warning:" if sync else f"[{label}]"
+        res.err.extend(f"{tag} {line}" for line in failed[:_FAILED_SHOWN])
+        if len(failed) > _FAILED_SHOWN:
+            res.err.append(f"{tag} {len(failed) - _FAILED_SHOWN} more not done; the report in {sdir / 'reports'} lists all")
+        if os.name == "nt" and ctx.mode == "symlink":
+            res.err.append(f"{tag} Windows installs need copy mode: run ./install.sh --copy")
+        if not sync:
+            res.code = int(ExitCode.ERROR)
     res.out.extend(accounts_mod.report_lines(report.get("accounts", [])))
     for a in report.get("accounts", []):
         if a.get("error"):

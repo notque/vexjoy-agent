@@ -17,9 +17,6 @@ if os.name == "nt":
 else:
     import fcntl
 
-# msvcrt.locking reports a byte another handle holds as EACCES or EDEADLOCK.
-_WIN_HELD = frozenset({errno.EACCES, errno.EAGAIN, errno.EDEADLOCK})
-
 
 class LockHeld(Exception):
     """Non-blocking acquire found the lock held."""
@@ -34,7 +31,9 @@ def _try_lock(fd: int) -> None:
     try:
         msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
     except OSError as exc:
-        if exc.errno not in _WIN_HELD:
+        # LK_NBLCK reports a byte another handle holds as EACCES. Never name errno.EDEADLOCK
+        # (LK_LOCK giving up): macOS has no such attribute, and the engine imports this module.
+        if exc.errno != errno.EACCES:
             raise
         raise BlockingIOError(exc.errno, str(exc)) from exc
 
