@@ -87,9 +87,9 @@ Before releasing a change, define:
 Interpret retention carefully: a longer session, more clicks, more spending, or fewer exits is not evidence of value by itself. Pair the business signal with a player-outcome measure and qualitative evidence.
 
 To drive one of these signals to a stated target instead of stopping when the
-queue empties, call the optimization skill. Call the Skill tool with `hill-climb`.
+queue empties, run the optimization loop. Call the Skill tool with `workflow` and run its Hill Climb mode.
 It adds a measured baseline, accept/revert per change, and a plateau stop
-(`skills/meta/hill-climb/references/domain-playbooks.md`).
+(`skills/process/workflow/references/hc-domain-playbooks.md`).
 
 ### 6. Report and continue
 

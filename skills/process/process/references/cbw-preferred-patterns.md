@@ -275,7 +275,7 @@ grep -rn 'while.*sleep' --include="*.sh" | grep -v 'deadline\|SECONDS\|timeout'
 ## See Also
 
 - `implementation-patterns.md` — complete Python/Bash implementations for all patterns
-- `skills/infrastructure/shell-process-patterns/` — for PID-lifecycle topics (starting background
+- `skills/infrastructure/deploy/references/shell-process-patterns.md` — for PID-lifecycle topics (starting background
   processes, capturing the real PID when `$!` lies, signals and traps, cleanup
   verification). Polling/retry lives here in condition-based-waiting; process
   lifecycle lives in shell-process-patterns. When a pattern combines both

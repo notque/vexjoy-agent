@@ -82,7 +82,7 @@ Tier 3 (arch):      schema change, API redesign, scope expansion → STOP, prese
 **Detection**:
 ```bash
 # Look for advance calls without a preceding status check in the same block
-grep -rn 'feature-state.py advance' skills/process/feature-lifecycle/
+grep -n 'feature-state.py advance' skills/process/workflow/references/fl-*.md
 rg 'feature-state\.py (checkpoint|advance)' skills/
 ```
 
@@ -204,7 +204,7 @@ python3 ~/.claude/scripts/feature-state.py gate my-feature implement.custom-gate
 
 ```bash
 # Find state advance calls in lifecycle refs
-rg 'feature-state\.py advance' skills/process/feature-lifecycle/
+rg 'feature-state\.py advance' skills/process/workflow/references/ -g 'fl-*.md'
 
 # Find gate failures in feature logs
 grep -rn 'Gate.*fail\|BLOCKED' .feature/state/

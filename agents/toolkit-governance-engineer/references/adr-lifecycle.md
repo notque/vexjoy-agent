@@ -219,7 +219,7 @@ Criteria written in future tense ("will verify", "should check") or added to the
 grep -rn "will verify\|should check\|to be verified\|TBD" adr/*.md
 ```
 
-**Why this matters**: Validation criteria written after the fact are processactive justifications, not pre-agreed standards. They cannot prove the implementation met a standard that didn't exist when work was done.
+**Why this matters**: Validation criteria written after the fact are retroactive justifications, not pre-agreed standards. They cannot prove the implementation met a standard that didn't exist when work was done.
 
 **Preferred action:**
 

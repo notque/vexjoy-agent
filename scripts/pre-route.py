@@ -226,6 +226,37 @@ _VISIBILITY_OP_GUARD: set[str] = {
     "module",
 }
 
+# Products named Unity that are not the game engine: Databricks Unity Catalog,
+# the C unit-test framework (ThrowTheSwitch Unity, Ceedling, CMock), and the
+# .NET Unity IoC container. These words near a Unity trigger discard the
+# game-dev match.
+_UNITY_NAMESAKE_GUARD: set[str] = {
+    "catalog",
+    "databricks",
+    "ceedling",
+    "cmock",
+    "throwtheswitch",
+    "firmware",
+    "embedded",
+    "stm32",
+    "container",
+    "ioc",
+    "prism",
+}
+
+# Writing requests where "unity" is the plain-English word ("a toast to unity
+# for the editor's retirement", "a national unity project").
+_UNITY_PROSE_GUARD: set[str] = {
+    "toast",
+    "retirement",
+    "speech",
+    "column",
+    "essay",
+    "article",
+    "national",
+    "community",
+}
+
 # Safety-net triggers the INDEX files lack. The routing A/B corpus
 # (scripts/routing-ab-corpus.json, buckets paraphrase-git and
 # paraphrase-security) holds genuine git/security requests phrased without any
@@ -315,10 +346,21 @@ def _verb_guards(guard_name: str, trigger: str) -> set[str]:
 #                           but must not suppress "deploy website").
 #
 # pr-workflow's guards (and pr-pipeline's, through GUARD_POLICY_ALIASES) live in
-# TRIGGER_VERB_GUARDS below instead.
+# TRIGGER_VERB_GUARDS above instead.
 SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
     # "make a game trailer" is trailer work (game-trailer), not game building.
-    "game-dev": {"make game": {"trailer"}},
+    # Unity triggers skip Unity's namesakes (Databricks Unity Catalog, the C
+    # unit-test framework, the .NET IoC container) and plain-English "unity".
+    "game-dev": {
+        "make game": {"trailer"},
+        "unity cli": _UNITY_NAMESAKE_GUARD,
+        "unity editor": _UNITY_NAMESAKE_GUARD | _UNITY_PROSE_GUARD,
+        "unity project": _UNITY_NAMESAKE_GUARD | _UNITY_PROSE_GUARD,
+        "unity hub": _UNITY_NAMESAKE_GUARD | _UNITY_PROSE_GUARD,
+        "unity license": _UNITY_NAMESAKE_GUARD,
+        "unity batch mode": _UNITY_NAMESAKE_GUARD,
+        "unity batchmode": _UNITY_NAMESAKE_GUARD,
+    },
     # "deploy" catch-all guards (for, bugs, compliments, information, ideas,
     # answers) were superseded by the per-trigger dict below.  Removed to fix
     # duplicate-key lint (F601).  The per-trigger dict covers each idiom's

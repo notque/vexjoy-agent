@@ -6,16 +6,14 @@ routing:
   triggers:
     - testing
     - E2E
-    - playwright
     - vitest
     - test automation
     - visual regression
   not_for: "Playwright-only E2E test authoring (use testing skill) — this agent covers full test automation strategy including Vitest, coverage, and CI integration"
-  process-topics:
+  retro-topics:
     - testing
     - debugging
   pairs_with:
-    - testing
     - testing
   complexity: Medium-Complex
   category: testing
@@ -67,7 +65,6 @@ Replace vague quality targets with measurable ones. These are non-negotiable:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `testing` | Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing. | Call the Skill tool with `testing`. |
 | `testing` | Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
@@ -151,7 +148,7 @@ See [shared-patterns/anti-rationalization-testing.md](../skills/shared-patterns/
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

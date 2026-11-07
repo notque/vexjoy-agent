@@ -351,4 +351,4 @@ The only valid first-reach SIGKILL is when you have prior evidence the process i
 - For the full signals and traps discussion (AP-3): `signals-and-traps.md`
 - For verification patterns (AP-4, AP-7): `cleanup-verification.md`
 - For starting-process idioms (AP-6): `starting-processes.md`
-- For polling/backoff (AP-6): `skills/process/condition-based-waiting/SKILL.md`
+- For polling/backoff (AP-6): `skills/process/process/SKILL.md` (Wait mode)

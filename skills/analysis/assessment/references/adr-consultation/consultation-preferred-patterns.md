@@ -196,4 +196,4 @@ ls adr/{name}/synthesis.md adr/{name}/concerns.md 2>/dev/null
 ## See Also
 
 - `consultation-patterns.md` — Correct patterns for dispatch, synthesis, and verdict aggregation
-- `skills/review/parallel-code-review/SKILL.md` — Fan-out/fan-in pattern this skill adapts
+- `skills/review/review/SKILL.md` (Parallel mode) — Fan-out/fan-in pattern this skill adapts

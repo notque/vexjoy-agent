@@ -69,7 +69,7 @@ If it exits 1, fix the reported issue before proceeding.
 The dispatcher runs this before each implementation worktree:
 
 ```bash
-python3 ~/.claude/skills/process/worktree-agent/scripts/worktree_capacity.py \
+python3 ~/.claude/skills/process/scripts/worktree_capacity.py \
   --repo "$(git rev-parse --show-toplevel)" --strict
 ```
 

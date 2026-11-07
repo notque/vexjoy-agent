@@ -34,13 +34,13 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 ### Hardcoded Behaviors (Always Apply)
 - **Over-Engineering Prevention**: Only scaffold components that are genuinely needed. If an existing agent or skill covers the requirement, bind it rather than creating a duplicate.
 - **Discovery Before Creation**: Run assessment (or an equivalent scan) before scaffolding, so existing components are found before new ones are created. The environmental state JSON from `pipeline-context-detector` provides the baseline — use it.
-- **Template Enforcement**: Every generated agent follows `AGENT_TEMPLATE_V2.md`; every skill follows the standard `SKILL.md` frontmatter + operator context pattern, because the validators and routing tables parse those shapes.
+- **Template Enforcement**: Every generated agent follows `skills/meta/toolkit/references/skill-creator/agent-template.md`; every skill follows the standard `SKILL.md` frontmatter + operator context pattern, because the validators and routing tables parse those shapes.
 - **Single-Purpose Components**: Each scaffolded component (agent, skill, hook) must serve exactly one purpose. If a component does two things, split it.
 - **Parallel Research**: When the generated pipeline includes an information-gathering phase, dispatch N parallel research agents (default 4) rather than sequential searches.
 - **Domain Research First**: For domain pipeline requests, Call the Skill tool with `workflow`. Use its research phase before composing chains to discover subdomains; the old DISCOVER phase checked only existing components.
 - **Chain Validation Required**: Run `scripts/artifact-utils.py validate-chain` on every composed chain and scaffold only from chains that pass.
 - **Skills >> Agents**: Produce more skills than agents. When an existing agent covers 70%+ of the domain, bind new skills to it rather than creating a new agent.
-- **Tool Restriction Enforcement (ADR-063)**: Every scaffolded agent includes `allowed-tools` in frontmatter. Match role type: reviewers get read-only, research gets no Edit/Write/Bash, code modifiers get full access. Pipeline components inherit restrictions from their role. Validate with `python3 ~/.claude/scripts/audit-tool-restrictions.py --audit`.
+- **Tool Lists (advisory)**: Every scaffolded agent includes `allowed-tools` in frontmatter. Match role type: reviewers get read-only, research gets no Edit/Write/Bash, code modifiers get full access. Claude Code ignores `allowed-tools` for agents, so the list documents intent only; put read-only rules in the agent body. Check presence with `python3 ~/.claude/scripts/audit-tool-restrictions.py --audit`.
 
 ### Orchestration STOP Blocks
 - **Before fan-out dispatch**: STOP. Each sub-agent must receive: (1) the full list of components it must create, (2) the Discovery Report or Pipeline Spec for reuse context, and (3) inter-component relationships (which agent binds which skill). Dispatching without this context produces orphaned components.
@@ -48,7 +48,7 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 
 ### Default Behaviors (ON unless disabled)
 - **Parallel Fan-Out**: When scaffolding agent, skill, and hook components, dispatch all three in parallel since they are independent. Wait for all to complete before integration.
-- **Integration Verification**: After toolkit (toolkit mode) runs, verify the new entries appear correctly in both `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`.
+- **Integration Verification**: After toolkit (toolkit mode) runs, verify the new entries appear correctly in the regenerated `skills/INDEX.json` and `agents/INDEX.json`.
 
 ### Companion Skills
 
@@ -99,9 +99,9 @@ See [references/orchestration-patterns.md](references/orchestration-patterns.md)
 
 **Goal**: Compose valid pipeline chains for each subdomain.
 
-**Step 1**: Call the Skill tool with `workflow`. Run its composition phase for step selection from `skills/workflow/references/step-menu.md`, profile gates, and type-safe chain validation.
+**Step 1**: Call the Skill tool with `workflow`. Run its composition phase for step selection from `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md`, profile gates, and type-safe chain validation.
 
-**Step 2**: The skill produces a **Pipeline Spec JSON** (format: `skills/workflow/references/pipeline-spec-format.md`) with one entry per subdomain (subdomain name, task type, chain, agent binding, reference files) and global metadata (domain, agent, routing triggers).
+**Step 2**: The skill produces a **Pipeline Spec JSON** (format: `skills/process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md`) with one entry per subdomain (subdomain name, task type, chain, agent binding, reference files) and global metadata (domain, agent, routing triggers).
 
 **Step 3**: Validate all chains using `scripts/artifact-utils.py validate-chain`. Every chain must pass before proceeding.
 
@@ -133,7 +133,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Step 1**: Collect sub-agent outputs. Verify each component: file exists, follows required template structure, has correct naming.
 
-**Step 2**: Call the Skill tool with `toolkit`. Add agents to `agents/INDEX.json`, add routing entries to `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`, and add force-route entries if warranted. For domain pipelines, route ALL N subdomain skills in a single integration pass.
+**Step 2**: Call the Skill tool with `toolkit`. Put routing triggers in each new component's frontmatter, set `routing.force_route: true` where warranted, and regenerate `skills/INDEX.json` and `agents/INDEX.json` with `scripts/generate-skill-index.py` and `scripts/generate-agent-index.py`. For domain pipelines, route ALL N subdomain skills in a single integration pass.
 
 **Step 3**: Create `commands/{pipeline-name}.md` manifest (route-to agent/skill, component list, trigger definitions).
 
@@ -159,7 +159,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Goal**: Trace failures and improve the generator using the Three-Layer Pattern.
 
-**Step 1**: Call the Skill tool with `workflow`. Run its process phase with Phase 5 test results. It ingests failures, traces each through the 5-link chain (Domain Research → Chain Composition → Scaffolder Template → Architecture Rules → Step Menu), proposes Layer 2 fixes, regenerates, and re-tests.
+**Step 1**: Call the Skill tool with `workflow`. Run its retro phase with Phase 5 test results. It ingests failures, traces each through the 5-link chain (Domain Research → Chain Composition → Scaffolder Template → Architecture Rules → Step Menu), proposes Layer 2 fixes, regenerates, and re-tests.
 
 **Step 2**: Three-Layer Pattern: skip hand-fixing generated artifacts (Layer 1); fix the responsible generator rule, template, or chain logic (Layer 2); regenerate and re-test (Layer 3).
 
@@ -177,7 +177,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 | 3 | SCAFFOLD | Fan-out to creators | All files exist at expected paths |
 | 4 | INTEGRATE | `toolkit` | All components routable via `/do` |
 | 5 | TEST | `workflow` (test-runner) | All pipelines produce valid output |
-| 6 | RETRO | `workflow` (process) | Generator improvements applied |
+| 6 | RETRO | `workflow` (retro) | Generator improvements applied |
 
 **Simple pipelines**: Phase 0 → Phase 1 (legacy discovery mode) → Phase 3 → Phase 4. **Domain pipelines** (multi-subdomain): full 7-phase flow.
 
@@ -187,7 +187,7 @@ Uses the **Planning Schema** (6 required sections: Discovery Report, Pipeline Sp
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -196,7 +196,7 @@ STOP and ask the user (get explicit confirmation) when:
 | Pipeline requires more than 5 new components | Scope creep risk | "This needs N components. Should we scope down or proceed?" |
 | Unclear domain boundaries | Wrong component split leads to rework | "Should X and Y be one agent or two?" |
 
-**Always confirm before acting on**: overriding force-routes, deprecating existing components, pipeline naming conflicts, and hook blocking vs. context-injection decisions.
+**Decide explicitly before acting on**: overriding force-routes and pipeline naming conflicts. **Owner confirms**: deprecating existing components and making a hook block tool calls instead of injecting context, because those remove components or add a safety gate.
 
 ## Reference Loading Table
 
@@ -214,6 +214,6 @@ Load these files when the matched signal appears in the task:
 For detailed information:
 - **Orchestration Patterns**: [references/orchestration-patterns.md](references/orchestration-patterns.md)
 - **Preferred Patterns**: [references/preferred-patterns.md](references/preferred-patterns.md)
-- **Workflow Skill**: [workflow/SKILL.md](../skills/workflow/SKILL.md)
-- **Agent Template**: [AGENT_TEMPLATE_V2.md](../AGENT_TEMPLATE_V2.md)
+- **Workflow Skill**: [workflow/SKILL.md](../skills/process/workflow/SKILL.md)
+- **Agent Template**: [agent-template.md](../skills/meta/toolkit/references/skill-creator/agent-template.md)
 - **Artifact Utilities**: [artifact-utils.py](../scripts/artifact-utils.py)

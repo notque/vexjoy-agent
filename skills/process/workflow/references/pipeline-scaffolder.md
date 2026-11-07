@@ -104,7 +104,7 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 
 **When creating a new agent**:
 
-**Step 1**: Read `skills/meta/skill-creator/references/agent-template.md` for the structural template. Every agent MUST follow this template to ensure structural consistency, which enables automated validation and routing integration.
+**Step 1**: Read `skills/meta/toolkit/references/skill-creator/agent-template.md` for the structural template. Every agent MUST follow this template to ensure structural consistency, which enables automated validation and routing integration.
 
 **Step 2**: Generate the agent file at `agents/{new_agent.name}.md` with:
 - YAML frontmatter: name, version, description (with 3 examples), color, routing metadata
@@ -216,7 +216,7 @@ For steps with `profile_gate` set: include the phase only if the gate matches th
 
 **Goal**: Wire all components into routing and verify the full component dependency graph. Unroutable skills are dead code (Rule 7—not negotiable).
 
-**Step 1: Routing integration**. Call the Skill tool with `routing-table-updater`. Use batch mode:
+**Step 1: Routing integration**. Call the Skill tool with `toolkit` and run its Routing Tables mode. Use batch mode:
 - Add all N skills to `skills/meta/do/references/routing-tables.md`
 - Add the agent (if new) to `agents/INDEX.json`
 - For each skill: add trigger entries from `subdomain.routing_triggers`

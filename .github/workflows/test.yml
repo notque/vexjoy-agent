@@ -65,12 +65,10 @@ jobs:
           fi
       - name: routing-map regenerates identically from public sources
         run: python scripts/generate-routing-map.py && git diff --exit-code -- docs/routing-map.md
-      # Advisory until 2026-10-01: new hard gates must carry a collected
-      # CLI-level negative control or explicit debt. On 2026-10-01, remove
-      # continue-on-error and change the command to:
-      # python scripts/validate-negative-controls.py --strict
+      # Hard gate: every hard gate in this workflow carries a collected CLI-level
+      # negative control, or explicit debt in scripts/negative-control-allowlist.txt.
+      # --strict also fails on that debt; switch to it once the allowlist is empty.
       - run: python scripts/validate-negative-controls.py
-        continue-on-error: true
       # Advisory (always exit 0): merged tracked+local index — phantom files, dead
       # agent refs, missing category/description, "NOT: " doubling, category
       # registry. Gate later with --strict (ADR router-improvement-program, C2).
@@ -171,13 +169,16 @@ jobs:
           python-version: "3.12"
       - run: pip install pyyaml
       # Static checks (dormancy, schema, mirror, allowlist) read the repo
-      # directly. Liveness (smoke-test) + register-hook validate read
-      # ~/.claude, so deploy hooks + settings.json there first.
-      - name: Deploy hooks and settings to ~/.claude
+      # directly, and matcher-liveness seeds its own throwaway HOME. The smoke
+      # test + register-hook validate read ~/.claude, so deploy hooks, scripts and
+      # settings.json there first. scripts/ goes in as a real install puts it:
+      # hooks import from scripts/lib and run scripts from it.
+      - name: Deploy hooks, scripts and settings to ~/.claude
         run: |
-          mkdir -p "$HOME/.claude/hooks/lib"
+          mkdir -p "$HOME/.claude/hooks/lib" "$HOME/.claude/scripts"
           cp hooks/*.py "$HOME/.claude/hooks/"
           cp hooks/lib/*.py "$HOME/.claude/hooks/lib/" 2>/dev/null || true
+          cp -r scripts/. "$HOME/.claude/scripts/"
           cp .claude/settings.json "$HOME/.claude/settings.json"
       - name: Every registered hook carries the python version guard
         run: python scripts/hook-pyguard.py --check

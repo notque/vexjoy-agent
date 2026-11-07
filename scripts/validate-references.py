@@ -420,7 +420,6 @@ _KNOWN_OVERSIZED_SKILL_REFS: dict[str, str] = {
     "frontend/frontend/references/threejs-builder-refs/react-three-fiber.md": "2026-09-18",
     "frontend/frontend/references/threejs-builder-refs/visual-polish.md": "2026-09-18",
     "frontend/frontend/references/threejs-builder-refs/webgpu.md": "2026-09-18",
-    "frontend/webgl-card-effects/references/shader-integration-react.md": "2026-09-18",
     "meta/toolkit/references/skill-composer/examples.md": "2026-09-18",
     "meta/toolkit/references/skill-creator/agent-template.md": "2026-09-18",
     "meta/toolkit/references/skill-creator.md": "2026-09-18",
@@ -580,6 +579,9 @@ def check_skill_calls(root: Path = REPO_ROOT) -> list[str]:
     - Commands hand off with that exact call, not "read and follow the skill at" wording.
     - A pipeline that is not also a skill is reached through the workflow skill,
       never by a direct "invoke/route to/hand off to <pipeline>" instruction.
+    - Every "Call the Skill tool with `x`" outside tests names an indexed skill or a
+      command; a retired or misspelled name fails at runtime, and the failed call
+      leaves no usage record.
     """
     repo = str(REPO_ROOT.resolve())
     if repo not in sys.path:
@@ -605,6 +607,8 @@ def check_skill_calls(root: Path = REPO_ROOT) -> list[str]:
         return failures
     skills = set(json.loads(skills_index.read_text(encoding="utf-8"))["skills"])
     pipelines = set(json.loads(pipeline_index.read_text(encoding="utf-8"))["pipelines"])
+    # Commands are Skill-tool targets too: the harness lists each one as a skill.
+    callable_names = skills | {p.stem for p in (root / "commands").glob("*.md")}
     patterns = [
         (
             name,
@@ -620,6 +624,12 @@ def check_skill_calls(root: Path = REPO_ROOT) -> list[str]:
             for name, rx in patterns:
                 if rx.search(line):
                     failures.append(f"{path.relative_to(root)}:{lineno}: direct handoff to pipeline {name!r}")
+            for match in CONCRETE_SKILL_CALL.finditer(line):
+                if match.group(1) not in callable_names:
+                    failures.append(
+                        f"{path.relative_to(root)}:{lineno}: calls the Skill tool with {match.group(1)!r}, "
+                        "which is no indexed skill or command"
+                    )
     return failures
 
 
@@ -773,7 +783,7 @@ def main() -> None:
     parser.add_argument(
         "--check-skill-calls",
         action="store_true",
-        help="Check Skill-tool call wording in commands and pipeline handoffs",
+        help="Check Skill-tool call wording, pipeline handoffs, and that each called skill exists",
     )
     parser.add_argument(
         "--allowlist",

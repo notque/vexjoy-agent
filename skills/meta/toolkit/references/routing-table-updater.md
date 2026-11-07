@@ -31,7 +31,7 @@ The skill reads metadata from all skills and agents (never modifies them) and va
 **Step 1: Run scan script**
 
 ```bash
-python3 ~/.claude/skills/meta/routing-table-updater/scripts/scan.py --repo $HOME/vexjoy-agent
+python3 ~/.claude/skills/toolkit/scripts/routing-table-updater/scan.py --repo $HOME/vexjoy-agent
 ```
 
 **Step 2: Validate scan output**
@@ -55,7 +55,7 @@ Compare discovered count against expected. If missing, check directory naming, a
 **Step 1: Run extraction script**
 
 ```bash
-python3 ~/.claude/skills/meta/routing-table-updater/scripts/extract_metadata.py --input scan_results.json --output metadata.json
+python3 ~/.claude/skills/toolkit/scripts/routing-table-updater/extract_metadata.py --input scan_results.json --output metadata.json
 ```
 
 **Step 2: Verify extraction completeness**
@@ -81,7 +81,7 @@ Review against `references/extraction-patterns.md`. Patterns must be specific en
 **Step 1: Run generation script**
 
 ```bash
-python3 ~/.claude/skills/meta/routing-table-updater/scripts/generate_routes.py --input metadata.json --output routing_entries.json
+python3 ~/.claude/skills/toolkit/scripts/routing-table-updater/generate_routes.py --input metadata.json --output routing_entries.json
 ```
 
 **Step 2: Understand the generation process**
@@ -139,7 +139,7 @@ EOF
 **Step 1: Run validation script**
 
 ```bash
-python3 ~/.claude/skills/meta/routing-table-updater/scripts/validate.py
+python3 ~/.claude/skills/toolkit/scripts/routing-table-updater/validate.py
 ```
 
 Validates skill package structure, SKILL.md frontmatter, and script executability. Exit 0 = pass.
@@ -177,10 +177,7 @@ This skill is typically invoked after other creation skills complete:
 - **During repository maintenance**: Periodic sync to catch manual drift
 - **After pipeline-scaffolder Phase 3**: N skills created for a domain, all need routing (batch mode)
 
-Invocation by other skills:
-```
-skill: routing-table-updater
-```
+Invocation by other skills: call the Skill tool with `toolkit` and run its Routing Tables mode.
 
 The skill reads metadata from all skills and agents but never modifies them. Its only write targets are the generated indices `skills/INDEX.json` and `agents/INDEX.json`, always via the repo generator scripts.
 

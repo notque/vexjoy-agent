@@ -1,6 +1,6 @@
 ---
 name: with-anti-rationalization
-promoted_to: process
+promoted_to: testing
 description: "Anti-rationalization enforcement for maximum-rigor task execution."
 user-invocable: false
 argument-hint: "<task>"

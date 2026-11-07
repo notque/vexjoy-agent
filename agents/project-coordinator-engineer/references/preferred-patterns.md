@@ -124,7 +124,7 @@ At 70% capacity, write PROGRESS.md covering completed phases, output artifacts, 
 - Phase 3: API endpoints — not started
 
 ### Pending Decisions
-- Pagination strategy for /api/users endpoint (ask user)
+- Pagination strategy for /api/users endpoint (open: match the existing endpoints, or ask Jev if genuinely unsure)
 ```
 
 **Detection**:

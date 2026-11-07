@@ -37,7 +37,7 @@
 | Unresolved conflicts | No reconciliation | State conflict, explain cause, recommend resolution |
 | Gaps despite broad research | Didn't audit coverage | Audit against original query; deploy gap-fill subagent |
 | Delegates final report | Hardcoded violation | Lead agent ALWAYS writes report |
-| Contains citations | Output format violation | Remove all citations |
+| Claims without a source | Sources dropped during synthesis | Carry each subagent's source and passage; label unsourced claims `INFERENCE:` or drop them |
 
 ### Output Format Errors
 
@@ -65,15 +65,15 @@ A subagent sees only its own stream — cannot reconcile cross-stream conflicts.
 
 ---
 
-### Citation Inclusion
+### Missing Citations
 
 **Detection**:
 ```bash
-grep -rn "^## References\|^## Sources" research/*/report.md
-grep -rn "\[[0-9]\+\]\|([A-Z][a-z]*,\s*20[0-9][0-9])" research/*/report.md
+# Reports with no Sources list
+grep -L "^## Sources" research/*/report.md
 ```
 
-Citation agent handles separately. Inline attribution when needed: "According to Synergy Research Q4 2024 data, AWS holds 31% market share."
+No separate citation agent exists, so the coordinator cites. Attribute each factual claim inline ("According to Synergy Research Q4 2024 data, AWS holds 31% market share") and list every source with its URL under `## Sources`. The research skill requires `Evidence: [source + passage]` for each claim.
 
 ---
 

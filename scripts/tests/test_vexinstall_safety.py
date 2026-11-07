@@ -7,7 +7,6 @@ targets whose adapter row takes a distinct branch (target logic lives in the ada
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import shutil
@@ -173,18 +172,14 @@ def test_corrupt_ledger_rebuilt_by_adoption(world: Env, target: str, mode: str) 
 
 @pytest.mark.parametrize("target", ["claude"])
 def test_sync_exits_zero_when_lock_held(world: Env, target: str) -> None:
-    lock = _state(world) / "lock"
-    fd = os.open(lock, os.O_RDWR | os.O_CREAT, 0o600)
-    try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
+    from vexinstall.lock import engine_lock
+
+    with engine_lock(_state(world) / "lock", fsops.Guard(), blocking=False, timeout=0):
         before = tree_hash(world.home, exclude=LOCK)
         t0 = time.monotonic()
         proc = world.cli("sync", "--target", target)
         assert proc.returncode == 0 and proc.stdout == "" and time.monotonic() - t0 < 20
         assert tree_hash(world.home, exclude=LOCK) == before
-    finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        os.close(fd)
 
 
 @pytest.mark.parametrize("target", ["claude"])

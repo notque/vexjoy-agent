@@ -7,7 +7,6 @@ routing:
     - coordinate
     - multi-agent
     - orchestrate
-    - project
     - task management
     - agent coordination
   not_for: "personal productivity and task-list tools (use business-ops skill, PRODUCTIVITY mode); scaffolding the structure of a new multi-component pipeline (use pipeline-orchestrator-engineer) — this agent coordinates multi-agent project execution and dependency tracking"
@@ -113,7 +112,7 @@ Load [project-coordinator-engineer/references/coordination-playbook.md](project-
 - Error Handling (death loop, file domain conflict, context overflow)
 - Preferred Patterns (infinite retries, lint before compile, parallel file mods)
 - Anti-Rationalization (domain-specific rationalizations table)
-- Blocker Criteria (when to stop and ask the user)
+- Blocker Criteria (when to decide, ask Jev, or stop for the owner)
 
 ## Reference Loading Table
 

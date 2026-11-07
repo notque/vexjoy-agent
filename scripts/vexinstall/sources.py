@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -163,7 +164,7 @@ def _visible_dirs(path: Path) -> list[Path]:
     return [c for c in children if c.is_dir() and not c.name.startswith(".") and not is_ignored_name(c.name)]
 
 
-def _top_level_items(root: Path, sub: str, lister: tuple[str, ...] | None, skip: frozenset[str]) -> list[str]:
+def _top_level_items(root: Path, sub: str, lister: Iterable[str] | None, skip: frozenset[str]) -> list[str]:
     base = root / sub
     if not base.is_dir():
         return []
@@ -180,8 +181,9 @@ def load_public(root: Path) -> PublicSources:
     root = Path(realpath(root))
     pub = PublicSources(root=root)
     lister = gitutil.ls_files(root)
-    # In a git checkout only a committed SKILL.md makes a skill, so untracked
-    # work in progress never installs (or shadows a category as one skill).
+    # In a git checkout only a tracked SKILL.md makes a skill, and only a tracked
+    # file makes an agent, command, hook, or script entry, so untracked work in
+    # progress or a stray output file never installs (or shadows a category as one skill).
     tracked = set(gitutil.tracked_files(root)) if lister is not None else None
 
     def is_skill(path: Path) -> bool:
@@ -219,7 +221,7 @@ def load_public(root: Path) -> PublicSources:
             pub.skills.append(item)
 
     agents_dir = root / "agents"
-    for name in _top_level_items(root, "agents", lister, _AGENT_SKIP):
+    for name in _top_level_items(root, "agents", tracked, _AGENT_SKIP):
         path = agents_dir / name
         if path.is_dir() or name.endswith(".md"):
             pub.agents.append(SourceItem("agent", name, path, PUBLIC))
@@ -228,22 +230,22 @@ def load_public(root: Path) -> PublicSources:
     # shim would list it twice, so the skill wins.
     skill_names = {s.name for s in pub.skills}
     commands_dir = root / "commands"
-    for name in _top_level_items(root, "commands", lister, frozenset()):
+    for name in _top_level_items(root, "commands", tracked, frozenset()):
         if name.endswith(".md") and (commands_dir / name).is_file() and name[:-3] not in skill_names:
             pub.commands.append(SourceItem("command", name[:-3], commands_dir / name, PUBLIC))
 
     hooks_dir = root / "hooks"
     if hooks_dir.is_dir():
         pub.hooks_dir = hooks_dir
-        for name in _top_level_items(root, "hooks", lister, frozenset({"tests", "lib"})):
+        for name in _top_level_items(root, "hooks", tracked, frozenset({"tests", "lib"})):
             pub.hook_items.append(SourceItem("hook", name, hooks_dir / name, PUBLIC))
-        for name in _top_level_items(root, "hooks/lib", lister, frozenset({"tests"})):
+        for name in _top_level_items(root, "hooks/lib", tracked, frozenset({"tests"})):
             pub.hook_lib_items.append(SourceItem("hook-lib", name, hooks_dir / "lib" / name, PUBLIC))
 
     scripts_dir = root / "scripts"
     if scripts_dir.is_dir():
         pub.scripts_dir = scripts_dir
-        for name in _top_level_items(root, "scripts", lister, frozenset()):
+        for name in _top_level_items(root, "scripts", tracked, frozenset()):
             pub.script_items.append(SourceItem("script", name, scripts_dir / name, PUBLIC))
 
     for key, fname in (
