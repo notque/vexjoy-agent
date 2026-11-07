@@ -11,6 +11,8 @@ Valid hook exit codes:
   Any other — unexpected, flag as WARN
   Crash / exception — FAIL
 
+Each hook gets its registered timeout, which is in seconds as Claude Code reads it.
+
 Usage:
     python scripts/smoke-test-hooks.py                # All registered hooks
     python scripts/smoke-test-hooks.py --event PostToolUse  # Filter by event
@@ -77,6 +79,8 @@ MOCK_INPUTS: dict[str, dict] = {
 }
 
 VALID_EXIT_CODES = {0, 2}
+# Seconds, when a settings entry has no timeout or comes from an untrusted target repo.
+DEFAULT_TIMEOUT_S = 5
 _SAFE_PATH = os.pathsep.join((str(Path(sys.executable).resolve().parent), "/usr/local/bin", "/usr/bin", "/bin"))
 
 
@@ -125,7 +129,11 @@ def load_registered_hooks(
                         "matcher": matcher,
                         "script": script_path,
                         "description": entry.get("description", ""),
-                        "timeout_ms": 5000 if trusted_hooks_dir is not None else entry.get("timeout", 5000),
+                        "timeout_s": (
+                            DEFAULT_TIMEOUT_S
+                            if trusted_hooks_dir is not None
+                            else entry.get("timeout", DEFAULT_TIMEOUT_S)
+                        ),
                         "command": cmd,
                     }
                 )
@@ -189,7 +197,7 @@ def run_hook(
     """Run a single hook with mock stdin. Return result dict."""
     script = hook["script"]
     event = hook["event"]
-    timeout_s = (hook["timeout_ms"] + 500) / 1000  # Add 500ms buffer
+    timeout_s = hook["timeout_s"] + 0.5  # half a second over the registered timeout
 
     if not script.exists():
         return {**hook, "status": "MISSING", "exit_code": -1, "stdout": "", "stderr": ""}
