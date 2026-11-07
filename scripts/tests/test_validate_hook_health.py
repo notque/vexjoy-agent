@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """Tests for hook-error repeat-offender and matcher-liveness health checks."""
 
+import contextlib
 import importlib.util
 import json
 import os
 import shutil
+import signal
 import subprocess
+import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "validate-hook-health.py"
 SPEC = importlib.util.spec_from_file_location("validate_hook_health", SCRIPT)
@@ -275,7 +281,7 @@ def test_matcher_liveness_runs_in_a_throwaway_home_seeded_like_ci(tmp_path, monk
 
 
 def test_matcher_liveness_installs_only_tracked_scripts_in_a_git_checkout(tmp_path, monkeypatch):
-    """Like a real install: an ignored or untracked file under scripts/ is not copied."""
+    """Like the CI checkout: an ignored or untracked file under scripts/ is not copied."""
     record = tmp_path / "probe.json"
     probe = (
         "import json\n"
@@ -296,3 +302,90 @@ def test_matcher_liveness_installs_only_tracked_scripts_in_a_git_checkout(tmp_pa
     assert health.check_matcher_liveness() == []
 
     assert json.loads(record.read_text(encoding="utf-8")) == {"tracked": True, "untracked": False}
+
+
+# A hook may start work in the background and exit at once, as
+# rules-distill-trigger does with rules-distill.py. That work has to finish, or
+# be ended, inside the hook's own check: left running, it writes into the
+# throwaway HOME while it is deleted (the cleanup then fails with "Directory not
+# empty", or the write recreates the deleted tree) and outlives the validator.
+
+_BACKGROUND_CHILD = (
+    "import sys, time\n"
+    "from pathlib import Path\n"
+    "time.sleep(float(sys.argv[1]))\n"
+    "late = Path.home() / '.claude' / 'learning'\n"
+    "late.mkdir(parents=True, exist_ok=True)\n"
+    "(late / 'late-write.json').write_text('{}')\n"
+)
+
+
+def _background_hook(record: Path, delay_s: float) -> str:
+    """A hook that starts _BACKGROUND_CHILD, records its pid and HOME, and exits at once."""
+    return (
+        "import json, os, subprocess, sys\n"
+        "from pathlib import Path\n"
+        f"child = {_BACKGROUND_CHILD!r}\n"
+        f"proc = subprocess.Popen([sys.executable, '-c', child, {str(delay_s)!r}],\n"
+        "                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+        f"Path({str(record)!r}).write_text(json.dumps({{'pid': proc.pid, 'home': os.environ['HOME']}}))\n"
+    )
+
+
+def _running(pid: int) -> bool:
+    """True while *pid* runs; a zombie waiting to be reaped has ended."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    try:
+        return Path(f"/proc/{pid}/stat").read_text(encoding="utf-8").rsplit(")", 1)[1].split()[0] != "Z"
+    except (OSError, IndexError):
+        return True
+
+
+def _wait_until(predicate, timeout_s: float = 10.0) -> bool:
+    deadline = time.monotonic() + timeout_s
+    while not predicate():
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(0.05)
+    return True
+
+
+def _background_case(tmp_path, monkeypatch, delay_s: float) -> Path:
+    """A liveness repo with one background-starting hook; the throwaway HOME is created under tmp_path."""
+    record = tmp_path / "child.json"
+    _liveness_repo(tmp_path, monkeypatch, {"bg.py": _background_hook(record, delay_s)})
+    (tmp_path / "tmp").mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "tmp"))
+    return record
+
+
+@pytest.mark.skipif(not hasattr(os, "killpg"), reason="hooks run in their own POSIX session")
+def test_matcher_liveness_lets_background_work_finish_before_deleting_its_home(tmp_path, monkeypatch):
+    record = _background_case(tmp_path, monkeypatch, delay_s=0.5)
+
+    assert health.check_matcher_liveness() == []
+
+    child = json.loads(record.read_text(encoding="utf-8"))
+    assert _wait_until(lambda: not _running(child["pid"])), "the background child never ended"
+    assert not Path(child["home"]).exists(), "background work recreated the deleted throwaway HOME"
+
+
+@pytest.mark.skipif(not hasattr(os, "killpg"), reason="hooks run in their own POSIX session")
+def test_matcher_liveness_ends_background_work_that_outlives_the_grace(tmp_path, monkeypatch):
+    record = _background_case(tmp_path, monkeypatch, delay_s=60)
+    monkeypatch.setattr(health, "_BACKGROUND_GRACE_S", 0.5)
+    try:
+        assert health.check_matcher_liveness() == []
+
+        child = json.loads(record.read_text(encoding="utf-8"))
+        assert not _running(child["pid"]), "a hook's background work outlived the liveness check"
+        assert not Path(child["home"]).exists()
+    finally:
+        if record.is_file():
+            with contextlib.suppress(OSError):
+                os.kill(json.loads(record.read_text(encoding="utf-8"))["pid"], signal.SIGKILL)

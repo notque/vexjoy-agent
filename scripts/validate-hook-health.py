@@ -29,14 +29,17 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
 import json
 import os
 import re
 import shutil
+import signal
 import site
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -717,8 +720,8 @@ def _seed_ci_home(home: Path) -> Path:
     hooks/*.py, hooks/lib/*.py, settings.json, and scripts/, which hooks import
     from (routing-decision-recorder needs scripts/lib) and run. scripts/ is
     copied, never linked: a script resolving its own path would otherwise land
-    in the checkout. In a git checkout only tracked files are copied, as a real
-    install does. Returns the hooks directory.
+    in the checkout. In a git checkout only tracked files are copied, as the CI
+    job's fresh checkout has them. Returns the hooks directory.
     """
     claude = home / ".claude"
     hooks = claude / "hooks"
@@ -759,6 +762,73 @@ def _error_summary(line: str) -> str:
 
 _TRACEBACK = "Traceback (most recent call last):"
 
+_LIVENESS_TIMEOUT_S = 15
+# How long a hook's background work may keep running after the hook exits
+# before it is killed. rules-distill-trigger starts rules-distill.py, which
+# finishes in well under a second in the throwaway HOME.
+_BACKGROUND_GRACE_S = 5.0
+
+
+def _session_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except OSError:  # ProcessLookupError: nothing is left in the session
+        return False
+    return True
+
+
+def _wait_session(pgid: int, timeout_s: float) -> bool:
+    """True once session *pgid* is empty; False when something still runs after *timeout_s*."""
+    deadline = time.monotonic() + timeout_s
+    while _session_alive(pgid):
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.02)
+    return True
+
+
+def _end_session(pgid: int, grace_s: float) -> None:
+    """Give what a hook left in session *pgid* *grace_s* to finish, then kill the rest."""
+    if not _wait_session(pgid, grace_s):
+        with contextlib.suppress(OSError):
+            os.killpg(pgid, signal.SIGKILL)
+        _wait_session(pgid, 1.0)
+
+
+def _run_liveness_hook(script: Path, payload: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    """subprocess.run for one hook that also ends whatever the hook left running.
+
+    The hook runs in its own session. A hook may start background work and exit
+    at once (rules-distill-trigger starts rules-distill.py). Left running, that
+    work overlaps the next hook's check and writes into the throwaway HOME while
+    it is deleted, so the cleanup fails with "Directory not empty" or the write
+    recreates the deleted tree. It gets _BACKGROUND_GRACE_S to finish and is then
+    killed. Raises subprocess.TimeoutExpired like subprocess.run.
+    """
+    session = hasattr(os, "killpg")
+    grace_s = _BACKGROUND_GRACE_S
+    with subprocess.Popen(
+        [sys.executable, str(script)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=str(REPO_ROOT),
+        env=env,
+        start_new_session=session,
+    ) as proc:
+        try:
+            stdout, stderr = proc.communicate(payload, timeout=_LIVENESS_TIMEOUT_S)
+        except BaseException:
+            grace_s = 0.0
+            proc.kill()
+            proc.wait()
+            raise
+        finally:
+            if session:
+                _end_session(proc.pid, grace_s)
+    return subprocess.CompletedProcess(proc.args, proc.returncode, stdout, stderr)
+
 
 def check_matcher_liveness() -> list[str]:
     """Run each registered hook against a payload whose tool_name matches its
@@ -769,7 +839,8 @@ def check_matcher_liveness() -> list[str]:
     real one, with the SessionStart sync disabled and a private hook-errors.jsonl.
     A hook fails when it exits other than 0 or 2, records a hook error, or prints
     a traceback: most hooks catch their own exceptions and exit 0, so the exit
-    code alone passes a hook that crashes on every call.
+    code alone passes a hook that crashes on every call. Background work a hook
+    starts is finished or killed before the next hook runs.
     """
     settings = load_settings()
     msgs: list[str] = []
@@ -808,15 +879,7 @@ def check_matcher_liveness() -> list[str]:
                 payload["tool_input"] = {"file_path": "/tmp/hh-probe.txt", "command": "ls"}
             logged = len(_error_lines(errors))
             try:
-                result = subprocess.run(
-                    [sys.executable, str(script)],
-                    input=json.dumps(payload),
-                    capture_output=True,
-                    text=True,
-                    timeout=15,
-                    cwd=str(REPO_ROOT),
-                    env=env,
-                )
+                result = _run_liveness_hook(script, json.dumps(payload), env)
             except subprocess.TimeoutExpired:
                 msgs.append(f"MATCHER-LIVENESS: {event}/{fname} timed out on matcher '{matcher}'.")
                 continue
