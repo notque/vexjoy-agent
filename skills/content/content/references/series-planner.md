@@ -11,10 +11,10 @@ This skill plans multi-part content series with proper structure, cross-linking,
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| choosing publication frequency and managing delays | `cadence-guidelines.md` | Loads detailed guidance from `cadence-guidelines.md`. |
-| series navigation links and Hugo implementation | `cross-linking.md` | Loads detailed guidance from `cross-linking.md`. |
-| writing the series plan output | `output-format.md` | Loads detailed guidance from `output-format.md`. |
-| selecting series type, part count, word targets | `series-types.md` | Loads detailed guidance from `series-types.md`. |
+| choosing publication frequency and managing delays | `series-planner/cadence-guidelines.md` | Loads detailed guidance from `series-planner/cadence-guidelines.md`. |
+| series navigation links and Hugo implementation | `series-planner/cross-linking.md` | Loads detailed guidance from `series-planner/cross-linking.md`. |
+| writing the series plan output | `series-planner/output-format.md` | Loads detailed guidance from `series-planner/output-format.md`. |
+| selecting series type, part count, word targets | `series-planner/series-types.md` | Loads detailed guidance from `series-planner/series-types.md`. |
 
 ## Instructions
 
@@ -52,7 +52,7 @@ Verify these constraints before proceeding:
 
 **Step 3: Detect series type**
 
-Match topic signals to type. See `references/series-types.md` for full templates.
+Match topic signals to type. See `references/series-planner/series-types.md` for full templates.
 
 | Signal | Type |
 |--------|------|
@@ -106,7 +106,7 @@ This is the failure mode prevention layer. Standalone value is non-negotiable be
 
 **Step 4: Select publishing cadence**
 
-See `references/cadence-guidelines.md` for detailed criteria. Default to weekly unless topic complexity or content depth suggests otherwise.
+See `references/series-planner/cadence-guidelines.md` for detailed criteria. Default to weekly unless topic complexity or content depth suggests otherwise.
 
 **Gate**: All parts pass standalone value check. Part count is strictly 3-7. Type selection justified. Proceed only when gate passes.
 
@@ -119,7 +119,7 @@ See `references/cadence-guidelines.md` for detailed criteria. Default to weekly 
 Output the complete plan including:
 1. Series header with type and metadata
 2. Detailed breakdown per part (scope, standalone value, links)
-3. Cross-linking structure (see `references/cross-linking.md`)
+3. Cross-linking structure (see `references/series-planner/cross-linking.md`)
 4. Publication schedule with dates
 5. Hugo frontmatter template per part
 
@@ -135,7 +135,7 @@ Before outputting, verify all constraints one final time:
 
 **Step 3: Output plan**
 
-Use the series plan format from `references/output-format.md`.
+Use the series plan format from `references/series-planner/output-format.md`.
 
 **Gate**: All validation checks pass. Plan is complete and ready for delivery.
 
@@ -143,7 +143,7 @@ Use the series plan format from `references/output-format.md`.
 
 ## Series Types (Summary)
 
-Three primary types. Full templates and examples in `references/series-types.md`.
+Three primary types. Full templates and examples in `references/series-planner/series-types.md`.
 
 ### Progressive Depth
 Shallow-to-deep mastery. Each level is complete; beginners stop at Part 1, advanced readers skip ahead. Enables flexible audience engagement.
@@ -238,10 +238,10 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/series-types.md`: Complete type templates with examples and selection criteria
-- `${CLAUDE_SKILL_DIR}/references/cross-linking.md`: Navigation patterns and Hugo implementation
-- `${CLAUDE_SKILL_DIR}/references/cadence-guidelines.md`: Publishing frequency recommendations and schedules
-- `${CLAUDE_SKILL_DIR}/references/output-format.md`: Series plan output format template
+- `${CLAUDE_SKILL_DIR}/references/series-planner/series-types.md`: Complete type templates with examples and selection criteria
+- `${CLAUDE_SKILL_DIR}/references/series-planner/cross-linking.md`: Navigation patterns and Hugo implementation
+- `${CLAUDE_SKILL_DIR}/references/series-planner/cadence-guidelines.md`: Publishing frequency recommendations and schedules
+- `${CLAUDE_SKILL_DIR}/references/series-planner/output-format.md`: Series plan output format template
 
 ### Key Constraints Summary
 

@@ -420,7 +420,6 @@ _KNOWN_OVERSIZED_SKILL_REFS: dict[str, str] = {
     "frontend/frontend/references/threejs-builder-refs/react-three-fiber.md": "2026-09-18",
     "frontend/frontend/references/threejs-builder-refs/visual-polish.md": "2026-09-18",
     "frontend/frontend/references/threejs-builder-refs/webgpu.md": "2026-09-18",
-    "frontend/webgl-card-effects/references/shader-integration-react.md": "2026-09-18",
     "meta/toolkit/references/skill-composer/examples.md": "2026-09-18",
     "meta/toolkit/references/skill-creator/agent-template.md": "2026-09-18",
     "meta/toolkit/references/skill-creator.md": "2026-09-18",

@@ -22,7 +22,7 @@ This skill produces evidence-based constructive critique through 5 specialized H
 | Signal | Load These Files | Why |
 |---|---|---|
 | dispatching roast personas; claim format and validation verdicts | `personas.md` | Loads detailed guidance from `personas.md`. |
-| writing the synthesized roast report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| writing the synthesized roast report | `roast-report-template.md` | Loads detailed guidance from `roast-report-template.md`. |
 
 ## Instructions
 
@@ -165,7 +165,7 @@ Sort VALID and PARTIAL findings by impact:
 
 **Goal**: Transform aggressive persona outputs into constructive, actionable report.
 
-Follow the full template in `references/report-template.md`. Key synthesis rules:
+Follow the full template in `references/multi-persona-critique/roast-report-template.md`. Key synthesis rules:
 
 1. **Filter by verdict**: Only VALID and PARTIAL claims appear in improvement opportunities
 2. **Dismissed section**: UNFOUNDED claims go in dismissed section with evidence showing why. Transparency matters — users need to understand why certain critiques don't hold up.
@@ -267,7 +267,7 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/report-template.md`: Full report output template with tone transformation rules
+- `${CLAUDE_SKILL_DIR}/references/multi-persona-critique/roast-report-template.md`: Full report output template with tone transformation rules
 - `${CLAUDE_SKILL_DIR}/references/personas.md`: Persona specifications, prompt template, and claim format
 - `agents/reviewer-code.md`: Code quality reviewer (senior and pedant lenses)
 - `agents/reviewer-perspectives.md`: Perspectives reviewer (newcomer and contrarian lenses)

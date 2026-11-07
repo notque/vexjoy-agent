@@ -288,4 +288,4 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 - `skills/research/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback in references)
 - `skills/meta/skill-creator/SKILL.md` -- Skill creation methodology
 - `skills/meta/agent-comparison/SKILL.md` -- A/B testing methodology
-- `skills/infrastructure/headless-cron-creator/SKILL.md` -- Cron job creation patterns
+- `skills/infrastructure/deploy/references/headless-cron-creator.md` -- Cron job creation patterns

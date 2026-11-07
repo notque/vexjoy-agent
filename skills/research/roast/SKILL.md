@@ -1,6 +1,6 @@
 ---
 name: roast
-promoted_to: research
+promoted_to: assessment
 description: "Constructive critique via 5 HackerNews personas with claim validation."
 user-invocable: false
 argument-hint: "<target to critique>"
