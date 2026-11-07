@@ -119,7 +119,7 @@ VALID_SYSTEMATIC_MD = textwrap.dedent("""\
 
     Risk Level: HIGH
 
-    Verdict: REQUEST-CHANGES
+    Verdict: BLOCK
 
     Rationale: SQL injection risk must be addressed before merge.
 """)
@@ -176,7 +176,7 @@ MALFORMED_SYSTEMATIC_BAD_BUCKET_MD = textwrap.dedent("""\
     1. **Extract magic number** - `internal/cache/store.go:17`
        - Recommendation: name the 3600 TTL constant
 
-    ## Verdict: REQUEST-CHANGES
+    ## Verdict: NEEDS_CHANGES
 
     Rationale: eviction gap should be addressed before merge.
 """)
@@ -212,7 +212,7 @@ VALID_PARALLEL_HYPHEN_MD = textwrap.dedent("""\
     | Business-Logic | 0        | 1    | 0      | 0   |
 
     ### Recommendation
-    **FIX** - Auth bypass must be fixed before merge.
+    **NEEDS_CHANGES** - Auth bypass must be fixed before merge.
 """)
 
 

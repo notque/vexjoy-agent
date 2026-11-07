@@ -2,13 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "parallel-code-review.schema.json",
   "title": "Parallel Code Review Output Schema",
-  "description": "Schema for 3-reviewer parallel code review output. Verdict: BLOCK, FIX, or APPROVE. Requires severity_matrix and reviewer_summary. Each finding must identify its reviewer.",
+  "description": "Schema for 3-reviewer parallel code review output. Verdict: PASS, NEEDS_CHANGES, or BLOCK (any critical finding needs BLOCK; a high finding rules out PASS). Requires severity_matrix and reviewer_summary. Each finding must identify its reviewer.",
   "type": "object",
   "required": ["verdict", "findings", "severity_matrix", "reviewer_summary"],
   "properties": {
     "verdict": {
       "type": "string",
-      "enum": ["BLOCK", "FIX", "APPROVE"]
+      "enum": ["PASS", "NEEDS_CHANGES", "BLOCK"]
     },
     "summary": {
       "type": "string",
