@@ -51,6 +51,7 @@ Usage: ./install.sh [options]
   --copy               Copy entries (default for worktrees and /tmp checkouts)
   --dry-run            Print the vexinstall plan; write nothing
   --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
+                       and the post-merge git hook install.sh wrote (it reinstalls on pull)
   --rollback           Undo the last install or uninstall run: restore what it moved to trash
                        and the settings.json it replaced (later syncs are left alone)
   --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
@@ -126,10 +127,17 @@ vexinstall() {
 # The engine restores the rollback point that this script's last apply and prune (or uninstall)
 # recorded: every trash session of that run and the settings.json backup it took. The newest
 # trash session and backup on disk are often a later sync's, so they are never picked by date.
+# Undoing an uninstall also writes back the post-merge hook that the uninstall removed.
 rollback() {
     local -a args=(rollback)
+    local out rc=0
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
-    vexinstall "${args[@]}"
+    out=$(vexinstall "${args[@]}") || rc=$?
+    [ -z "$out" ] || printf '%s\n' "$out"
+    if [ "$rc" -eq 0 ] && [ "$DRY_RUN" = false ] && [[ $out == "[rollback] run "*"(uninstall)"* ]]; then
+        install_git_hooks
+    fi
+    return "$rc"
 }
 
 # A runtime whose CLI is on PATH gets its root dir, so `--target all` installs it.
@@ -204,6 +212,28 @@ fi
 [ "$rc" -eq 0 ] || echo "[vexjoy-agent] check-private-leak exited $rc; commit allowed" >&2
 exit 0
 HOOK
+}
+
+# --uninstall: the post-merge hook syncs every target after each git pull, which puts back all that
+# an uninstall removed, so delete it when install.sh wrote it (the marker line) and leave anyone
+# else's post-merge alone. A partial uninstall keeps it: claude's SessionStart sync puts the other
+# target back either way, and the hook keeps claude current. The pre-commit leak gate stays.
+uninstall_git_hooks() {
+    local hook="${SCRIPT_DIR}/.git/hooks/post-merge"
+    [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ] && return 0
+    [ "$TARGET" = "all" ] || [ "$TARGET" = "claude" ] || return 0
+    [ -d "${SCRIPT_DIR}/.git" ] || return 0
+    [ -e "$hook" ] || [ -L "$hook" ] || return 0
+    if ! grep -q "Written by vexjoy-agent" "$hook" 2>/dev/null; then
+        echo -e "${YELLOW}  post-merge hook is not install.sh's; left in place: ${hook}${NC}"
+    elif [ "$DRY_RUN" = true ]; then
+        echo -e "${YELLOW}  Would remove post-merge hook (it reinstalls after every git pull): ${hook}${NC}"
+    elif rm -f "$hook"; then
+        echo -e "${GREEN}  ✓ Removed post-merge hook (it reinstalled after every git pull): ${hook}${NC}"
+    else
+        echo -e "${YELLOW}  ⚠ Could not remove post-merge hook; delete it or the next git pull reinstalls: ${hook}${NC}"
+    fi
+    return 0
 }
 
 # pip_requirements PYTHON: install requirements.txt into PYTHON; --break-system-packages when pip knows
@@ -326,6 +356,7 @@ if [ "$ACTION" = "uninstall" ]; then
     args=(uninstall --target "$TARGET" --run-id "$RUN_ID")
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
+    uninstall_git_hooks
     [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
     exit $?
 fi
