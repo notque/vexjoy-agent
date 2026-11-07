@@ -1,7 +1,7 @@
 # Script Commands Reference
 
 > **Scope**: All reddit_mod.py subcommands, flags, usage examples, and exit codes. Does NOT cover classification logic or workflow phases.
-> **Version range**: All toolkit versions using `skills/content/reddit-moderate/scripts/reddit-mod.py`
+> **Version range**: All toolkit versions using `skills/content/content/scripts/reddit-moderate/reddit-mod.py`
 > **Generated**: 2026-04-16
 
 ---
@@ -16,22 +16,22 @@
 
 ```bash
 # Fetch modqueue (items awaiting review)
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py queue --limit 20
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py queue --limit 20
 
 # Fetch reported items
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py reports --limit 20
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py reports --limit 20
 
 # Fetch unmoderated submissions
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py unmoderated --limit 20
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py unmoderated --limit 20
 
 # Auto mode (for /loop): JSON output, recent items only
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py queue --auto --since-minutes 15
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py queue --auto --since-minutes 15
 
 # Pipe queue through classify for LLM-ready prompts
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py queue --json --limit 25 | python3 skills/content/reddit-moderate/scripts/reddit-mod.py classify
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py queue --json --limit 25 | python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py classify
 
 # Auto mode with classify
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py queue --auto --since-minutes 15 --json | python3 skills/content/reddit-moderate/scripts/reddit-mod.py classify
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py queue --auto --since-minutes 15 --json | python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py classify
 ```
 
 ---
@@ -40,16 +40,16 @@ python3 skills/content/reddit-moderate/scripts/reddit-mod.py queue --auto --sinc
 
 ```bash
 # Approve an item
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py approve --id t3_abc123
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py approve --id t3_abc123
 
 # Remove an item with reason
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py remove --id t3_abc123 --reason "Rule 3: No spam"
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py remove --id t3_abc123 --reason "Rule 3: No spam"
 
 # Remove as spam
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py remove --id t3_abc123 --reason "Spam" --spam
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py remove --id t3_abc123 --reason "Spam" --spam
 
 # Lock a thread
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py lock --id t3_abc123
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py lock --id t3_abc123
 ```
 
 ---
@@ -58,19 +58,19 @@ python3 skills/content/reddit-moderate/scripts/reddit-mod.py lock --id t3_abc123
 
 ```bash
 # Check user history
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py user-history --username someuser --limit 10
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py user-history --username someuser --limit 10
 
 # Fetch subreddit rules (for classification context)
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py rules
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py rules
 
 # Fetch modmail
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py modmail --limit 10
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py modmail --limit 10
 
 # View subreddit info (sidebar rules, subscribers, etc.)
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py subreddit-info
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py subreddit-info
 
 # Generate mod log analysis
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py mod-log-summary --limit 500
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py mod-log-summary --limit 500
 ```
 
 ---
@@ -79,13 +79,13 @@ python3 skills/content/reddit-moderate/scripts/reddit-mod.py mod-log-summary --l
 
 ```bash
 # Bootstrap subreddit data directory
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py setup
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py setup
 
 # Scan recent posts for unreported violations (heuristic flags only)
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py scan --limit 50 --since-hours 24
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py scan --limit 50 --since-hours 24
 
 # Scan with classification prompts (JSON for LLM evaluation)
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py scan --json --classify --limit 50 --since-hours 24
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py scan --json --classify --limit 50 --since-hours 24
 ```
 
 The `--classify` flag on scan builds classification prompts internally (same `build_classification_prompt()` as the classify subcommand). Without `--json`, scan shows a summary with a note to use `--json` for full prompts.

@@ -25,16 +25,19 @@ To make a choice persistent, add `export CLAUDE_AFK_MODE=never` (or another valu
 
 ## What It Injects
 
-When active, the hook injects:
+In the default `always` mode the hook injects the block below. Nothing detects whether anyone is watching, so the block states the configured mode, not an observation:
 
 ```
 <afk-mode>
-The terminal is unfocused — the user is not actively watching.
+AFK mode is set to "always" (CLAUDE_AFK_MODE), so work as if the user may not be watching the terminal. This is the configured mode; nothing checked whether anyone is watching.
 Work proactively. Complete multi-step tasks without asking for confirmation.
 If you can determine the next logical step, take it.
 Produce concise task-completion summaries when finishing long-running work.
+Actions that CLAUDE.md reserves for owner approval still need that approval.
 </afk-mode>
 ```
+
+In `auto` mode the first line instead says the mode is `auto` and that the session runs over SSH, tmux or screen.
 
 ## How It Works
 

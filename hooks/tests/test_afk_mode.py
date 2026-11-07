@@ -5,12 +5,56 @@ Tests for the afk-mode hook (SessionStart, ADR-143).
 Run with: python3 -m pytest hooks/tests/test_afk_mode.py -v
 """
 
+import json
 import os
 import subprocess
 import sys
 from pathlib import Path
 
 HOOK_SRC = Path(__file__).parent.parent / "afk-mode.py"
+
+_HOST_VARS = ("SSH_CONNECTION", "SSH_TTY", "SSH_CLIENT", "TMUX", "STY")
+
+
+def _context(mode: str, extra_env: dict | None = None) -> str | None:
+    env = {k: v for k, v in os.environ.items() if k not in _HOST_VARS}
+    env.pop("AFK_MODE_BYPASS", None)
+    env["CLAUDE_AFK_MODE"] = mode
+    env.update(extra_env or {})
+    result = subprocess.run(
+        [sys.executable, str(HOOK_SRC)],
+        input="{}",
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)["hookSpecificOutput"].get("additionalContext")
+
+
+def test_always_mode_states_the_setting_not_an_observation():
+    """B-12: nothing detects focus, so the text must not claim the terminal is unfocused."""
+    context = _context("always")
+    assert context.startswith("<afk-mode>\n") and context.endswith("\n</afk-mode>")
+    assert 'AFK mode is set to "always" (CLAUDE_AFK_MODE)' in context
+    assert "unfocused" not in context
+    assert "is not actively watching" not in context
+    # The proactive-work guidance stays.
+    assert "Work proactively. Complete multi-step tasks without asking for confirmation." in context
+    assert "If you can determine the next logical step, take it." in context
+    assert "CLAUDE.md" in context
+
+
+def test_auto_mode_names_what_it_detected():
+    context = _context("auto", {"TMUX": "/tmp/tmux-1000/default,1,0"})
+    assert 'AFK mode is "auto" (CLAUDE_AFK_MODE) and this session runs over SSH, tmux or screen' in context
+    assert "unfocused" not in context
+    assert "Work proactively." in context
+
+
+def test_auto_mode_without_indicators_injects_nothing():
+    assert _context("auto") is None
 
 
 def test_never_mode_exits_0():

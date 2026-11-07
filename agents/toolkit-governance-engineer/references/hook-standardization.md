@@ -14,18 +14,20 @@ Hooks are shell commands registered in `settings.json` that execute in response 
 
 ## Event Type Reference
 
-| Event | When Fires | `once` Default | Typical Timeout |
+| Event | When Fires | `once` Default | Typical Timeout (seconds) |
 |-------|------------|---------------|-----------------|
-| `SessionStart` | Session begins | `true` | 1000–5000ms |
-| `UserPromptSubmit` | Before prompt is processed | — | 500–2000ms |
-| `PreToolUse` | Before a tool executes | — | 500ms |
-| `PostToolUse` | After a tool returns | — | 500–2000ms |
-| `PreCompact` | Before context compression | `true` | 2000ms |
-| `PostCompact` | After context compression | — | 1000ms |
-| `TaskCompleted` | After task completion | — | 1000ms |
-| `SubagentStop` | After subagent finishes | — | 500ms |
-| `StopFailure` | Session ends with error | — | 1000ms |
-| `Stop` | Session ends cleanly | — | 2000ms |
+| `SessionStart` | Session begins | `true` | 5–10 |
+| `UserPromptSubmit` | Before prompt is processed | — | 5 |
+| `PreToolUse` | Before a tool executes | — | 5 (gates: 10) |
+| `PostToolUse` | After a tool returns | — | 5 |
+| `PreCompact` | Before context compression | `true` | 5 |
+| `PostCompact` | After context compression | — | 5 |
+| `TaskCompleted` | After task completion | — | 5 |
+| `SubagentStop` | After subagent finishes | — | 5 |
+| `StopFailure` | Session ends with error | — | 5 |
+| `Stop` | Session ends cleanly | — | 5–10 |
+
+Claude Code reads `timeout` in **seconds**, so `"timeout": 3000` means 50 minutes, not 3 seconds. The timeout is a kill limit, not a latency budget: keep critical-path hooks fast in code, and give gates headroom, because a gate killed by its timeout cannot deny the call.
 
 ---
 
@@ -41,7 +43,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/my-hook.py\"",
             "description": "One-line description of what the hook does",
-            "timeout": 2000,
+            "timeout": 10,
             "once": true
           }
         ]
@@ -54,7 +56,7 @@ Hooks are shell commands registered in `settings.json` that execute in response 
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttool-security-scan.py\"",
             "description": "Scan edited files for security risks",
-            "timeout": 1000
+            "timeout": 5
           }
         ]
       }
@@ -68,8 +70,10 @@ Hooks are shell commands registered in `settings.json` that execute in response 
 | `type` | yes | `"command"` | Only `"command"` is currently supported |
 | `command` | yes | string | Use the launcher form shown above, exactly; it runs the installer-linked python 3.10+ (`docs/installer-layout.md`, Hook interpreter). Before registering, stamp the version guard: `python3 scripts/hook-pyguard.py --apply --file hooks/<file>.py` |
 | `description` | yes | string | Shown in session startup output |
-| `timeout` | recommended | integer (ms) | Omitting allows hooks to hang indefinitely |
+| `timeout` | recommended | number (seconds) | Omitting leaves the runtime default kill limit; a value written in milliseconds becomes a very long limit |
 | `once` | no | boolean | `true` = run only once per session (SessionStart default) |
+
+Agent frontmatter `hooks:` use the same shape: each event maps to a list of matcher groups, and each group holds its own `hooks:` list (`- matcher: "Edit|Write"` then `hooks:` then `- type: command`). When a bare `- type: command` entry sits directly under PostToolUse or another non-guard event, Claude Code drops it with the note `Hook matcher "hooks" must be an array of hook entries; received undefined; entry ignored`, so the hook never runs. Under PreToolUse or PermissionRequest the same mistake is worse: Claude Code applies nothing from the agent file until the entry is fixed.
 
 ---
 
@@ -136,27 +140,31 @@ def read_event() -> dict:
 
 event = read_event()
 tool_name = event.get("tool_name", "")
-tool_result = event.get("tool_result", {})
+tool_input = event.get("tool_input") or {}
+tool_response = event.get("tool_response", {})
 ```
 
-**Why**: Hooks that skip stdin reading miss the event context. For `PostToolUse`, the tool name and result are in the event — without reading them, the hook cannot inspect what just happened.
+**Why**: Hooks that skip stdin reading miss the event context. For `PostToolUse`, the event carries `tool_name`, `tool_input`, and `tool_response`; a hook that reads other keys (`tool`, `tool_result`, `output`) gets empty values and never fires.
 
 ---
 
 ### Inject Context via stdout
 
-Hooks inject context into Claude's prompt by printing structured output to stdout.
+Hooks inject context into Claude's prompt by printing `hookSpecificOutput.additionalContext` JSON to stdout.
 
 ```python
-# Inject a context block (appears as system-reminder in Claude's context)
-print(json.dumps({"type": "context", "content": "Important context here"}))
+from hook_utils import context_output, empty_output  # hooks/lib/hook_utils.py
 
-# Print a plain string (simpler, appears as hook output)
-print("[hook-name] Action suggested: fix the broken reference")
+# Inject context (appears as a system-reminder in Claude's context)
+context_output("PostToolUse", "[hook-name] Action suggested: fix the broken reference").print_and_exit()
+# prints {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "..."}}
 
 # Silent hook — print nothing when there's nothing to report
 # (preferred: hooks should be silent when they have no signal)
+empty_output("PostToolUse").print_and_exit()
 ```
+
+Plain-text stdout reaches the model only for `SessionStart` and `UserPromptSubmit`; for `PostToolUse` and the other tool events it shows in the transcript only, so a plain `print()` reminder there never reaches the model.
 
 **Why**: Hooks that always print output — even when silent — add noise to every interaction. Hooks should only print when they have a signal to communicate.
 
@@ -165,14 +173,14 @@ print("[hook-name] Action suggested: fix the broken reference")
 ### Timeout Configuration by Event Type
 
 ```json
-"SessionStart": { "timeout": 5000 }   // Sync operations, file reads: allow up to 5s
-"UserPromptSubmit": { "timeout": 500 } // Must be fast — blocks prompt processing
-"PreToolUse": { "timeout": 500 }       // Blocks tool execution — keep under 500ms
-"PostToolUse": { "timeout": 2000 }     // Can be slower; runs after tool completes
-"Stop": { "timeout": 3000 }            // Session ending — can afford more time
+"SessionStart": { "timeout": 10 }     // Sync operations, file reads (seconds)
+"UserPromptSubmit": { "timeout": 5 }  // Must be fast in code — blocks prompt processing
+"PreToolUse": { "timeout": 10 }       // Gates: headroom, since a killed gate cannot deny
+"PostToolUse": { "timeout": 5 }       // Advisory; runs after tool completes
+"Stop": { "timeout": 10 }             // Session ending — can afford more time
 ```
 
-**Why**: `UserPromptSubmit` and `PreToolUse` hooks are on the critical path — they block user interaction. Slow hooks here cause noticeable latency. `Stop` and `SessionStart` hooks can afford longer timeouts since they don't block active work.
+**Why**: `timeout` is in seconds. `UserPromptSubmit` and `PreToolUse` hooks are on the critical path — they block user interaction, so their code must finish in well under a second; the timeout only caps a hang. `Stop` and `SessionStart` hooks can afford longer limits since they don't block active work.
 
 ---
 
@@ -256,9 +264,9 @@ for event, groups in settings.get('hooks', {}).items():
 
 **Preferred action:**
 
-Always add `"timeout"` to every hook entry in `settings.json`. Use 1000ms for informational hooks, 500ms for `PreToolUse` and `UserPromptSubmit` hooks, and up to 5000ms for `SessionStart` hooks doing file reads. Run the detection script above to find any hooks currently missing this field.
+Always add `"timeout"` to every hook entry in `settings.json`, in seconds. Use 5 for informational and `UserPromptSubmit` hooks, 10 for `PreToolUse` gates, and up to 10 for `SessionStart` hooks doing file reads. Run the detection script above to find any hooks currently missing this field.
 
-**Preferred action**: Always set `"timeout"` in milliseconds. Use 1000ms as a safe default for informational hooks; 500ms for `PreToolUse`/`UserPromptSubmit`.
+**Preferred action**: Always set `"timeout"` in seconds. Use 5 as a safe default for informational hooks and 10 for gates.
 
 ---
 
@@ -362,7 +370,8 @@ Deploy the hook Python file to `~/.claude/hooks/` first, verify it exists with `
 
 | Symptom | Root Cause | Fix |
 |---------|------------|-----|
-| Session startup fails or hangs | Hook missing `timeout` and hangs | Add `"timeout": 2000` to the hook config |
+| Session startup fails or hangs | Hook missing `timeout` and hangs | Add `"timeout": 10` (seconds) to the hook config |
+| A hung hook stalls the session for many minutes | `timeout` written in milliseconds (`3000`) is read as seconds (50 minutes) | Write seconds: `5` for advisory hooks, `10` for gates |
 | Every session classified as AFK | `sys.stdin.isatty()` check in hook | Replace with `os.environ.get("SSH_CONNECTION")` check |
 | Hook blocks Claude from proceeding | Advisory hook exits non-zero | Wrap in try/except, call `sys.exit(0)` unconditionally |
 | Hook registered but errors on startup | Hook file not deployed to `~/.claude/hooks/` | Deploy file first, then register in settings.json |

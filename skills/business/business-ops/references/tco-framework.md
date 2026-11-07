@@ -211,4 +211,4 @@ Before finalizing TCO, confirm you have accounted for:
 ## See Also
 
 - `vendor-evaluation.md` — vendor scorecards, RFP criteria, integration complexity scoring
-- `skills/project-evaluation/references/roi-frameworks.md` — ROI calculation and risk-adjusted analysis
+- `skills/business/business-ops/references/roi-frameworks.md` — ROI calculation and risk-adjusted analysis

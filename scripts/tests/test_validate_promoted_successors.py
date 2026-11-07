@@ -17,6 +17,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 SCRIPT = Path(__file__).resolve().parent.parent / "validate-promoted-successors.py"
 
 _spec = importlib.util.spec_from_file_location("validate_promoted_successors", SCRIPT)
@@ -94,6 +96,69 @@ def test_flat_layout_successor_resolves(tmp_path: Path) -> None:
     flat.mkdir(parents=True)
     (flat / "SKILL.md").write_text('---\nname: workflow\ndescription: "fixture"\n---\nbody\n', encoding="utf-8")
     _make_skill(tmp_path, "meta", "husk", promoted_to="workflow", user_invocable=False)
+    assert check(tmp_path) == []
+
+
+def _write(repo_root: Path, rel: str, text: str) -> None:
+    path = repo_root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+@pytest.fixture
+def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Keep successor resolution off the real ~/.claude and ~/private-skills."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))  # Path.home() reads $HOME on POSIX
+    return home
+
+
+@pytest.mark.usefixtures("isolated_home")
+def test_live_file_calling_a_husk_script_fails(tmp_path: Path) -> None:
+    """P3: the installer skips husks, so a live caller of a husk asset breaks."""
+    _make_skill(tmp_path, "meta", "umbrella")
+    _make_skill(tmp_path, "meta", "husk", promoted_to="umbrella", user_invocable=False)
+    _write(tmp_path, "skills/meta/husk/scripts/tool.py", "print('hi')\n")
+    _write(
+        tmp_path,
+        "skills/meta/umbrella/references/use.md",
+        "Run `python3 skills/meta/husk/scripts/tool.py` first.\n",
+    )
+    failures = check(tmp_path)
+    assert len(failures) == 1
+    assert "P3 HUSK-ASSET-REFERENCED" in failures[0]
+    assert "skills/meta/umbrella/references/use.md:1" in failures[0]
+    assert "skills/meta/husk/" in failures[0]
+
+
+@pytest.mark.usefixtures("isolated_home")
+def test_installed_path_into_a_husk_fails(tmp_path: Path) -> None:
+    """P3: ~/.claude/skills/<husk> never exists, flat or under a category."""
+    _make_skill(tmp_path, "meta", "umbrella")
+    _make_skill(tmp_path, "meta", "husk", promoted_to="umbrella", user_invocable=False)
+    _write(
+        tmp_path,
+        "agents/helper.md",
+        "cd ~/.claude/skills/husk\npython3 ~/.claude/skills/meta/husk/scripts/tool.py\n",
+    )
+    failures = check(tmp_path)
+    assert [f for f in failures if "P3 HUSK-ASSET-REFERENCED" in f] == failures
+    assert len(failures) == 2
+
+
+@pytest.mark.usefixtures("isolated_home")
+def test_husk_may_reference_itself_and_live_paths_pass(tmp_path: Path) -> None:
+    """A husk's own files are inert, and paths into live skills are fine."""
+    _make_skill(tmp_path, "meta", "umbrella")
+    _make_skill(tmp_path, "meta", "husk", promoted_to="umbrella", user_invocable=False)
+    _write(tmp_path, "skills/meta/husk/notes.md", "See `skills/meta/husk/scripts/tool.py`.\n")
+    _write(
+        tmp_path,
+        "skills/meta/umbrella/references/use.md",
+        "Run `python3 ~/.claude/skills/umbrella/scripts/tool.py` (moved out of the husk skill).\n",
+    )
+    _write(tmp_path, "scripts/tests/test_tool.py", "PATH = 'skills/meta/husk/scripts/tool.py'\n")
     assert check(tmp_path) == []
 
 

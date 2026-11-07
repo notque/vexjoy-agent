@@ -1,6 +1,6 @@
 ---
 name: roast
-promoted_to: research
+promoted_to: assessment
 description: "Constructive critique via 5 HackerNews personas with claim validation."
 user-invocable: false
 argument-hint: "<target to critique>"
@@ -34,7 +34,7 @@ This skill produces evidence-based constructive critique through 5 specialized H
 
 **Key constraints baked into the workflow:**
 - CLAUDE.md must be read and followed before analysis begins
-- Read-only mode (no Write, Edit, destructive Bash) is mandatory — enforced via `read-only-ops` skill invocation
+- Read-only mode (no Write, Edit, destructive Bash) is mandatory — enforced through the assessment skill's Read-Only Inspection rules
 - Every claim must reference specific file:line locations and be validated against actual evidence before appearing in the final report
 - All 5 personas must complete before validation begins — no partial analysis
 - Final report must include both validated strengths and problems, prioritized by impact
@@ -56,11 +56,7 @@ This skill produces evidence-based constructive critique through 5 specialized H
 
 **Goal**: Establish guardrails before any analysis begins.
 
-Call the Skill tool with `read-only-ops`.
-
-```
-skill: read-only-ops
-```
+Call the Skill tool with `assessment` and apply its Read-Only Inspection rules.
 
 This ensures no modifications can occur during the analysis workflow.
 
@@ -136,13 +132,13 @@ Launch 5 general-purpose agents in parallel via Task tool. Load the full persona
    Focus: Production readiness, operational concerns
 
 **Each agent must:**
-- Call the Skill tool with `read-only-ops`. Do this first to enforce no-modification guardrails.
+- Call the Skill tool with `assessment` and apply its Read-Only Inspection rules. Do this first to enforce no-modification guardrails.
 - Follow their systematic 5-step review process
 - Tag ALL claims as `[CLAIM-N]` with specific `file:line` references
 - Provide concrete evidence for every claim — vague critiques are worthless and must be rejected during validation
 - Search for actual implementation details rather than analyzing verbal descriptions
 
-**Agent prompt template**: Tell each agent its persona name, role, target, and these requirements: (1) call `read-only-ops` first, (2) follow their systematic 5-step review process, (3) tag ALL claims as `[CLAIM-N]` with `file:line` references, (4) provide specific evidence for every claim. Load the appropriate reviewer agent file for each persona's lens.
+**Agent prompt template**: Tell each agent its persona name, role, target, and these requirements: (1) apply the assessment skill's Read-Only Inspection rules first, (2) follow their systematic 5-step review process, (3) tag ALL claims as `[CLAIM-N]` with `file:line` references, (4) provide specific evidence for every claim. Load the appropriate reviewer agent file for each persona's lens.
 
 **CRITICAL**: Wait for all 5 agents to complete before proceeding to Phase 4. Do not begin validation on partial results. Every persona must contribute before synthesis can happen.
 
@@ -268,10 +264,10 @@ Solution:
 3. Never promote ungrounded claims to the validated findings section
 
 ### Error: "Read-Only Mode Not Activated"
-Cause: Phase 1 skipped or `read-only-ops` skill invocation failed
+Cause: Phase 1 skipped or the Read-Only Inspection rules were not applied
 Solution:
 1. Stop all analysis immediately
-2. Call the Skill tool with `read-only-ops`. Do this before proceeding.
+2. Call the Skill tool with `assessment` and apply its Read-Only Inspection rules before proceeding.
 3. If skill unavailable, manually enforce: no Write, Edit, or destructive Bash
 
 ### Error: "Agent Attempts to Fix Issues"
@@ -299,4 +295,4 @@ Solution:
 - `agents/reviewer-domain.md`: Domain reviewer (pragmatic-builder lens)
 
 ### Dependencies
-- **read-only-ops skill**: Enforces no-modification guardrails during analysis
+- **assessment skill (Read-Only Inspection)**: Enforces no-modification guardrails during analysis

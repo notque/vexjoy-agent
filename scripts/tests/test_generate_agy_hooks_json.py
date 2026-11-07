@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -145,3 +147,53 @@ def test_cli_output_creates_and_prunes_backups(tmp_path: Path):
         assert proc.returncode == 0
     backups = list(tmp_path.glob("hooks.bak.*"))
     assert 0 < len(backups) <= 5
+
+
+def _production_unified_gate_on_run_command() -> list[str]:
+    """The generated command for the unified gate on run_command in the shipped config, as argv."""
+    entries = parse_allowlist(ALLOWLIST_PATH.read_text(encoding="utf-8"))
+    group = build_hooks_json(entries, agy_hooks_dir=str(ROOT / "hooks"))["vexjoy-agent"]
+    commands = [
+        handler["command"]
+        for block in group["PreToolUse"]
+        if block["matcher"] == "run_command"
+        for handler in block["hooks"]
+        if "pretool-unified-gate.py" in handler["command"]
+    ]
+    assert len(commands) == 1, commands
+    return shlex.split(commands[0])
+
+
+def test_production_config_runs_the_unified_gate_on_run_command_failing_closed():
+    args = _production_unified_gate_on_run_command()
+    assert args[args.index("--failure-policy") + 1] == "closed"
+
+
+@pytest.mark.parametrize("command", ["rm -rf /", "python3 -m http.server 8080"])
+def test_unified_gate_denies_a_dangerous_run_command_through_the_adapter(command, tmp_path: Path):
+    """The command string is only data in the payload; nothing runs it."""
+    args = _production_unified_gate_on_run_command()
+    args[0] = sys.executable
+    payload = {
+        "hookEventName": "PreToolUse",
+        "conversationId": "agy-unified-gate",
+        "workspacePaths": [str(tmp_path)],
+        "toolCall": {"name": "run_command", "id": "call-1", "args": {"CommandLine": command}},
+    }
+    # A gate bypass left in the caller's shell would let the probe through.
+    env = {k: v for k, v in os.environ.items() if not k.endswith("_BYPASS")}
+    env.update(
+        HOME=str(tmp_path / "home"),
+        CLAUDE_LEARNING_DIR=str(tmp_path / "learning"),
+        CLAUDE_HOOK_ERRORS_PATH=str(tmp_path / "hook-errors.jsonl"),
+    )
+
+    result = subprocess.run(
+        args, input=json.dumps(payload), capture_output=True, text=True, cwd=tmp_path, env=env, timeout=60
+    )
+
+    assert result.returncode == 0, result.stderr
+    out = json.loads(result.stdout)
+    assert out["decision"] == "deny", result.stdout
+    # The gate itself denied: an adapter failure would also deny, under failure=closed.
+    assert "[agy-hook-adapter]" not in out["reason"]

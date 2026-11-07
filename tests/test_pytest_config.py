@@ -56,6 +56,18 @@ def test_ci_full_tier_runs_everything_the_default_filter_drops():
 
 
 def test_default_run_is_parallel_by_file(pytestconfig):
-    """The default run uses xdist with per-file distribution."""
+    """The default run uses four xdist workers with per-file distribution.
+
+    Four, not auto: auto starts one worker per core, which swamps a shared
+    machine. CI passes its own -n, which overrides this default.
+    """
     addopts = pytestconfig.getini("addopts")
-    assert "-n" in addopts and "auto" in addopts and "loadfile" in addopts
+    assert addopts[addopts.index("-n") + 1] == "4"
+    assert addopts[addopts.index("--dist") + 1] == "loadfile"
+
+
+def test_ci_pytest_runs_pass_their_own_worker_count():
+    """The repo default is for local runs; every CI pytest step names its -n."""
+    runs = [line.strip() for line in _workflow().splitlines() if "python -m pytest" in line]
+    assert runs
+    assert all(" -n " in run for run in runs), runs

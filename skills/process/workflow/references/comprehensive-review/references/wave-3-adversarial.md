@@ -19,15 +19,12 @@ Use `model: sonnet` for all Wave 3 agents. The orchestrator runs on Opus; dispat
 
 | # | Agent | Condition | Challenge Focus |
 |---|-------|-----------|----------------|
-| 25 | `reviewer-domain` (sapcc-structural lens) | Repo contains ANY of: `hybris/`, `core-customize/`, `config/localextensions.xml`, or `manifest.json` with `"commerceSuiteVersion"` | SAP Commerce Cloud structural integrity — extension wiring, build manifest, data model impacts |
+| 25 | `reviewer-domain` (sapcc-structural lens) | `go.mod` names a module or dependency under `github.com/sapcc/` or `github.com/sap-cloud-infrastructure/` | SAP Converged Cloud Go structural integrity — type exports, wrappers, Option timing, go-bits usage |
 
 SAPCC detection:
 ```bash
 SAPCC_DETECTED=false
-if [ -d "hybris" ] || [ -d "core-customize" ] || [ -f "config/localextensions.xml" ]; then
-    SAPCC_DETECTED=true
-fi
-if [ -f "manifest.json" ] && grep -q '"commerceSuiteVersion"' manifest.json 2>/dev/null; then
+if [ -f "go.mod" ] && grep -Eq 'github\.com/(sapcc|sap-cloud-infrastructure)/' go.mod 2>/dev/null; then
     SAPCC_DETECTED=true
 fi
 ```
@@ -84,7 +81,7 @@ OUTPUT FORMAT:
 | `reviewer-code` (skeptical-senior) | Apply 10+ years of engineering experience. Which findings are theoretical risks that never manifest in practice? Which are textbook answers that don't apply to this codebase's scale/context? Flag "resume-driven" suggestions (over-engineering, premature optimization). Identify findings where the cure is worse than the disease. |
 | `reviewer-perspectives` (user-advocate) | Focus exclusively on user impact. Does this change break existing users? Are migration paths safe? Are UX tradeoffs justified? Challenge findings that improve code quality at the expense of user experience. Flag findings that ignore backward compatibility. Question whether "fixing" something makes it harder for users. |
 | `reviewer-perspectives` (meta-process) | Step back from individual findings. Is the overall approach correct? Should this PR be split into smaller PRs? Are the right problems being solved? Is the review itself focused on the right things? Flag cases where the review is bikeshedding on style while missing structural issues. Question whether the fix phase will create more churn than the findings are worth. |
-| `reviewer-domain` (sapcc-structural) | **(SAPCC repos only)** Challenge findings through SAP Commerce Cloud structural lens. Do findings account for hybris extension lifecycle? Are suggested fixes compatible with the SAP build system? Do architecture recommendations respect CCv2 manifest constraints? Flag findings that would break extension wiring or data model migrations. |
+| `reviewer-domain` (sapcc-structural) | **(SAPCC repos only)** Challenge findings through the SAP Converged Cloud Go structural lens. Do findings respect sapcc type-export and wrapper conventions? Are suggested fixes compatible with go-bits usage and Option timing? Flag findings that would break the nine structural categories in the reviewer-domain agent's `sapcc-structural.md`. |
 
 ## Wave Agreement Labels
 

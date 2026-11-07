@@ -152,13 +152,13 @@ that require correct error wrapping. Prompts must be realistic and specific.
 **Run A/B eval**:
 ```bash
 # Run enriched skill
-python3 skills/meta/skill-creator/scripts/run_eval.py \
+python3 skills/meta/toolkit/scripts/skill-creator/run_eval.py \
   --skill-path skills/target-skill \
   --prompt "realistic test prompt" \
   --output enrichment-workspace/iteration-1/with-enrichment/eval-1/
 
 # Run baseline (no skill)
-python3 skills/meta/skill-creator/scripts/run_eval.py \
+python3 skills/meta/toolkit/scripts/skill-creator/run_eval.py \
   --prompt "realistic test prompt" \
   --output enrichment-workspace/iteration-1/baseline/eval-1/
 ```

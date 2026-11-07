@@ -79,9 +79,15 @@ class OwnerRule:
         return is_legacy_hook_path(os.path.normpath(tok))
 
 
+# Entry keys that never make two registrations different hooks. A writer that rewrote an account's
+# settings.json without ``description`` made all 74 owned entries read as stale plus missing.
+_COSMETIC_KEYS = frozenset({"description"})
+
+
 def canonical_hash(meta: dict, entry: dict) -> str:
-    """Hash of (group meta, entry) in canonical JSON."""
-    blob = json.dumps({"group": meta, "entry": entry}, sort_keys=True, separators=(",", ":"))
+    """Hash of (group meta, entry) in canonical JSON; cosmetic entry keys are left out."""
+    core = {k: v for k, v in entry.items() if k not in _COSMETIC_KEYS}
+    blob = json.dumps({"group": meta, "entry": core}, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode()).hexdigest()
 
 

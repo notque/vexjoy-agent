@@ -21,10 +21,12 @@
 | Kotlin Android/JVM | `kotlin-general-engineer` | — | — |
 | PHP backend | `php-general-engineer` | — | — |
 | React Native / Expo | `react-native-engineer` | — | typescript-frontend-engineer |
-| Code review | `reviewer-code-playbook` | `reviewer-system-playbook` | — |
-| Security audit | `security` | — | — |
+| Code review | `reviewer-code` | `reviewer-system` | — |
+| Security audit | `reviewer-system` | — | — |
 | Performance | `performance-optimization-engineer` | — | — |
-| Documentation | `technical-documentation-engineer-playbook` | — | — |
+| Documentation | `technical-documentation-engineer` | — | — |
+
+`security` is a skill, not an agent: call it with the Skill tool for a standalone scan of git changes.
 
 Verify agent exists: `ls ~/.claude/agents/ | grep {agent-name}`
 
@@ -36,7 +38,7 @@ Verify agent exists: `ls ~/.claude/agents/ | grep {agent-name}`
 
 **nodejs-api-engineer**: CAN do REST endpoints, middleware, auth, webhooks, DB integration. CANNOT do frontend components, native code, infrastructure.
 
-**database-engineer**: CAN do schema frontend, migrations, indexes, query optimization. CANNOT do application code. **Mandatory sequencing**: database agent ALWAYS before application agents on schema changes.
+**database-engineer**: CAN do schema design, migrations, indexes, query optimization. CANNOT do application code. **Mandatory sequencing**: database agent ALWAYS before application agents on schema changes.
 
 **performance-optimization-engineer**: CAN do Core Web Vitals, bundle analysis, rendering optimization, profiling. CANNOT fix unrelated logic bugs.
 
@@ -49,7 +51,7 @@ Verify agent exists: `ls ~/.claude/agents/ | grep {agent-name}`
 1. database-engineer → schema migration
 2. nodejs-api-engineer → endpoint (parallel with 3 if no shared types)
 3. typescript-frontend-engineer → UI
-4. reviewer-code-playbook → full-stack review
+4. reviewer-code → full-stack review
 ```
 
 ### Go Service Performance
@@ -99,6 +101,6 @@ Database schema? → database-engineer (first, before app agents)
 K8s/containers? → kubernetes-helm-engineer
 VM provisioning? → ansible-automation-engineer
 Performance? → performance-optimization-engineer
-Code review? → reviewer-code-playbook
+Code review? → reviewer-code
 Otherwise? → Check agents/ for domain match → general-purpose as last resort
 ```

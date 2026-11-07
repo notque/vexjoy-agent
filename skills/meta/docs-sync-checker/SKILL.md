@@ -52,7 +52,7 @@ For each tool type, verify:
 Skills (`skills/**/SKILL.md`):
 - File has opening `---` and closing `---` YAML delimiters
 - YAML contains non-empty `name` and `description` fields
-- `name` field matches directory name (e.g., `skills/code-quality/code-linting/` has `name: code-linting`)
+- `name` field matches directory name (e.g., `skills/code-quality/code-quality/` has `name: code-quality`)
 
 Agents (`agents/*.md`):
 - File has valid YAML frontmatter with `name` field

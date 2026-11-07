@@ -187,4 +187,4 @@ Different segments become important at different audience sizes.
 ## See Also
 
 - `channel-evaluation.md` — channel scoring matrices and CAC/LTV models
-- `skills/competitive-intel/references/market-positioning.md` — how to position for specific segments against competitors
+- `skills/business/business-ops/references/market-positioning.md` — how to position for specific segments against competitors

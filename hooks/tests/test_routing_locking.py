@@ -158,7 +158,7 @@ def test_git_hooks_install_before_python_and_apply(tmp_path, python, failure):
 
 
 @needs_bash
-@pytest.mark.parametrize("flag", ["--dry-run", "--configure-only", "--uninstall"])
+@pytest.mark.parametrize("flag", ["--dry-run", "--configure-only"])
 def test_runs_that_do_not_apply_write_no_git_hooks(tmp_path, flag):
     script, hooks, env = _install_world(tmp_path)
     _bash(script, env, flag)
@@ -189,6 +189,155 @@ def test_git_hooks_skipped_with_a_note_when_dot_git_is_a_file(tmp_path):
     r = _bash(script, env)
     assert "Git hooks skipped" in r.stdout, r.stdout + r.stderr
     assert "vexinstall apply failed" in r.stdout, r.stdout + r.stderr
+
+
+# Pass install.sh's version probe and print each engine call: `uninstall` succeeds or fails.
+_UNINSTALL_PYTHON = '#!/bin/sh\n[ "$1" = -c ] && exit 0\necho "engine: $*"\n[ "$3" = uninstall ]\n'
+_FAILING_ENGINE_PYTHON = '#!/bin/sh\n[ "$1" = -c ] && exit 0\necho "engine: $*"\nexit 1\n'
+_ENGINE_UNINSTALL = "engine: -m vexinstall uninstall --target all"
+
+
+def _renamed(hooks: Path) -> list[str]:
+    """Contents of the post-merge hooks that uninstalls renamed, oldest first."""
+    return [p.read_text(encoding="utf-8") for p in sorted(hooks.glob("post-merge.vexjoy-removed.*"))]
+
+
+@needs_bash
+def test_uninstall_renames_our_hook_first_and_keeps_the_leak_gate(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    ours = _extract_post_merge_hook() + "\n"
+    (hooks / "post-merge").write_text(ours, encoding="utf-8", newline="\n")
+    gate = _extract_git_hook("pre-commit") + "\n"
+    (hooks / "pre-commit").write_text(gate, encoding="utf-8", newline="\n")
+    r = _bash(script, env, "--uninstall")
+    out = r.stdout
+    assert r.returncode == 0, out + r.stderr
+    assert not (hooks / "post-merge").exists()
+    assert _renamed(hooks) == [ours]
+    assert (hooks / "pre-commit").read_text(encoding="utf-8") == gate
+    assert "Keeping pre-commit hook (the private-leak gate" in out, out
+    assert "Renamed post-merge hook to" in out and _ENGINE_UNINSTALL in out, out
+    assert out.index("Renamed post-merge hook to") < out.index(_ENGINE_UNINSTALL), out
+
+
+@needs_bash
+@pytest.mark.parametrize(
+    ("python", "failure"),
+    [
+        pytest.param(_FAILING_ENGINE_PYTHON, _ENGINE_UNINSTALL, id="engine-fails"),
+        pytest.param("#!/bin/sh\nexit 1\n", "not a runnable python 3.10+", id="no-python-3.10"),
+    ],
+)
+def test_failed_uninstall_still_renames_our_hook(tmp_path, python, failure):
+    """Neither a missing python nor a failed engine run may leave a hook that re-installs on the next pull."""
+    script, hooks, env = _install_world(tmp_path, python)
+    r = _bash(script, env, "--uninstall")
+    assert r.returncode == 1 and failure in r.stdout, r.stdout + r.stderr
+    assert not (hooks / "post-merge").exists()
+    assert _renamed(hooks) == [_LEGACY_HOOK]
+    assert not (hooks / "pre-commit").exists()
+
+
+@needs_bash
+def test_a_second_uninstall_keeps_the_first_renamed_hook(tmp_path):
+    """Uninstall, ./install.sh, uninstall: lines a user added to the first hook must survive."""
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    edited = _LEGACY_HOOK + "echo my own line\n"
+    for second, body in (("00", edited), ("01", _LEGACY_HOOK)):
+        (hooks / "post-merge").write_text(body, encoding="utf-8", newline="\n")
+        # bash imports BASH_FUNC_<name>%% from the environment: a fixed clock for each run.
+        clock = {"BASH_FUNC_date%%": f"() {{ echo 20261107T1200{second}Z; }}"}
+        r = _bash(script, {**env, **clock}, "--uninstall")
+        assert r.returncode == 0, r.stdout + r.stderr
+    assert _renamed(hooks) == [edited, _LEGACY_HOOK]
+
+
+@needs_bash
+def test_uninstall_keeps_unmarked_hooks(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    mine = "#!/bin/sh\necho my own hook\n"
+    for name in ("post-merge", "pre-commit"):
+        (hooks / name).write_text(mine, encoding="utf-8", newline="\n")
+    r = _bash(script, env, "--uninstall")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert [(hooks / n).read_text(encoding="utf-8") for n in ("post-merge", "pre-commit")] == [mine, mine]
+    for name in ("post-merge", "pre-commit"):
+        assert f"Keeping {name} hook (not written by vexjoy-agent)" in r.stdout, r.stdout
+
+
+@needs_bash
+def test_uninstall_with_a_target_keeps_the_hook(tmp_path):
+    """`sync --target all` re-installs the one target either way, and still syncs the targets left."""
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    r = _bash(script, env, "--uninstall", "--target", "codex")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
+    assert "Keeping post-merge hook (a --target uninstall keeps it" in r.stdout, r.stdout
+    assert "engine: -m vexinstall uninstall --target codex" in r.stdout, r.stdout
+
+
+@needs_bash
+def test_uninstall_dry_run_renames_no_hook(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    r = _bash(script, env, "--uninstall", "--dry-run")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert sorted(p.name for p in hooks.iterdir()) == ["post-merge"]
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
+    assert "Would rename post-merge hook to" in r.stdout, r.stdout
+    engine = [line for line in r.stdout.splitlines() if line.startswith(_ENGINE_UNINSTALL)]
+    assert len(engine) == 1 and " --dry-run" in engine[0], r.stdout
+
+
+@needs_bash
+def test_uninstall_leaves_hooks_alone_with_no_git_hooks_set(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    r = _bash(script, {**env, "VEXJOY_NO_GIT_HOOKS": "1"}, "--uninstall")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert sorted(p.name for p in hooks.iterdir()) == ["post-merge"]
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
+    assert "Git hooks skipped (VEXJOY_NO_GIT_HOOKS=1)" in r.stdout, r.stdout
+
+
+@needs_bash
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+def test_uninstall_from_a_worktree_renames_the_main_checkout_hook(tmp_path):
+    """Git runs the main checkout's hooks for merges in every linked worktree."""
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    git_env = {**os.environ, "HOME": env["HOME"], "GIT_CONFIG_NOSYSTEM": "1"}
+    git = ["git", "-C", str(script.parent), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+    for args in (["init", "-q"], ["commit", "-q", "--allow-empty", "-m", "init"], ["worktree", "add", "-q", "../wt"]):
+        subprocess.run([*git, *args], check=True, env=git_env, capture_output=True)
+    wt_script = tmp_path / "wt" / "install.sh"
+    wt_script.write_text(script.read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
+    # Git for Windows keeps git in /mingw64/bin, not /usr/bin.
+    r = _bash(wt_script, {**env, "PATH": env["PATH"] + ":/mingw64/bin"}, "--uninstall")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not (hooks / "post-merge").exists()
+    assert _renamed(hooks) == [_LEGACY_HOOK]
+
+
+@needs_bash
+def test_uninstall_fails_when_git_cannot_read_dot_git(tmp_path):
+    """The main checkout's hook may still run, so say where to finish, before and after the engine, and exit 1."""
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    shutil.rmtree(hooks.parent)
+    (script.parent / ".git").write_text("gitdir: /elsewhere/.git/worktrees/repo\n", encoding="utf-8")
+    r = _bash(script, env, "--uninstall")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert r.stdout.count("run ./install.sh --uninstall in the main checkout too") == 2, r.stdout
+    assert _ENGINE_UNINSTALL in r.stdout, r.stdout
+
+
+@needs_bash
+def test_hook_that_cannot_be_renamed_fails_the_uninstall(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    # bash imports BASH_FUNC_<name>%% from the environment: here mv fails for the post-merge hook.
+    mv_fails = '() { case "$*" in *post-merge*) return 1 ;; *) command mv "$@" ;; esac; }'
+    r = _bash(script, {**env, "BASH_FUNC_mv%%": mv_fails}, "--uninstall")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "Could not rename post-merge hook" in r.stdout and "is still in place" in r.stdout, r.stdout
+    assert _ENGINE_UNINSTALL in r.stdout, r.stdout
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
 
 
 def _post_merge_world(tmp_path: Path, *, fail: bool = False) -> tuple[Path, Path]:

@@ -7,7 +7,7 @@ Example plans and structure guidelines for common development scenarios.
 Generate a plan skeleton from parameters:
 
 ```bash
-python3 skills/workflow/references/workflow-orchestrator/scripts/assemble-plan.py \
+python3 skills/process/workflow/references/workflow-orchestrator/scripts/assemble-plan.py \
   --category DB --number 001 --description "Add user_preferences table" --tasks 4
 ```
 

@@ -71,6 +71,8 @@ See [preferred-patterns.md](preferred-patterns.md) for full catalog.
 
 ## Blocker Criteria
 
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
 | Situation | Ask This |
 |-----------|----------|
 | Agent fails 3 times | "Change strategy or escalate?" |
@@ -78,7 +80,7 @@ See [preferred-patterns.md](preferred-patterns.md) for full catalog.
 | All agents blocked | "Which dependency first?" |
 | Context approaching 90% | "Compact and continue?" |
 
-### Always Confirm Before Acting On
+### Decide Explicitly Before Acting On
 - Strategy after 3 failed attempts
 - Breaking circular dependencies
 - File modification conflict resolution

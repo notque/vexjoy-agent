@@ -2,7 +2,7 @@
 name: typescript-frontend-engineer
 description: "TypeScript frontend architecture: type-safe components, state management, build optimization."
 color: blue
-memory: project
+memory: user
 routing:
   triggers:
     - typescript
@@ -13,7 +13,7 @@ routing:
     - ".ts"
     - zod
   not_for: "React Native mobile apps (use react-native-engineer); diagnosing race conditions, async bugs, or production runtime exceptions (use typescript-debugging-engineer); e-commerce carts, Stripe, and checkout flows (use nextjs-ecommerce-engineer); portfolio and gallery sites (use react-portfolio-engineer). This agent builds TypeScript frontend architecture: type-safe components, state, and build configuration."
-  process-topics:
+  retro-topics:
     - typescript-patterns
     - debugging
   pairs_with:
@@ -103,7 +103,7 @@ This agent operates as an operator for TypeScript frontend development, configur
 - **Backend API Implementation**: Use `nodejs-api-engineer` or `golang-general-engineer` for server-side TypeScript/API development
 - **Database Schema Design**: Use `database-engineer` for database modeling and query optimization
 - **Mobile Native Code**: For native iOS/Android features beyond web views, use platform-specific tools (Swift, Kotlin)
-- **Complex Styling Systems**: For frontend system architecture, use `ui-design-engineer` for comprehensive frontend token systems
+- **Complex Styling Systems**: For design system architecture, use `ui-design-engineer` for comprehensive design token systems
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent or approach.
 

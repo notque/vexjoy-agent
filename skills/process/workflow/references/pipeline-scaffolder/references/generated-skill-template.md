@@ -8,7 +8,7 @@ subdomain from a Pipeline Spec JSON.
 Run the assembler script to generate a skill scaffold:
 
 ```bash
-python3 skills/workflow/references/pipeline-scaffolder/scripts/assemble-skill.py \
+python3 skills/process/workflow/references/pipeline-scaffolder/scripts/assemble-skill.py \
   --name <skill-name> --domain <domain> --subdomain <subdomain> \
   --task-type generation --agent <agent-name> --profile personal
 ```

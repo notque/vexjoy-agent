@@ -136,10 +136,10 @@ using `--train-split` and seed `42`.
 Short default run:
 
 ```bash
-python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
-  --target skills/engineering/go-patterns/SKILL.md \
+python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
+  --target skills/programming/programming/SKILL.md \
   --goal "improve routing precision without losing recall" \
-  --benchmark-tasks skills/meta/agent-comparison/references/optimization-tasks.example.json \
+  --benchmark-tasks skills/meta/toolkit/references/agent-comparison/optimization-tasks.example.json \
   --report optimization-report.html \
   --output-dir /tmp/optimize-run/iterations \
   --verbose
@@ -148,10 +148,10 @@ python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
 Longer search:
 
 ```bash
-python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
-  --target skills/engineering/go-patterns/SKILL.md \
+python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
+  --target skills/programming/programming/SKILL.md \
   --goal "improve routing precision without losing recall" \
-  --benchmark-tasks skills/meta/agent-comparison/references/optimization-tasks.example.json \
+  --benchmark-tasks skills/meta/toolkit/references/agent-comparison/optimization-tasks.example.json \
   --train-split 0.6 \
   --max-iterations 20 \
   --min-gain 0.02 \
@@ -321,19 +321,19 @@ So the current tooling is operational for real registered skills and determinist
 Routing optimization on a real registered skill:
 
 ```bash
-python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
+python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
   --target skills/process/read-only-ops/SKILL.md \
   --goal "Improve read-only routing precision for realistic user prompts." \
-  --benchmark-tasks skills/meta/agent-comparison/references/read-only-ops-short-tasks.json
+  --benchmark-tasks skills/meta/toolkit/references/agent-comparison/read-only-ops-short-tasks.json
 ```
 
 Body optimization on a real registered skill:
 
 ```bash
-python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
+python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
   --target skills/process/socratic-debugging/SKILL.md \
   --goal "Improve the first response so it asks exactly one question, avoids direct diagnosis, avoids code examples, and does not add tool-permission preamble." \
-  --benchmark-tasks skills/meta/agent-comparison/references/socratic-debugging-body-short-tasks.json \
+  --benchmark-tasks skills/meta/toolkit/references/agent-comparison/socratic-debugging-body-short-tasks.json \
   --optimization-scope body-only
 ```
 

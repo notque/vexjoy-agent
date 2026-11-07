@@ -339,7 +339,7 @@ The gap is NOT in accuracy or structure (both tied within 0.10). It's entirely i
 | File | Why |
 |------|-----|
 | The pipeline ADR | Context and decisions |
-| `skills/meta/skill-creator/references/agent-template.md` | Required structure |
+| `skills/meta/toolkit/references/skill-creator/agent-template.md` | Required structure |
 | `architecture-rules.md` | Constraints |
 | Every skill it pairs with | Verify skill references are accurate |
 
@@ -371,8 +371,8 @@ If exit 1 (hash mismatch): STOP. The ADR changed after composition. Re-run `chai
 **Compliance check**: After creating any component, verify against authoritative sources:
 ```bash
 python3 ~/.claude/scripts/adr-compliance.py check --file {file} \
-  --step-menu skills/workflow/references/pipeline-scaffolder/references/step-menu.md \
-  --spec-format skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md
+  --step-menu skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md \
+  --spec-format skills/process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md
 ```
 
 BANNED: Pipeline Specs without `adr_path` and `adr_hash` fields when generated via the self-improving pipeline generator.
