@@ -10,12 +10,14 @@ hooks:
         import sys, json, subprocess, os
         try:
             data = json.loads(sys.stdin.read())
-            tool = data.get('tool', '')
+            tool = data.get('tool_name', '')
+            inp = data.get('tool_input') or {}
+            notes = []
 
-            if tool == 'Edit' or tool == 'Write':
-                filepath = data.get('input', {}).get('file_path', '')
+            if tool in ('Edit', 'Write', 'MultiEdit'):
+                filepath = str(inp.get('file_path', ''))
                 if filepath and (filepath.endswith('.kt') or filepath.endswith('.kts')):
-                    print('[kotlin-agent] Format: run ktfmt or ktlint --format on ' + os.path.basename(filepath))
+                    notes.append('[kotlin-agent] Format: run ktfmt or ktlint --format on ' + os.path.basename(filepath))
                 if filepath and filepath.endswith('.kt'):
                     try:
                         result = subprocess.run(
@@ -24,24 +26,27 @@ hooks:
                         )
                         if result.stdout.strip():
                             lines = result.stdout.strip().splitlines()
-                            print('[kotlin-agent] WARNING: !! operator detected (' + str(len(lines)) + ' occurrence(s)) -- use ?., ?:, require(), or checkNotNull() instead:')
+                            notes.append('[kotlin-agent] WARNING: !! operator detected (' + str(len(lines)) + ' occurrence(s)) -- use ?., ?:, require(), or checkNotNull() instead:')
                             for line in lines[:5]:
-                                print('  ' + line)
+                                notes.append('  ' + line)
                     except Exception:
                         pass
-                    print('[kotlin-agent] Static analysis: run ./gradlew detekt to catch style violations')
-                    print('[kotlin-agent] Type-check: run ./gradlew compileKotlin to verify compilation (faster than full build)')
+                    notes.append('[kotlin-agent] Static analysis: run ./gradlew detekt to catch style violations')
+                    notes.append('[kotlin-agent] Type-check: run ./gradlew compileKotlin to verify compilation (faster than full build)')
 
             if tool == 'Bash':
-                cmd = data.get('input', {}).get('command', '')
+                cmd = str(inp.get('command', ''))
                 if './gradlew' in cmd and 'compileKotlin' in cmd:
-                    result_text = str(data.get('result', ''))
+                    result_text = str(data.get('tool_response', ''))
                     if 'error:' in result_text.lower():
-                        print('[kotlin-agent] Compilation errors detected -- review above output before proceeding')
+                        notes.append('[kotlin-agent] Compilation errors detected -- review above output before proceeding')
+
+            if notes:
+                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
         except Exception:
             pass
         "
-      timeout: 5000
+      timeout: 10
 memory: project
 routing:
   triggers:

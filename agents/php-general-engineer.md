@@ -10,29 +10,30 @@ hooks:
         import sys, json, subprocess, os
         try:
             data = json.loads(sys.stdin.read())
-            tool = data.get('tool', '')
-            inp = data.get('input', {})
+            tool = data.get('tool_name', '')
+            inp = data.get('tool_input') or {}
+            notes = []
 
-            if tool in ('Edit', 'Write'):
-                filepath = inp.get('file_path', '')
+            if tool in ('Edit', 'Write', 'MultiEdit'):
+                filepath = str(inp.get('file_path', ''))
                 if not filepath.endswith('.php'):
                     sys.exit(0)
 
                 # Format reminder
-                print('[php-agent] Format: ./vendor/bin/pint ' + filepath + '  OR  php-cs-fixer fix ' + filepath)
+                notes.append('[php-agent] Format: ./vendor/bin/pint ' + filepath + '  OR  php-cs-fixer fix ' + filepath)
 
                 # Static analysis reminder
-                print('[php-agent] Analyse: ./vendor/bin/phpstan analyse ' + filepath + '  OR  ./vendor/bin/psalm --show-info=true')
+                notes.append('[php-agent] Analyse: ./vendor/bin/phpstan analyse ' + filepath + '  OR  ./vendor/bin/psalm --show-info=true')
 
                 # Debug output detection
                 try:
                     result = subprocess.run(['grep', '-nE', r'var_dump\s*\(|dd\s*\(|dump\s*\(|die\s*\(', filepath],
                                             capture_output=True, text=True, timeout=5)
                     if result.stdout.strip():
-                        print('[php-agent] WARNING: debug output found in ' + filepath + ':')
+                        notes.append('[php-agent] WARNING: debug output found in ' + filepath + ':')
                         for line in result.stdout.strip().splitlines():
-                            print('  ' + line)
-                        print('[php-agent] Remove var_dump/dd/dump/die() before committing.')
+                            notes.append('  ' + line)
+                        notes.append('[php-agent] Remove var_dump/dd/dump/die() before committing.')
                 except Exception:
                     pass
 
@@ -42,8 +43,8 @@ hooks:
                         ['grep', '-nE', r'(query|exec|prepare)\s*\(\s*[\"' + \"'\" + r']\s*(SELECT|INSERT|UPDATE|DELETE).*\$', filepath],
                         capture_output=True, text=True, timeout=5)
                     if result.stdout.strip():
-                        print('[php-agent] SECURITY WARNING: possible raw SQL interpolation in ' + filepath)
-                        print('[php-agent] Use prepared statements (PDO), Doctrine QueryBuilder, or Eloquent query builder instead.')
+                        notes.append('[php-agent] SECURITY WARNING: possible raw SQL interpolation in ' + filepath)
+                        notes.append('[php-agent] Use prepared statements (PDO), Doctrine QueryBuilder, or Eloquent query builder instead.')
                 except Exception:
                     pass
 
@@ -53,15 +54,17 @@ hooks:
                         ['grep', '-nE', r'VerifyCsrfToken|withoutMiddleware.*csrf|csrf.*except|session_regenerate_id.*false', filepath],
                         capture_output=True, text=True, timeout=5)
                     if result.stdout.strip():
-                        print('[php-agent] SECURITY WARNING: possible CSRF/session protection bypass in ' + filepath)
-                        print('[php-agent] Ensure CSRF exclusions and session_regenerate_id(true) are intentional and documented.')
+                        notes.append('[php-agent] SECURITY WARNING: possible CSRF/session protection bypass in ' + filepath)
+                        notes.append('[php-agent] Ensure CSRF exclusions and session_regenerate_id(true) are intentional and documented.')
                 except Exception:
                     pass
 
+            if notes:
+                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
         except Exception:
             pass
         "
-      timeout: 5000
+      timeout: 10
 memory: project
 routing:
   triggers:

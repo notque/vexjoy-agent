@@ -18,7 +18,7 @@ hooks:
             note = '[py-agent] Python file changed: run ruff check --fix, ruff format, mypy --strict, and pytest before handoff (python-modern-code.md section 14).'
             print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': note}}))
         "
-      timeout: 3000
+      timeout: 5
 memory: project
 routing:
   triggers:

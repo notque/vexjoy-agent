@@ -7,27 +7,32 @@ hooks:
     - type: command
       command: |
         python3 -c "
-        import sys, json, os
+        import sys, json
         try:
             data = json.loads(sys.stdin.read())
-            tool = data.get('tool', '')
-            result = data.get('result', '')
+            tool = data.get('tool_name', '')
+            inp = data.get('tool_input') or {}
+            result = str(data.get('tool_response', ''))
+            notes = []
 
             # After successful go build, suggest go vet
             if tool == 'Bash':
-                cmd = data.get('input', {}).get('command', '')
+                cmd = str(inp.get('command', ''))
                 if 'go build' in cmd and 'error' not in result.lower():
-                    print('[go-agent] Consider running go vet to catch subtle issues')
+                    notes.append('[go-agent] Consider running go vet to catch subtle issues')
 
             # After editing .go files, remind about gofmt
-            if tool == 'Edit':
-                filepath = data.get('input', {}).get('file_path', '')
+            if tool in ('Edit', 'Write', 'MultiEdit'):
+                filepath = str(inp.get('file_path', ''))
                 if filepath.endswith('.go'):
-                    print('[go-agent] Remember: gofmt -w to format edited Go files')
-        except:
+                    notes.append('[go-agent] Remember: gofmt -w to format edited Go files')
+
+            if notes:
+                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': ' '.join(notes)}}))
+        except Exception:
             pass
         "
-      timeout: 3000
+      timeout: 5
 memory: project
 routing:
   triggers:
