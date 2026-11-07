@@ -6,7 +6,6 @@ routing:
   triggers:
     - testing
     - E2E
-    - playwright
     - vitest
     - test automation
     - visual regression
@@ -15,7 +14,6 @@ routing:
     - testing
     - debugging
   pairs_with:
-    - testing
     - testing
   complexity: Medium-Complex
   category: testing
@@ -67,7 +65,6 @@ Replace vague quality targets with measurable ones. These are non-negotiable:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `testing` | Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing. | Call the Skill tool with `testing`. |
 | `testing` | Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.

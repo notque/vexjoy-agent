@@ -26,9 +26,9 @@ routing:
     - anti-over-engineering
     - go-bits usage
     # pragmatic builder
-    - builder
-    - production
-    - ops
+    - pragmatic builder
+    - production gaps
+    - operational readiness
     - operational
   not_for: "naming, dead code, test coverage, and convention review (use reviewer-code); security, concurrency, error handling, observability, and API contracts (use reviewer-system); newcomer, contrarian, pedant, or user-advocate framings (use reviewer-perspectives); full-repo SAP Converged Cloud (sapcc) compliance audit (use domain skill); running a consultation to decide a new architecture decision (use assessment skill). This agent reviews business logic, ADR conformance, and SAP CC structural correctness against domain requirements."
   pairs_with:

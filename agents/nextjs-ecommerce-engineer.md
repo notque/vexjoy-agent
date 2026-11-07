@@ -1,6 +1,6 @@
 ---
 name: nextjs-ecommerce-engineer
-description: "Use this agent when building a NextJS e-commerce site: shopping cart, Stripe payments, product catalogs, order management, and checkout flows"
+description: "NextJS e-commerce: shopping cart, Stripe payments, product catalogs, order management, checkout flows"
 color: green
 routing:
   triggers:

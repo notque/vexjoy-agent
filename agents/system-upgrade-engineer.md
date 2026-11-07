@@ -18,9 +18,7 @@ routing:
   not_for: "editing one skill, routing entry, or ADR (use toolkit-governance-engineer); regenerating routing INDEX files (use toolkit skill); writing a new Python hook implementation (use hook-development-engineer); explaining which agent or workflow to run (use workflow-help skill). This agent adapts agents, skills, and hooks across the fleet when Claude Code ships a release."
   pairs_with:
     - toolkit
-    - toolkit
     - assessment
-    - toolkit
     - pr-workflow
   complexity: Complex
   category: meta
@@ -80,9 +78,7 @@ This agent operates as an orchestrator for top-down system upgrades.
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 | `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 | `pr-workflow` | Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining. | Call the Skill tool with `pr-workflow`. |
 
 **Rule**: Use the exact action in each applicable row.

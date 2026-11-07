@@ -12,11 +12,6 @@ routing:
     - skill compliance
     - hook standardization
     - cross-component consistency
-    - create skill
-    - new skill
-    - scaffold skill
-    - build a skill
-    - create a skill
   not_for: "authoring one new skill end-to-end (use toolkit skill); mechanically regenerating routing INDEX files (use the toolkit skill); adapting the fleet to a new Claude Code release (use system-upgrade-engineer); writing a Python hook implementation (use hook-development-engineer); scaffolding a new multi-component pipeline (use pipeline-orchestrator-engineer). This agent governs fleet-wide policy, routing consistency, and ADR conformance, not single-skill scaffolding or index sync."
   pairs_with:
     - assessment

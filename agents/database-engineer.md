@@ -75,7 +75,7 @@ This agent operates as an operator for database engineering, configuring Claude'
 
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
-| `nodejs-api-engineer` | Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, f... | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `nodejs-api-engineer` | NodeJS backend APIs: REST endpoints, authentication, file uploads, webhooks, middleware, database integration | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `sqlite-peewee-engineer` | SQLite with Peewee ORM: model definition, query optimization, migrations, transactions | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `data-engineer` | Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing | Return this handoff to the coordinator for Agent-tool dispatch. |
 

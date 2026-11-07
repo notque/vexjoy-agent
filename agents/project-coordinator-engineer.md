@@ -7,7 +7,6 @@ routing:
     - coordinate
     - multi-agent
     - orchestrate
-    - project
     - task management
     - agent coordination
   not_for: "personal productivity and task-list tools (use business-ops skill, PRODUCTIVITY mode); scaffolding the structure of a new multi-component pipeline (use pipeline-orchestrator-engineer) — this agent coordinates multi-agent project execution and dependency tracking"

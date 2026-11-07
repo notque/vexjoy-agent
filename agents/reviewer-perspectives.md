@@ -20,8 +20,8 @@ routing:
     - contrarian
     - alternatives
     - assumptions
-    - challenge
-    - assessment
+    - challenge the premise
+    - multi-persona critique
     # user advocate
     - user impact
     - user advocate

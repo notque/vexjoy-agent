@@ -10,8 +10,6 @@ routing:
     - investigate question
     - synthesize sources
     - comprehensive analysis
-    - study
-    - examine
   not_for: "reading/exploring local code (use assessment skill); a single delegated research subtask (use research-subagent-executor); running the formal multi-phase research pipeline (use research skill)"
   pairs_with:
     - workflow
