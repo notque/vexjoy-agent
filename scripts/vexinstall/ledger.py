@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from .common import SCHEMA_VERSION, utc_iso, utc_ts
-from .fsops import Guard, atomic_write_json
+from .fsops import Guard, atomic_write_json, retry_rename
 
 STATUS_OK = "ok"
 STATUS_STALE = "stale-source"
@@ -117,5 +117,5 @@ def quarantine(path: Path, guard: Guard) -> Path | None:
         return None
     dest = path.with_name(f"ledger.corrupt.{utc_ts()}")
     guard.check(dest)
-    os.rename(path, dest)
+    retry_rename(path, dest)
     return dest
