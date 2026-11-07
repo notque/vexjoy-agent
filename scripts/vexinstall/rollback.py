@@ -17,7 +17,7 @@ from pathlib import Path
 from .common import parse_ts
 from .fsops import Guard, atomic_write_json
 
-RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")  # \Z: "$" would let a trailing newline in
 _COMMANDS = ("apply", "uninstall", "prune")
 
 

@@ -272,7 +272,7 @@ def test_damaged_point_never_names_a_path_outside_the_state_dir(world: Env) -> N
     assert "unreadable" in res.out[0], res.out
 
 
-@pytest.mark.parametrize("bad", ["", "-x", "a b", "x" * 65, "../up"])
+@pytest.mark.parametrize("bad", ["", "-x", "a b", "x" * 65, "../up", "run-1\n"])
 def test_run_id_is_checked(world: Env, bad: str) -> None:
     with pytest.raises(SystemExit):
         world.run("apply", "--target", "claude", "--run-id", bad)
