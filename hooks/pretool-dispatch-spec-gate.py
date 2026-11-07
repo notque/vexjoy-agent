@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.1
 """PreToolUse:Agent gate — warn when a medium/complex dispatch drops a handoff block.
 
 Fires on every Agent dispatch. When ``tool_input.prompt`` opens with a
@@ -21,7 +22,8 @@ Modes (env):
 - ``DISPATCH_SPEC_GATE_BYPASS=1`` — disables the gate.
 
 Budget: string checks only, no I/O, exit 0 on every path, under 50 ms on the
-silent path. ``hook_utils`` imports lazily on the emit path only; its
+silent path. stdin is read through ``lib/stdin_timeout`` (2 s bound, about
+1 ms to import). ``hook_utils`` imports lazily on the emit path only; its
 module-level imports cost about 50 ms.
 
 Defect this guards (scripts/routing-ab-results/handoff-context-v2/VERDICT.md):
@@ -108,7 +110,12 @@ def main() -> None:
     if os.environ.get("DISPATCH_SPEC_GATE_BYPASS") == "1":
         return
     try:
-        event = json.load(sys.stdin)
+        # Bounded read (about 1 ms to import): a pipe that never closes must not
+        # hang the dispatch. A missing lib or a timeout stays silent, like bad JSON.
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+        from stdin_timeout import read_stdin
+
+        event = json.loads(read_stdin(timeout=2))
     except Exception:
         return
     if not isinstance(event, dict) or event.get("tool_name") != "Agent":

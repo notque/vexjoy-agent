@@ -65,6 +65,29 @@ def test_check_passes_fresh_and_fails_edited(tmp_path: Path) -> None:
     assert "stale" in result.stderr
 
 
+def test_check_fails_when_the_catalog_misses_a_skill(tmp_path: Path) -> None:
+    """--check exits 1 when docs/skills.md lacks a routed skill (a SKILL.md added without regenerating).
+
+    The CLI call stays in the test body so validate-negative-controls.py sees this
+    hard gate's negative control.
+    """
+    doc = tmp_path / "skills.md"
+    assert _run("--doc-path", str(doc)).returncode == 0
+    lines = doc.read_text(encoding="utf-8").splitlines(keepends=True)
+    row = next(i for i, line in enumerate(lines) if line.startswith("| `"))
+    doc.write_text("".join(lines[:row] + lines[row + 1 :]), encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--check", "--doc-path", str(doc)],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "docs/skills.md is stale" in result.stderr
+
+
 def test_user_invocable_marker() -> None:
     """User-invocable skills get a /name marker; others do not."""
     text = gsd.generate_doc(

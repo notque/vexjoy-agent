@@ -2738,3 +2738,25 @@ class TestEvidenceRouteDecisionRecording:
         # block the learnings row)
         routing_rows = _query_routing(db_env)
         assert any(r["key"] == "python-general-engineer:testing" for r in routing_rows)
+
+
+def test_recorder_fails_soft_when_scripts_lib_is_missing(tmp_path):
+    """An install with hooks but no scripts/ must not crash the hook on every Agent dispatch.
+
+    route_types lives in scripts/lib. The CI hook-health job used to deploy hooks/
+    alone, and the recorder then exited 1 at import. It records the ImportError
+    through hook_error and exits 0 instead.
+    """
+    hooks = tmp_path / "home" / ".claude" / "hooks"
+    shutil.copytree(LIB_DIR, hooks / "lib", ignore=shutil.ignore_patterns("__pycache__", "tests"))
+    shutil.copy2(A_PATH, hooks / A_PATH.name)
+    errors = Path(os.environ["CLAUDE_HOOK_ERRORS_PATH"])  # isolated per test by conftest
+
+    result = _run_hook(hooks / A_PATH.name, _agent_event(skill="programming"))
+
+    assert result.returncode == 0, result.stderr
+    assert "Traceback" not in result.stderr
+    entries = [json.loads(line) for line in errors.read_text(encoding="utf-8").splitlines()]
+    assert [e["hook"] for e in entries] == ["routing-decision-recorder"]
+    assert entries[0]["type"] in {"ImportError", "ModuleNotFoundError"}
+    assert "route_types" in entries[0]["msg"]

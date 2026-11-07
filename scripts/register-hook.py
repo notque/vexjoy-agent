@@ -12,7 +12,7 @@ Usage:
         --file hooks/pretool-synthesis-gate.py \
         --event PreToolUse \
         --description "Consultation synthesis gate" \
-        --timeout 3000
+        --timeout 10
 
     # Unregister a hook (removes from settings.json first, then optionally deletes file)
     python3 scripts/register-hook.py remove \
@@ -22,13 +22,19 @@ Usage:
     # List all registered hooks
     python3 scripts/register-hook.py list
 
-    # Validate all registered hooks have backing files
+    # Validate all registered hooks have backing files and timeouts in seconds
     python3 scripts/register-hook.py validate
+
+Timeouts are seconds, as Claude Code reads them. A timed-out gate fails open, so
+the default is 10 s for PreToolUse, PermissionRequest and UserPromptSubmit hooks
+and 5 s for the rest. A timeout over 600 s, or one that is not a positive number,
+is rejected (a millisecond value such as 3000 would hold a session for 50 minutes);
+one over 120 s gets a warning.
 
 Exit codes:
     0 - Success
-    1 - Error (file not found, invalid JSON, etc.)
-    2 - Validation failure (registered hook has no backing file)
+    1 - Error (file not found, invalid JSON, rejected timeout, etc.)
+    2 - Validation failure (registered hook has no backing file, or a rejected timeout)
 """
 
 from __future__ import annotations
@@ -45,6 +51,37 @@ from vexinstall.interp import hook_command as launcher_command
 
 SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 HOOKS_DIR = Path.home() / ".claude" / "hooks"
+
+# Hook timeouts, in seconds (the unit Claude Code reads).
+GATE_EVENTS = frozenset({"PreToolUse", "PermissionRequest", "UserPromptSubmit"})
+GATE_TIMEOUT_S = 10
+DEFAULT_TIMEOUT_S = 5
+MAX_TIMEOUT_S = 600
+WARN_TIMEOUT_S = 120
+
+
+def default_timeout(event: str) -> int:
+    """Default timeout for a new hook on *event*: gates fail open on timeout, so they get more."""
+    return GATE_TIMEOUT_S if event in GATE_EVENTS else DEFAULT_TIMEOUT_S
+
+
+def timeout_problem(value: object) -> tuple[str, str] | None:
+    """("FAIL" or "WARN", reason) for a timeout that is not sane in seconds; None when it is."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        return "FAIL", f"timeout {value!r} is not a positive number of seconds"
+    if value > MAX_TIMEOUT_S:
+        return "FAIL", (
+            f"timeout {value:g} is over {MAX_TIMEOUT_S} s; Claude Code reads seconds, "
+            f"so a millisecond value lets a hung hook hold the session"
+        )
+    if value > WARN_TIMEOUT_S:
+        return "WARN", f"timeout {value:g} s is over {WARN_TIMEOUT_S} s; a hung hook holds the session that long"
+    return None
+
+
+def _hook_label(cmd: str) -> str:
+    """The hook's filename as written in its command (the whole command when it has no path)."""
+    return cmd.split("/")[-1].rstrip('"') if "/" in cmd else cmd
 
 
 def load_settings() -> dict:
@@ -96,6 +133,13 @@ def cmd_add(args: argparse.Namespace) -> None:
         print("ERROR: hook lacks the python version guard: " + "; ".join(problems), file=sys.stderr)
         print(f"Fix: python3 scripts/hook-pyguard.py --apply --file {source}", file=sys.stderr)
         sys.exit(1)
+    timeout = args.timeout if args.timeout is not None else default_timeout(args.event)
+    problem = timeout_problem(timeout)
+    if problem and problem[0] == "FAIL":
+        print(f"ERROR: {problem[1]}", file=sys.stderr)
+        sys.exit(1)
+    if problem:
+        print(f"WARNING: {problem[1]}", file=sys.stderr)
 
     target = HOOKS_DIR / source.name
     hook_command = launcher_command(source.name)
@@ -135,7 +179,7 @@ def cmd_add(args: argparse.Namespace) -> None:
         "type": "command",
         "command": hook_command,
         "description": args.description,
-        "timeout": args.timeout,
+        "timeout": timeout,
     }
 
     # Insert after first hook (unified gate stays first)
@@ -183,18 +227,17 @@ def cmd_list(args: argparse.Namespace) -> None:
                 cmd = h.get("command", "")
                 desc = h.get("description", "")
                 timeout = h.get("timeout", "?")
-                # Extract filename from command
-                name = cmd.split("/")[-1].rstrip('"') if "/" in cmd else cmd
-                print(f"  {name:45s} timeout={timeout}ms")
+                print(f"  {_hook_label(cmd):45s} timeout={timeout}s")
                 if desc:
                     print(f"    {desc}")
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
-    """Validate all registered hooks have backing files.
+    """Validate all registered hooks have backing files and timeouts in seconds.
 
     Emits one [PASS]/[FAIL] line per hook so CI and cron wrappers can
-    detect problems by grepping for '[FAIL]'.
+    detect problems by grepping for '[FAIL]'. A timeout over WARN_TIMEOUT_S
+    adds a [WARN] line and does not fail.
     """
     settings = load_settings()
     hooks = settings.get("hooks", {})
@@ -206,6 +249,12 @@ def cmd_validate(args: argparse.Namespace) -> None:
         for group in groups:
             for h in group.get("hooks", []):
                 cmd = h.get("command", "")
+                problem = timeout_problem(h["timeout"]) if "timeout" in h else None
+                timeout_failed = problem is not None and problem[0] == "FAIL"
+                if problem:
+                    print(f"[{problem[0]}] {event}/{_hook_label(cmd)}: {problem[1]}")
+                if timeout_failed:
+                    issues.append((event, _hook_label(cmd), "TIMEOUT"))
                 if "$HOME/.claude/hooks/" not in cmd:
                     # Flag hooks using relative paths — they break in non-toolkit repos
                     if "python3 hooks/" in cmd or 'python3 "hooks/' in cmd:
@@ -219,16 +268,21 @@ def cmd_validate(args: argparse.Namespace) -> None:
                 if not target.exists():
                     issues.append((event, name, "FILE MISSING"))
                     print(f"[FAIL] {event}/{name}: file does not exist at {target}")
-                else:
+                elif not timeout_failed:
                     print(f"[PASS] {event}/{name}")
 
-    if issues:
-        print(f"\n{len(issues)} hook(s) registered without backing files!", file=sys.stderr)
+    missing = [i for i in issues if i[2] != "TIMEOUT"]
+    bad_timeouts = [i for i in issues if i[2] == "TIMEOUT"]
+    if missing:
+        print(f"\n{len(missing)} hook(s) registered without backing files!", file=sys.stderr)
         print("This WILL deadlock Claude Code (Python exit 2 = BLOCK).", file=sys.stderr)
         print("Fix: create the missing files or unregister the hooks.", file=sys.stderr)
+    if bad_timeouts:
+        print(f"\n{len(bad_timeouts)} hook(s) with a rejected timeout.", file=sys.stderr)
+        print(f"Fix: give each a positive timeout in seconds, at most {MAX_TIMEOUT_S}.", file=sys.stderr)
+    if issues:
         sys.exit(2)
-    else:
-        print("\nAll registered hooks have backing files.")
+    print("\nAll registered hooks have backing files and timeouts in seconds.")
 
 
 def main() -> None:
@@ -243,7 +297,15 @@ def main() -> None:
     p_add.add_argument("--file", required=True, help="Path to hook .py file in repo")
     p_add.add_argument("--event", required=True, help="Hook event type (PreToolUse, PostToolUse, etc.)")
     p_add.add_argument("--description", required=True, help="Hook description for settings.json")
-    p_add.add_argument("--timeout", type=int, default=3000, help="Timeout in ms (default: 3000)")
+    p_add.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help=(
+            f"Timeout in seconds (default: {GATE_TIMEOUT_S} for PreToolUse, PermissionRequest and "
+            f"UserPromptSubmit, {DEFAULT_TIMEOUT_S} otherwise; at most {MAX_TIMEOUT_S})"
+        ),
+    )
 
     # remove
     p_rm = sub.add_parser("remove", help="Unregister (and optionally delete) a hook")
@@ -255,7 +317,7 @@ def main() -> None:
     sub.add_parser("list", help="List all registered hooks")
 
     # validate
-    sub.add_parser("validate", help="Validate all hooks have backing files")
+    sub.add_parser("validate", help="Validate all hooks have backing files and timeouts in seconds")
 
     args = parser.parse_args()
     {"add": cmd_add, "remove": cmd_remove, "list": cmd_list, "validate": cmd_validate}[args.command](args)
