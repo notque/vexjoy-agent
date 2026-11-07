@@ -20,7 +20,7 @@ These tests exercise that contract:
 
 Run with pytest:
 
-    pytest skills/game/game-sprite-pipeline/scripts/test_slicer_strict_pitch_default.py -v
+    pytest skills/game/game-dev/scripts/test_slicer_strict_pitch_default.py -v
 """
 
 from __future__ import annotations

@@ -46,7 +46,7 @@ Same shape; agents add `complexity` (e.g., `Medium`, `Complex`, `Medium-Complex`
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "routing-table-updater": {
-      "file": "skills/meta/routing-table-updater/SKILL.md",
+      "file": "skills/meta/toolkit/references/routing-table-updater.md",
       "description": "Maintain /do routing tables when skills or agents change.",
       "triggers": ["update routing tables", "routing drift"],
       "category": "meta-tooling",

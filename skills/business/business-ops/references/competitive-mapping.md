@@ -213,4 +213,4 @@ curl -s "https://hn.algolia.com/api/v1/search?query={competitor}&tags=story&hits
 ## See Also
 
 - `market-positioning.md` — positioning map templates, differentiation scoring, win/loss analysis
-- `skills/strategic-decision/references/strategic-frameworks.md` — Porter's Five Forces for market structure
+- `skills/business/business-ops/references/strategic-frameworks.md` — Porter's Five Forces for market structure

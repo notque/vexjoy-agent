@@ -449,7 +449,7 @@ The skill uses only these local paths:
 - `clipdrop.co` API
 - Any cloud service that takes an image URL and returns a no-bg image
 
-The grep gate (`grep -rE 'remove\.bg|REMOVEBG|clipdrop' skills/game/game-sprite-pipeline/`) must return no matches.
+The grep gate (`grep -rE 'remove\.bg|REMOVEBG|clipdrop' skills/game/game-dev/scripts/`) must return no matches.
 
 ## Acknowledgement
 

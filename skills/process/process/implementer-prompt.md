@@ -127,7 +127,7 @@ Follow the template instructions above. Report the implementation, checks, self-
 
 ## Executor-Ready Plans
 
-When the plan follows `skills/process/planning/references/executor-ready-plan-template.md`, append this block to the dispatch prompt (fill `{PLAN_BASE_SHA}` from the plan's Metadata — this is the plan-creation SHA, not `{BASE_SHA}` above):
+When the plan follows `skills/process/workflow/references/pl-executor-ready-plan-template.md`, append this block to the dispatch prompt (fill `{PLAN_BASE_SHA}` from the plan's Metadata — this is the plan-creation SHA, not `{BASE_SHA}` above):
 
 ```
 ## Executor Contract (executor-ready plan)

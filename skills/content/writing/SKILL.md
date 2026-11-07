@@ -91,7 +91,7 @@ Set `VOICE_WRITER_ACTIVE=1` before dispatching any phase agent.
 
 5. **HOOK-GATE**: Check opening for at least one concrete number, specific date, or unexpected detail. Score 1-10. If < 8, pull the most surprising finding from the body into the opening. Max 3 attempts. Output: `.voice-phase/05-hook-score.json`.
 
-6. **VALIDATE**: Call the Skill tool with `voice-validator` (or run Voice Validation below). Measure metrics against Phase 3 targets. Flag deviations > 1 stddev. Output: `.voice-phase/06-validation-report.json`.
+6. **VALIDATE**: Run Voice Validation below. Measure metrics against Phase 3 targets. Flag deviations > 1 stddev. Output: `.voice-phase/06-validation-report.json`.
 
 7. **REFINE**: Fix failed metrics. Tighten prose. Verify code examples. Re-validate changed sections. Output: `.voice-phase/07-refined-draft.md`.
 

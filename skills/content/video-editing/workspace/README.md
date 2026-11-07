@@ -20,7 +20,7 @@ workspace/
 
 2. **Run the script**
    ```bash
-   python3 skills/content/image-to-video/scripts/image_to_video.py --process-workspace
+   python3 ~/.claude/skills/video-editing/scripts/image_to_video.py --process-workspace
    ```
 
 3. **Find output in `output/`**
@@ -41,12 +41,12 @@ The script matches files by base name:
 
 ```bash
 # Copy your files
-cp ~/my-cover.png skills/content/image-to-video/workspace/input/song.png
-cp ~/my-song.mp3 skills/content/image-to-video/workspace/input/song.mp3
+cp ~/my-cover.png ~/.claude/skills/video-editing/workspace/input/song.png
+cp ~/my-song.mp3 ~/.claude/skills/video-editing/workspace/input/song.mp3
 
 # Process all pairs
-python3 skills/content/image-to-video/scripts/image_to_video.py --process-workspace
+python3 ~/.claude/skills/video-editing/scripts/image_to_video.py --process-workspace
 
 # Check output
-ls skills/content/image-to-video/workspace/output/
+ls ~/.claude/skills/video-editing/workspace/output/
 ```

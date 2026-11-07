@@ -109,7 +109,7 @@ Never manipulate state files directly.
 
 Spec writing, plan creation, interviews, ambiguity triage, and session
 pause/resume. Planning owns specs and saved plans; execution goes through
-subagent-driven-development or workflow dispatch.
+the process skill's Subagent mode or workflow dispatch.
 
 ### Sub-mode Routing
 

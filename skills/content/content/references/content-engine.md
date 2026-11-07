@@ -11,9 +11,9 @@ Platform-native means each variant is written from scratch for its target platfo
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| drafting variants: platform rules, banned hype phrases, delivery handoff | `phase-playbook.md` | Loads detailed guidance from `phase-playbook.md`. |
-| character limits and format rules per platform | `platform-specs.md` | Loads detailed guidance from `platform-specs.md`. |
+| errors, error handling | `content-engine/error-handling.md` | Loads detailed guidance from `content-engine/error-handling.md`. |
+| drafting variants: platform rules, banned hype phrases, delivery handoff | `content-engine/phase-playbook.md` | Loads detailed guidance from `content-engine/phase-playbook.md`. |
+| character limits and format rules per platform | `content-engine/platform-specs.md` | Loads detailed guidance from `content-engine/platform-specs.md`. |
 
 ## Instructions
 
@@ -63,7 +63,7 @@ Identify the discrete, postable units inside the source asset. Each atomic idea 
 
 Fewer than 3 ideas means the source is very narrow — proceed with what exists (minimum 1 is sufficient for a single platform) and note in the output file that the source yielded fewer than expected. More than 7 means the asset lacks coherence and should be split; ask the user which section to focus on.
 
-See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for the `content_ideas.md` output template.
+See `${CLAUDE_SKILL_DIR}/references/content-engine/phase-playbook.md` for the `content_ideas.md` output template.
 
 **Gate**: Numbered atomic ideas saved to `content_ideas.md`. Each is specific and standalone. The file must exist before proceeding — context is not an artifact.
 
@@ -75,7 +75,7 @@ Write one draft per target platform, each starting from the primary atomic idea 
 
 Every draft must be written from scratch for its platform. Do not write one version and shorten or trim it for others — audiences on each platform recognize content that was not written for them. No two platform drafts may share a verbatim sentence. If the LinkedIn draft opens with "This article covers..." or the X tweet says "New post: [title]. Key points: 1, 2, 3", that is a summary, not an adaptation. Summaries give readers no reason to stop scrolling.
 
-Apply platform-specific rules — see `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for full detail on X, LinkedIn, TikTok, YouTube, and Newsletter register/hook/structure/length/hashtag/link/CTA rules, plus the `content_drafts.md` output template.
+Apply platform-specific rules — see `${CLAUDE_SKILL_DIR}/references/content-engine/phase-playbook.md` for full detail on X, LinkedIn, TikTok, YouTube, and Newsletter register/hook/structure/length/hashtag/link/CTA rules, plus the `content_drafts.md` output template.
 
 **Gate**: One draft per target platform saved to `content_drafts.md`. Self-check that no two drafts share a verbatim sentence before running scripts in Phase 4. The file must exist before proceeding.
 
@@ -91,7 +91,7 @@ Mechanically verify drafts before delivery. Both script checks must exit 0. The 
 python3 ~/private-skills/scripts/scan-negative-framing.py content_drafts.md
 ```
 
-See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for the full list of banned hype phrases and replacement guidance.
+See `${CLAUDE_SKILL_DIR}/references/content-engine/phase-playbook.md` for the full list of banned hype phrases and replacement guidance.
 
 **If exit non-zero**: Identify the flagged draft(s), rewrite only the affected sections, save to `content_drafts.md`, re-run the check. Do not proceed to Phase 5 until exit 0.
 
@@ -119,13 +119,13 @@ Once both scripts exit 0, verify:
 
 ### Phase 5: DELIVER — Present Drafts with Posting Guidance
 
-Hand off clean drafts with enough context for the user or a downstream skill to act immediately. See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` (Phase 5: Delivery Details) for delivery order, per-draft inclusions, downstream handoff table, optional behaviors, and artifact list.
+Hand off clean drafts with enough context for the user or a downstream skill to act immediately. See `${CLAUDE_SKILL_DIR}/references/content-engine/phase-playbook.md` (Phase 5: Delivery Details) for delivery order, per-draft inclusions, downstream handoff table, optional behaviors, and artifact list.
 
 ---
 
 ## Error Handling
 
-See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for error cases: source too long, script flag unsupported, platform unspecified, ambiguous source, fewer than 3 ideas.
+See `${CLAUDE_SKILL_DIR}/references/content-engine/phase-playbook.md` for error cases: source too long, script flag unsupported, platform unspecified, ambiguous source, fewer than 3 ideas.
 
 ---
 
@@ -133,13 +133,13 @@ See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for error cases: source t
 
 | Signal | Load |
 |--------|------|
-| Phase 3 DRAFT — writing platform variants | `references/platform-specs.md`, `references/phase-playbook.md` |
-| Phase 4 GATE — running quality checks | `references/phase-playbook.md`, `references/error-handling.md` |
-| Script fails, gate won't pass, source errors | `references/error-handling.md` |
-| Platform rules, character limits, posting norms | `references/platform-specs.md` |
-| Delivery, handoff, artifact templates | `references/phase-playbook.md` |
+| Phase 3 DRAFT — writing platform variants | `references/content-engine/platform-specs.md`, `references/content-engine/phase-playbook.md` |
+| Phase 4 GATE — running quality checks | `references/content-engine/phase-playbook.md`, `references/content-engine/error-handling.md` |
+| Script fails, gate won't pass, source errors | `references/content-engine/error-handling.md` |
+| Platform rules, character limits, posting norms | `references/content-engine/platform-specs.md` |
+| Delivery, handoff, artifact templates | `references/content-engine/phase-playbook.md` |
 
-- `${CLAUDE_SKILL_DIR}/references/platform-specs.md` — Character limits, format rules, and posting norms per platform
-- `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` — Full platform rules for Phase 3, banned hype phrases for Phase 4, error handling
-- `${CLAUDE_SKILL_DIR}/references/error-handling.md` — Gate failure recovery, script fallbacks, error-fix mappings, detection commands
+- `${CLAUDE_SKILL_DIR}/references/content-engine/platform-specs.md` — Character limits, format rules, and posting norms per platform
+- `${CLAUDE_SKILL_DIR}/references/content-engine/phase-playbook.md` — Full platform rules for Phase 3, banned hype phrases for Phase 4, error handling
+- `${CLAUDE_SKILL_DIR}/references/content-engine/error-handling.md` — Gate failure recovery, script fallbacks, error-fix mappings, detection commands
 - `~/private-skills/scripts/scan-negative-framing.py` — Negative framing and hype phrase detection

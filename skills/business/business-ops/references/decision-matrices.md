@@ -193,4 +193,4 @@ print(f'Option A weighted: {score:.2f}')
 ## See Also
 
 - `strategic-frameworks.md` — Porter's Five Forces, SWOT scoring, OKR alignment for market context
-- `skills/research/decision-helper/SKILL.md` — lightweight decision support for technical choices
+- `skills/analysis/assessment/SKILL.md` (Decision Scoring mode) — lightweight decision support for technical choices

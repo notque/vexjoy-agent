@@ -27,10 +27,10 @@ rg -n '^description:' skills/{target}/SKILL.md
 ## Step 2: Prepare Trigger-Rate Eval Tasks
 
 ```bash
-python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
+python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
     --target skills/{target}/SKILL.md \
     --goal "{optimization goal}" \
-    --benchmark-tasks skills/meta/agent-comparison/references/optimization-tasks.example.json \
+    --benchmark-tasks skills/meta/toolkit/references/agent-comparison/optimization-tasks.example.json \
     --train-split 0.6 \
     --verbose
 ```
@@ -67,10 +67,10 @@ The `optimize_loop.py` script handles the full loop:
 - Stops on convergence (`--revert-streak-limit` rounds without any ACCEPT), Goodhart alarm, or max iterations
 
 ```bash
-python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
+python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
     --target skills/{target}/SKILL.md \
     --goal "{optimization goal}" \
-    --benchmark-tasks skills/meta/agent-comparison/references/optimization-tasks.example.json \
+    --benchmark-tasks skills/meta/toolkit/references/agent-comparison/optimization-tasks.example.json \
     --max-iterations 20 \
     --min-gain 0.02 \
     --train-split 0.6 \
@@ -153,7 +153,7 @@ cp /tmp/optimize-run/iterations/best_variant.md skills/{target}/SKILL.md
 After applying improvements, run a final evaluation on ALL tasks (not just train) to verify the improvements generalize. Use evaluation-only mode by rerunning the optimizer with `--max-iterations 0`, which records the baseline for the current file without generating fresh variants:
 
 ```bash
-python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
+python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
   --target skills/{target}/SKILL.md \
   --goal "{same goal}" \
   --benchmark-tasks {full-task-file}.json \
