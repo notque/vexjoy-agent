@@ -80,6 +80,20 @@ def test_merge_preserves_user_entries_and_collapses_owned(tmp_path: Path) -> Non
     assert not again.changed
 
 
+def test_merge_ignores_a_dropped_description(tmp_path: Path) -> None:
+    # A writer that rewrites settings.json without the cosmetic description key must not make every
+    # owned entry look stale and missing (an account showed missing=74 stale=74 that way).
+    rule = _rule(tmp_path)
+    full = {**_cmd('python3 "$HOME/.claude/hooks/a.py"'), "description": "does a", "timeout": 5000}
+    bare = {k: v for k, v in full.items() if k != "description"}
+    desired = {"SessionStart": [{"hooks": [full]}]}
+    res = sm.merge({"hooks": {"SessionStart": [{"hooks": [bare]}]}}, desired, rule)
+    assert not res.changed, (res.added, res.removed)
+    assert res.settings["hooks"]["SessionStart"] == [{"hooks": [bare]}]
+    assert sm.canonical_hash({}, full) == sm.canonical_hash({}, bare)
+    assert sm.canonical_hash({}, full) != sm.canonical_hash({}, {**full, "timeout": 6000})
+
+
 @pytest.mark.parametrize("target", ["claude", "codex"])
 def test_apply_settings_merge_per_target(world: Env, target: str) -> None:
     spath = world.home / ".claude" / "settings.json"

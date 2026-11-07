@@ -131,6 +131,72 @@ class TestCheckHookErrors:
         assert result.flag_message() is not None
         assert "50.0%" in result.flag_message()  # type: ignore[operator]
 
+    def test_opens_the_database_read_only(
+        self, default_config: th.HealthConfig, learning_db: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _insert_events(learning_db, blocked=1, total=2)
+        calls: list[tuple[tuple, dict]] = []
+        real_connect = sqlite3.connect
+
+        def spy(*args, **kwargs):
+            calls.append((args, kwargs))
+            return real_connect(*args, **kwargs)
+
+        monkeypatch.setattr(sqlite3, "connect", spy)
+        with patch.object(th, "LEARNING_DB", learning_db):
+            result = th.check_hook_errors(default_config)
+        assert result.total_count == 2
+        assert calls and all(kw.get("uri") is True and str(a[0]).endswith("?mode=ro") for a, kw in calls), calls
+
+
+def _load_fresh_module(monkeypatch: pytest.MonkeyPatch):
+    """toolkit-health loaded under a new name, so its module-level DB path resolves against the patched env."""
+    spec = importlib.util.spec_from_file_location("toolkit_health_fresh", REPO_ROOT / "scripts" / "toolkit-health.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, module)  # dataclasses look their module up while it loads
+    spec.loader.exec_module(module)
+    return module
+
+
+def _real_store(db_path: Path) -> Path:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("CREATE TABLE governance_events (id INTEGER PRIMARY KEY, blocked INTEGER, created_at TEXT)")
+    conn.commit()
+    conn.close()
+    _insert_events(db_path, blocked=10, total=20)
+    return db_path
+
+
+class TestLearningDbLocation:
+    """The check reads the store the hooks write (hooks/lib/learning_db_v2.get_db_dir), not ~/.claude/state."""
+
+    def test_default_is_the_learning_dir_not_the_stray_state_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.delenv("CLAUDE_LEARNING_DIR", raising=False)
+        _real_store(tmp_path / ".claude" / "learning" / "learning.db")
+        stray = tmp_path / ".claude" / "state" / "learning.db"
+        stray.parent.mkdir(parents=True)
+        stray.touch()  # the empty file the old path read, which made the check always say OK
+        mod = _load_fresh_module(monkeypatch)
+        assert tmp_path / ".claude" / "learning" / "learning.db" == mod.LEARNING_DB
+        result = mod.check_hook_errors(mod.HealthConfig())
+        assert result.db_missing is False
+        assert (result.blocked_count, result.total_count, result.status) == (10, 20, "WARN")
+        assert stray.stat().st_size == 0
+
+    def test_claude_learning_dir_overrides_the_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path / "alt"))
+        _real_store(tmp_path / "alt" / "learning.db")
+        mod = _load_fresh_module(monkeypatch)
+        assert tmp_path / "alt" / "learning.db" == mod.LEARNING_DB
+        assert mod.check_hook_errors(mod.HealthConfig()).total_count == 20
+        assert not (tmp_path / "home" / ".claude").exists(), "the check must not create anything under HOME"
+
 
 # ---------------------------------------------------------------------------
 # check_stale_memory

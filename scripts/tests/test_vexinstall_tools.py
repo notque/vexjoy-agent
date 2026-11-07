@@ -52,6 +52,36 @@ def test_public_scan_flattens_and_skips_promoted_support_data(world: Env) -> Non
     shutil.rmtree(world.repo / "skills" / "reddit-data")
 
 
+UNTRACKED = ("agents/z-wip.md", "commands/cmd-wip.md", "hooks/h-wip.py", "hooks/lib/wip.py", "scripts/wip_out.json")
+
+
+@pytest.mark.parametrize("target", ["claude", "codex", "hermes"])
+def test_untracked_top_level_items_never_install(world: Env, target: str) -> None:
+    # A skill needs a committed SKILL.md; agents, commands, hooks and scripts follow the same rule, so
+    # work in progress (or a stray output file such as scripts/jev2_out.json) never lands in a runtime.
+    for rel in UNTRACKED:
+        (world.repo / rel).write_text("---\nname: z-wip\ndescription: untracked work in progress\n---\n")
+    (world.repo / "skills" / "INDEX.json").write_text("{}\n")  # generated and gitignored, as in the repo
+    try:
+        pub = sources.load_public(world.repo)
+        assert "z-wip.md" not in {a.name for a in pub.agents}
+        assert "cmd-wip" not in {c.name for c in pub.commands}
+        assert "h-wip.py" not in {h.name for h in pub.hook_items}
+        assert "wip.py" not in {h.name for h in pub.hook_lib_items}
+        assert "wip_out.json" not in {s.name for s in pub.script_items}
+        assert {"s1.py", "s2.py", "tool"} <= {s.name for s in pub.script_items}
+        assert world.run("apply", "--target", target).code == 0
+        installed = {Path(d).name for d in world.ledger_dests(target)}
+        assert not installed & {"z-wip.md", "cmd-wip.md", "h-wip.py", "wip.py", "wip_out.json"}, installed
+        index_dir = world.root(target) / "vexjoy" / "index"
+        assert set(json.loads((index_dir / "skills.json").read_text())["skills"]) >= {"alpha", "zeta"}
+        if ADAPTERS[target].agents:
+            assert "z-wip" not in json.loads((index_dir / "agents.json").read_text())["agents"]
+    finally:
+        for rel in (*UNTRACKED, "skills/INDEX.json"):
+            (world.repo / rel).unlink()
+
+
 def test_allowlist_parsing(tmp_path: Path) -> None:
     f = tmp_path / "a.txt"
     f.write_text("# c\n\nPre:a.py k=v\nPost:b.py\nPre:a.py\nbad-line\n")
@@ -118,6 +148,41 @@ def test_duplicate_public_names_fail_plan_and_validator(world: Env) -> None:
 def test_validate_skill_names_on_real_repo() -> None:
     validator = _load_script("validate-skill-names")
     assert validator.main(["--repo", str(SCRIPTS_DIR.parent)]) == 0
+
+
+SKILL_CALL = re.compile(r"(?i)call the Skill tool with `([a-z0-9][a-z0-9-]*)`")
+
+
+def stale_command_calls(root: Path, skill_dirs: set[str]) -> list[tuple[str, str]]:
+    """(command, skill) for each shipped command that calls a skill with no SKILL.md."""
+    return [
+        (p.name, name)
+        for p in sorted((root / "commands").glob("*.md"))
+        for name in SKILL_CALL.findall(p.read_text(encoding="utf-8"))
+        if name not in skill_dirs
+    ]
+
+
+def retro_unknown_subcommands(root: Path) -> set[str] | None:
+    """learning-db.py subcommands commands/retro.md runs that the CLI lacks; None when it runs none."""
+    cli = (root / "scripts" / "learning-db.py").read_text(encoding="utf-8")
+    known = set(re.findall(r'add_parser\(\s*"([a-z][a-z-]*)"', cli))
+    named = set(re.findall(r"learning-db\.py ([a-z][a-z-]*)", (root / "commands" / "retro.md").read_text("utf-8")))
+    return (named - known) if named else None
+
+
+def test_shipped_commands_call_skills_that_exist() -> None:
+    # Every runtime gets commands/. /generate-claudemd and /reddit-moderate called skills since folded
+    # into toolkit and content; /retro called a skill retired with the learning-capture loop.
+    root = SCRIPTS_DIR.parent
+    gitutil.clear_cache()
+    skill_dirs = {
+        Path(rel).parent.name
+        for rel in gitutil.tracked_files(root)
+        if rel.startswith("skills/") and rel.endswith("/SKILL.md")
+    }
+    assert stale_command_calls(root, skill_dirs) == []
+    assert retro_unknown_subcommands(root) == set()
 
 
 # ---------------------------------------------------------------- doctor

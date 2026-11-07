@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.1.0
 """
 PreToolUse:Agent Hook: Creation Protocol Enforcer
 
@@ -7,7 +7,9 @@ Soft-warns when an Agent dispatch appears to be for a creation request
 but no ADR has been written yet this session (i.e. .adr-session.json
 does not exist or was last modified more than 900 seconds ago).
 
-This is a SOFT WARN — exit 0 only (never blocks).
+This is a SOFT WARN — exit 0 only (never blocks). The warning goes out as
+hookSpecificOutput.additionalContext with no permissionDecision: plain
+PreToolUse stdout reaches no one.
 
 Detection logic:
 - Tool is Agent
@@ -48,7 +50,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+from hook_utils import context_output, hook_error
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "ADR_PROTOCOL_BYPASS"
@@ -153,9 +155,8 @@ def main() -> None:
             )
         sys.exit(0)
 
-    # No recent ADR session — emit soft warning to stdout (context injection).
-    print("\n".join(_WARNING_LINES))
-    sys.exit(0)
+    # No recent ADR session — emit the soft warning as model-visible context.
+    context_output("PreToolUse", "\n".join(_WARNING_LINES)).print_and_exit()
 
 
 if __name__ == "__main__":
