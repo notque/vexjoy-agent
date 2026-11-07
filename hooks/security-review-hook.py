@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """
 Local Security Review Hook (ADR: adr/local-security-review.md)
 
@@ -17,9 +17,18 @@ reads from stdin. Two paths, no Agent SDK, no API key, no network calls:
 | Stop        | (always)                        | asyncRewake the session agent with the working-tree |
 |             |                                 | diff + instruction to run the security-review skill.|
 
-The commit gate (PreToolUse) is the ONLY blocking path. PostToolUse and Stop are
-advisory — they inform but never deny, mirroring the ADR's "Stop is advisory" rule
-and Anthropic's edit-time PostToolUse reminders.
+The commit gate (PreToolUse) is this hook's only blocking path. PostToolUse and
+Stop are advisory — they inform but never deny, mirroring the ADR's "Stop is
+advisory" rule and Anthropic's edit-time PostToolUse reminders.
+
+The commit gate is a best-effort layer, not a guarantee: it catches the shapes
+its rules know, and a clean scan means no rule matched. Every staged file gets
+the anchored secret signatures whatever its extension (the scanner's docstring
+says what each file type gets). Out of reach by design: a PreToolUse hook runs
+before the Bash command, so files that the same command stages (`git add x &&
+git commit` in one call) are not in the index yet and are not scanned. The
+gitignore rules and the unified gate's staged-secret checks are the backstops
+for that case.
 
 The deterministic regex layer is `scripts/security-review-scan.py` (the single
 source of detection rules — called as a subprocess with `--staged --format json`).
@@ -54,6 +63,9 @@ one, so a stale record is a no-op. State persists to
 
 Fail-open: any internal error allows the commit / skips the rewake and prints a
 warning to stderr. A crashed hook never blocks a tool and never stalls a session.
+A scanner that crashes, times out or reports an incomplete scan (exit 2) still
+lets a commit through when nothing blocking was found, but not silently: the
+hook adds a warning naming what was not scanned to the model's context.
 """
 
 import sys  # vexjoy-pyguard
@@ -108,6 +120,14 @@ _STATE_FILE = _STATE_DIR / "last-diff-hash.json"
 # Matches a `git commit` invocation anywhere in the Bash command string.
 _GIT_COMMIT_RE = re.compile(r"\bgit\s+commit(?:\s|$)")
 
+# The scanner stops itself after this many seconds and reports what it did not
+# scan, so its partial result arrives before the subprocess timeout kills it.
+_SCAN_TIME_BUDGET_SECONDS = 20
+_SCAN_TIMEOUT_SECONDS = 30
+# At most this many incomplete-scan reasons are shown, each cut to this length.
+_INCOMPLETE_SHOWN = 5
+_INCOMPLETE_CHARS = 300
+
 
 # Resolve the scanner relative to this file so the hook works from any cwd
 # (deployed copies live under ~/.claude/hooks/ alongside scripts/).
@@ -146,21 +166,23 @@ def _run_scanner(cwd: str | None, staged: bool = True) -> dict | None:
     """Run the deterministic scanner over staged files; return parsed JSON.
 
     Returns None on any failure (scanner missing, subprocess error, malformed
-    output) so callers fail open. The scanner exits 1 on HIGH/CRITICAL, which
-    is expected — findings are read from the JSON, not the exit code.
+    output) so callers fail open. The scanner exits 1 on HIGH/CRITICAL and 2
+    on an incomplete scan; both still print the JSON report, which is what is
+    read, not the exit code. The scanner resolves staged paths from the
+    repository top level itself, so any directory inside the repo works as cwd.
     """
     scanner = _scanner_path()
     if scanner is None:
         return None
     args = [sys.executable, str(scanner), "--format", "json"]
     if staged:
-        args.append("--staged")
+        args += ["--staged", "--time-budget", str(_SCAN_TIME_BUDGET_SECONDS)]
     try:
         result = subprocess.run(
             args,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=_SCAN_TIMEOUT_SECONDS,
             cwd=cwd or None,
         )
     except (subprocess.TimeoutExpired, OSError):
@@ -184,6 +206,28 @@ def _format_findings(findings: list[dict], cap: int = 20) -> str:
     return "\n".join(lines)
 
 
+def _incomplete_reasons(report: dict) -> list[str]:
+    """The scanner's reasons the scan did not finish (empty when it did)."""
+    reasons = (report.get("summary") or {}).get("incomplete") or []
+    if not isinstance(reasons, list):
+        return ["the scanner reported an incomplete scan"]
+    return [str(r)[:_INCOMPLETE_CHARS] for r in reasons]
+
+
+def _format_incomplete(reasons: list[str]) -> str:
+    lines = [f"  - {r}" for r in reasons[:_INCOMPLETE_SHOWN]]
+    if len(reasons) > _INCOMPLETE_SHOWN:
+        lines.append(f"  ... and {len(reasons) - _INCOMPLETE_SHOWN} more")
+    return "\n".join(lines)
+
+
+def _warn_unscanned(message: str) -> None:
+    """Allow the commit, with the warning in the model's context as well as on stderr."""
+    text = f"[security-review] WARNING: {message}"
+    print(text, file=sys.stderr)
+    context_output("PreToolUse", text).print_and_exit()
+
+
 def handle_pre_tool_use(event: dict) -> None:
     """PreToolUse: block `git commit` when staged files have HIGH/CRITICAL findings."""
     command = (event.get("tool_input") or {}).get("command", "")
@@ -200,17 +244,22 @@ def handle_pre_tool_use(event: dict) -> None:
     cwd = _extract_effective_cwd(command, default_cwd)
 
     report = _run_scanner(cwd, staged=True)
-    if report is None:
-        # Fail open — the scanner is unavailable or crashed.
-        print(
-            "[security-review] WARNING: scanner unavailable — allowing commit (fail-open)",
-            file=sys.stderr,
+    if not isinstance(report, dict):
+        # Fail open — the scanner is unavailable, crashed or timed out.
+        _warn_unscanned(
+            "scanner unavailable, crashed or timed out, so the staged files were NOT scanned — "
+            "allowing commit (fail-open). Run `python3 scripts/security-review-scan.py --staged` to see why."
         )
-        sys.exit(0)
 
     findings = report.get("findings", [])
     blocking = [f for f in findings if f.get("severity") in ("HIGH", "CRITICAL")]
+    incomplete = _incomplete_reasons(report)
     if not blocking:
+        if incomplete:
+            _warn_unscanned(
+                "the security scan of the staged files did not finish and found nothing blocking in what "
+                "it read — allowing commit (fail-open). Not scanned:\n" + _format_incomplete(incomplete)
+            )
         sys.exit(0)
 
     summary = report.get("summary", {})
@@ -221,6 +270,8 @@ def handle_pre_tool_use(event: dict) -> None:
         f"{_format_findings(blocking)}\n"
         f"Fix the findings, or set {_SKIP_ENV}=1 to override deliberately."  # nosec: "set" = plain English, not SQL
     )
+    if incomplete:
+        reason += "\nThe scan also did not finish; not scanned:\n" + _format_incomplete(incomplete)
     print("[security-review] BLOCKED commit — HIGH/CRITICAL staged findings:", file=sys.stderr)
     print(_format_findings(blocking), file=sys.stderr)
     deny_tool_use("PreToolUse", reason)
