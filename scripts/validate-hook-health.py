@@ -2,9 +2,10 @@
 """Composing hook-health validator — permanent defense against dormant/broken hooks.
 
 Read-only. Reads repo `hooks/` and repo `.claude/settings.json` directly, so the
-dormancy / schema / mirror checks need NO sync to ~/.claude. Only the liveness
-check (--with-liveness) shells out to smoke-test-hooks.py, which reads the
-deployed hooks at ~/.claude/hooks.
+dormancy / schema / mirror checks need NO sync to ~/.claude. The liveness checks
+(--with-liveness) run hooks: matcher-liveness runs the repo's hooks in a
+throwaway HOME seeded like the CI job, and liveness shells out to
+smoke-test-hooks.py, which reads the deployed hooks at ~/.claude/hooks.
 
 Checks (ADR hook-health-gate):
   (a) Zero dormant: disk hooks/*.py - __init__.py - lib/ - tests/ - registered
@@ -28,12 +29,17 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
 import json
 import os
 import re
+import shutil
+import signal
+import site
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -691,55 +697,212 @@ def _matcher_tool(matcher: str) -> str | None:
     return matcher.split("|")[0].strip()
 
 
+def _tracked_files(rel_dir: str) -> list[str] | None:
+    """Git-tracked paths under REPO_ROOT/<rel_dir>, or None when REPO_ROOT is not a git checkout."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", rel_dir],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+            env=env,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return [p for p in out.split("\0") if p]
+
+
+def _seed_ci_home(home: Path) -> Path:
+    """Lay out <home>/.claude the way the CI hook-health job deploys the toolkit.
+
+    hooks/*.py, hooks/lib/*.py, settings.json, and scripts/, which hooks import
+    from (routing-decision-recorder needs scripts/lib) and run. scripts/ is
+    copied, never linked: a script resolving its own path would otherwise land
+    in the checkout. In a git checkout only tracked files are copied, as the CI
+    job's fresh checkout has them. Returns the hooks directory.
+    """
+    claude = home / ".claude"
+    hooks = claude / "hooks"
+    (hooks / "lib").mkdir(parents=True)
+    for src in HOOKS_DIR.glob("*.py"):
+        shutil.copy2(src, hooks / src.name)
+    for src in (HOOKS_DIR / "lib").glob("*.py"):
+        shutil.copy2(src, hooks / "lib" / src.name)
+    shutil.copy2(SETTINGS_PATH, claude / "settings.json")
+    tracked = _tracked_files("scripts")
+    if tracked is None:
+        shutil.copytree(REPO_ROOT / "scripts", claude / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
+    else:
+        for rel in tracked:
+            src = REPO_ROOT / rel
+            if src.is_file():
+                dst = claude / rel
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dst)
+    return hooks
+
+
+def _error_lines(path: Path) -> list[str]:
+    try:
+        return [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except OSError:
+        return []
+
+
+def _error_summary(line: str) -> str:
+    """'Type: message' of one hook-errors.jsonl entry (hook_error already redacts it)."""
+    try:
+        entry = json.loads(line)
+        return f"{entry.get('type', '?')}: {entry.get('msg', '')}"[:200]
+    except (json.JSONDecodeError, AttributeError):
+        return line[:200]
+
+
+_TRACEBACK = "Traceback (most recent call last):"
+
+_LIVENESS_TIMEOUT_S = 15
+# How long a hook's background work may keep running after the hook exits
+# before it is killed. rules-distill-trigger starts rules-distill.py, which
+# finishes in well under a second in the throwaway HOME.
+_BACKGROUND_GRACE_S = 5.0
+
+
+def _session_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except OSError:  # ProcessLookupError: nothing is left in the session
+        return False
+    return True
+
+
+def _wait_session(pgid: int, timeout_s: float) -> bool:
+    """True once session *pgid* is empty; False when something still runs after *timeout_s*."""
+    deadline = time.monotonic() + timeout_s
+    while _session_alive(pgid):
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.02)
+    return True
+
+
+def _end_session(pgid: int, grace_s: float) -> None:
+    """Give what a hook left in session *pgid* *grace_s* to finish, then kill the rest."""
+    if not _wait_session(pgid, grace_s):
+        with contextlib.suppress(OSError):
+            os.killpg(pgid, signal.SIGKILL)
+        _wait_session(pgid, 1.0)
+
+
+def _run_liveness_hook(script: Path, payload: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    """subprocess.run for one hook that also ends whatever the hook left running.
+
+    The hook runs in its own session. A hook may start background work and exit
+    at once (rules-distill-trigger starts rules-distill.py). Left running, that
+    work overlaps the next hook's check and writes into the throwaway HOME while
+    it is deleted, so the cleanup fails with "Directory not empty" or the write
+    recreates the deleted tree. It gets _BACKGROUND_GRACE_S to finish and is then
+    killed. Raises subprocess.TimeoutExpired like subprocess.run.
+    """
+    session = hasattr(os, "killpg")
+    grace_s = _BACKGROUND_GRACE_S
+    with subprocess.Popen(
+        [sys.executable, str(script)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=str(REPO_ROOT),
+        env=env,
+        start_new_session=session,
+    ) as proc:
+        try:
+            stdout, stderr = proc.communicate(payload, timeout=_LIVENESS_TIMEOUT_S)
+        except BaseException:
+            grace_s = 0.0
+            proc.kill()
+            proc.wait()
+            raise
+        finally:
+            if session:
+                _end_session(proc.pid, grace_s)
+    return subprocess.CompletedProcess(proc.args, proc.returncode, stdout, stderr)
+
+
 def check_matcher_liveness() -> list[str]:
     """Run each registered hook against a payload whose tool_name matches its
-    group matcher, asserting exit code in {0,2}. Proves every registered hook
-    RUNS on its real registered path (closes the smoke-test matcher gap)."""
-    import os
+    group matcher. Proves every registered hook RUNS on its real registered path
+    (closes the smoke-test matcher gap).
 
+    The repo's hooks run in a throwaway HOME seeded like the CI job, never the
+    real one, with the SessionStart sync disabled and a private hook-errors.jsonl.
+    A hook fails when it exits other than 0 or 2, records a hook error, or prints
+    a traceback: most hooks catch their own exceptions and exit 0, so the exit
+    code alone passes a hook that crashes on every call. Background work a hook
+    starts is finished or killed before the next hook runs.
+    """
     settings = load_settings()
     msgs: list[str] = []
-    deployed = Path.home() / ".claude" / "hooks"
-    env = {**os.environ, "REF_GATE_BYPASS": "1", "CLAUDE_HOOKS_DEBUG": ""}
-    for event, matcher, cmd in iter_hook_entries(settings):
-        m = CMD_BASENAME.search(cmd)
-        if not m:
-            continue
-        fname = m.group(1)
-        script = deployed / fname
-        if not script.exists():
-            # registered-files-exist + register-hook validate cover deployment;
-            # skip here so this check is purely about runtime behavior.
-            continue
-        payload = dict(_EVENT_BASE.get(event, _EVENT_BASE["PostToolUse"]))
-        tool = _matcher_tool(matcher)
-        if tool and "tool_name" not in payload:
-            payload["tool_name"] = tool
-            payload.setdefault("tool_input", {"file_path": "/tmp/hh-probe.txt", "command": "ls"})
-        elif tool:
-            payload["tool_name"] = tool
-            payload["tool_input"] = {"file_path": "/tmp/hh-probe.txt", "command": "ls"}
-        try:
-            result = subprocess.run(
-                [sys.executable, str(script)],
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-                timeout=15,
-                cwd=str(REPO_ROOT),
-                env=env,
-            )
-        except subprocess.TimeoutExpired:
-            msgs.append(f"MATCHER-LIVENESS: {event}/{fname} timed out on matcher '{matcher}'.")
-            continue
-        except Exception as e:
-            msgs.append(f"MATCHER-LIVENESS: {event}/{fname} crashed: {e}.")
-            continue
-        if result.returncode not in (0, 2):
-            msgs.append(
-                f"MATCHER-LIVENESS: {event}/{fname} exited {result.returncode} on matcher "
-                f"'{matcher}' (tool={tool}) — expected 0 or 2."
-            )
+    with tempfile.TemporaryDirectory(prefix="hook-health-liveness-") as tmp:
+        home = Path(tmp) / "home"
+        deployed = _seed_ci_home(home)
+        errors = Path(tmp) / "hook-errors.jsonl"
+        env = {
+            **os.environ,
+            "HOME": str(home),
+            "VEXJOY_SYNC_DISABLED": "1",
+            "REF_GATE_BYPASS": "1",
+            "CLAUDE_HOOKS_DEBUG": "",
+            "CLAUDE_HOOK_ERRORS_PATH": str(errors),
+            "CLAUDE_LEARNING_DIR": str(home / ".claude" / "learning"),
+            # Moving HOME moves the user site: keep the packages the hooks really import.
+            "PYTHONUSERBASE": os.environ.get("PYTHONUSERBASE") or site.getuserbase(),
+        }
+        for event, matcher, cmd in iter_hook_entries(settings):
+            m = CMD_BASENAME.search(cmd)
+            if not m:
+                continue
+            fname = m.group(1)
+            script = deployed / fname
+            if not script.exists():
+                # registered-files-exist + register-hook validate cover deployment;
+                # skip here so this check is purely about runtime behavior.
+                continue
+            payload = dict(_EVENT_BASE.get(event, _EVENT_BASE["PostToolUse"]))
+            tool = _matcher_tool(matcher)
+            if tool and "tool_name" not in payload:
+                payload["tool_name"] = tool
+                payload.setdefault("tool_input", {"file_path": "/tmp/hh-probe.txt", "command": "ls"})
+            elif tool:
+                payload["tool_name"] = tool
+                payload["tool_input"] = {"file_path": "/tmp/hh-probe.txt", "command": "ls"}
+            logged = len(_error_lines(errors))
+            try:
+                result = _run_liveness_hook(script, json.dumps(payload), env)
+            except subprocess.TimeoutExpired:
+                msgs.append(f"MATCHER-LIVENESS: {event}/{fname} timed out on matcher '{matcher}'.")
+                continue
+            except Exception as e:
+                msgs.append(f"MATCHER-LIVENESS: {event}/{fname} crashed: {e}.")
+                continue
+            new_errors = _error_lines(errors)[logged:]
+            if result.returncode not in (0, 2):
+                msgs.append(
+                    f"MATCHER-LIVENESS: {event}/{fname} exited {result.returncode} on matcher "
+                    f"'{matcher}' (tool={tool}) — expected 0 or 2."
+                )
+            elif new_errors:
+                msgs.append(
+                    f"MATCHER-LIVENESS: {event}/{fname} recorded a hook error on matcher '{matcher}' "
+                    f"(tool={tool}): {_error_summary(new_errors[0])}."
+                )
+            elif _TRACEBACK in result.stderr:
+                last = result.stderr.strip().splitlines()[-1][:200]
+                msgs.append(
+                    f"MATCHER-LIVENESS: {event}/{fname} printed a traceback on matcher '{matcher}' "
+                    f"(tool={tool}) and exited {result.returncode}: {last}"
+                )
     return msgs
 
 

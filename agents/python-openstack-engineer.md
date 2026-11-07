@@ -2,7 +2,7 @@
 name: python-openstack-engineer
 description: "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware."
 color: red
-memory: project
+memory: user
 routing:
   triggers:
     - openstack
@@ -13,7 +13,7 @@ routing:
     - tempest
     - oslo.config
     - oslo.messaging
-  process-topics:
+  retro-topics:
     - python-patterns
     - debugging
   not_for: "general Python features, debugging, or web frameworks outside OpenStack (use python-general-engineer); running Python lint, format, and test gates (use code-quality skill); SQLite and Peewee ORM work (use sqlite-peewee-engineer). This agent develops OpenStack services and Oslo libraries."

@@ -2,6 +2,8 @@
 
 import importlib.util
 import json
+import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -487,3 +489,80 @@ def test_subagent_start_warmstart_builds_a_subagent_start_block():
     command = block["hooks"][0]["command"]
     assert "--hook /codex/hooks/subagent-start-warmstart.py" in command
     assert "--event SubagentStart" in command
+
+
+# ---------------------------------------------------------------------------
+# The unified gate guards Codex Bash as well as apply_patch, failing closed
+# ---------------------------------------------------------------------------
+
+_REPO = _SCRIPT_PATH.resolve().parent.parent
+_ALLOWLIST_PATH = _REPO / "scripts" / "codex-hooks-allowlist.txt"
+
+
+def test_one_hook_may_register_under_two_matchers():
+    """One Claude registration can need a native Bash entry and an apply_patch entry."""
+    entries = parse_allowlist(
+        "PreToolUse:pretool-unified-gate.py matcher=Bash class=native mode=native failure=closed\n"
+        "PreToolUse:pretool-unified-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed\n"
+    )
+    assert [(e["matcher"], e["mode"]) for e in entries] == [("Bash", "native"), ("Edit|Write", "patch")]
+
+
+def test_exact_duplicate_registration_is_rejected():
+    line = "PreToolUse:pretool-plan-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed\n"
+    with pytest.raises(ValueError, match=r"Duplicate hook registration: PreToolUse:pretool-plan-gate\.py"):
+        parse_allowlist(line + line)
+
+
+def _production_unified_gate_on_bash() -> list[str]:
+    """The generated command for the unified gate in the shipped Codex config, as argv."""
+    entries = parse_allowlist(_ALLOWLIST_PATH.read_text(encoding="utf-8"))
+    hooks = build_hooks_json(entries, codex_hooks_dir=str(_REPO / "hooks"))["hooks"]
+    commands = [
+        handler["command"]
+        for block in hooks["PreToolUse"]
+        if block.get("matcher") == "Bash"
+        for handler in block["hooks"]
+        if "pretool-unified-gate.py" in handler["command"]
+    ]
+    assert len(commands) == 1, commands
+    return shlex.split(commands[0])
+
+
+def test_production_config_runs_the_unified_gate_on_bash_failing_closed():
+    args = _production_unified_gate_on_bash()
+    assert args[args.index("--mode") + 1] == "native"
+    assert args[args.index("--failure-policy") + 1] == "closed"
+
+
+@pytest.mark.parametrize("command", ["rm -rf /", "python3 -m http.server 8080"])
+def test_unified_gate_denies_a_dangerous_bash_command_through_the_adapter(command, tmp_path):
+    """The command string is only data in the payload; nothing runs it."""
+    args = _production_unified_gate_on_bash()
+    args[0] = sys.executable
+    payload = {
+        "session_id": "codex-unified-gate",
+        "cwd": str(tmp_path),
+        "hook_event_name": "PreToolUse",
+        "turn_id": "turn-1",
+        "tool_name": "Bash",
+        "tool_use_id": "tool-1",
+        "tool_input": {"command": command},
+    }
+    # A gate bypass left in the caller's shell would let the probe through.
+    env = {k: v for k, v in os.environ.items() if not k.endswith("_BYPASS")}
+    env.update(
+        HOME=str(tmp_path / "home"),
+        CLAUDE_LEARNING_DIR=str(tmp_path / "learning"),
+        CLAUDE_HOOK_ERRORS_PATH=str(tmp_path / "hook-errors.jsonl"),
+    )
+
+    result = subprocess.run(
+        args, input=json.dumps(payload), capture_output=True, text=True, cwd=tmp_path, env=env, timeout=60
+    )
+
+    assert result.returncode == 0, result.stderr
+    inner = json.loads(result.stdout)["hookSpecificOutput"]
+    assert inner["permissionDecision"] == "deny", result.stdout
+    # The gate itself denied: an adapter failure would also deny, under failure=closed.
+    assert "[codex-hook-adapter]" not in inner["permissionDecisionReason"]

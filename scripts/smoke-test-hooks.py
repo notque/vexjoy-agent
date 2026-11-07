@@ -8,8 +8,10 @@ Complements benchmark-hooks.py (timing) with correctness checks (exit codes).
 Valid hook exit codes:
   0 — advisory output or no action (always OK)
   2 — block action (OK for blocking hooks; advisory hooks should not emit 2)
-  Any other — unexpected, flag as WARN
-  Crash / exception — FAIL
+  Any other — a crash (an uncaught exception exits 1): FAIL. Claude Code blocks
+  only on exit 2, so a crashed gate lets the tool call through.
+
+Each hook gets its registered timeout, which is in seconds as Claude Code reads it.
 
 Usage:
     python scripts/smoke-test-hooks.py                # All registered hooks
@@ -77,6 +79,8 @@ MOCK_INPUTS: dict[str, dict] = {
 }
 
 VALID_EXIT_CODES = {0, 2}
+# Seconds, when a settings entry has no timeout or comes from an untrusted target repo.
+DEFAULT_TIMEOUT_S = 5
 _SAFE_PATH = os.pathsep.join((str(Path(sys.executable).resolve().parent), "/usr/local/bin", "/usr/bin", "/bin"))
 
 
@@ -125,7 +129,11 @@ def load_registered_hooks(
                         "matcher": matcher,
                         "script": script_path,
                         "description": entry.get("description", ""),
-                        "timeout_ms": 5000 if trusted_hooks_dir is not None else entry.get("timeout", 5000),
+                        "timeout_s": (
+                            DEFAULT_TIMEOUT_S
+                            if trusted_hooks_dir is not None
+                            else entry.get("timeout", DEFAULT_TIMEOUT_S)
+                        ),
                         "command": cmd,
                     }
                 )
@@ -189,7 +197,7 @@ def run_hook(
     """Run a single hook with mock stdin. Return result dict."""
     script = hook["script"]
     event = hook["event"]
-    timeout_s = (hook["timeout_ms"] + 500) / 1000  # Add 500ms buffer
+    timeout_s = hook["timeout_s"] + 0.5  # half a second over the registered timeout
 
     if not script.exists():
         return {**hook, "status": "MISSING", "exit_code": -1, "stdout": "", "stderr": ""}
@@ -229,7 +237,7 @@ def run_hook(
             env=child_env,
         )
         exit_code = result.returncode
-        status = "PASS" if exit_code in VALID_EXIT_CODES else "WARN"
+        status = "PASS" if exit_code in VALID_EXIT_CODES else "FAIL"
         return {
             **hook,
             "status": status,
@@ -289,7 +297,7 @@ def main() -> int:
 
     # Print results
     fails = 0
-    statuses = {"PASS": 0, "WARN": 0, "FAIL": 0, "MISSING": 0, "TIMEOUT": 0}
+    statuses = {"PASS": 0, "FAIL": 0, "MISSING": 0, "TIMEOUT": 0}
 
     for r in results:
         status = r["status"]
@@ -316,7 +324,7 @@ def main() -> int:
     total = len(results)
     print()
     print(
-        f"Hooks: {total} | PASS: {statuses['PASS']} | WARN: {statuses['WARN']} | "
+        f"Hooks: {total} | PASS: {statuses['PASS']} | "
         f"FAIL: {statuses['FAIL']} | MISSING: {statuses['MISSING']} | TIMEOUT: {statuses['TIMEOUT']}"
     )
 

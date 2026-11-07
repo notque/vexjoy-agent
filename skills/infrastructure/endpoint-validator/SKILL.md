@@ -1,6 +1,6 @@
 ---
 name: endpoint-validator
-promoted_to: deploy
+promoted_to: assessment
 description: "Deterministic API endpoint validation with pass/fail reporting."
 user-invocable: false
 allowed-tools:

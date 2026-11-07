@@ -147,4 +147,4 @@ Solution: Check `crontab -l` manually. Restore from `~/.claude/crontab-backups/`
 ## References
 
 - `scripts/crontab-manager.py` -- all crontab mutations (add, remove, list, verify, generate-wrapper)
-- `skills/infrastructure/cron-job-auditor/SKILL.md` -- validation checks for generated scripts
+- `skills/infrastructure/deploy/references/cron-automation.md` -- validation checks for generated scripts

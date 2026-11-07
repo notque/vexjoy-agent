@@ -209,5 +209,5 @@ For decisions that span multiple time horizons, use McKinsey's Three Horizons ad
 ## See Also
 
 - `decision-matrices.md` — weighted scoring matrices and pre-mortem templates
-- `skills/competitive-intel/references/competitive-mapping.md` — competitor landscape mapping
-- `skills/competitive-intel/references/market-positioning.md` — positioning maps and differentiation scoring
+- `skills/business/business-ops/references/competitive-mapping.md` — competitor landscape mapping
+- `skills/business/business-ops/references/market-positioning.md` — positioning maps and differentiation scoring

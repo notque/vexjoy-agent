@@ -62,7 +62,7 @@ Accept start/end dates as parameters. `{{ ds }}` in Airflow, `var()` in dbt. Tes
 
 ## Domain-Specific Rationalizations
 
-See [shared-patterns/anti-rationalization-core.md](../../skills/shared-patterns/anti-rationalization-core.md).
+See [shared-patterns/anti-rationalization-core.md](../../../skills/shared-patterns/anti-rationalization-core.md).
 
 | Rationalization | Why Wrong | Action |
 |----------------|-----------|--------|

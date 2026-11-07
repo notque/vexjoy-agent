@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """
 PostToolUse Hook: Skill Frontmatter Validation
 
 After Write or Edit operations on skills/**/SKILL.md files, runs the
 frontmatter validator and injects errors as context if validation fails.
+The errors go out as hookSpecificOutput.additionalContext: plain PostToolUse
+stdout only shows in the transcript view (ctrl+o), so the model never saw it.
 
 Advisory hook — always exits 0.
 """
@@ -36,6 +38,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import context_output
 from stdin_timeout import read_stdin
 
 # Pattern matching skill SKILL.md files (flat and nested category layouts)
@@ -95,12 +98,13 @@ def main():
         )
 
         if result.returncode != 0 and result.stdout.strip():
-            # Inject validation errors as context
-            print(f"[skill-frontmatter] Validation failed for {Path(file_path).name}:")
+            # Inject validation errors as context the model reads
+            lines = [f"[skill-frontmatter] Validation failed for {Path(file_path).name}:"]
             for line in result.stdout.strip().splitlines():
                 if line.strip():
-                    print(f"  {line.strip()}")
-            print("[skill-frontmatter] Fix frontmatter before proceeding.")
+                    lines.append(f"  {line.strip()}")
+            lines.append("[skill-frontmatter] Fix frontmatter before proceeding.")
+            context_output("PostToolUse", "\n".join(lines)).print_and_exit()
 
     except Exception as e:
         print(f"[skill-frontmatter] hook error: {e}", file=sys.stderr)

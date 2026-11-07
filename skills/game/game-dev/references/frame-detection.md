@@ -286,7 +286,7 @@ the WHOLE sheet — which is the operation that loses sprite-pitch alignment.
 
 ### Synthesized-canvas test pattern
 
-`skills/game/game-sprite-pipeline/scripts/test_slice_grid_cells.py` synthesizes
+`skills/game/game-dev/scripts/test_slice_grid_cells.py` synthesizes
 magenta canvases with green-marker disks placed at known cell centers, runs
 each through `slice_grid_cells`, and asserts each extracted cell's marker
 centroid lies within `cell_size / 8` of the cell center. Cases:
@@ -305,7 +305,7 @@ All seven cases pass. The test is pure deterministic Python (PIL + numpy),
 no LLM, no external API. Run via:
 
 ```bash
-python3 skills/game/game-sprite-pipeline/scripts/test_slice_grid_cells.py
+python3 skills/game/game-dev/scripts/test_slice_grid_cells.py
 ```
 
 This is the deterministic gate the toolkit philosophy demands — algorithms
@@ -401,7 +401,7 @@ degenerate dim like 1xN) keep content-aware as a free choice.
 Every consumer that takes a raw multi-cell sheet and slices it into
 fixed-size cells:
 
-- `skills/game/game-sprite-pipeline/scripts/portrait_pipeline.py` — 2×2
+- `skills/game/game-dev/scripts/portrait_pipeline.py` — 2×2
   portrait-loop sheets.
 - `<your-output-dir>/generate.py` — `post_process_spritesheet` (the demo's
   spritesheet path, all action-loop assets).

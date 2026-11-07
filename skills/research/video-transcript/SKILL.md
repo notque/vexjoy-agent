@@ -2,7 +2,7 @@
 name: video-transcript
 promoted_to: video-editing
 description: "Extract video transcripts: yt-dlp subtitles to clean paragraphs."
-user_invocable: false  # default -- router-dispatched, not user-typed
+user-invocable: false  # default -- router-dispatched, not user-typed
 agent: python-general-engineer
 allowed-tools:
   - Bash

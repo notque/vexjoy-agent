@@ -12,7 +12,7 @@ This document provides reusable templates for creating detailed subagent instruc
 **Subagent N: [Technology Name] Research**
 
 Research [technology name] for [specific use case/context] in 2025.
-Use web_search and web_fetch tools.
+Use the WebSearch and WebFetch tools, and cite the source URL and passage for every fact.
 
 PRIMARY OBJECTIVES:
 1. [Core features and capabilities]
@@ -70,7 +70,7 @@ QUALITY CRITERIA:
 **Subagent N: [Topic] Market Analysis**
 
 Research [topic] adoption and market trends for [time period/context].
-Use web_search and web_fetch tools.
+Use the WebSearch and WebFetch tools, and cite the source URL and passage for every fact.
 
 PRIMARY OBJECTIVES:
 1. Quantify current adoption rates and market share
@@ -129,7 +129,7 @@ QUALITY CRITERIA:
 **Subagent N: [Topic] Cost Analysis**
 
 Research total cost of ownership for [topic/approach] with specific scenarios.
-Use web_search and web_fetch tools.
+Use the WebSearch and WebFetch tools, and cite the source URL and passage for every fact.
 
 PRIMARY OBJECTIVES:
 1. Document pricing models and cost structures
@@ -190,7 +190,7 @@ QUALITY CRITERIA:
 **Subagent N: [Topic] Implementation Patterns**
 
 Research production implementation patterns and best practices for [topic].
-Use web_search and web_fetch tools.
+Use the WebSearch and WebFetch tools, and cite the source URL and passage for every fact.
 
 PRIMARY OBJECTIVES:
 1. Document recommended implementation approaches
@@ -251,7 +251,7 @@ QUALITY CRITERIA:
 **Subagent N: [Option A] vs [Option B] vs [Option C] Comparison**
 
 Research and compare [options] across [dimensions] for [use case].
-Use web_search and web_fetch tools.
+Use the WebSearch and WebFetch tools, and cite the source URL and passage for every fact.
 
 PRIMARY OBJECTIVES:
 1. Document each option's capabilities in [dimension 1]
@@ -308,7 +308,7 @@ QUALITY CRITERIA:
 **Subagent N: [Topic] Regulatory Landscape**
 
 Research regulatory requirements and compliance landscape for [topic] in [region/industry].
-Use web_search and web_fetch tools.
+Use the WebSearch and WebFetch tools, and cite the source URL and passage for every fact.
 
 PRIMARY OBJECTIVES:
 1. Identify applicable regulations and legal requirements
@@ -475,7 +475,7 @@ This is NOT using the template - it's ignoring it entirely.
 ✅ **Good Usage of Template**:
 ```
 Research Kubernetes Cluster API for automated cluster lifecycle management in 2025.
-Use web_search and web_fetch tools.
+Use the WebSearch and WebFetch tools, and cite the source URL and passage for every fact.
 
 PRIMARY OBJECTIVES:
 1. Document Cluster API architecture and core components

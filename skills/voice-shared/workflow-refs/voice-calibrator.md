@@ -718,7 +718,7 @@ Create your own voice skill using the voice-calibrator workflow. A complete voic
 - A profile.json with statistical voice metrics
 - Sample files organized by writing context (forums, blogs, comments)
 
-**Study `skills/workflow/references/voice-calibrator.md` to understand the calibration process.**
+**Study `skills/voice-shared/workflow-refs/voice-calibrator.md` to understand the calibration process.**
 
 ---
 

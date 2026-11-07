@@ -446,6 +446,34 @@ def test_strict_mode_rejects_allowlisted_debt(tmp_path):
     assert "validate-allowed.py" in result.stdout
 
 
+def test_gate_hard_in_any_step_needs_a_negative_test(tmp_path):
+    """A script that is advisory in one step and hard in another is a hard gate.
+
+    This is also the collected CLI negative control for this validator, which CI
+    runs as a hard gate: the subprocess call stays in the test body so the
+    detector sees it.
+    """
+    repo = tmp_path / "repo"
+    _make_workflow(
+        repo,
+        [
+            {"run": "python scripts/validate-twice.py", "continue_on_error": True},
+            {"run": "python scripts/validate-twice.py --strict"},
+        ],
+    )
+    _make_allowlist(repo)
+    (repo / "scripts" / "tests").mkdir(parents=True, exist_ok=True)
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--repo-root", str(repo)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "validate-twice.py: hard gate has no test file" in result.stdout
+
+
 # ---------------------------------------------------------------------------
 # 11. returncode != 0 pattern detected
 # ---------------------------------------------------------------------------

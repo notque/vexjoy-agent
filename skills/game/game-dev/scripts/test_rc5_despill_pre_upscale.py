@@ -23,7 +23,7 @@ Tests:
 
 Run with pytest:
 
-    pytest skills/game/game-sprite-pipeline/scripts/test_rc5_despill_pre_upscale.py -v
+    pytest skills/game/game-dev/scripts/test_rc5_despill_pre_upscale.py -v
 """
 
 from __future__ import annotations

@@ -257,7 +257,7 @@ Plus the two smoke tests:
 
 ```bash
 # Portrait (no backend required in dry-run)
-python3 skills/game/game-sprite-pipeline/scripts/portrait_pipeline.py \
+python3 skills/game/game-dev/scripts/portrait_pipeline.py \
     --prompt "veteran wrestler, indie circuit, 35yo, scarred face, leather jacket" \
     --style slay-the-spire-painted --target road-to-aew --dry-run
 
@@ -266,7 +266,7 @@ python3 skills/game/game-sprite-pipeline/scripts/portrait_pipeline.py \
 # verify_frames_distinct gate by construction at the new 70% threshold;
 # see "Verifier gates" below). Default-on verify; exits 0 on success,
 # 2 on gate failure, 3 on --no-verify (ADR-207 Rule 4).
-python3 skills/game/game-sprite-pipeline/scripts/sprite_pipeline.py \
+python3 skills/game/game-dev/scripts/sprite_pipeline.py \
     --prompt "wrestler walk cycle, 4 frames" \
     --grid 4x1 --cell-size 256 --dry-run --allow-frame-duplication
 ```

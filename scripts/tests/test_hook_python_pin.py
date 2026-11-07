@@ -474,7 +474,7 @@ def test_doctor_warns_when_hook_python_lacks_requirements(world: Env, tmp_path: 
     fake = tmp_path / "bare" / "python3"
     fake.parent.mkdir(parents=True)
     fake.write_text(
-        '#!/bin/sh\nif [ "$2" = "-c" ] && case "$3" in *find_spec*) true;; *) false;; esac; then echo "yaml PIL"; '
+        '#!/bin/sh\nif [ "$1" = "-c" ] && case "$2" in *find_spec*) true;; *) false;; esac; then echo "yaml PIL"; '
         "else echo 3.12 0; fi\n"
     )
     fake.chmod(0o755)
@@ -489,6 +489,44 @@ def test_missing_modules_is_empty_for_a_python_with_the_stdlib_only(world: Env) 
     assert world.run("apply", "--target", "claude").code == 0
     assert interp.missing_modules(world.home, ("json", "os.path")) == []
     assert interp.missing_modules(world.home, ("json", "no_such_mod_xyz")) == ["no_such_mod_xyz"]
+
+
+def _pinned_user_site(home: Path, base: Path) -> Path:
+    """The user site-packages dir the pinned python uses with PYTHONUSERBASE=*base*; skips when it has none."""
+    probe = "import site; print(site.ENABLE_USER_SITE); print(site.getusersitepackages())"
+    env = {**os.environ, "PYTHONUSERBASE": str(base)}
+    link = str(interp.link_path(home))
+    out = subprocess.run([link, "-c", probe], capture_output=True, text=True, env=env, check=True)
+    enabled, site_dir = out.stdout.split("\n", 1)
+    if enabled.strip() != "True":
+        pytest.skip("the pinned python has no user site (venv or setuid run)")
+    return Path(site_dir.strip())
+
+
+def test_missing_modules_sees_the_user_site_the_hooks_import_from(
+    world: Env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # install.sh falls back to pip install --user, and hooks run the pin without -I, so a package in the
+    # user site imports fine in every hook. The doctor's probe must see it too, or it warns forever.
+    assert world.run("apply", "--target", "claude").code == 0
+    base = tmp_path / "userbase"
+    monkeypatch.setenv("PYTHONUSERBASE", str(base))
+    pkg = _pinned_user_site(world.home, base) / "vexjoy_usersite_probe"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("")
+    assert interp.missing_modules(world.home, ("json", "vexjoy_usersite_probe")) == []
+
+
+def test_missing_modules_never_searches_the_current_dir(
+    world: Env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    cwd = tmp_path / "cwd"
+    (cwd / "importlib").mkdir(parents=True)
+    (cwd / "importlib" / "__init__.py").write_text("raise SystemExit('planted importlib ran')\n")
+    (cwd / "vexjoy_cwd_probe.py").write_text("raise SystemExit('planted module ran')\n")
+    monkeypatch.chdir(cwd)
+    assert interp.missing_modules(world.home, ("json", "vexjoy_cwd_probe")) == ["vexjoy_cwd_probe"]
 
 
 @pytest.mark.parametrize("setup", ["dangling", "old"])

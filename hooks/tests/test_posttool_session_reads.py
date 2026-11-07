@@ -12,6 +12,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # Import the module under test
 # ---------------------------------------------------------------------------
@@ -357,3 +359,83 @@ class TestNonBlocking:
         stdout, stderr, code = run_hook(read_event("/some/file.py"))
         assert code == 0
         assert (tmp_path / ".claude" / "session-reads.txt").exists()
+
+
+# ---------------------------------------------------------------------------
+# Concurrent writers (B-11)
+# ---------------------------------------------------------------------------
+
+
+class TestConcurrentWriters:
+    """Hooks run in parallel, so several writers share one file.
+
+    The old read-modify-write had no lock and one fixed temp name: writers lost
+    each other's entries and a writer whose temp file was already renamed died
+    with FileNotFoundError.
+    """
+
+    def test_parallel_writers_keep_every_entry(self, tmp_path):
+        writers = 6
+        procs = [
+            subprocess.Popen(
+                [sys.executable, str(HOOK_PATH)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd=tmp_path,
+            )
+            for _ in range(writers)
+        ]
+        events = [json.dumps(read_event(f"/project/file-{i}.py")) for i in range(writers)]
+        for proc, event in zip(procs, events):
+            proc.stdin.write(event)
+            proc.stdin.close()
+        for proc in procs:
+            assert proc.wait(timeout=30) == 0
+            assert "HOOK-ERROR" not in proc.stderr.read()
+            proc.stdout.close()
+            proc.stderr.close()
+        paths = sorted(e["path"] for e in load_entries(tmp_path))
+        assert paths == sorted(f"/project/file-{i}.py" for i in range(writers))
+
+    def test_a_held_lock_is_waited_for_then_the_write_goes_ahead(self, tmp_path):
+        """A held lock delays the write by the bounded wait, never forever."""
+        import time
+
+        fcntl = pytest.importorskip("fcntl")
+
+        lock_path = tmp_path / mod.SESSION_READS_LOCK_FILE
+        lock_path.parent.mkdir(parents=True)
+        with open(lock_path, "w") as held:
+            fcntl.flock(held.fileno(), fcntl.LOCK_EX)
+            started = time.monotonic()
+            result = subprocess.run(
+                [sys.executable, str(HOOK_PATH)],
+                input=json.dumps(read_event("/project/held.py")),
+                capture_output=True,
+                text=True,
+                cwd=tmp_path,
+                timeout=30,
+            )
+            elapsed = time.monotonic() - started
+        assert result.returncode == 0
+        assert elapsed >= mod._LOCK_WAIT_SECONDS
+        assert [e["path"] for e in load_entries(tmp_path)] == ["/project/held.py"]
+
+    def test_a_stale_temp_name_does_not_block_the_write(self, tmp_path):
+        """Each write uses its own temp file, so a leftover fixed name cannot break it."""
+        (tmp_path / ".claude" / "session-reads.tmp").mkdir(parents=True)
+        result = subprocess.run(
+            [sys.executable, str(HOOK_PATH)],
+            input=json.dumps(read_event("/project/after-crash.py")),
+            capture_output=True,
+            text=True,
+            cwd=tmp_path,
+            timeout=30,
+        )
+        assert result.returncode == 0
+        assert "HOOK-ERROR" not in result.stderr
+        assert [e["path"] for e in load_entries(tmp_path)] == ["/project/after-crash.py"]
+        leftovers = [p.name for p in (tmp_path / ".claude").iterdir() if p.name.endswith(".tmp") and p.is_file()]
+        assert leftovers == []

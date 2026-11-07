@@ -32,8 +32,8 @@ is reading file names without opening the components — that detects presence, 
 For each agent in scope, check these fields in order:
 
 ```bash
-# 1. Check model field is current
-grep "^model:" agents/*.md | grep -v "sonnet\|opus"
+# 1. Check model pins against the 2026-11-01 policy (opus or inherit; haiku only read-only; sonnet only exempt)
+python3 scripts/validate_component_models.py
 
 # 2. Check allowed-tools for deprecated tools
 grep -A 10 "allowed-tools:" agents/*.md | grep "deprecated_tool_name"
@@ -66,16 +66,16 @@ Skills are invoked via the Skill tool by name. Check:
 
 ```bash
 # 1. Find skills with no routing triggers (unroutable)
-grep -L "triggers:" skills/*/SKILL.md
+grep -L "triggers:" skills/*/*/SKILL.md
 
 # 2. Find skills referencing removed scripts
-grep -rn "python3 scripts/" skills/*/SKILL.md | while read match; do
+grep -rn "python3 scripts/" skills/*/*/SKILL.md | while read match; do
   script=$(echo "$match" | grep -oP 'scripts/[^ ]+\.py')
   [ -f "$script" ] || echo "MISSING: $script in $match"
 done
 
 # 3. Check phase count matches header count
-grep -c "^## Phase\|^### Phase" skills/*/SKILL.md
+grep -c "^## Phase\|^### Phase" skills/*/*/SKILL.md
 ```
 
 **Per-skill audit fields**:
@@ -129,29 +129,24 @@ syntax errors silently return non-zero. Always verify with `python3 -c "import a
 
 ---
 
-## Routing Table Audit Checklist
+## Routing Index Audit Checklist
 
-Routing tables live in `skills/meta/do/references/routing-tables.md` and companion files.
+Routing lives in each component's frontmatter (`routing.triggers`, `routing.force_route`). `scripts/generate-skill-index.py` and `scripts/generate-agent-index.py` build the gitignored `skills/INDEX.json` and `agents/INDEX.json` from it; the old `skills/meta/do/references/routing-tables.md` was folded into those indexes.
 
 ```bash
-# 1. Find agents referenced in routing table that no longer exist
-python3 -c "
-import re
-table = open('skills/meta/do/references/routing-tables.md').read()
-agents = re.findall(r'\|\s*([a-z][a-z-]+engineer|[a-z][a-z-]+agent)\s*\|', table)
-import os
-for a in set(agents):
-    if not os.path.exists(f'agents/{a}.md'):
-        print(f'MISSING AGENT IN TABLE: {a}')
-"
+# 1. Regenerate the indexes
+python3 scripts/generate-skill-index.py && python3 scripts/generate-agent-index.py
 
-# 2. Find agents in repo not present in routing table
-grep -rh "^name:" agents/*.md | awk '{print $2}' | while read name; do
-  grep -q "$name" skills/meta/do/references/routing-tables.md || echo "NOT IN TABLE: $name"
-done
+# 2. Find index entries whose file is gone, and entries with no triggers
+python3 scripts/validate-index-integrity.py
 
-# 3. Find routing table entries with no trigger keywords
-grep -B 1 "No trigger\|no keywords\|\[\]" skills/meta/do/references/routing-tables.md
+# 3. Find agents on disk that the agent index lacks
+comm -23 \
+  <(ls agents/*.md | xargs -I{} basename {} .md | grep -v '^base-instructions$' | LC_ALL=C sort) \
+  <(python3 -c "import json; print('\n'.join(sorted(json.load(open('agents/INDEX.json'))['agents'])))")
+
+# 4. Find indexed skills the routing manifest cannot see
+python3 scripts/check-routing-drift.py
 ```
 
 ---
@@ -206,8 +201,8 @@ Do instead: Scope audit to the component types identified in the Change Manifest
 ## Detection Commands Reference
 
 ```bash
-# Agents: stale model name
-grep "^model:" agents/*.md | grep -v "sonnet\|opus"
+# Agents and skills: model pins outside the 2026-11-01 policy
+python3 scripts/validate_component_models.py
 
 # Hooks: syntax errors
 for f in hooks/*.py; do python3 -m py_compile "$f" 2>&1 | grep -v "^$" && echo "ERROR: $f"; done
@@ -215,9 +210,9 @@ for f in hooks/*.py; do python3 -m py_compile "$f" 2>&1 | grep -v "^$" && echo "
 # Hooks: undeployed (registered in settings but missing from ~/.claude/hooks/)
 # (see full command in Hook Audit Checklist section above)
 
-# Routing table: agents referenced but missing
-# (see full command in Routing Table Audit Checklist section above)
+# Routing index: entries pointing at missing files
+# (see full commands in Routing Index Audit Checklist section above)
 
 # Skills: broken script references
-grep -rn "python3 scripts/" skills/*/SKILL.md
+grep -rn "python3 scripts/" skills/*/*/SKILL.md
 ```

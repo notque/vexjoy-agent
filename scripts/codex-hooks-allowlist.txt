@@ -12,9 +12,11 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   72 registrations = 31 native + 30 adapted + 11 unsupported.
+#   74 registrations = 61 mirrored here + 13 unsupported.
+#   62 entries = 32 native + 30 adapted: pretool-unified-gate.py has one Claude
+#   registration (Bash|Write|Edit|Read) and two entries here, Bash and apply_patch.
 
-# Native SessionStart (13)
+# Native SessionStart (15)
 SessionStart:afk-mode.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-context.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:cross-repo-agents.py matcher=startup|resume|clear|compact class=native mode=native failure=open
@@ -45,13 +47,14 @@ UserPromptSubmit:pipeline-context-detector.py class=adapted mode=prompt failure=
 UserPromptSubmit:codex-auto-review.py class=adapted mode=prompt failure=open
 UserPromptSubmit:jev-route-injector-userprompt.py class=adapted mode=prompt failure=open
 
-# Native PreToolUse Bash enforcement (6)
+# Native PreToolUse Bash enforcement (7)
 PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:ci-merge-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:pretool-review-before-push-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:pretool-ruff-format-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:pretool-private-name-leak-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:security-review-hook.py matcher=Bash class=native mode=native failure=closed
+PreToolUse:pretool-unified-gate.py matcher=Bash class=native mode=native failure=closed
 
 # Adapted PreToolUse apply_patch/Edit|Write (9)
 PreToolUse:suggest-compact.py matcher=Edit|Write class=adapted mode=patch failure=open
@@ -86,7 +89,7 @@ PreCompact:precompact-archive.py matcher=manual|auto class=adapted mode=precompa
 # SubagentStart (1 native)
 SubagentStart:subagent-start-warmstart.py matcher=* class=native mode=native failure=open
 
-# SubagentStop (1 native, 1 adapted)
+# SubagentStop (2 native, 3 adapted)
 SubagentStop:routing-outcome-recorder.py matcher=* class=native mode=native failure=open
 SubagentStop:subagent-completion-guard.py matcher=* class=adapted mode=subagent-stop failure=open
 SubagentStop:herdr-state-reporter.py matcher=* class=native mode=native failure=open
@@ -99,6 +102,7 @@ Stop:session-summary.py class=adapted mode=stop failure=open
 Stop:rules-distill-trigger.py class=adapted mode=stop failure=open
 Stop:routing-outcome-stop-fallback.py class=adapted mode=stop failure=open
 
-# Unsupported 10 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
-# three PreToolUse:Agent; four PostToolUse:Skill/Agent/Workflow;
-# StopFailure; and PostCompact model-context reinjection.
+# Unsupported 13 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
+# two UserPromptSubmit; five PreToolUse (four Agent, one Antigravity routing
+# gate); four PostToolUse:Skill/Agent/Workflow; StopFailure; and PostCompact
+# model-context reinjection.

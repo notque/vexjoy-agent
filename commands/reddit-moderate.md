@@ -23,9 +23,9 @@ subreddit rules, and recommends actions for your approval.
 /loop 10m /reddit-moderate --auto
 ```
 
-Call the Skill tool with `reddit-moderate`.
+Call the Skill tool with `content`. Run its Social-Reddit mode.
 
 Parse the argument:
-- No argument → run interactive mode (Phase 1-5)
+- No argument → run interactive mode (fetch, classify, present, confirm, act)
 - "--auto" → run auto mode
 - "--dry-run" → run dry-run mode

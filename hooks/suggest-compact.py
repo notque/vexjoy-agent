@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.0.3
 """
 PreToolUse hook: Strategic Compact Advisor
 
@@ -23,8 +23,9 @@ Output (to stdout as JSON hook response):
   Otherwise:          exits 0 silently
 
 State:
-  Counter persisted to session-keyed temp file via get_state_file("compact-count")
-  from hooks.lib.hook_utils. Uses file locking to reduce race window.
+  Counter persisted to a temp file keyed on the event's session_id via
+  get_state_file("compact-count", event) from hooks.lib.hook_utils. Uses file
+  locking to reduce race window.
 """
 
 import sys  # vexjoy-pyguard
@@ -87,13 +88,15 @@ def _get_threshold() -> int:
         return _DEFAULT_THRESHOLD
 
 
-def _get_and_increment_count() -> int:
+def _get_and_increment_count(event: dict) -> int:
     """Read, increment, and persist the call counter; return the new count.
 
+    The counter file is keyed on the event's session_id, so it accumulates
+    across the calls of one session.
     Uses an exclusive flock to reduce the race window on concurrent invocations.
     Falls back to count=1 if the state file cannot be read or parsed.
     """
-    state_file = get_state_file("compact-count")
+    state_file = get_state_file("compact-count", event)
     count = 0
 
     try:
@@ -152,7 +155,7 @@ def _run() -> None:
         return
 
     threshold = _get_threshold()
-    count = _get_and_increment_count()
+    count = _get_and_increment_count(event)
 
     if debug:
         print(

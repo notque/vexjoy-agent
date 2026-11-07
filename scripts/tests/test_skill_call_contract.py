@@ -53,3 +53,24 @@ def test_check_skill_calls_flags_direct_pipeline_handoff(tmp_path: Path) -> None
     root = _repo(tmp_path, GOOD_COMMAND, "# Demo\n\nThen hand off to `deep-pipe` for phases.\n")
     failures = validate_references.check_skill_calls(root)
     assert failures == ["skills/cat/demo/SKILL.md:3: direct handoff to pipeline 'deep-pipe'"]
+
+
+def test_check_skill_calls_flags_call_to_a_skill_that_does_not_exist(tmp_path: Path) -> None:
+    root = _repo(tmp_path, GOOD_COMMAND, "# Demo\n\nCall the Skill tool with `read-only-ops`.\n")
+    failures = validate_references.check_skill_calls(root)
+    assert failures == [
+        "skills/cat/demo/SKILL.md:3: calls the Skill tool with 'read-only-ops', which is no indexed skill or command"
+    ]
+
+
+def test_check_skill_calls_accepts_indexed_skills_and_command_names(tmp_path: Path) -> None:
+    body = "# Demo\n\nCall the Skill tool with `workflow`. Then call the Skill tool with `demo`.\n"
+    assert validate_references.check_skill_calls(_repo(tmp_path, GOOD_COMMAND, body)) == []
+
+
+def test_check_skill_calls_skips_tests_for_unknown_names(tmp_path: Path) -> None:
+    root = _repo(tmp_path, GOOD_COMMAND)
+    fixture = root / "hooks" / "tests" / "test_demo.py"
+    fixture.parent.mkdir(parents=True)
+    fixture.write_text('EXPECTED = "Call the Skill tool with `inst-skill`."\n', encoding="utf-8")
+    assert validate_references.check_skill_calls(root) == []

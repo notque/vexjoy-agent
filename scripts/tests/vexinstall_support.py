@@ -203,13 +203,14 @@ def tree_hash(root: Path, exclude: tuple[str, ...] = ()) -> str:
     h = hashlib.sha256()
     if not root.exists():
         return "absent"
+    skip = {os.path.normpath(e) for e in exclude}  # "a/b" excludes a\b on Windows too
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         rel_dir = os.path.relpath(dirpath, root)
-        dirnames[:] = sorted(d for d in dirnames if os.path.normpath(os.path.join(rel_dir, d)) not in exclude)
+        dirnames[:] = sorted(d for d in dirnames if os.path.normpath(os.path.join(rel_dir, d)) not in skip)
         for name in sorted(dirnames + filenames):
             full = os.path.join(dirpath, name)
             rel = os.path.normpath(os.path.join(rel_dir, name))
-            if rel in exclude:
+            if rel in skip:
                 continue
             h.update(rel.encode() + b"\0")
             if os.path.islink(full):

@@ -45,7 +45,7 @@ def test_repo_root_mode_maps_target_commands_to_trusted_hook_basenames(tmp_path:
                             "hooks": [
                                 {
                                     "command": f'python3 "{malicious_hook}"',
-                                    "timeout": 5000,
+                                    "timeout": 5,
                                 }
                             ],
                         }
@@ -121,7 +121,7 @@ def test_safe_mode_strips_target_pytest_execution_context(tmp_path: Path) -> Non
                             "hooks": [
                                 {
                                     "command": f'python3 "{target_hook}"',
-                                    "timeout": 5000,
+                                    "timeout": 5,
                                 }
                             ]
                         }
@@ -187,7 +187,7 @@ def _settings(root: Path, hook: str, event: str = "SessionStart") -> None:
     settings = root / ".claude" / "settings.json"
     settings.parent.mkdir(parents=True, exist_ok=True)
     cmd = f'python3 "$HOME/.claude/hooks/{hook}"'
-    settings.write_text(json.dumps({"hooks": {event: [{"hooks": [{"command": cmd, "timeout": 5000}]}]}}))
+    settings.write_text(json.dumps({"hooks": {event: [{"hooks": [{"command": cmd, "timeout": 5}]}]}}))
 
 
 def test_safe_mode_home_is_never_the_trusted_repo(tmp_path: Path) -> None:
@@ -228,7 +228,7 @@ def test_default_mode_never_uses_the_real_home(tmp_path: Path) -> None:
     fake_home = tmp_path / "fake-home"
     fake_home.mkdir()
     result = smoke.run_hook(
-        {"script": hook, "event": "SessionStart", "matcher": "", "description": "", "timeout_ms": 5000, "command": ""},
+        {"script": hook, "event": "SessionStart", "matcher": "", "description": "", "timeout_s": 5, "command": ""},
         home=fake_home,
     )
     assert result["status"] == "PASS", result

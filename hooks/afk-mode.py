@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
+# hook-version: 1.1.0
 """SessionStart hook: inject autonomous behavioral context for AFK sessions.
 
-Detects SSH/tmux/screen/headless sessions and injects a posture block that
-instructs Claude to work proactively without requiring confirmation (ADR-143).
+Injects a posture block that instructs Claude to work proactively without
+requiring confirmation (ADR-143). In the default 'always' mode it injects on
+every session without detecting anything, so the block states the configured
+mode; it never claims the user is or is not watching. In 'auto' mode it
+injects only for SSH/tmux/screen sessions and says that is what it saw.
 
 Environment:
     CLAUDE_AFK_MODE  - Control override: 'always' (default), 'auto', or 'never'
@@ -43,12 +47,31 @@ from hook_utils import context_output, empty_output, hook_error
 
 EVENT_NAME = "SessionStart"
 
-AFK_CONTEXT = """<afk-mode>
-The terminal is unfocused — the user is not actively watching.
-Work proactively. Complete multi-step tasks without asking for confirmation.
-If you can determine the next logical step, take it.
-Produce concise task-completion summaries when finishing long-running work.
-</afk-mode>"""
+_AFK_GUIDANCE = (
+    "Work proactively. Complete multi-step tasks without asking for confirmation.\n"
+    "If you can determine the next logical step, take it.\n"
+    "Produce concise task-completion summaries when finishing long-running work.\n"
+    "Actions that CLAUDE.md reserves for owner approval still need that approval."
+)
+
+# 'always' mode detects nothing, so the block states the setting.
+AFK_CONTEXT = (
+    "<afk-mode>\n"
+    'AFK mode is set to "always" (CLAUDE_AFK_MODE), so work as if the user may not be watching '
+    "the terminal. This is the configured mode; nothing checked whether anyone is watching.\n"
+    f"{_AFK_GUIDANCE}\n"
+    "</afk-mode>"
+)
+
+# 'auto' mode saw an SSH/tmux/screen session, which suggests but does not prove
+# that nobody is watching.
+AFK_AUTO_CONTEXT = (
+    "<afk-mode>\n"
+    'AFK mode is "auto" (CLAUDE_AFK_MODE) and this session runs over SSH, tmux or screen, so work as '
+    "if the user may not be watching the terminal. Nothing checked whether anyone is watching.\n"
+    f"{_AFK_GUIDANCE}\n"
+    "</afk-mode>"
+)
 
 
 def is_afk() -> bool:
@@ -93,7 +116,7 @@ def main() -> None:
 
     # Default: auto-detect
     if is_afk():
-        context_output(EVENT_NAME, AFK_CONTEXT).print_and_exit()
+        context_output(EVENT_NAME, AFK_AUTO_CONTEXT).print_and_exit()
     else:
         empty_output(EVENT_NAME).print_and_exit()
 

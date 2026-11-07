@@ -200,4 +200,4 @@ print('Open issues:', d['open_issues_count'])
 ## See Also
 
 - `tco-framework.md` — TCO calculation templates and build vs buy decision scorecard
-- `skills/build-vs-buy/SKILL.md` — full evaluation workflow with dimension weights
+- `skills/business/business-ops/SKILL.md` (TECHNOLOGY mode) — full build-vs-buy workflow: TCO analysis, vendor scoring, decision
