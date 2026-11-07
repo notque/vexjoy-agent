@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -11,9 +12,9 @@ from . import accounts as accounts_mod
 from . import gitutil, interp
 from . import index as index_mod
 from . import settings as settings_mod
-from .adapters import resolve_targets
+from .adapters import ADAPTERS, resolve_targets
 from .apply import is_category_entry
-from .common import DATA_DIRS, SUPPORT_DIRS, ExitCode, OverlayConfigError, is_dangling
+from .common import DATA_DIRS, SUPPORT_DIRS, ExitCode, OverlayConfigError, is_dangling, realpath
 from .context import Options, Result, load_context
 from .leak import find_leaks
 from .ledger import STATUS_STALE
@@ -267,6 +268,68 @@ def _check_repo(ctx: Context, findings: list[Finding]) -> None:
             findings.append(Finding(ERROR, "repo-tracked-local-index", "repo", sub))
 
 
+# The pre-engine install.sh wrote a post-merge that ran an add-only `ln -s` loop
+# over $HOME/.claude and the other runtime roots; Git Bash without symlink
+# privilege made copies. The current hook only runs `-m vexinstall sync --target all`.
+LEGACY_HOOK_HEADER = "auto-syncs new items after git pull"
+INSTALL_HOOK_MARKER = "Written by vexjoy-agent"
+_HOOK_SCAN_BYTES = 64 * 1024
+_LN_SYMLINK = re.compile(r"\bln(?:\s+-[-\w]+)*?\s+(?:-[A-Za-z]*s[A-Za-z]*|--symbolic)(?=\s)")
+_ROOT_NAMES = "|".join(sorted(re.escape(a.root) for a in ADAPTERS.values()))
+_RUNTIME_ROOT = re.compile(r"(?:\$HOME|\$\{HOME\}|~)\"?/(?:" + _ROOT_NAMES + r")(?![\w.-])")
+_ENGINE_SYNC = re.compile(r"-m\s+vexinstall\s+sync\b[^\n]*?--target(?:\s+|=)all\b")
+
+
+def is_legacy_post_merge(text: str) -> bool:
+    """True for a post-merge that links repo items into runtime roots itself.
+
+    Signs: the legacy header, or ``ln -s`` plus a ``$HOME``-anchored runtime
+    root. A hook that runs ``-m vexinstall sync --target all`` never matches.
+    Full-line comments are ignored for everything but the header.
+    """
+    code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    if _ENGINE_SYNC.search(code):
+        return False
+    links = _LN_SYMLINK.search(code) is not None and _RUNTIME_ROOT.search(code) is not None
+    return links or LEGACY_HOOK_HEADER in text
+
+
+def _legacy_hook_fix(root: Path, hooks: Path, text: str) -> str:
+    """Fix advice. install.sh writes only <main checkout>/.git/hooks/post-merge, and only over its marker."""
+    what = "links repo items into runtime roots after every pull"
+    body = "replace the file with the install.sh post-merge body"
+    default = gitutil.default_hooks_dir(root)
+    in_dot_git = default is not None and default.parent.name == ".git" and realpath(hooks) == realpath(default)
+    if in_dot_git and INSTALL_HOOK_MARKER in text:
+        return (
+            f"{what}; run ./install.sh from the main checkout (it replaces a hook marked"
+            f" '{INSTALL_HOOK_MARKER}' once apply succeeds) or {body}"
+        )
+    return (
+        f"{what}; {body} (./install.sh replaces only .git/hooks/post-merge in the main checkout,"
+        f" and only when it carries '{INSTALL_HOOK_MARKER}')"
+    )
+
+
+def _check_git_hooks(ctx: Context, findings: list[Finding]) -> None:
+    """Legacy post-merge in the hooks dir git uses. Report only: the repo guard forbids rewriting it."""
+    hooks = gitutil.hooks_dir(ctx.source_root)
+    if hooks is None:
+        return
+    hook = hooks / "post-merge"
+    # git skips a hook without the exec bit; Windows has none, so X_OK always passes there.
+    if not hook.is_file() or not os.access(hook, os.X_OK):
+        return
+    try:
+        with open(hook, "rb") as fh:
+            text = fh.read(_HOOK_SCAN_BYTES).decode("utf-8", "replace")
+    except OSError:
+        return
+    if is_legacy_post_merge(text):
+        detail = _legacy_hook_fix(ctx.source_root, hooks, text)
+        findings.append(Finding(ERROR, "legacy-git-hook", "repo", str(hook), detail))
+
+
 def run_doctor(opts: Options) -> Result:
     """Run every check. Never writes."""
     try:
@@ -291,6 +354,7 @@ def run_doctor(opts: Options) -> Result:
         _check_python(ctx, findings)
         _check_accounts(ctx, findings)
     _check_repo(ctx, findings)
+    _check_git_hooks(ctx, findings)
     errors = sum(1 for f in findings if f.level == ERROR)
     warns = sum(1 for f in findings if f.level == WARN)
     out = [f"[doctor] {errors} error(s), {warns} warning(s) across {', '.join(targets)}"]

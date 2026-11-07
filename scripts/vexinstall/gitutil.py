@@ -49,6 +49,36 @@ def is_worktree(root: Path) -> bool:
     return realpath(gd_abs) != realpath(cd_abs)
 
 
+def _abs_path(root: Path, out: str | None) -> Path | None:
+    """A path git printed under ``git -C root``, made absolute against *root*."""
+    raw = (out or "").strip()
+    if not raw:
+        return None
+    path = Path(raw)
+    return path if path.is_absolute() else root / path
+
+
+def hooks_dir(root: Path) -> Path | None:
+    """The dir git runs hooks from for the working tree at *root*, or None.
+
+    ``core.hooksPath`` when set (``~`` expanded; a relative value is relative
+    to *root*, where git runs a working tree's hooks), else
+    ``git rev-parse --git-path hooks``, which maps a linked worktree (``.git``
+    is a file) to the common dir. None when *root* is not the top of a working
+    tree, so a global ``core.hooksPath`` never applies to a plain directory.
+    """
+    if not is_git_checkout(root):
+        return None
+    configured = _abs_path(root, _git(root, "config", "--path", "--get", "core.hooksPath"))
+    return configured or _abs_path(root, _git(root, "rev-parse", "--git-path", "hooks"))
+
+
+def default_hooks_dir(root: Path) -> Path | None:
+    """``<git-common-dir>/hooks``: where git looks when ``core.hooksPath`` is unset."""
+    common = _abs_path(root, _git(root, "rev-parse", "--git-common-dir"))
+    return common / "hooks" if common else None
+
+
 def ephemeral_prefixes() -> list[str]:
     """Realpath prefixes treated as ephemeral (default ``/tmp``)."""
     raw = os.environ.get(EPHEMERAL_ENV, DEFAULT_EPHEMERAL)

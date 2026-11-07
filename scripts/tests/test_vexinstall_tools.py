@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from scripts.tests.vexinstall_support import (
     common,
     find_named,
     git,
+    gitutil,
     skill_md,
     sources,
     tree_hash,
@@ -197,6 +199,157 @@ def test_doctor_is_read_only(world: Env) -> None:
     world.run("doctor", "--target", "all")
     world.run("plan", "--target", "all")
     assert tree_hash(world.home) == before
+
+
+# ---------------------------------------------------------------- doctor: legacy post-merge hook
+
+INSTALL_SH = SCRIPTS_DIR.parent / "install.sh"
+LEGACY_HEADER = "# Written by vexjoy-agent install.sh — auto-syncs new items after git pull.\n"
+# The add-only loop the pre-engine install.sh wrote (5ea20993~1), trimmed.
+LEGACY_POST_MERGE = (
+    "#!/usr/bin/env bash\n"
+    + LEGACY_HEADER
+    + """REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+for runtime_dir in "$HOME/.claude" "$HOME/.codex" "$HOME/.gemini"; do
+  [ -d "$runtime_dir" ] || continue
+  for component in agents skills hooks commands scripts; do
+    for item in "$REPO_DIR/$component"/*; do
+      dst="$runtime_dir/$component/$(basename "$item")"
+      [ -e "$dst" ] && continue  # already present; skip
+      ln -s "$item" "$dst"
+    done
+  done
+done
+exit 0
+"""
+)
+
+
+@pytest.fixture
+def hook_world(world: Env, monkeypatch: pytest.MonkeyPatch) -> Env:
+    """World whose git reads no system config and an empty global one, so a host core.hooksPath stays out."""
+    (world.work / "global.gitconfig").write_text("")
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(world.work / "global.gitconfig"))
+    return world
+
+
+def _install_sh_post_merge() -> str:
+    """The post-merge body install.sh writes today (its _write_git_hook heredoc)."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    m = re.search(r"_write_git_hook post-merge << 'HOOK'\n(.*?)\nHOOK\n", text, re.DOTALL)
+    assert m, "post-merge heredoc not found in install.sh"
+    return m.group(1)
+
+
+def _write_hook(hooks: Path, body: str) -> Path:
+    hooks.mkdir(parents=True, exist_ok=True)
+    hook = hooks / "post-merge"
+    hook.write_text(body, encoding="utf-8", newline="\n")
+    hook.chmod(0o755)
+    return hook
+
+
+def _hook_findings(env: Env, source: Path | None = None) -> list[dict]:
+    res = env.run("doctor", "--target", "claude", source=source)
+    return [f for f in res.data["findings"] if f["check"] == "legacy-git-hook"]
+
+
+def _same(a: str | Path | None, b: Path) -> bool:
+    return a is not None and os.path.realpath(a) == os.path.realpath(b)
+
+
+@pytest.mark.parametrize(
+    ("body", "advice"),
+    [
+        pytest.param(LEGACY_POST_MERGE, "run ./install.sh from the main checkout", id="legacy"),
+        pytest.param(LEGACY_POST_MERGE.replace(LEGACY_HEADER, ""), "./install.sh replaces only", id="header-removed"),
+        pytest.param(
+            f'#!/bin/sh\n{LEGACY_HEADER}cp -R "$REPO_DIR"/skills/* "$HOME/.claude/skills/"\n',
+            "run ./install.sh",
+            id="header-only",
+        ),
+    ],
+)
+def test_doctor_flags_legacy_post_merge_hook(hook_world: Env, body: str, advice: str) -> None:
+    hook = _write_hook(hook_world.repo / ".git" / "hooks", body)
+    before = hook.read_bytes()
+    res = hook_world.run("doctor", "--target", "claude")
+    found = [f for f in res.data["findings"] if f["check"] == "legacy-git-hook"]
+    assert [(f["level"], f["target"]) for f in found] == [("error", "repo")]
+    assert _same(found[0]["path"], hook)
+    assert advice in found[0]["detail"]
+    assert res.code == 1
+    assert hook.read_bytes() == before, "doctor must never rewrite the hook"
+
+
+def test_doctor_passes_the_install_sh_post_merge(hook_world: Env) -> None:
+    _write_hook(hook_world.repo / ".git" / "hooks", _install_sh_post_merge())
+    assert _hook_findings(hook_world) == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(None, id="no-hook"),
+        pytest.param('#!/bin/sh\ngit lfs post-merge "$@"\n', id="git-lfs"),
+        pytest.param('#!/bin/sh\nln -sf "$PWD/build/out" "$PWD/dist/latest"\n', id="ln-outside-runtime-roots"),
+        pytest.param("#!/bin/sh\n# never ln -s into ~/.claude from here\nmake docs\n", id="ln-in-comment"),
+        pytest.param(
+            f"#!/bin/sh\n{LEGACY_HEADER}python3 -m vexinstall sync --target all\n", id="old-header-engine-body"
+        ),
+    ],
+)
+def test_doctor_passes_missing_and_unrelated_post_merge(hook_world: Env, body: str | None) -> None:
+    if body is not None:
+        _write_hook(hook_world.repo / ".git" / "hooks", body)
+    assert _hook_findings(hook_world) == []
+
+
+@pytest.mark.skipif(os.name == "nt", reason="no exec bit on Windows; git runs any hook that starts with #!")
+def test_doctor_skips_non_executable_post_merge(hook_world: Env) -> None:
+    _write_hook(hook_world.repo / ".git" / "hooks", LEGACY_POST_MERGE).chmod(0o644)
+    assert _hook_findings(hook_world) == []
+
+
+def test_doctor_reads_the_hooks_dir_core_hooks_path_names(hook_world: Env) -> None:
+    """A relative core.hooksPath resolves against the checkout, and .git/hooks is then not run."""
+    _write_hook(hook_world.repo / ".git" / "hooks", LEGACY_POST_MERGE)
+    hook = _write_hook(hook_world.work / "githooks", LEGACY_POST_MERGE)
+    git(hook_world.repo, "config", "core.hooksPath", "../githooks")
+    found = _hook_findings(hook_world)
+    assert len(found) == 1 and _same(found[0]["path"], hook)
+    assert "./install.sh replaces only" in found[0]["detail"]
+
+
+def test_doctor_global_hooks_path_skips_a_source_root_without_git(hook_world: Env) -> None:
+    """A global core.hooksPath applies to a checkout, never to a source root that has no .git."""
+    hook = _write_hook(hook_world.work / "global-hooks", LEGACY_POST_MERGE)
+    (hook_world.work / "global.gitconfig").write_text(f'[core]\n\thooksPath = "{hook.parent.as_posix()}"\n')
+    found = _hook_findings(hook_world)
+    assert len(found) == 1 and _same(found[0]["path"], hook)
+    plain = hook_world.work / "plain"
+    shutil.copytree(hook_world.repo, plain, ignore=shutil.ignore_patterns(".git"))
+    assert gitutil.hooks_dir(plain) is None
+    assert _hook_findings(hook_world, source=plain) == []
+
+
+def test_doctor_finds_the_hook_from_a_linked_worktree(hook_world: Env) -> None:
+    """A linked worktree's .git is a file; git runs its hooks from the common dir."""
+    hook = _write_hook(hook_world.repo / ".git" / "hooks", LEGACY_POST_MERGE)
+    wt = hook_world.work / "wt"
+    git(hook_world.repo, "worktree", "add", "-q", "--detach", str(wt))
+    assert (wt / ".git").is_file()
+    found = _hook_findings(hook_world, source=wt)
+    assert len(found) == 1 and _same(found[0]["path"], hook)
+    assert "run ./install.sh from the main checkout" in found[0]["detail"]
+
+
+def test_hooks_dir_expands_tilde_and_needs_the_checkout_top(hook_world: Env) -> None:
+    repo = hook_world.repo
+    assert gitutil.hooks_dir(repo / "skills") is None
+    git(repo, "config", "core.hooksPath", "~/my-hooks")
+    assert _same(gitutil.hooks_dir(repo), hook_world.home / "my-hooks")
 
 
 # ---------------------------------------------------------------- prune
