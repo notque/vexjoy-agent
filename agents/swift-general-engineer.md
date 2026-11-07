@@ -4,50 +4,52 @@ description: "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurr
 color: orange
 hooks:
   PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import sys, json, re
-        try:
-            data = json.loads(sys.stdin.read())
-            tool = data.get('tool_name', '')
-            filepath = str((data.get('tool_input') or {}).get('file_path', ''))
-            notes = []
+    - matcher: "Edit|Write|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            python3 -c "
+            import sys, json, re
+            try:
+                data = json.loads(sys.stdin.read())
+                tool = data.get('tool_name', '')
+                filepath = str((data.get('tool_input') or {}).get('file_path', ''))
+                notes = []
 
-            if tool in ('Edit', 'Write', 'MultiEdit') and filepath.endswith('.swift'):
-                notes.append('[swift-agent] Run: swiftformat . && swiftlint lint')
-                notes.append('[swift-agent] Type-check: swift build')
+                if tool in ('Edit', 'Write', 'MultiEdit') and filepath.endswith('.swift'):
+                    notes.append('[swift-agent] Run: swiftformat . && swiftlint lint')
+                    notes.append('[swift-agent] Type-check: swift build')
 
-                # Read edited content to check for signal quality and fixups
-                try:
-                    with open(filepath) as f:
-                        content = f.read()
-                except Exception:
-                    content = ''
+                    # Read edited content to check for signal quality and fixups
+                    try:
+                        with open(filepath) as f:
+                            content = f.read()
+                    except Exception:
+                        content = ''
 
-                # Detect print() in production code (not in test files)
-                if 'print(' in content and not filepath.endswith('Tests.swift') and '/Tests/' not in filepath:
-                    notes.append('[swift-agent] WARNING: print() detected -- use os.Logger(subsystem:category:) for production logging')
+                    # Detect print() in production code (not in test files)
+                    if 'print(' in content and not filepath.endswith('Tests.swift') and '/Tests/' not in filepath:
+                        notes.append('[swift-agent] WARNING: print() detected -- use os.Logger(subsystem:category:) for production logging')
 
-                # Detect UserDefaults storing credential-like keys
-                ud_pattern = re.compile(
-                    r'UserDefaults[^\;\\n]*?(?:set|string|object)[^\;\\n]*?[\"\\x27]([^\"\\x27]*(?:token|password|key|secret|credential|auth)[^\"\\x27]*)[\"\\x27]',
-                    re.IGNORECASE
-                )
-                if ud_pattern.search(content):
-                    notes.append('[swift-agent] SECURITY: UserDefaults used with credential key -- migrate to Keychain Services')
-                elif re.search(r'UserDefaults', content) and re.search(
-                    r'[\"\\x27][^\"\\x27]*(?:token|password|key|secret|credential|auth)[^\"\\x27]*[\"\\x27]',
-                    content, re.IGNORECASE
-                ):
-                    notes.append('[swift-agent] SECURITY: Possible credential stored in UserDefaults -- verify Keychain is used instead')
+                    # Detect UserDefaults storing credential-like keys
+                    ud_pattern = re.compile(
+                        r'UserDefaults[^\;\\n]*?(?:set|string|object)[^\;\\n]*?[\"\\x27]([^\"\\x27]*(?:token|password|key|secret|credential|auth)[^\"\\x27]*)[\"\\x27]',
+                        re.IGNORECASE
+                    )
+                    if ud_pattern.search(content):
+                        notes.append('[swift-agent] SECURITY: UserDefaults used with credential key -- migrate to Keychain Services')
+                    elif re.search(r'UserDefaults', content) and re.search(
+                        r'[\"\\x27][^\"\\x27]*(?:token|password|key|secret|credential|auth)[^\"\\x27]*[\"\\x27]',
+                        content, re.IGNORECASE
+                    ):
+                        notes.append('[swift-agent] SECURITY: Possible credential stored in UserDefaults -- verify Keychain is used instead')
 
-            if notes:
-                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
-        except Exception:
-            pass
-        "
-      timeout: 5
+                if notes:
+                    print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
+            except Exception:
+                pass
+            "
+          timeout: 5
 memory: user
 routing:
   triggers:

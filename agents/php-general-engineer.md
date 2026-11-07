@@ -4,67 +4,69 @@ description: "PHP development: features, debugging, code quality, security, mode
 color: purple
 hooks:
   PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import sys, json, subprocess, os
-        try:
-            data = json.loads(sys.stdin.read())
-            tool = data.get('tool_name', '')
-            inp = data.get('tool_input') or {}
-            notes = []
+    - matcher: "Edit|Write|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            python3 -c "
+            import sys, json, subprocess, os
+            try:
+                data = json.loads(sys.stdin.read())
+                tool = data.get('tool_name', '')
+                inp = data.get('tool_input') or {}
+                notes = []
 
-            if tool in ('Edit', 'Write', 'MultiEdit'):
-                filepath = str(inp.get('file_path', ''))
-                if not filepath.endswith('.php'):
-                    sys.exit(0)
+                if tool in ('Edit', 'Write', 'MultiEdit'):
+                    filepath = str(inp.get('file_path', ''))
+                    if not filepath.endswith('.php'):
+                        sys.exit(0)
 
-                # Format reminder
-                notes.append('[php-agent] Format: ./vendor/bin/pint ' + filepath + '  OR  php-cs-fixer fix ' + filepath)
+                    # Format reminder
+                    notes.append('[php-agent] Format: ./vendor/bin/pint ' + filepath + '  OR  php-cs-fixer fix ' + filepath)
 
-                # Static analysis reminder
-                notes.append('[php-agent] Analyse: ./vendor/bin/phpstan analyse ' + filepath + '  OR  ./vendor/bin/psalm --show-info=true')
+                    # Static analysis reminder
+                    notes.append('[php-agent] Analyse: ./vendor/bin/phpstan analyse ' + filepath + '  OR  ./vendor/bin/psalm --show-info=true')
 
-                # Debug output detection
-                try:
-                    result = subprocess.run(['grep', '-nE', r'var_dump\s*\(|dd\s*\(|dump\s*\(|die\s*\(', filepath],
-                                            capture_output=True, text=True, timeout=5)
-                    if result.stdout.strip():
-                        notes.append('[php-agent] WARNING: debug output found in ' + filepath + ':')
-                        for line in result.stdout.strip().splitlines():
-                            notes.append('  ' + line)
-                        notes.append('[php-agent] Remove var_dump/dd/dump/die() before committing.')
-                except Exception:
-                    pass
+                    # Debug output detection
+                    try:
+                        result = subprocess.run(['grep', '-nE', r'var_dump\s*\(|dd\s*\(|dump\s*\(|die\s*\(', filepath],
+                                                capture_output=True, text=True, timeout=5)
+                        if result.stdout.strip():
+                            notes.append('[php-agent] WARNING: debug output found in ' + filepath + ':')
+                            for line in result.stdout.strip().splitlines():
+                                notes.append('  ' + line)
+                            notes.append('[php-agent] Remove var_dump/dd/dump/die() before committing.')
+                    except Exception:
+                        pass
 
-                # Raw SQL interpolation detection
-                try:
-                    result = subprocess.run(
-                        ['grep', '-nE', r'(query|exec|prepare)\s*\(\s*[\"' + \"'\" + r']\s*(SELECT|INSERT|UPDATE|DELETE).*\$', filepath],
-                        capture_output=True, text=True, timeout=5)
-                    if result.stdout.strip():
-                        notes.append('[php-agent] SECURITY WARNING: possible raw SQL interpolation in ' + filepath)
-                        notes.append('[php-agent] Use prepared statements (PDO), Doctrine QueryBuilder, or Eloquent query builder instead.')
-                except Exception:
-                    pass
+                    # Raw SQL interpolation detection
+                    try:
+                        result = subprocess.run(
+                            ['grep', '-nE', r'(query|exec|prepare)\s*\(\s*[\"' + \"'\" + r']\s*(SELECT|INSERT|UPDATE|DELETE).*\$', filepath],
+                            capture_output=True, text=True, timeout=5)
+                        if result.stdout.strip():
+                            notes.append('[php-agent] SECURITY WARNING: possible raw SQL interpolation in ' + filepath)
+                            notes.append('[php-agent] Use prepared statements (PDO), Doctrine QueryBuilder, or Eloquent query builder instead.')
+                    except Exception:
+                        pass
 
-                # Disabled CSRF/session protection detection
-                try:
-                    result = subprocess.run(
-                        ['grep', '-nE', r'VerifyCsrfToken|withoutMiddleware.*csrf|csrf.*except|session_regenerate_id.*false', filepath],
-                        capture_output=True, text=True, timeout=5)
-                    if result.stdout.strip():
-                        notes.append('[php-agent] SECURITY WARNING: possible CSRF/session protection bypass in ' + filepath)
-                        notes.append('[php-agent] Ensure CSRF exclusions and session_regenerate_id(true) are intentional and documented.')
-                except Exception:
-                    pass
+                    # Disabled CSRF/session protection detection
+                    try:
+                        result = subprocess.run(
+                            ['grep', '-nE', r'VerifyCsrfToken|withoutMiddleware.*csrf|csrf.*except|session_regenerate_id.*false', filepath],
+                            capture_output=True, text=True, timeout=5)
+                        if result.stdout.strip():
+                            notes.append('[php-agent] SECURITY WARNING: possible CSRF/session protection bypass in ' + filepath)
+                            notes.append('[php-agent] Ensure CSRF exclusions and session_regenerate_id(true) are intentional and documented.')
+                    except Exception:
+                        pass
 
-            if notes:
-                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
-        except Exception:
-            pass
-        "
-      timeout: 10
+                if notes:
+                    print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
+            except Exception:
+                pass
+            "
+          timeout: 10
 memory: user
 routing:
   triggers:

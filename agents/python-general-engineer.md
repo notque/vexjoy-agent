@@ -4,21 +4,23 @@ description: "Python development: features, debugging, code review, performance.
 color: green
 hooks:
   PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import json, sys
-        try:
-            data = json.loads(sys.stdin.read())
-        except json.JSONDecodeError:
-            sys.exit(0)
-        tool = data.get('tool_name', '')
-        path = str(data.get('tool_input', {}).get('file_path', ''))
-        if tool in ('Edit', 'Write', 'MultiEdit') and path.endswith('.py'):
-            note = '[py-agent] Python file changed: run ruff check --fix, ruff format, mypy --strict, and pytest before handoff (python-modern-code.md section 14).'
-            print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': note}}))
-        "
-      timeout: 5
+    - matcher: "Edit|Write|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            python3 -c "
+            import json, sys
+            try:
+                data = json.loads(sys.stdin.read())
+            except json.JSONDecodeError:
+                sys.exit(0)
+            tool = data.get('tool_name', '')
+            path = str(data.get('tool_input', {}).get('file_path', ''))
+            if tool in ('Edit', 'Write', 'MultiEdit') and path.endswith('.py'):
+                note = '[py-agent] Python file changed: run ruff check --fix, ruff format, mypy --strict, and pytest before handoff (python-modern-code.md section 14).'
+                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': note}}))
+            "
+          timeout: 5
 memory: user
 routing:
   triggers:

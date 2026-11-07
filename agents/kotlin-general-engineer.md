@@ -4,49 +4,51 @@ description: "Kotlin development: features, coroutines, debugging, code quality,
 color: purple
 hooks:
   PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import sys, json, subprocess, os
-        try:
-            data = json.loads(sys.stdin.read())
-            tool = data.get('tool_name', '')
-            inp = data.get('tool_input') or {}
-            notes = []
+    - matcher: "Bash|Edit|Write|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            python3 -c "
+            import sys, json, subprocess, os
+            try:
+                data = json.loads(sys.stdin.read())
+                tool = data.get('tool_name', '')
+                inp = data.get('tool_input') or {}
+                notes = []
 
-            if tool in ('Edit', 'Write', 'MultiEdit'):
-                filepath = str(inp.get('file_path', ''))
-                if filepath and (filepath.endswith('.kt') or filepath.endswith('.kts')):
-                    notes.append('[kotlin-agent] Format: run ktfmt or ktlint --format on ' + os.path.basename(filepath))
-                if filepath and filepath.endswith('.kt'):
-                    try:
-                        result = subprocess.run(
-                            ['grep', '-n', '!!', filepath],
-                            capture_output=True, text=True, timeout=5
-                        )
-                        if result.stdout.strip():
-                            lines = result.stdout.strip().splitlines()
-                            notes.append('[kotlin-agent] WARNING: !! operator detected (' + str(len(lines)) + ' occurrence(s)) -- use ?., ?:, require(), or checkNotNull() instead:')
-                            for line in lines[:5]:
-                                notes.append('  ' + line)
-                    except Exception:
-                        pass
-                    notes.append('[kotlin-agent] Static analysis: run ./gradlew detekt to catch style violations')
-                    notes.append('[kotlin-agent] Type-check: run ./gradlew compileKotlin to verify compilation (faster than full build)')
+                if tool in ('Edit', 'Write', 'MultiEdit'):
+                    filepath = str(inp.get('file_path', ''))
+                    if filepath and (filepath.endswith('.kt') or filepath.endswith('.kts')):
+                        notes.append('[kotlin-agent] Format: run ktfmt or ktlint --format on ' + os.path.basename(filepath))
+                    if filepath and filepath.endswith('.kt'):
+                        try:
+                            result = subprocess.run(
+                                ['grep', '-n', '!!', filepath],
+                                capture_output=True, text=True, timeout=5
+                            )
+                            if result.stdout.strip():
+                                lines = result.stdout.strip().splitlines()
+                                notes.append('[kotlin-agent] WARNING: !! operator detected (' + str(len(lines)) + ' occurrence(s)) -- use ?., ?:, require(), or checkNotNull() instead:')
+                                for line in lines[:5]:
+                                    notes.append('  ' + line)
+                        except Exception:
+                            pass
+                        notes.append('[kotlin-agent] Static analysis: run ./gradlew detekt to catch style violations')
+                        notes.append('[kotlin-agent] Type-check: run ./gradlew compileKotlin to verify compilation (faster than full build)')
 
-            if tool == 'Bash':
-                cmd = str(inp.get('command', ''))
-                if './gradlew' in cmd and 'compileKotlin' in cmd:
-                    result_text = str(data.get('tool_response', ''))
-                    if 'error:' in result_text.lower():
-                        notes.append('[kotlin-agent] Compilation errors detected -- review above output before proceeding')
+                if tool == 'Bash':
+                    cmd = str(inp.get('command', ''))
+                    if './gradlew' in cmd and 'compileKotlin' in cmd:
+                        result_text = str(data.get('tool_response', ''))
+                        if 'error:' in result_text.lower():
+                            notes.append('[kotlin-agent] Compilation errors detected -- review above output before proceeding')
 
-            if notes:
-                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
-        except Exception:
-            pass
-        "
-      timeout: 10
+                if notes:
+                    print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': chr(10).join(notes)}}))
+            except Exception:
+                pass
+            "
+          timeout: 10
 memory: user
 routing:
   triggers:

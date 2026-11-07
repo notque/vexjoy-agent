@@ -4,35 +4,37 @@ description: "Go development: features, debugging, code review, performance. Mod
 color: blue
 hooks:
   PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import sys, json
-        try:
-            data = json.loads(sys.stdin.read())
-            tool = data.get('tool_name', '')
-            inp = data.get('tool_input') or {}
-            result = str(data.get('tool_response', ''))
-            notes = []
+    - matcher: "Bash|Edit|Write|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            python3 -c "
+            import sys, json
+            try:
+                data = json.loads(sys.stdin.read())
+                tool = data.get('tool_name', '')
+                inp = data.get('tool_input') or {}
+                result = str(data.get('tool_response', ''))
+                notes = []
 
-            # After successful go build, suggest go vet
-            if tool == 'Bash':
-                cmd = str(inp.get('command', ''))
-                if 'go build' in cmd and 'error' not in result.lower():
-                    notes.append('[go-agent] Consider running go vet to catch subtle issues')
+                # After successful go build, suggest go vet
+                if tool == 'Bash':
+                    cmd = str(inp.get('command', ''))
+                    if 'go build' in cmd and 'error' not in result.lower():
+                        notes.append('[go-agent] Consider running go vet to catch subtle issues')
 
-            # After editing .go files, remind about gofmt
-            if tool in ('Edit', 'Write', 'MultiEdit'):
-                filepath = str(inp.get('file_path', ''))
-                if filepath.endswith('.go'):
-                    notes.append('[go-agent] Remember: gofmt -w to format edited Go files')
+                # After editing .go files, remind about gofmt
+                if tool in ('Edit', 'Write', 'MultiEdit'):
+                    filepath = str(inp.get('file_path', ''))
+                    if filepath.endswith('.go'):
+                        notes.append('[go-agent] Remember: gofmt -w to format edited Go files')
 
-            if notes:
-                print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': ' '.join(notes)}}))
-        except Exception:
-            pass
-        "
-      timeout: 5
+                if notes:
+                    print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': ' '.join(notes)}}))
+            except Exception:
+                pass
+            "
+          timeout: 5
 memory: user
 routing:
   triggers:
