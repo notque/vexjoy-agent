@@ -216,7 +216,7 @@ For steps with `profile_gate` set: include the phase only if the gate matches th
 
 **Goal**: Wire all components into routing and verify the full component dependency graph. Unroutable skills are dead code (Rule 7—not negotiable).
 
-**Step 1: Routing integration**. Call the Skill tool with `routing-table-updater`. Use batch mode:
+**Step 1: Routing integration**. Call the Skill tool with `toolkit` and run its Routing Tables mode. Use batch mode:
 - Add all N skills to `skills/meta/do/references/routing-tables.md`
 - Add the agent (if new) to `agents/INDEX.json`
 - For each skill: add trigger entries from `subdomain.routing_triggers`

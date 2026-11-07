@@ -56,7 +56,7 @@ ls agents/ | grep [name]
 ls skills/ | grep [name]
 ```
 
-**Step 2**: Call the Skill tool with `agent-evaluation`. Evaluate the target file to get the baseline score (0–100) and grade (A/B/C/F).
+**Step 2**: Call the Skill tool with `toolkit` and run its Agent Evaluation mode. Evaluate the target file to get the baseline score (0–100) and grade (A/B/C/F).
 For ordinary maintenance, record the existing behavior, relevant requirements, and checks instead of a model score.
 
 **Step 3**: Read the telemetry for this agent:
@@ -250,7 +250,7 @@ If joy-check flags lines in EXISTING content (not modified by this upgrade):
 
 **Goal**: Score the updated agent and compute quality delta.
 
-**Step 1**: Call the Skill tool with `agent-evaluation`. Evaluate the modified file and record the after score and grade.
+**Step 1**: Call the Skill tool with `toolkit` and run its Agent Evaluation mode. Evaluate the modified file and record the after score and grade.
 
 **Step 2**: Compute delta:
 ```
