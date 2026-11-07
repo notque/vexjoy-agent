@@ -32,7 +32,7 @@ Triggers: re-route, lazy re-dispatch, validator misroute, harness reject. A righ
 
 ## Re-deriving the router's prose figures
 
-SKILL.md quotes three telemetry figures: the one-surface floor, the Agent-greediness share, and the Pairing rule. Each is a DATED observation, not an invariant: no test pins it, because pinning a live DB read would make CI depend on runtime data. Re-measure before editing either number — a swapped figure with no query behind it is how the earlier "82% carried a correct specialist skill" claim became unreproducible ("correct" is not a recorded column, so nothing could confirm or refute it).
+SKILL.md quotes three telemetry figures: the floor of one filled surface, the Agent-greediness share, and the Pairing rule. Each is a DATED observation, not an invariant: no test pins it, because pinning a live DB read would make CI depend on runtime data. Re-measure before editing either number — a swapped figure with no query behind it is how the earlier "82% carried a correct specialist skill" claim became unreproducible ("correct" is not a recorded column, so nothing could confirm or refute it).
 
 Source: `evidence_route_decisions` in `~/.claude/learning/learning.db` (two other learning.db files exist and lack this table). Read-only:
 
@@ -57,4 +57,4 @@ sqlite3 "$DB" "SELECT ROUND(AVG(depth),2), ROUND(100.0*SUM(depth<=1)/COUNT(*),1)
   FROM evidence_route_decisions);"   # -> 2.65 | 6.6   (2026-11-07, n=303)
 ```
 
-Report depth against a REACHABLE maximum. On the 2026-08-15 rows `pipeline` and `matched_components` were NULL on all 301 — both columns landed after those rows were written — so the ceiling was 3, not 4. On the 2026-11-07 rows `pipeline` is set on 66 of 303, so the ceiling is 4 again. "Mean 2.01 of 4" overstates the shortfall, and "0% at depth 4" describes the schema rather than the router. SKILL.md therefore cites only the depth-at-most-1 half, which stays meaningful as the pipeline column fills because a new pipeline pick can only move a row up and out of that bucket. Confirm the ceiling before quoting the mean.
+Report depth against a REACHABLE maximum. On the 2026-08-15 rows `pipeline` and `matched_components` were NULL on all 301 — both columns landed after those rows were written — so the ceiling was 3, not 4. On the 2026-11-07 rows `pipeline` is set on 66 of 303, so the ceiling is 4 again. "Mean 2.01 of 4" overstates the shortfall, and "0% at depth 4" describes the schema rather than the router. SKILL.md therefore cites only the share at depth 0 or 1, which stays meaningful as the pipeline column fills because a new pipeline pick can only move a row up and out of that bucket. Confirm the ceiling before quoting the mean.
