@@ -40,7 +40,7 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 - **Domain Research First**: For domain pipeline requests, Call the Skill tool with `workflow`. Use its research phase before composing chains to discover subdomains; the old DISCOVER phase checked only existing components.
 - **Chain Validation Required**: Run `scripts/artifact-utils.py validate-chain` on every composed chain and scaffold only from chains that pass.
 - **Skills >> Agents**: Produce more skills than agents. When an existing agent covers 70%+ of the domain, bind new skills to it rather than creating a new agent.
-- **Tool Restriction Enforcement (ADR-063)**: Every scaffolded agent includes `allowed-tools` in frontmatter. Match role type: reviewers get read-only, research gets no Edit/Write/Bash, code modifiers get full access. Pipeline components inherit restrictions from their role. Validate with `python3 ~/.claude/scripts/audit-tool-restrictions.py --audit`.
+- **Tool Lists (advisory)**: Every scaffolded agent includes `allowed-tools` in frontmatter. Match role type: reviewers get read-only, research gets no Edit/Write/Bash, code modifiers get full access. Claude Code ignores `allowed-tools` for agents, so the list documents intent only; put read-only rules in the agent body. Check presence with `python3 ~/.claude/scripts/audit-tool-restrictions.py --audit`.
 
 ### Orchestration STOP Blocks
 - **Before fan-out dispatch**: STOP. Each sub-agent must receive: (1) the full list of components it must create, (2) the Discovery Report or Pipeline Spec for reuse context, and (3) inter-component relationships (which agent binds which skill). Dispatching without this context produces orphaned components.

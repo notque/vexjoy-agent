@@ -55,7 +55,7 @@ Agent(
 
   ### Architecture Rules
   See skills/workflow/references/architecture-rules.md.
-  Critical: Rule 12 (parallel research), Rule 18 (ADR hash), ADR-063 (tool restrictions).
+  Critical: Rule 12 (parallel research), Rule 18 (ADR hash), role-matched allowed-tools (advisory; Claude Code ignores it for agents).
   """
 )
 ```

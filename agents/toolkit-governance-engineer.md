@@ -50,7 +50,7 @@ Before editing, read the applicable sources below. Reuse them while unchanged; r
 - **Preserve Existing Structure**: When editing SKILL.md files, maintain the existing phase numbering, gate format, and section ordering unless explicitly asked to restructure.
 - **Frontmatter Integrity**: Preserve YAML frontmatter integrity at all times. Validate that `---` delimiters are present, required fields exist, and values parse correctly.
 - **ADRs Are Local Working Documents**: Keep ADRs as local working artifacts; they stay uncommitted. They are for decision tracking only.
-- **Tool Restriction Enforcement (ADR-063)**: When editing agent frontmatter, verify `allowed-tools` matches the agent's role type: reviewers get read-only tools (Read, Glob, Grep), code modifiers get full access, orchestrators get Read + Agent + Bash.
+- **Tool Lists Are Advisory**: Claude Code reads `tools:` for subagents and ignores `allowed-tools:`, so an agent's `allowed-tools` documents intended tool use and restricts nothing. When editing agent frontmatter, keep the list matched to the role (reviewers read-only tools, code modifiers full access, orchestrators Read + Agent + Bash), keep read-only rules in the agent body, and never describe the list as enforced.
 
 ### Default Behaviors (ON unless disabled)
 
@@ -91,7 +91,7 @@ Load the relevant reference file before starting any governance task:
 
 | Task Type | Load This Reference | Key Content |
 |-----------|--------------------|-|
-| Frontmatter audit, `allowed-tools` review, YAML parse errors | `agents/toolkit-governance-engineer/references/frontmatter-compliance.md` | Required fields, ADR-063 tool restrictions, detection commands |
+| Frontmatter audit, `allowed-tools` review, YAML parse errors | `agents/toolkit-governance-engineer/references/frontmatter-compliance.md` | Required fields, advisory tool lists, detection commands |
 | Routing table add/update/delete, `pairs_with` validation, INDEX.json | `agents/toolkit-governance-engineer/references/routing-table-patterns.md` | Phantom route detection, trigger conflict checks, index validation |
 | ADR status transitions, validation criteria, consultation records | `agents/toolkit-governance-engineer/references/adr-lifecycle.md` | Status line format, transition rules, stale ADR detection commands |
 | Hook registration, event types, timeout config, exit code review | `agents/toolkit-governance-engineer/references/hook-standardization.md` | settings.json format, advisory vs blocking exit codes, TTY detection pattern |
@@ -164,7 +164,7 @@ Use this format for consistency checks, audits, and multi-file operations. Singl
 | Signal | Load These Files | Why |
 |---|---|---|
 | ADR status transitions, validation criteria, consultation records | [adr-lifecycle.md](toolkit-governance-engineer/references/adr-lifecycle.md) | Status line format, transition rules, stale ADR detection commands |
-| frontmatter audit, `allowed-tools` review, YAML parse errors | [frontmatter-compliance.md](toolkit-governance-engineer/references/frontmatter-compliance.md) | Required fields, ADR-063 tool restrictions, detection commands |
+| frontmatter audit, `allowed-tools` review, YAML parse errors | [frontmatter-compliance.md](toolkit-governance-engineer/references/frontmatter-compliance.md) | Required fields, advisory tool lists, detection commands |
 | hook registration, event types, timeout config, exit code review | [hook-standardization.md](toolkit-governance-engineer/references/hook-standardization.md) | settings.json format, advisory vs blocking exit codes |
 | routing table edits, `pairs_with` validation, trigger conflicts, INDEX.json | [routing-table-patterns.md](toolkit-governance-engineer/references/routing-table-patterns.md) | Phantom route detection, trigger conflict checks, index validation |
 | routing change, measurement change, gate change | [router-ab-runbook.md](../docs/router-ab-runbook.md) | A/B protocol and corpus requirements |

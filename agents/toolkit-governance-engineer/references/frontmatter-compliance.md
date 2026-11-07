@@ -1,6 +1,6 @@
 # Frontmatter Compliance Reference
 
-> **Scope**: YAML frontmatter validation for agents and skills — required fields, tool restrictions, type rules, and detection commands. Does not cover skill phase/gate structure.
+> **Scope**: YAML frontmatter validation for agents and skills — required fields, advisory tool lists, type rules, and detection commands. Does not cover skill phase/gate structure.
 > **Version range**: v2.0 template (current standard)
 > **Generated**: 2026-04-15
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Agent and skill frontmatter is the contract between a component and the routing system. Broken frontmatter silently removes a component from discovery — the router never finds it, and the component disappears from all coverage reports. The most common failure modes are missing required fields, overly permissive `allowed-tools`, and YAML parse errors from unquoted special characters.
+Agent and skill frontmatter is the contract between a component and the routing system. Broken frontmatter silently removes a component from discovery — the router never finds it, and the component disappears from all coverage reports. The most common failure modes are missing required fields, tool lists that do not match the agent's role, and YAML parse errors from unquoted special characters.
 
 ---
 
@@ -22,22 +22,24 @@ Agent and skill frontmatter is the contract between a component and the routing 
 | `routing.triggers` | list of strings | agents, skills | `triggers: [edit skill, update routing]` |
 | `routing.complexity` | enum | agents, skills | `complexity: Medium` |
 | `routing.category` | string | agents, skills | `category: meta` |
-| `allowed-tools` | list of strings | agents only | `allowed-tools: [Read, Glob, Grep]` |
+| `allowed-tools` | list of strings (advisory for agents) | agents, skills | `allowed-tools: [Read, Glob, Grep]` |
 | `color` | string | agents | `color: blue` |
 | `model` | string | agents | `model: sonnet` |
 
 ---
 
-## Tool Restrictions by Agent Type (ADR-063)
+## Tool Lists by Agent Type (advisory)
 
-| Agent Role | Permitted Tools | Rationale |
+Claude Code reads `tools:` for subagents and ignores `allowed-tools:` (the skill field), so an agent's `allowed-tools` restricts nothing: every repo agent runs with all tools. The list documents the tools the role needs, and `add-companion-skills.py`, `build-subagent-spec.py`, and `validate-references.py --check-skill-calls` read it. Renaming the field to `tools:` would start enforcing it; that is an owner decision, so leave the field name alone.
+
+| Agent Role | Listed Tools | Rationale |
 |------------|-----------------|-----------|
-| Reviewer / auditor | `Read`, `Glob`, `Grep` | Read-only prevents unauthorized changes |
+| Reviewer / auditor | `Read`, `Glob`, `Grep`, read-only `Bash` | Documents read-only intent; the body's no-write rule is what holds |
 | Code modifier / engineer | `Read`, `Edit`, `Write`, `Bash`, `Glob`, `Grep` | Full access for implementation work |
 | Orchestrator / coordinator | `Read`, `Agent`, `Bash` | Dispatches agents; no direct file edits |
 | Skill-invoker | `Read`, `Bash`, `Glob`, `Grep` | Executes skills but doesn't write files |
 
-**Rule**: `allowed-tools` must match the agent's actual role. Granting `Edit` to a reviewer or `Agent` to a non-orchestrator violates ADR-063.
+**Rule**: Match `allowed-tools` to the agent's actual role and to what its body tells it to use. Describe the list as advisory, never as enforced, and state any read-only rule in the agent body.
 
 ---
 
@@ -114,13 +116,13 @@ routing:
 ---
 ```
 
-**Why this matters**: Without `allowed-tools`, the agent inherits an undefined tool set. Behavior varies by runtime — some runtimes grant all tools (dangerous), others grant none (agent cannot function).
+**Why this matters**: Without `allowed-tools`, nobody reading the agent can see its intended tool scope, `add-companion-skills.py` fails on an agent with companion skills, and `validate-references.py --check-skill-calls` cannot confirm the `Skill` tool. Claude Code grants the agent all tools either way.
 
 **Preferred action:**
 
-Add `allowed-tools` matched to the agent's role: reviewers get `[Read, Glob, Grep]`, code modifiers get `[Read, Edit, Write, Bash, Glob, Grep]`, orchestrators get `[Read, Agent, Bash]`. Consult the Tool Restrictions table at the top of this file for the full mapping.
+Add `allowed-tools` matched to the agent's role: reviewers get `[Read, Glob, Grep]` plus read-only `Bash`, code modifiers get `[Read, Edit, Write, Bash, Glob, Grep]`, orchestrators get `[Read, Agent, Bash]`. Consult the Tool Lists table at the top of this file for the full mapping.
 
-**Preferred action**: Add `allowed-tools` matching the agent's role type per the Tool Restrictions table above.
+**Preferred action**: Add `allowed-tools` matching the agent's role type per the Tool Lists table above.
 
 ---
 
@@ -174,7 +176,7 @@ Use exactly `Low`, `Medium`, or `High` (capital first letter). Run `grep -rn "co
 
 ---
 
-### Restrict Reviewer Agents to Read-Only Tools (ADR-063)
+### Keep Reviewer Tool Lists Read-Only
 
 **Detection**:
 ```bash
@@ -183,20 +185,20 @@ grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"
 
 **Signal**:
 ```yaml
-name: reviewer-code-quality
+name: reviewer-example
 allowed-tools:
   - Read
-  - Edit    # violation: reviewers should not modify files
+  - Edit    # documents write intent on a reviewer with no fix mode
   - Grep
 ```
 
-**Why this matters**: Reviewer agents with write access can modify files during review passes, creating unintended side-effects. ADR-063 requires reviewers to be read-only.
+**Why this matters**: A reviewer that changes files during a review pass alters what it is reviewing. The tool list cannot stop that, because Claude Code ignores `allowed-tools` for agents; the read-only rule in the agent body is the control, and the list should agree with it.
 
 **Preferred action:**
 
-Set reviewer `allowed-tools` to `[Read, Glob, Grep]` only. Run `grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"` to find violations. Remove `Edit` and `Write` from any reviewer's tool list and verify the agent still functions correctly with read-only access.
+List only `Read`, `Glob`, `Grep`, and read-only `Bash` for a reviewer, and add `Edit` only when its body defines a `--fix` mode (`reviewer-code`, `reviewer-system`). Keep the read-only rule in the body. Run `grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"` and check each hit against the agent's fix mode.
 
-**Preferred action**: Remove `Edit` and `Write` from reviewer `allowed-tools`. Reviewers use `Read`, `Glob`, `Grep` only.
+**Preferred action**: Match each reviewer's list to its body: read-only tools by default, `Edit` only for a documented fix mode.
 
 ---
 
@@ -227,7 +229,7 @@ Bump to `version: 1.0.0` when the agent ships its first production-ready capabil
 |---------|------------|-----|
 | Agent missing from routing coverage report | Broken YAML frontmatter (parse error) | `python3 -c "import yaml; yaml.safe_load(open('agents/name.md').read().split('---')[1])"` |
 | Agent in INDEX.json but not routed | Missing `routing.triggers` | Add `routing.triggers` list with at least one trigger string |
-| `allowed-tools` grants unexpected access | Field absent from frontmatter | Add `allowed-tools` explicitly; never rely on runtime defaults |
+| Agent changed files during a review | `allowed-tools` is advisory, so nothing blocked the write | Put the read-only rule in the agent body; the list documents intent only |
 | Description truncated in INDEX.json | Unquoted colon in description | Wrap description in double quotes |
 | Agent routes but hits wrong complexity tier | `complexity` casing mismatch | Verify exact: `Low`, `Medium`, `High` |
 
@@ -245,7 +247,7 @@ grep -n "^description: [^\"'].*:" agents/*.md
 # Find wrong complexity casing
 grep -rn "complexity:" agents/*.md | grep -vE "complexity: (Low|Medium|High)"
 
-# Find reviewer agents with write tools (ADR-063)
+# Find reviewer agents that list write tools (fix-mode reviewers may list Edit)
 grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"
 
 # Find pre-production versions on deployed agents

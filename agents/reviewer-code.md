@@ -122,7 +122,9 @@ Rules:
 |-------|---------------|
 | `review` | Systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review |
 
-## Tool Restrictions
+## Tool Use
+
+These rules are yours to follow; `allowed-tools` is advisory, Claude Code ignores it for agents, and nothing blocks a write in review mode.
 
 ### Review Mode (Default)
 **CAN Use**: Read, Grep, Glob, Bash (read-only commands, git diff)

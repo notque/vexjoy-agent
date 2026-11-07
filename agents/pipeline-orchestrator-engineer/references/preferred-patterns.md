@@ -69,7 +69,7 @@ comm -23 \
 
 ### Set allowed-tools in Every Agent Frontmatter
 
-Match tools to role per ADR-063. Reviewers/research: read-only. Code modifiers: full access.
+Match tools to role. Reviewers/research: read-only. Code modifiers: full access. The list is advisory: Claude Code ignores `allowed-tools` for agents, so put any read-only rule in the agent body too.
 
 ```yaml
 # Reviewers/research — read-only
@@ -98,7 +98,7 @@ Agent, skill, and hook files have no data dependencies during creation. Sequenti
 |-------|------------|-----|
 | `validate-chain: type mismatch at step N` | Output/input type incompatibility | Choose compatible step or add adapter |
 | `toolkit: trigger conflict` | Overlaps existing force-route | More specific triggers; preserve force-routes |
-| `audit-tool-restrictions: missing allowed-tools` | No `allowed-tools` in frontmatter | Add role-appropriate list per ADR-063 |
+| `audit-tool-restrictions: missing allowed-tools` | No `allowed-tools` in frontmatter | Add a role-appropriate list (advisory) |
 | `adr-enforcement: hash mismatch` | Spec hash doesn't match ADR | Recompute: `adr-query.py hash --adr {path}` |
 | `toolkit: template section missing` | Missing frontmatter/operator context | Re-run with explicit template reference |
 | Duplicate Component | Existing agent/skill covers purpose | Bind existing instead of creating new |
@@ -113,7 +113,7 @@ Agent, skill, and hook files have no data dependencies during creation. Sequenti
 # Sub-agents missing context package
 grep -rn 'subagent_type' agents/ --include="*.md" | grep -v "spec\|manifest\|discovery"
 
-# Missing tool restrictions (ADR-063)
+# Missing tool lists
 grep -rL 'allowed-tools' agents/*.md
 
 # Unregistered agents in routing
