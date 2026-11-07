@@ -162,7 +162,8 @@ def _check_breaker() -> int | None:
         file_ts = float(raw.get("ts", 0))
         if (time.time() - file_ts) < ttl:
             file_status = int(raw["status"])
-            _jev_down = (file_status, time.monotonic())
+            # Keep the file's trip time, so reading it does not restart the TTL.
+            _jev_down = (file_status, time.monotonic() - (time.time() - file_ts))
             return file_status
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
         pass

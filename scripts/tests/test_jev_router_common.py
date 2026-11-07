@@ -345,6 +345,17 @@ class TestCircuitBreaker:
         assert call_count["n"] == 2
         assert data["answers"]["q"]["noul"] == 0.5
 
+    def test_breaker_read_from_file_keeps_its_original_expiry(self) -> None:
+        """A breaker another process tripped 50 s ago (TTL 60) expires 10 s from now, not 60."""
+        common._breaker_path().write_text(json.dumps({"status": 402, "ts": time.time() - 50}), encoding="utf-8")
+        common._jev_down = None
+        with patch.dict(os.environ, {"JEV_BREAKER_TTL_S": "60"}):
+            assert common._check_breaker() == 402
+            common._breaker_path().unlink()  # only the in-process copy is left
+            real = time.monotonic()
+            with patch.object(common.time, "monotonic", return_value=real + 15):
+                assert common._check_breaker() is None
+
     def test_success_clears_breaker(self) -> None:
         """A 2xx response clears the breaker file."""
         # Manually trip the breaker
