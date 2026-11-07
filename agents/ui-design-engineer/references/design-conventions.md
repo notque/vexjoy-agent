@@ -1,6 +1,6 @@
 # Design Conventions
 
-<!-- Loaded by ui-design-engineer when task involves Tailwind, frontend tokens, theme config, spacing scales, or starting a new surface -->
+<!-- Loaded by ui-design-engineer when task involves Tailwind, design tokens, theme config, spacing scales, or starting a new surface -->
 
 House conventions for tokens, Tailwind, and how to open a design task. Tailwind utility syntax and CSS custom property syntax are assumed known.
 
@@ -46,7 +46,7 @@ Map variants to complete class strings instead, so the scanner sees each one lit
 
 These are non-negotiable and are checked before a surface is considered done:
 
-- Contrast meets WCAG 2.1 AA (4.5:1 body text, 3:1 large text and UI boundaries)
+- Contrast meets WCAG 2.2 AA (4.5:1 body text, 3:1 large text and UI boundaries)
 - Every interactive element is reachable and operable by keyboard, with a visible `:focus-visible` ring
 - Meaning is never carried by color alone
 - Modals trap focus and restore it to the trigger on close

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.0.3
 """
 PostToolUse Hook: Usage Tracking for Skills and Agents
 
@@ -67,7 +67,7 @@ def main():
         from hook_utils import get_project_dir, get_session_id
         from usage_db import record_agent, record_skill
 
-        session_id = get_session_id()
+        session_id = get_session_id(event)
         project_path = str(get_project_dir())
         # PostToolUse events carry input under "tool_input" or "input"
         # depending on harness version; try both so the skill name is never

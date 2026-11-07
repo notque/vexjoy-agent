@@ -12,7 +12,7 @@ centroid lands within ``cell_size/8`` of the expected center.
 
 Run as a standalone script (no pytest dependency required):
 
-    python3 skills/game/game-sprite-pipeline/scripts/test_slice_grid_cells.py
+    python3 skills/game/game-dev/scripts/test_slice_grid_cells.py
 
 Exits 0 on success, non-zero on failure with a diagnostic message.
 """

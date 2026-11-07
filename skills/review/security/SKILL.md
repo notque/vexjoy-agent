@@ -258,6 +258,6 @@ the deterministic layer did not run.
 
 - Detection rules: `scripts/security-review-scan.py` (single source of truth)
 - Review taxonomy (40 classes + severity + FP filters + language guidance): `references/coverage.md`
-- Security reviewer role: `skills/review/parallel-code-review/SKILL.md` (Reviewer 1)
+- Security reviewer role: `skills/review/review/SKILL.md` (Parallel mode, Reviewer 1)
 - Auto-run hook: `hooks/security-review-hook.py`
 - Design contract: `adr/local-security-review.md`

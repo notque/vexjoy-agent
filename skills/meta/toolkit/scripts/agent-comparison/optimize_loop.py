@@ -7,7 +7,7 @@ score improvement. The keep/revert decision is arithmetic — no LLM
 judgment in the loop itself.
 
 Usage:
-    python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
+    python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
         --target agents/golang-general-engineer.md \
         --goal "improve error handling instructions" \
         --benchmark-tasks tasks.json \

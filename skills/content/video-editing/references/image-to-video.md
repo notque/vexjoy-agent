@@ -77,7 +77,7 @@ Encoding defaults: libx264 preset medium, CRF 23, yuv420p pixel format, 192k AAC
 **Step 1: Run the script**
 
 ```bash
-python3 $HOME/vexjoy-agent/skills/content/image-to-video/scripts/image_to_video.py \
+python3 ~/.claude/skills/video-editing/scripts/image_to_video.py \
   --image /absolute/path/to/image.png \
   --audio /absolute/path/to/audio.mp3 \
   --output /absolute/path/to/output.mp4 \
@@ -88,7 +88,7 @@ python3 $HOME/vexjoy-agent/skills/content/image-to-video/scripts/image_to_video.
 For workspace batch mode (processes all matched pairs in `workspace/input/`):
 
 ```bash
-python3 $HOME/vexjoy-agent/skills/content/image-to-video/scripts/image_to_video.py \
+python3 ~/.claude/skills/video-editing/scripts/image_to_video.py \
   --process-workspace \
   --visualization waveform
 ```
@@ -159,4 +159,4 @@ Solution:
 ## References
 
 - `references/ffmpeg-filters.md`: FFmpeg filter documentation for visualization modes
-- `skills/content/image-to-video/scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)
+- `skills/content/video-editing/scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)

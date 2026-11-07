@@ -310,4 +310,4 @@ Overall funnel rate: ___% (benchmark: 0.1-0.5% of total visitors)
 
 - `channel-evaluation.md` — CAC/LTV models and basic funnel stage mapping by channel
 - `audience-segmentation.md` — ICP scoring to determine which audience segments to build the funnel for
-- `skills/growth-strategy/SKILL.md` — full growth strategy workflow including 90-day planning templates
+- `skills/business/business-ops/SKILL.md` (GROWTH mode) — full growth strategy workflow

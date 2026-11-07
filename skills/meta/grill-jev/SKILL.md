@@ -53,7 +53,7 @@ Generate a context-specific Jev interrogation battery against a plan, spec, desi
 ## When to invoke
 
 - User says "grill this", "validate my plan", "find holes in my spec", "sanity check", "stress test this", "50 questions", "interrogate", "grill-jev"
-- **Automatically after any planning output.** When a plan, spec, or design is produced — before execution begins — pass it through grill-jev. Any structured output with phases, steps, or checklist items qualifies.
+- **When you are genuinely unsure a plan, spec, or design holds**, before execution begins. Not automatically after every plan: the owner (2026-10-26), "jev is like a guide rail when you are legitimately unsure. if you are sure, just make the decisions".
 - When the user says "does this look right", "approve this", "is this ready", "review my plan"
 
 ## How it works
@@ -179,7 +179,7 @@ A plan whose steps call Jev can fail on the questions rather than the volume. Gr
 - Does any Jev question ask for counting, arithmetic, date order, or a magnitude read from a `score`? Code should.
 - Is any question a compound of several judgments, or a "which one" asked as a Noul per candidate? Split it, or use a Choice with `none`.
 - Does a Choice lean on option order, with no reversed-order check for a high-stakes pick?
-- Does the plan pin a versioned model ID, or does it use `jev-latest`, which moves between versions (1.13.0 now, 1.14.0 about 2026-10-21)? A threshold tuned on one version needs a rerun on the next.
+- Does the plan pin a versioned model ID (this toolkit pins `jev-1.14.0`), or does it use `jev-latest`, which moves between versions? A threshold tuned on one version needs a rerun on the next.
 - Does it gate on `confidence` for every answer, where taking the best option would do? Does it treat a Noul near 0.5 as "medium"?
 - Does it put untrusted text in state with no criteria naming what counts as evidence?
 - Does it depend on images, Box, or long context, which TypeSafe labels non-production, as the only gate?
@@ -315,7 +315,7 @@ Question-authoring guide: `references/question-battery.md`. Visual goals: `refer
 
 ## Integration into planning workflows
 
-Any skill or agent that produces a plan should call grill-jev before declaring it complete:
+A skill or agent that produces a plan calls grill-jev when the user asks for it or when it is genuinely unsure the plan holds. When it is sure, it decides and says why:
 
 ```python
 import subprocess

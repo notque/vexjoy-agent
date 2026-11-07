@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """
 SessionStart Hook: Operator Context Detection
 
@@ -70,9 +70,11 @@ PRODUCTION_BRANCH_PATTERN = re.compile(r"^(refs/heads/)?(release/|production$)")
 # Profile-specific behavioral guidance
 PROFILE_GUIDANCE = {
     "personal": (
-        "Full autonomy. No approval gates. Branch safety only.\n"
+        "Autonomous for routine work, within branch safety and the CLAUDE.md approval rules.\n"
         "- Create feature branches for changes (never commit to main)\n"
-        "- No additional approval steps required\n"
+        "- No extra approval steps for routine code and git work\n"
+        "- Actions CLAUDE.md reserves for the owner (public binds, egress, secret reads, destructive\n"
+        "  data work, persistence, remote access, live infra) still need explicit owner approval\n"
         "- Learning database updates ungated"
     ),
     "work": (
@@ -269,7 +271,7 @@ def get_profile_injection(profile: str, detection: str) -> str:
     ADR hook-injection-condensation: ~130 chars instead of ~616 chars.
     """
     summaries = {
-        "personal": "Full autonomy. No approval gates. Branch safety only.",
+        "personal": "Autonomous for routine work, within branch safety and the CLAUDE.md approval rules.",
         "work": "Convention-enforced. APPROVE for production changes.",
         "ci": "Fully autonomous, disposable environment. Database ungated.",
         "production": "Maximum gates. APPROVE mandatory. SNAPSHOT before changes.",

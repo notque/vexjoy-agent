@@ -7,7 +7,7 @@ Reference for Phase 3 GENERATE. Templates for generating TypeScript MCP servers.
 Generate a complete MCP server project:
 
 ```bash
-python3 skills/workflow/references/mcp-pipeline-builder/scripts/assemble-scaffold.py \
+python3 skills/process/workflow/references/mcp-pipeline-builder/scripts/assemble-scaffold.py \
   --service github --entity issue --output-dir ./github-mcp-server
 ```
 

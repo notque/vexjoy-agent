@@ -59,7 +59,7 @@ Nightly cost at full utilization: ~$45-105/month. Discovery adds ~$0.50-0.75/mon
 
 ## Phase 3 Inline Critique Fallback
 
-Use this when `multi-persona-critique` skill is NOT available. Dispatch 3 parallel agents:
+Use this when the assessment skill (Multi-Persona Critique mode) is NOT available. Dispatch 3 parallel agents:
 
 **Pragmatist**: "You are a pragmatist engineer. Evaluate each proposal on: implementation feasibility, time-to-value, and risk of unintended side effects. Rate each STRONG/MODERATE/WEAK with one sentence of justification."
 

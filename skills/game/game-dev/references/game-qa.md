@@ -145,7 +145,7 @@ test('capture baseline', async ({ page }) => {
 **Step 2: Run imgdiff after changes**
 
 ```bash
-python3 skills/game/game-pipeline/scripts/imgdiff.py \
+python3 skills/game/game-dev/scripts/imgdiff.py \
   tests/baseline.png tests/current.png --tolerance 5.0
 ```
 
@@ -164,7 +164,7 @@ test('visual regression', async ({ page }) => {
   await page.screenshot({ path: 'tests/current.png' });
 
   const result = execSync(
-    'python3 skills/game/game-pipeline/scripts/imgdiff.py tests/baseline.png tests/current.png',
+    'python3 skills/game/game-dev/scripts/imgdiff.py tests/baseline.png tests/current.png',
     { encoding: 'utf8' }
   );
   expect(result).toContain('PASS');
@@ -201,7 +201,7 @@ When you can't rely on Playwright's `webServer` config (e.g., agent-driven tests
 
 ```bash
 # Start server, run tests, stop server regardless of outcome
-python3 skills/game/game-pipeline/scripts/with_server.py \
+python3 skills/game/game-dev/scripts/with_server.py \
   --port 3000 \
   --dir dist/ \
   "npx playwright test tests/visual.spec.js"

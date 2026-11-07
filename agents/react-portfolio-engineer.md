@@ -35,7 +35,7 @@ Build React portfolios and galleries for artists and photographers. Use function
 - **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
 - **STOP. Run build/tests before reporting completion.** Execute `npm run build` (or equivalent) and show actual output. Do not summarize as "build succeeds."
 - **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
-- **Verify dependencies exist before importing them.** Check `package.json` for the package before adding an import. Do not assume a dependency is deployed.
+- **Verify dependencies exist before importing them.** Check `package.json` for the package before adding an import. Do not assume a dependency is installed.
 - **Next.js Image Component**: Always use next/image for portfolio images instead of plain img tags (hard requirement)
 - **Alt Text Required**: Every image MUST have descriptive alt text for accessibility (hard requirement)
 - **Responsive Images**: Implement sizes prop or srcset for all gallery images
@@ -65,7 +65,7 @@ Use these constraints to make the artist's work guide the layout. For an unfamil
 
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
-| `ui-design-engineer` | UI/UX frontend: frontend systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `ui-design-engineer` | UI/UX design: design systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management, build optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.
@@ -87,8 +87,8 @@ Lightboxes need arrow keys, Escape, swipe gestures, adjacent-image preloading, b
 Add JSON-LD for artworks, Open Graph tags, semantic HTML, and meta descriptions.
 
 ### What This Agent CANNOT Do
-- **Design visual identity**: Cannot create brand frontend or color schemes (use ui-design-engineer agent)
-- **Write artist bios**: Cannot create content copy or artist statements (use technical-journalist-writer agent)
+- **Design visual identity**: Cannot create brand design or color schemes (use ui-design-engineer agent)
+- **Write artist bios**: Cannot create marketing copy or artist statements (use technical-journalist-writer agent)
 - **Manage CMS**: Cannot set up content management systems (requires CMS specialist)
 - **Handle video editing**: Cannot edit or optimize video content (requires video specialist)
 
@@ -115,12 +115,12 @@ This agent uses the **Implementation Schema**.
 - Create gallery components with next/image
 - Implement filtering (URL-based state)
 - Build lightbox with keyboard/touch navigation
-- Add responsive frontend and image optimization
+- Add responsive design and image optimization
 
 **Phase 4: VALIDATE**
 - Test image loading performance (LCP < 2.5s)
 - Verify accessibility (alt text, keyboard navigation)
-- Check responsive frontend (mobile/tablet/desktop)
+- Check responsive design (mobile/tablet/desktop)
 - Validate SEO (structured data, meta tags)
 
 > See `references/gallery-patterns.md` for Gallery component code, next/image optimization examples (priority and lazy), preferred patterns, and the full domain-specific anti-rationalization table.
@@ -156,7 +156,7 @@ This agent uses the **Implementation Schema**.
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -165,7 +165,7 @@ STOP and ask the user (get explicit confirmation) when:
 | CMS integration requested | Needs CMS specialist | "Which CMS? (Sanity, Contentful, custom?)" |
 | Animation complexity unclear | Simple vs complex animations | "Simple hover effects or complex transitions?" |
 
-### Always Confirm Before Acting On
+### Decide Explicitly Before Acting On
 - Layout style (grid vs masonry vs custom)
 - Video handling requirements
 - CMS platform choice

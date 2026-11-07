@@ -169,6 +169,38 @@ class TestGateStrictness:
         code, _ = _run_main(_event(str(project / GATED_TARGET), str(project)), env={mod._BYPASS_ENV: "1"})
         assert code == 0
 
+    @pytest.mark.parametrize(
+        "relative",
+        [
+            "skills/some-skill/SKILL.md",
+            "skills/some-skill/references/guide.md",
+            "skills/some-skill/assets/config.json",
+            "skills/some-skill/scripts/tool.py",
+            "skills/some-skill/scripts/tests/test_tool.py",
+            "agents/reviewer.md",
+            "agents/reviewer/references/checklist.md",
+        ],
+    )
+    def test_every_file_under_agents_or_skills_is_gated(self, project: Path, relative: str):
+        """D-19: the gate keys on the directory alone, whatever the file type.
+
+        `_is_gated` used to compute an unused `is_source` extension check (ruff
+        F841) beside a comment promising source-only gating, so the code and its
+        comments disagreed. The enforced rule — the whole agents/ and skills/
+        tree — is the contract; narrowing it would weaken the gate.
+        """
+        _write_session(project, age=timedelta(hours=1))
+        _write_adr(project, INCOMPLETE_ADR)
+        assert mod._is_gated(str(project / relative)) is True
+        assert _run_main(_event(str(project / relative), str(project)))[0] == 2
+
+    @pytest.mark.parametrize("relative", ["main.py", "docs/guide.md", "hooks/x.py", "adr/test-adr.md"])
+    def test_files_outside_agents_and_skills_pass(self, project: Path, relative: str):
+        _write_session(project, age=timedelta(hours=1))
+        _write_adr(project, INCOMPLETE_ADR)
+        assert mod._is_gated(str(project / relative)) is False
+        assert _run_main(_event(str(project / relative), str(project)))[0] == 0
+
 
 # ---------------------------------------------------------------------------
 # Fail-open

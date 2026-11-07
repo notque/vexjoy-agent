@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from dataclasses import dataclass, field
@@ -36,7 +37,18 @@ from typing import Literal
 # ---------------------------------------------------------------------------
 
 CLAUDE_DIR = Path.home() / ".claude"
-LEARNING_DB = CLAUDE_DIR / "state" / "learning.db"
+
+
+def learning_db_path() -> Path:
+    """The store the hooks write: ``$CLAUDE_LEARNING_DIR/learning.db``, else ``~/.claude/learning/learning.db``.
+
+    Same rule as ``hooks/lib/learning_db_v2.get_db_dir()``, without importing that module.
+    """
+    env_dir = os.environ.get("CLAUDE_LEARNING_DIR")
+    return (Path(env_dir) if env_dir else CLAUDE_DIR / "learning") / "learning.db"
+
+
+LEARNING_DB = learning_db_path()
 MEMORY_PROJECTS_DIR = CLAUDE_DIR / "projects"
 STATE_DIR = CLAUDE_DIR / "state"
 ADR_DIR = Path(__file__).resolve().parent.parent / "adr"
@@ -186,8 +198,10 @@ def check_hook_errors(config: HealthConfig) -> HookErrorResult:
     cutoff_7d = (datetime.now(tz=timezone.utc) - timedelta(days=7)).isoformat()
     cutoff_recent = (datetime.now(tz=timezone.utc) - timedelta(days=3.5)).isoformat()
 
-    conn = sqlite3.connect(str(LEARNING_DB))
+    conn = None
     try:
+        # Read-only: the hooks own this database, and a health check never writes to it.
+        conn = sqlite3.connect(f"{LEARNING_DB.absolute().as_uri()}?mode=ro", uri=True)
         blocked_count = conn.execute(
             "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ?",
             (cutoff_7d,),
@@ -208,7 +222,7 @@ def check_hook_errors(config: HealthConfig) -> HookErrorResult:
             (cutoff_7d, cutoff_recent),
         ).fetchone()[0]
     except sqlite3.OperationalError:
-        # Table may not exist yet on fresh installs
+        # No governance_events table yet (fresh install), or the file cannot be opened read-only
         return HookErrorResult(
             blocked_count=0,
             total_count=0,
@@ -218,7 +232,8 @@ def check_hook_errors(config: HealthConfig) -> HookErrorResult:
             db_missing=True,
         )
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
     error_rate = (blocked_count / total_count * 100) if total_count > 0 else 0.0
 

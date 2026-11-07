@@ -201,6 +201,25 @@ class TestAgentRecording:
         assert rows[0]["agent_type"] == "ui-frontend-engineer"
 
 
+class TestSessionKeying:
+    """Rows carry the session_id from the hook input (B-04).
+
+    Claude Code sends session_id on stdin and never sets CLAUDE_SESSION_ID, so
+    reading only the env var gave every row a fresh per-call hash.
+    """
+
+    def test_skill_row_uses_the_event_session_id(self, db_env, monkeypatch):
+        monkeypatch.delenv("CLAUDE_SESSION_ID", raising=False)
+        event = {**_skill_event("frontend"), "session_id": "sess-from-event"}
+        result = _run_hook(event, {"CLAUDE_LEARNING_DIR": str(db_env["db_dir"])})
+        assert result.returncode == 0
+
+        conn = sqlite3.connect(db_env["db_dir"] / "usage.db")
+        rows = conn.execute("SELECT session_id FROM skill_invocations").fetchall()
+        conn.close()
+        assert rows == [("sess-from-event",)]
+
+
 class TestNonBlocking:
     """Hook must exit 0 on every input shape."""
 

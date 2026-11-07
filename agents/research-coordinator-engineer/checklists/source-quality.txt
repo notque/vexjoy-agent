@@ -438,7 +438,7 @@ Confidence: HIGH - multiple independent authoritative sources
 
 ### In Final Report
 
-**DO NOT include citations in final report** (separate agent handles this).
+**Cite every factual claim in the final report** with its source and the supporting passage, and end with a Sources list; no separate citation agent exists.
 
 However, internal notes should track source quality for validation.
 

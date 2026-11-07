@@ -83,11 +83,13 @@ Use read-only tools only.
 
 **Allowed**: `ls`, `find`, `wc`, `du`, `df`, `file`, `stat`, `ps`, `top -bn1`,
 `uptime`, `free`, `pgrep`, `git status/log/diff/show/branch`,
-`sqlite3 "SELECT ..."`, `curl -s` (GET only), `date`, `env`.
+`sqlite3 "SELECT ..."`, `date`, and `curl -s` for a plain GET to a local service
+or a URL the user named (no request body, uploads, auth headers, tokens or cookies).
 
 **Forbidden**: `mkdir`, `rm`, `mv`, `cp`, `touch`, `chmod`, `chown`,
 `git add/commit/push`, file writes, `INSERT/UPDATE/DELETE/DROP`,
-`npm/pip/apt install`, `kill`, `systemctl restart`.
+`npm/pip/apt install`, `kill`, `systemctl restart`, and `env`/`printenv`
+(they print every secret in the environment).
 
 ### Phase 3: REPORT
 

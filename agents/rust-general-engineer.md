@@ -4,31 +4,38 @@ description: "Rust development: features, debugging, code review, performance. M
 color: orange
 hooks:
   PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import sys, json, os
-        try:
-            data = json.loads(sys.stdin.read())
-            tool = data.get('tool', '')
-            result = data.get('result', '')
+    - matcher: "Bash|Edit|Write|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            python3 -c "
+            import sys, json
+            try:
+                data = json.loads(sys.stdin.read())
+                tool = data.get('tool_name', '')
+                inp = data.get('tool_input') or {}
+                result = str(data.get('tool_response', ''))
+                notes = []
 
-            # After successful cargo build, suggest clippy
-            if tool == 'Bash':
-                cmd = data.get('input', {}).get('command', '')
-                if 'cargo build' in cmd and 'error' not in result.lower():
-                    print('[rust-agent] Consider running cargo clippy to catch subtle issues')
+                # After successful cargo build, suggest clippy
+                if tool == 'Bash':
+                    cmd = str(inp.get('command', ''))
+                    if 'cargo build' in cmd and 'error' not in result.lower():
+                        notes.append('[rust-agent] Consider running cargo clippy to catch subtle issues')
 
-            # After editing .rs files, remind about cargo fmt
-            if tool == 'Edit':
-                filepath = data.get('input', {}).get('file_path', '')
-                if filepath.endswith('.rs'):
-                    print('[rust-agent] Remember: cargo fmt to format edited Rust files')
-        except:
-            pass
-        "
-      timeout: 3000
-memory: project
+                # After editing .rs files, remind about cargo fmt
+                if tool in ('Edit', 'Write', 'MultiEdit'):
+                    filepath = str(inp.get('file_path', ''))
+                    if filepath.endswith('.rs'):
+                        notes.append('[rust-agent] Remember: cargo fmt to format edited Rust files')
+
+                if notes:
+                    print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': ' '.join(notes)}}))
+            except Exception:
+                pass
+            "
+          timeout: 5
+memory: user
 routing:
   triggers:
     - rust
@@ -41,7 +48,7 @@ routing:
     - rust-analyzer
     - rustfmt
   not_for: "tasks using 'rust' as an adjective (rust-colored, rusty); C++ ownership patterns (use a C++ agent); WebAssembly-only tasks without Rust source"
-  process-topics:
+  retro-topics:
     - programming
     - concurrency
     - debugging

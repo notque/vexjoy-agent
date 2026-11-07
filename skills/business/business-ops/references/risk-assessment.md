@@ -7,7 +7,7 @@ skill: strategic-decision
 
 # Risk Assessment Reference
 
-> **Scope**: Structured risk assessment for CEO-level strategic decisions — pre-mortem templates, scenario planning matrices, probability-weighted expected value, and black swan identification. Use AFTER the decision matrix has selected an option and BEFORE committing resources. Does NOT cover project execution risk (see skills/project-evaluation/references/feasibility-scoring.md).
+> **Scope**: Structured risk assessment for CEO-level strategic decisions — pre-mortem templates, scenario planning matrices, probability-weighted expected value, and black swan identification. Use AFTER the decision matrix has selected an option and BEFORE committing resources. Does NOT cover project execution risk (see skills/business/business-ops/references/feasibility-scoring.md).
 > **Version range**: Framework-agnostic — applies to market entry, partnership, acquisition, and major investment decisions.
 > **Generated**: 2026-04-09 — validate probability estimates against current market data; gut-feel priors need external calibration.
 
@@ -320,4 +320,4 @@ print(f'Probability sum: {prob_check:.2f} (must be 1.0)')
 
 - `decision-matrices.md` — weighted scoring and pre-mortem integration with option selection
 - `strategic-frameworks.md` — Porter's Five Forces and SWOT for market-level risk context
-- `skills/project-evaluation/references/feasibility-scoring.md` — risk-adjusted feasibility for project execution risk
+- `skills/business/business-ops/references/feasibility-scoring.md` — risk-adjusted feasibility for project execution risk

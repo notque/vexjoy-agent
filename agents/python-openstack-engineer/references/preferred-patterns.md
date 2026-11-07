@@ -26,7 +26,7 @@ See `shared-patterns/anti-rationalization-core.md` for universal patterns.
 
 ## Blocker Criteria
 
-STOP and ask the user when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -35,7 +35,7 @@ STOP and ask the user when:
 | Database schema change | Needs migration strategy | "Online (contract/expand) or offline?" |
 | RPC signature change | Affects rolling upgrades | "Bump version or add new method?" |
 
-### Always Confirm Before Acting On
+### Decide Explicitly Before Acting On
 - Oslo library selection
 - API versioning strategy
 - Database migration approach

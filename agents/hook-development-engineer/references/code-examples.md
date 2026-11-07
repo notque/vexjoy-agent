@@ -37,8 +37,8 @@ def process_event(event_data):
         dict: Result to output (or None)
     """
     # Implement your hook logic here
-    tool_name = event_data.get('tool', '')
-    tool_output = event_data.get('output', '')
+    tool_name = event_data.get('tool_name', '')
+    tool_output = str(event_data.get('tool_response', ''))
 
     debug_log(f"Processing {tool_name} event")
 

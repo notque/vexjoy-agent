@@ -264,3 +264,43 @@ class TestToolInputAsString:
         assert rc == 0
         assert stdout == ""
         assert "HOOK-ERROR" not in stderr
+
+
+# ---------------------------------------------------------------------------
+# B-03: the warning reaches the model
+# ---------------------------------------------------------------------------
+
+
+class TestWarningReachesModel:
+    """Plain PostToolUse stdout shows only in the transcript view (ctrl+o).
+
+    The model reads hookSpecificOutput.additionalContext, so the stale-reference
+    list must arrive there.
+    """
+
+    def test_stale_references_arrive_as_additional_context(self, tmp_path: Path) -> None:
+        (tmp_path / "renamed-runtime.md").write_text("# Renamed Runtime\n", encoding="utf-8")
+        (tmp_path / "stale-reference.md").write_text("See old-runtime for details.\n", encoding="utf-8")
+        event = {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": "git mv old-runtime.md renamed-runtime.md"},
+            "tool_response": {"output": "", "exit_code": 0, "is_error": False},
+        }
+        result = subprocess.run(
+            [sys.executable, str(HOOK_PATH)],
+            input=json.dumps(event),
+            capture_output=True,
+            text=True,
+            cwd=tmp_path,
+            timeout=10,
+        )
+        assert result.returncode == 0, result.stderr
+        output = json.loads(result.stdout)
+        assert set(output) == {"hookSpecificOutput"}
+        inner = output["hookSpecificOutput"]
+        assert inner["hookEventName"] == "PostToolUse"
+        context = inner["additionalContext"]
+        assert context.startswith('[rename-sweep] Stale references to "old-runtime" found after git mv:')
+        assert "stale-reference.md:1:See old-runtime for details." in context
+        assert context.rstrip().endswith("Consider updating these references before committing.")

@@ -250,4 +250,4 @@ start_server
 - For PID capture before kill: `pid-resolution.md`
 - For signals and traps: `signals-and-traps.md`
 - For failure modes: `preferred-patterns.md` AP-4, AP-7
-- For polling/backoff generalities: `skills/process/condition-based-waiting/SKILL.md`
+- For polling/backoff generalities: `skills/process/process/SKILL.md` (Wait mode)
