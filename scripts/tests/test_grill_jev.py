@@ -32,6 +32,56 @@ def test_choice_reports_only_configured_concerning_choices() -> None:
     assert grill._is_high_signal(question, {"choice": "high", "confidence": 0.95}, 0.7)
 
 
+def _levels(n: int) -> dict:
+    return {"type": "score", "criteria": [{"summary": f"level {i}"} for i in range(n)]}
+
+
+@pytest.mark.parametrize(
+    ("levels", "score", "weak"),
+    [
+        (2, 1.0, False),  # the best answer on a 2-level scale is not a finding
+        (2, 0.0, True),
+        (4, 1.0, True),  # the built-in 4-level questions keep their old cut-off
+        (4, 2.0, False),
+        (10, 3.0, True),  # the bottom third of a 10-level scale is a finding
+        (10, 6.0, False),
+    ],
+)
+def test_score_finding_uses_the_question_scale(levels: int, score: float, weak: bool) -> None:
+    grill = _load_module()
+    assert grill._is_high_signal(_levels(levels), {"score": score}, 0.7) is weak
+
+
+def test_score_report_names_the_question_scale() -> None:
+    grill = _load_module()
+    action = grill._suggest_action("x_quality", "score", {"score": 3.0, "legend": {}}, "How good?", levels=10)
+    assert "3.0/9" in action
+
+
+def test_run_battery_stops_when_jev_goes_down_mid_run(monkeypatch) -> None:
+    """An outage after the first probe must stop the run, not split and retry every batch."""
+    grill = _load_module()
+    calls = {"n": 0}
+    down = {"now": False}
+
+    def fake(_state, questions, **_kw):
+        calls["n"] += 1
+        if "probe" in questions:
+            if down["now"]:
+                raise grill.jev_transport.JevTransportError("HTTP 503", source="direct")
+            down["now"] = True  # the outage starts right after the first probe passes
+            return {"answers": {"probe": {"noul": 0.9}}}
+        if down["now"] or "q00" in questions:
+            raise grill.jev_transport.JevTransportError("HTTP 503" if down["now"] else "HTTP 400", source="direct")
+        return {"answers": {k: {"noul": 0.1} for k in questions}}
+
+    monkeypatch.setattr(grill.jev_transport, "evaluate", fake)
+    questions = {f"q{i:02d}": _noul(f"Is item {i} ok?") for i in range(75)}
+    with pytest.raises(grill.jev_transport.JevTransportError):
+        grill._run_battery({"artifact": "x"}, questions, timeout=1)
+    assert calls["n"] <= 15  # was 142 failed calls with no error raised
+
+
 def test_load_questions_uses_a_runner_authored_battery(tmp_path: Path) -> None:
     grill = _load_module()
     battery = tmp_path / "questions.json"
