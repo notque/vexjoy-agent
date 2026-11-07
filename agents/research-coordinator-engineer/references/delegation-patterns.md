@@ -1,7 +1,7 @@
 # Delegation Patterns Reference
 
 > **Scope**: Subagent instruction templates and parallel execution for research-coordinator-engineer.
-> **Version range**: Claude Code SDK (Task tool / Agent tool)
+> **Version range**: Claude Code (Agent tool)
 > **Generated**: 2026-04-13
 
 ---
@@ -25,24 +25,27 @@ Deploy all independent subagents in a single message. Sequential dispatch wastes
 
 ```python
 # Deploy all 3 in one message
-Task(subject="Research GPU availability 2025-2030",
-    content="""Focus on GPU/TPU availability from major cloud providers.
+Agent(subagent_type="research-subagent-executor",
+    description="Research GPU availability 2025-2030",
+    prompt="""Focus on GPU/TPU availability from major cloud providers.
     Include chip production forecasts from TSMC, Samsung, Intel.
     SCOPE: Only compute chips. NOT general semiconductor market.
-    DELIVERABLE: 350-500 word summary with 3+ statistics.
+    DELIVERABLE: 350-500 word summary with 3+ statistics, each with source URL and passage.
     SOURCES: Cloud provider reports, semiconductor analysts (2024-2025).""")
 
-Task(subject="Research energy requirements for AI data centers",
-    content="""Power consumption per GPU cluster, grid capacity constraints,
+Agent(subagent_type="research-subagent-executor",
+    description="Research energy requirements for AI data centers",
+    prompt="""Power consumption per GPU cluster, grid capacity constraints,
     cooling technology advances.
     SCOPE: Energy for AI compute only. NOT general data center trends.
-    DELIVERABLE: 350-500 word summary with 3+ statistics.
+    DELIVERABLE: 350-500 word summary with 3+ statistics, each with source URL and passage.
     SOURCES: IEA reports, data center operators, academic papers (2024-2025).""")
 
-Task(subject="Research regulatory environment for AI infrastructure",
-    content="""Permitting timelines, environmental review, export controls.
+Agent(subagent_type="research-subagent-executor",
+    description="Research regulatory environment for AI infrastructure",
+    prompt="""Permitting timelines, environmental review, export controls.
     SCOPE: Regulations affecting infrastructure build. NOT AI product regulation.
-    DELIVERABLE: 350-500 word summary with specific jurisdictions/timelines.
+    DELIVERABLE: 350-500 word summary with specific jurisdictions/timelines, each with source URL.
     SOURCES: Federal Register, EU legislation, news coverage (2024-2025).""")
 ```
 
@@ -97,7 +100,7 @@ grep -rL "OUT OF SCOPE\|Not in scope\|Exclude" research/*/instructions/ 2>/dev/n
 grep -i "wait for\|after.*completes\|once.*done" research/*/plan.md
 ```
 
-Three independent topics sequentially = 3x latency for no reason. Move all Task calls into one message.
+Three independent topics sequentially = 3x latency for no reason. Move all Agent tool calls into one message.
 
 ---
 
