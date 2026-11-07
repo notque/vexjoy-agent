@@ -40,7 +40,7 @@ routing:
     - channel
     - gopls
   not_for: "tasks using 'go' as a verb (go ahead, go fix this); Kotlin coroutine work (use kotlin-general-engineer); Go concurrency patterns in isolation (use programming skill)"
-  process-topics:
+  retro-topics:
     - programming
     - concurrency
     - debugging

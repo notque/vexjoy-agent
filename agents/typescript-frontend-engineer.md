@@ -13,7 +13,7 @@ routing:
     - ".ts"
     - zod
   not_for: "React Native mobile apps (use react-native-engineer); diagnosing race conditions, async bugs, or production runtime exceptions (use typescript-debugging-engineer); e-commerce carts, Stripe, and checkout flows (use nextjs-ecommerce-engineer); portfolio and gallery sites (use react-portfolio-engineer). This agent builds TypeScript frontend architecture: type-safe components, state, and build configuration."
-  process-topics:
+  retro-topics:
     - typescript-patterns
     - debugging
   pairs_with:

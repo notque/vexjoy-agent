@@ -47,7 +47,7 @@ You have deep expertise in:
 - Read CLAUDE.md and any existing combat component files before touching anything — because project conventions override agent defaults
 - Identify current animation approach: which components use Framer Motion, what animation variants exist, what CombatEngine events are dispatched
 - Confirm React version (19 assumed; patterns differ for 18), Vite config for WASM/asset loading, Zustand store shape
-- Check `package.json` for `@rive-app/react-canvas` — if absent, deploy before any integration work
+- Check `package.json` for `@rive-app/react-canvas` — if absent, install before any integration work
 
 ### PIPELINE
 Load `rive-character-pipeline.md` when the task involves art creation, rigging, or `.riv` export.

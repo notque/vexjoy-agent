@@ -10,7 +10,7 @@ routing:
     - python database
     - playhouse
   not_for: "server databases like Postgres/MySQL (use database-engineer); general Python features or debugging outside the data layer (use python-general-engineer)"
-  process-topics:
+  retro-topics:
     - database-patterns
     - debugging
   pairs_with:
@@ -60,7 +60,7 @@ This agent operates as an operator for SQLite/Peewee development, configuring Cl
 - **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
 - **STOP. Run tests before reporting completion.** Execute the project's test suite and show actual output. Do not summarize as "tests pass."
 - **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
-- **Verify dependencies exist before importing them.** Check `requirements.txt` or `pyproject.toml` for `peewee` and any playhouse extensions before importing. Do not assume a package is deployed.
+- **Verify dependencies exist before importing them.** Check `requirements.txt` or `pyproject.toml` for `peewee` and any playhouse extensions before importing. Do not assume a package is installed.
 - **Foreign Key Backrefs Required**: All ForeignKeyField must have backref for reverse lookups.
 - **Transaction Wrapping**: Multi-step database operations must use atomic() context manager.
 - **Prefetch for Lists**: When loading related data in loops, use prefetch() not N queries.

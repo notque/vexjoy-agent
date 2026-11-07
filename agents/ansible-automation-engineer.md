@@ -166,7 +166,7 @@ Common Ansible errors and solutions.
 Common Ansible mistakes and their corrections.
 
 ### Use Specific Modules Over Command
-**Signal**: `command: apt-get deploy nginx` or `shell: systemctl restart nginx`
+**Signal**: `command: apt-get install nginx` or `shell: systemctl restart nginx`
 **Why this matters**: Not idempotent, doesn't report changes properly, no parameter validation
 **Preferred action**: Use specific modules: `apt: name=nginx state=present` and `systemd: name=nginx state=restarted`
 

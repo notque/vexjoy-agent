@@ -159,7 +159,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Goal**: Trace failures and improve the generator using the Three-Layer Pattern.
 
-**Step 1**: Call the Skill tool with `workflow`. Run its process phase with Phase 5 test results. It ingests failures, traces each through the 5-link chain (Domain Research → Chain Composition → Scaffolder Template → Architecture Rules → Step Menu), proposes Layer 2 fixes, regenerates, and re-tests.
+**Step 1**: Call the Skill tool with `workflow`. Run its retro phase with Phase 5 test results. It ingests failures, traces each through the 5-link chain (Domain Research → Chain Composition → Scaffolder Template → Architecture Rules → Step Menu), proposes Layer 2 fixes, regenerates, and re-tests.
 
 **Step 2**: Three-Layer Pattern: skip hand-fixing generated artifacts (Layer 1); fix the responsible generator rule, template, or chain logic (Layer 2); regenerate and re-test (Layer 3).
 
@@ -177,7 +177,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 | 3 | SCAFFOLD | Fan-out to creators | All files exist at expected paths |
 | 4 | INTEGRATE | `toolkit` | All components routable via `/do` |
 | 5 | TEST | `workflow` (test-runner) | All pipelines produce valid output |
-| 6 | RETRO | `workflow` (process) | Generator improvements applied |
+| 6 | RETRO | `workflow` (retro) | Generator improvements applied |
 
 **Simple pipelines**: Phase 0 → Phase 1 (legacy discovery mode) → Phase 3 → Phase 4. **Domain pipelines** (multi-subdomain): full 7-phase flow.
 

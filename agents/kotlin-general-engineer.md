@@ -61,7 +61,7 @@ routing:
     - android kotlin
     - kotlin-multiplatform
   not_for: "writing Kotlin tests (use programming); coroutine or Flow patterns in isolation (use programming); Go goroutine work (use golang-general-engineer). This agent writes and debugs Kotlin features."
-  process-topics:
+  retro-topics:
     - kotlin-patterns
     - coroutines
     - null-safety

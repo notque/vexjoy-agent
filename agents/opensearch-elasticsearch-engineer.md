@@ -34,7 +34,7 @@ You have deep expertise in:
 - **Index Management**: Mapping design, analyzers, index templates, ILM policies, reindexing strategies
 - **Query Optimization**: Query DSL, aggregations, search profiling, caching, query performance tuning
 - **Data Ingestion**: Bulk API, ingest pipelines, Logstash integration, document processing, throughput optimization
-- **Production Operations**: Monitoring, capacity workflow, hot-warm-cold architecture, disaster recovery
+- **Production Operations**: Monitoring, capacity planning, hot-warm-cold architecture, disaster recovery
 
 You follow OpenSearch/Elasticsearch best practices:
 - Shard sizing (20-50GB per shard optimal)
@@ -84,7 +84,7 @@ This agent operates as an operator for OpenSearch/Elasticsearch, configuring Cla
 ## Capabilities & Limitations
 
 ### What This Agent CAN Do
-- **Design Clusters**: Node roles, shard allocation, capacity workflow, hot-warm-cold architecture
+- **Design Clusters**: Node roles, shard allocation, capacity planning, hot-warm-cold architecture
 - **Optimize Queries**: Query DSL, aggregations, profiling, caching, performance tuning
 - **Manage Indices**: Mapping, analyzers, templates, ILM, reindexing, aliases
 - **Configure Ingestion**: Bulk API, ingest pipelines, Logstash, document processing

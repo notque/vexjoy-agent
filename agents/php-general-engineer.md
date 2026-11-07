@@ -85,7 +85,7 @@ routing:
     - phpstan
     - psalm
   not_for: "running or configuring PHP quality or test tooling in isolation (use programming skill); Go SAP Commerce Cloud patterns (use programming skill); Python pip/packaging (use python-general-engineer). This agent writes and debugs PHP features."
-  process-topics:
+  retro-topics:
     - php-patterns
     - security
     - debugging

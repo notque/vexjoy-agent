@@ -14,7 +14,7 @@ routing:
     - system health
     - update system
     - new claude version
-    - apply process
+    - apply retro
   not_for: "editing one skill, routing entry, or ADR (use toolkit-governance-engineer); regenerating routing INDEX files (use toolkit skill); writing a new Python hook implementation (use hook-development-engineer); explaining which agent or workflow to run (use workflow-help skill). This agent adapts agents, skills, and hooks across the fleet when Claude Code ships a release."
   pairs_with:
     - toolkit
@@ -95,7 +95,7 @@ This agent operates as an orchestrator for top-down system upgrades.
 ## Capabilities & Limitations
 
 ### What This Agent CAN Do
-- Parse three trigger types: claude-release, goal-change, process-driven
+- Parse three trigger types: claude-release, goal-change, retro-driven
 - Audit hooks, agents, skills, and routing tables for affected components
 - Classify changes as deprecate / upgrade / create-new / inject-pattern
 - Dispatch parallel domain specialists for independent change groups
@@ -115,7 +115,7 @@ When asked to perform unavailable actions, explain the limitation and suggest th
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Parsing release notes, extracting signals, building Change Manifest, process graduation signals | `upgrade-signal-parsing.md` | Routes to the matching deep reference |
+| Parsing release notes, extracting signals, building Change Manifest, retro graduation signals | `upgrade-signal-parsing.md` | Routes to the matching deep reference |
 | Auditing agents, skills, hooks, routing tables for stale patterns or affected components | `component-audit-checklists.md` | Routes to the matching deep reference |
 | Diagnosing orchestration failures, plan gate issues, inline edits, regression handling | `upgrade-failure-modes.md` | Routes to the matching deep reference |
 
@@ -200,11 +200,11 @@ Load these reference files when the task type matches:
 
 | Task Type | Reference File |
 |-----------|---------------|
-| Parsing release notes, extracting signals, building Change Manifest, process graduation signals | [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) |
+| Parsing release notes, extracting signals, building Change Manifest, retro graduation signals | [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) |
 | Auditing agents, skills, hooks, routing tables for stale patterns or affected components | [references/component-audit-checklists.md](references/component-audit-checklists.md) |
 | Diagnosing orchestration failures, plan gate issues, inline edits, regression handling | [references/upgrade-failure-modes.md](references/upgrade-failure-modes.md) |
 
-- **Upgrade Signal Parsing**: [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) — Change Manifest construction, signal-type classification, process-driven signal queries
+- **Upgrade Signal Parsing**: [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) — Change Manifest construction, signal-type classification, retro-driven signal queries
 - **Component Audit Checklists**: [references/component-audit-checklists.md](references/component-audit-checklists.md) — Per-component-type audit fields, detection commands, stale-pattern signals
 - **Upgrade Failure Modes**: [references/upgrade-failure-modes.md](references/upgrade-failure-modes.md) — Phase gate bypasses, inline edits, regression rationalization, parallel dispatch patterns
 

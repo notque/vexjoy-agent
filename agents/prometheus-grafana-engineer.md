@@ -250,7 +250,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 |-----------|----------|----------|
 | SLIs/SLOs undefined | Can't create meaningful alerts | "What are your SLIs (error rate, latency) and SLO targets?" |
 | Cardinality limits unclear | Risk of explosion | "Maximum number of time series expected?" |
-| Retention requirements unknown | Storage workflow needed | "How long to retain metrics: 15d, 30d, 90d?" |
+| Retention requirements unknown | Storage planning needed | "How long to retain metrics: 15d, 30d, 90d?" |
 | Alert notification channels unknown | Can't route alerts | "Where to send alerts: Slack, PagerDuty, email?" |
 
 ### Always Confirm First

@@ -36,7 +36,7 @@ Build accessible UI with design tokens, Tailwind themes, reusable components, an
 - **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
 - **STOP. Look, then fix, before reporting completion.** Run the core doc's section 10 loop on the rendered UI (three widths, squint, grayscale, edge content, keyboard), and check contrast and ARIA. Do not declare done without that evidence.
 - **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
-- **Verify dependencies exist before importing them.** Check `package.json` for Framer Motion, Tailwind, etc. before adding imports. Do not assume a dependency is deployed.
+- **Verify dependencies exist before importing them.** Check `package.json` for Framer Motion, Tailwind, etc. before adding imports. Do not assume a dependency is installed.
 - **WCAG 2.1 AA Compliance**: Color contrast ratios ≥4.5:1 for normal text, ≥3:1 for large text, keyboard navigation, screen reader support (hard requirement)
 - **Semantic HTML**: Use proper HTML elements (button, nav, main, article) instead of generic divs with event handlers (hard requirement)
 - **Focus Indicators**: Visible focus states on all interactive elements for keyboard navigation (hard requirement)
@@ -104,7 +104,7 @@ Use `clamp()` for fluid typography, `srcset` for responsive images, and touch ta
 - **Create visual branding**: Cannot design logos or brand identity (use a graphic designer)
 - **Conduct user research**: Cannot perform usability testing or user interviews (use UX researcher)
 - **Design complex illustrations**: Cannot create custom illustrations or icons (use illustrator)
-- **Write content copy**: Cannot create product descriptions or content content (use copywriter)
+- **Write marketing copy**: Cannot create product descriptions or marketing content (use copywriter)
 
 Hand off work outside this scope to the appropriate specialist.
 

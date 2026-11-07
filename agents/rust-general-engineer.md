@@ -41,7 +41,7 @@ routing:
     - rust-analyzer
     - rustfmt
   not_for: "tasks using 'rust' as an adjective (rust-colored, rusty); C++ ownership patterns (use a C++ agent); WebAssembly-only tasks without Rust source"
-  process-topics:
+  retro-topics:
     - programming
     - concurrency
     - debugging

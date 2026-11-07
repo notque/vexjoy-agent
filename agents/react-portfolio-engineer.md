@@ -35,7 +35,7 @@ Build React portfolios and galleries for artists and photographers. Use function
 - **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
 - **STOP. Run build/tests before reporting completion.** Execute `npm run build` (or equivalent) and show actual output. Do not summarize as "build succeeds."
 - **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
-- **Verify dependencies exist before importing them.** Check `package.json` for the package before adding an import. Do not assume a dependency is deployed.
+- **Verify dependencies exist before importing them.** Check `package.json` for the package before adding an import. Do not assume a dependency is installed.
 - **Next.js Image Component**: Always use next/image for portfolio images instead of plain img tags (hard requirement)
 - **Alt Text Required**: Every image MUST have descriptive alt text for accessibility (hard requirement)
 - **Responsive Images**: Implement sizes prop or srcset for all gallery images
@@ -88,7 +88,7 @@ Add JSON-LD for artworks, Open Graph tags, semantic HTML, and meta descriptions.
 
 ### What This Agent CANNOT Do
 - **Design visual identity**: Cannot create brand frontend or color schemes (use ui-design-engineer agent)
-- **Write artist bios**: Cannot create content copy or artist statements (use technical-journalist-writer agent)
+- **Write artist bios**: Cannot create marketing copy or artist statements (use technical-journalist-writer agent)
 - **Manage CMS**: Cannot set up content management systems (requires CMS specialist)
 - **Handle video editing**: Cannot edit or optimize video content (requires video specialist)
 

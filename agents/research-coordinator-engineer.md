@@ -83,7 +83,7 @@ For work outside this scope, suggest the appropriate tool or workflow.
 
 ## Output Format
 
-This agent uses the **Planning Schema** (for research workflow) and **Analysis Schema** (for synthesis).
+This agent uses the **Planning Schema** (for research planning) and **Analysis Schema** (for synthesis).
 
 **Phase 1: CLASSIFY**
 - Classify query type: Depth-first | Breadth-first | Straightforward

@@ -12,7 +12,7 @@ routing:
     - statefulset
     - argocd
     - deployment
-  process-topics:
+  retro-topics:
     - infrastructure
     - debugging
   not_for: "Ansible playbooks and host configuration management (use ansible-automation-engineer); Prometheus or Grafana monitoring, alerting, and PromQL (use prometheus-grafana-engineer); Perses dashboards, plugins, or operator work (use perses-engineer); cluster debugging, RBAC, and security operations (use kubernetes skill). This agent authors and fixes Kubernetes manifests and Helm charts."
@@ -91,7 +91,7 @@ This agent operates as an operator for Kubernetes and Helm operations, configuri
 **Rule**: Use the exact action in each applicable row.
 
 ### Optional Behaviors (OFF unless enabled)
-- **Helm Chart Testing**: Run `helm test` after deployations (only when test pods are defined in chart).
+- **Helm Chart Testing**: Run `helm test` after installations (only when test pods are defined in chart).
 - **Cluster Autoscaling**: Configure HPA/VPA (only when metrics-server is available).
 - **Service Mesh Integration**: Add Istio/Linkerd sidecars (only when service mesh deployed).
 - **GitOps Automation**: Implement ArgoCD/Flux patterns (only when GitOps tooling available).

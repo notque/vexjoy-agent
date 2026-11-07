@@ -31,7 +31,7 @@ routing:
     - slowly changing dimension
     - SCD
     - data lineage
-  process-topics:
+  retro-topics:
     - data-pipeline-patterns
     - data-quality
     - debugging

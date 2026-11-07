@@ -103,7 +103,7 @@ Single skill/agent with one clear purpose?
 
   NO / broad domain →
     Domain: Full 7-phase flow with subdomain decomposition,
-    validate-chain, ADR hash gate, test-runner, process.
+    validate-chain, ADR hash gate, test-runner, retro.
 ```
 
 ---

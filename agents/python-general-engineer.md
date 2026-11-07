@@ -31,7 +31,7 @@ routing:
     - django
     - flask
   not_for: "PHP development (use php-general-engineer); OpenStack services and Oslo libraries (use python-openstack-engineer); SQLite and Peewee ORM work (use sqlite-peewee-engineer) — this agent handles general Python development"
-  process-topics:
+  retro-topics:
     - python-patterns
     - debugging
   pairs_with:
@@ -141,7 +141,7 @@ Python development end to end: features, debugging, review, performance, tests. 
 |---|---|---|
 | Any task that writes or edits Python code: package, CLI, service, async worker, repository, tests, `pyproject.toml` | [python-modern-code.md](python-general-engineer/references/python-modern-code.md) | Measured failure patterns with before/after code: version floor, build backend, typing, docstrings, errors, Decimal, resources, asyncio, HTTP clients, sqlite3, FastAPI, CLIs, tests, ruff codes, pre-handoff checklist |
 | flask, jinja, gunicorn, blueprint, CSRF exempt, static 403, SESSION_COOKIE_SECURE, StrictUndefined, systemctl restart | [flask-jinja-webapp.md](python-general-engineer/references/flask-jinja-webapp.md) | mmr-ratings production incidents: worker template cache, mode-600 static 403, CSRF blueprint exemptions, error-fix map |
-| except OSError, type: ignore, E712, Peewee, venv, pip mismatch, uv deploy, reddit_mod, stdin JSON, LLM prompt fields, tarfile, yaml.load, pickle, extra="allow", SSRF | [python-local-gates.md](python-general-engineer/references/python-local-gates.md) | Host incidents (reddit_mod silent failures), Peewee E712 suppression, host venv/uv rules, CLI pipeline conventions, CVE-pinned gotchas |
+| except OSError, type: ignore, E712, Peewee, venv, pip mismatch, uv install, reddit_mod, stdin JSON, LLM prompt fields, tarfile, yaml.load, pickle, extra="allow", SSRF | [python-local-gates.md](python-general-engineer/references/python-local-gates.md) | Host incidents (reddit_mod silent failures), Peewee E712 suppression, host venv/uv rules, CLI pipeline conventions, CVE-pinned gotchas |
 
 ## Error Handling
 

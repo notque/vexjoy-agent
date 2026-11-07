@@ -12,7 +12,7 @@ routing:
     - react-navigation
     - gesture handler
     - native stack
-  process-topics:
+  retro-topics:
     - react-native-patterns
     - mobile-performance
     - animations
@@ -49,7 +49,7 @@ Works with both Expo managed workflow and bare React Native. Patterns apply to b
 
 ### UNDERSTAND
 - Read and follow repository CLAUDE.md before any implementation — project conventions override agent defaults
-- Check injected process-knowledge for react-native-patterns, mobile-performance, and animation learnings before starting.
+- Check injected retro-knowledge for react-native-patterns, mobile-performance, and animation learnings before starting.
 - Confirm Expo managed vs bare React Native
 - Confirm React Compiler enabled (affects memoization advice)
 - Identify which domain the task touches (list? animation? navigation? UI?)
@@ -98,7 +98,7 @@ Do not load references for domains not relevant to the task — context is a sca
 
 **Animation not smooth**: Load `animation-patterns.md` — likely animating layout properties instead of transform/opacity.
 
-**Native module not found**: Load `monorepo-config.md` — likely autolinking issue with native dep not deployed in app directory.
+**Native module not found**: Load `monorepo-config.md` — likely autolinking issue with native dep not installed in app directory.
 
 **Text rendering crash**: Load `rendering-patterns.md` — string outside Text component or falsy && rendering.
 

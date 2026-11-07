@@ -28,7 +28,7 @@ Flag any gradient with 3 or more color stops for manual review.
 
 ## Reserve Emoji for Brand Context
 
-Emoji used as decorative section markers — a rocket before "Features", a sparkle before "Benefits" — is an AI tell. It adds visual noise without communicating information. Use SVG icons from a coherent icon set (Lucide, Heroicons, Phosphor) or text-only headings. Emoji belongs in conversational UI (chat, notifications, reactions) where informal tone is the point, not in content or product sections where it cheapens the message.
+Emoji used as decorative section markers — a rocket before "Features", a sparkle before "Benefits" — is an AI tell. It adds visual noise without communicating information. Use SVG icons from a coherent icon set (Lucide, Heroicons, Phosphor) or text-only headings. Emoji belongs in conversational UI (chat, notifications, reactions) where informal tone is the point, not in marketing or product sections where it cheapens the message.
 
 ```html
 <!-- Correct: icon from a coherent set -->

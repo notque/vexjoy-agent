@@ -69,7 +69,7 @@ routing:
     - swiftdata
     - coredata
   not_for: "Swift concurrency patterns or test-only work in isolation (use programming skill) — this agent handles full Swift development"
-  process-topics:
+  retro-topics:
     - swift-patterns
     - concurrency
     - security
