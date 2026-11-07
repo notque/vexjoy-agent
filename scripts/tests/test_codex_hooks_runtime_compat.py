@@ -36,14 +36,18 @@ def _registrations() -> list[dict]:
     generator = _load_generator()
     entries = generator.parse_allowlist(ALLOWLIST.read_text(encoding="utf-8"))
     generated = generator.build_hooks_json(entries, codex_hooks_dir=str(HOOKS))
-    commands: dict[tuple[str, str], str] = {}
+    # Keyed by matcher too: one hook can have a Bash entry and an apply_patch entry.
+    commands: dict[tuple[str, str, str], str] = {}
     for event, groups in generated["hooks"].items():
         for group in groups:
             for handler in group["hooks"]:
                 args = shlex.split(handler["command"])
                 filename = Path(args[args.index("--hook") + 1]).name
-                commands[(event, filename)] = handler["command"]
-    return [{**entry, "command": commands[(entry["event"], entry["filename"])]} for entry in entries]
+                commands[(event, filename, args[args.index("--matcher") + 1])] = handler["command"]
+    return [
+        {**entry, "command": commands[(entry["event"], entry["filename"], entry["matcher"] or "*")]}
+        for entry in entries
+    ]
 
 
 REGISTRATIONS = _registrations()
@@ -617,7 +621,9 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    assert len(REGISTRATIONS) == 61, "runtime matrix must execute every supported registration"
+    # 62 entries for 61 Claude registrations: the unified gate runs on Bash and apply_patch.
+    assert len(REGISTRATIONS) == 62, "runtime matrix must execute every supported registration"
+    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 62
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
     assert len(registrations) == 61
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"

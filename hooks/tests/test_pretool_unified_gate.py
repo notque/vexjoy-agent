@@ -691,6 +691,59 @@ class TestCheckSensitiveFileRead:
         payload = json.dumps({"tool_name": "Read", "tool_input": {"file_path": ""}})
         assert _run_main(payload) == 0
 
+    def test_read_advisory_reaches_the_model_without_a_decision(self):
+        """B-03: PreToolUse stderr on exit 0 reaches no one; additionalContext reaches the model."""
+        stdout = _run_main_stdout(_make_read_event("/project/.env"))
+        output = json.loads(stdout)
+        assert set(output) == {"hookSpecificOutput"}
+        inner = output["hookSpecificOutput"]
+        assert set(inner) == {"hookEventName", "additionalContext"}
+        assert inner["hookEventName"] == "PreToolUse"
+        assert "[sensitive-file-guard] ADVISORY: Read of sensitive file" in inner["additionalContext"]
+        assert "/project/.env" in inner["additionalContext"]
+        assert "OWNER-APPROVED-SECRET-READ" in inner["additionalContext"]
+
+    def test_read_advisory_is_recorded_as_an_unblocked_governance_event(self):
+        with patch.object(mod, "record_governance") as record:
+            _run_main_stdout(_make_read_event("/project/.env"))
+        record.assert_called_once()
+        args, kwargs = record.call_args
+        assert args == ("security_finding",)
+        assert kwargs["hook_name"] == "pretool-unified-gate"
+        assert kwargs["tool_name"] == "Read"
+        assert kwargs["blocked"] is False
+
+    def test_read_without_a_match_prints_nothing(self):
+        with patch.object(mod, "record_governance") as record:
+            assert _run_main_stdout(_make_read_event("/project/src/app.py")) == ""
+        record.assert_not_called()
+
+    def test_bypassed_read_prints_nothing(self):
+        stdout = _run_main_stdout(_make_read_event("/project/.env"), env={"SENSITIVE_FILE_GUARD_BYPASS": "1"})
+        assert stdout == ""
+
+
+def _run_main_stdout(stdin_payload: str, env: dict | None = None) -> str:
+    """Invoke mod.main() in-process like _run_main and return its raw stdout."""
+    base_env = dict(os.environ)
+    for var in ("CLAUDE_GATE_BYPASS", "DANGEROUS_GUARD_BYPASS", "CREATION_GATE_BYPASS", "SENSITIVE_FILE_GUARD_BYPASS"):
+        base_env.pop(var, None)
+    base_env["CLAUDE_OPERATOR_PROFILE"] = "work"
+    if env:
+        base_env.update(env)
+    stdout_capture = io.StringIO()
+    with (
+        patch.dict(os.environ, base_env, clear=True),
+        patch.object(mod, "read_stdin", return_value=stdin_payload),
+        patch("sys.stdout", stdout_capture),
+        patch("sys.stderr", io.StringIO()),
+    ):
+        try:
+            mod.main()
+        except SystemExit:
+            pass
+    return stdout_capture.getvalue().strip()
+
 
 # ---------------------------------------------------------------------------
 # TestMainDispatch

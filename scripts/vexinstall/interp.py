@@ -376,8 +376,12 @@ def drift(home: Path) -> list[tuple[str, str]]:
 
 # Top-level import name per requirements.txt entry; find_spec on a dotted name imports its parent.
 REQUIRED_MODULES = ("yaml", "requests", "dotenv", "google.auth", "jsonschema", "PIL")
+# Runs without -I, as pyrun.sh runs hooks, so the user site (install.sh's pip --user fallback) counts.
+# The first line drops the current dir that -c puts on sys.path, before anything else is imported.
 _MISSING_PROBE = (
-    "import importlib.util as u, sys\n"
+    "import sys\n"
+    "sys.path[:] = [p for p in sys.path if p not in ('', '.')]\n"
+    "import importlib.util as u\n"
     "def has(n):\n"
     "    try: return u.find_spec(n) is not None\n"
     "    except ImportError: return False\n"
@@ -388,7 +392,8 @@ _MISSING_PROBE = (
 def missing_modules(home: Path, modules: Iterable[str] = REQUIRED_MODULES, timeout: float = 10.0) -> list[str]:
     """Modules the pinned interpreter cannot import (find_spec only, nothing is imported); [] when unknown.
 
-    A script pin is probed through its interpreter: Windows cannot run an sh script directly.
+    Probed the way hooks run the pin: no ``-I``, so the user site and ``PYTHONPATH`` count, but never
+    the current dir. A script pin is probed through its interpreter: Windows cannot run an sh script directly.
     """
     link = link_path(home)
     path = _probe_path(link, read_pin(link))
@@ -396,7 +401,7 @@ def missing_modules(home: Path, modules: Iterable[str] = REQUIRED_MODULES, timeo
         return []
     try:
         out = subprocess.run(
-            [path, "-I", "-c", _MISSING_PROBE, *modules],
+            [path, "-c", _MISSING_PROBE, *modules],
             capture_output=True,
             text=True,
             timeout=timeout,

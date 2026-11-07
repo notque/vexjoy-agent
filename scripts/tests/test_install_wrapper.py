@@ -117,8 +117,33 @@ def test_uninstall_then_rollback(home: Path) -> None:
         assert not (home / f".{t}" / "skills" / "do").exists(), t
     rb = run_install(home, "--rollback")
     assert rb.returncode == 0, rb.stdout + rb.stderr
-    assert "Restoring trash session" in rb.stdout
+    assert "[rollback] run install-" in rb.stdout and "(uninstall)" in rb.stdout, rb.stdout
     assert (home / ".claude" / "skills" / "do" / "SKILL.md").is_file()
+    again = run_install(home, "--rollback")
+    assert again.returncode == 0 and "already rolled back" in again.stdout, again.stdout + again.stderr
+
+
+def test_rollback_restores_the_whole_last_run(home: Path) -> None:
+    # One ./install.sh run trashes into two sessions: apply's takeover, then the prune after it.
+    # --rollback used to restore only the newest session (the prune's), so the taken-over copy stayed lost.
+    skills = home / ".hermes" / "skills"
+    stale = skills / "do"
+    stale.mkdir(parents=True)
+    (stale / "SKILL.md").write_text("---\nname: do\ndescription: stale legacy copy\n---\n")
+    gone = skills / "gone-skill"
+    gone.symlink_to(home / "nowhere")
+    r = run_install(home, "--target", "hermes")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "stale legacy copy" not in (stale / "SKILL.md").read_text()
+    assert not os.path.lexists(gone)
+    before = tree(home)
+    dry = run_install(home, "--rollback", "--dry-run")
+    assert dry.returncode == 0 and "would restore run install-" in dry.stdout, dry.stdout + dry.stderr
+    assert tree(home) == before
+    rb = run_install(home, "--rollback")
+    assert rb.returncode == 0, rb.stdout + rb.stderr
+    assert os.path.islink(gone)
+    assert "stale legacy copy" in (stale / "SKILL.md").read_text(), rb.stdout
 
 
 def test_deprecated_flags_are_accepted(home: Path) -> None:

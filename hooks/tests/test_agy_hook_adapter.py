@@ -432,6 +432,7 @@ def test_queue_deferred_context_handles_corrupt_json(tmp_path: Path, adapter):
 
 
 def test_deferred_dir_fallback_resolution(tmp_path: Path, adapter, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))  # never create ~/.gemini in the real home
     custom_dir = tmp_path / "custom-deferred"
     monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(custom_dir))
     assert adapter._deferred_dir() == custom_dir
@@ -443,5 +444,155 @@ def test_deferred_dir_fallback_resolution(tmp_path: Path, adapter, monkeypatch):
 
     monkeypatch.delenv("VEXJOY_STATE_DIR", raising=False)
     default_dir = adapter._deferred_dir()
+    assert default_dir == tmp_path / "home" / ".gemini" / "state" / "agy-deferred"
     assert default_dir.is_dir()
-    assert default_dir.name == "agy-deferred" or default_dir.name == "vexjoy-agy-deferred"
+
+
+# ---------------------------------------------------------------------------
+# B-17: the deferred queue's last-resort directory and its parallel writers
+# ---------------------------------------------------------------------------
+
+posix_only = pytest.mark.skipif(not hasattr(os, "getuid"), reason="POSIX ownership and modes")
+
+
+@pytest.fixture
+def no_home_queue(tmp_path: Path, monkeypatch):
+    """HOME cannot hold ~/.gemini (it is a file), so the queue falls back to the temp dir."""
+    import tempfile
+
+    blocked_home = tmp_path / "home-is-a-file"
+    blocked_home.write_text("", encoding="utf-8")
+    monkeypatch.setenv("HOME", str(blocked_home))
+    monkeypatch.delenv("VEXJOY_AGY_DEFERRED_DIR", raising=False)
+    monkeypatch.delenv("VEXJOY_STATE_DIR", raising=False)
+    system_tmp = tmp_path / "system-tmp"
+    system_tmp.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(system_tmp))
+    return system_tmp
+
+
+@posix_only
+def test_fallback_queue_dir_is_per_user_and_owner_only(adapter, no_home_queue: Path):
+    expected = no_home_queue / f"vexjoy-agy-deferred-{os.getuid()}"
+
+    adapter.queue_deferred_context("conv-fallback", "advisory one")
+
+    assert adapter._deferred_dir() == expected
+    info = expected.lstat()
+    assert info.st_mode & 0o777 == 0o700
+    assert info.st_uid == os.getuid()
+    assert not (no_home_queue / "vexjoy-agy-deferred").exists(), "no shared directory any more"
+    assert adapter.drain_deferred_context("conv-fallback") == ["advisory one"]
+
+
+@posix_only
+def test_fallback_refuses_a_planted_symlink(adapter, no_home_queue: Path, tmp_path: Path):
+    attacker = tmp_path / "attacker-readable"
+    attacker.mkdir()
+    for name in ("vexjoy-agy-deferred", f"vexjoy-agy-deferred-{os.getuid()}"):
+        (no_home_queue / name).symlink_to(attacker, target_is_directory=True)
+
+    adapter.queue_deferred_context("conv-symlink", "private advisory")
+
+    assert list(attacker.iterdir()) == [], "nothing may be written through the symlink"
+    assert adapter._deferred_dir() is None
+    assert adapter.drain_deferred_context("conv-symlink") == []
+
+
+@posix_only
+def test_fallback_refuses_a_dir_owned_by_someone_else(adapter, no_home_queue: Path, monkeypatch):
+    other_uid = os.getuid() + 1
+    planted = no_home_queue / f"vexjoy-agy-deferred-{other_uid}"
+    planted.mkdir(mode=0o700)  # owned by the real uid, not the one the adapter runs as
+    monkeypatch.setattr(os, "getuid", lambda: other_uid)
+
+    adapter.queue_deferred_context("conv-foreign", "private advisory")
+
+    assert list(planted.iterdir()) == []
+    assert adapter._deferred_dir() is None
+
+
+@posix_only
+def test_fallback_refuses_a_dir_open_to_others(adapter, no_home_queue: Path):
+    planted = no_home_queue / f"vexjoy-agy-deferred-{os.getuid()}"
+    planted.mkdir()
+    planted.chmod(0o777)
+
+    adapter.queue_deferred_context("conv-open", "private advisory")
+
+    assert list(planted.iterdir()) == []
+    assert planted.stat().st_mode & 0o777 == 0o777, "the adapter must not change modes it did not set"
+
+
+def test_leftover_fixed_temp_name_does_not_drop_the_advisory(adapter, tmp_path: Path, monkeypatch):
+    queue_dir = tmp_path / "queue"
+    monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(queue_dir))
+    path = adapter._deferred_path("conv-tmp")
+    queue_dir.mkdir()
+    path.with_suffix(".tmp").mkdir()  # the old shared temp name, left behind
+
+    adapter.queue_deferred_context("conv-tmp", "kept advisory")
+
+    assert adapter.drain_deferred_context("conv-tmp") == ["kept advisory"]
+    assert [p.name for p in queue_dir.iterdir() if p.name.endswith(".tmp") and p.is_file()] == []
+
+
+_QUEUE_DRIVER = """
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("agy_driver", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+for n in range(int(sys.argv[3])):
+    module.queue_deferred_context("conv-parallel", f"{sys.argv[2]}-{n}")
+"""
+
+
+def test_parallel_queue_writers_keep_every_message(adapter, tmp_path: Path, monkeypatch):
+    queue_dir = tmp_path / "queue"
+    driver = tmp_path / "driver.py"
+    driver.write_text(_QUEUE_DRIVER, encoding="utf-8")
+    env = {**os.environ, "VEXJOY_AGY_DEFERRED_DIR": str(queue_dir), "HOME": str(tmp_path)}
+    writers, per_writer = 6, 15
+    procs = [
+        subprocess.Popen(
+            [sys.executable, str(driver), str(ADAPTER_PATH), f"w{w}", str(per_writer)],
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        for w in range(writers)
+    ]
+    for proc in procs:
+        _, err = proc.communicate(timeout=60)
+        assert proc.returncode == 0, err.decode()
+
+    monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(queue_dir))
+    drained = adapter.drain_deferred_context("conv-parallel")
+    assert sorted(drained) == sorted(f"w{w}-{n}" for w in range(writers) for n in range(per_writer))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fcntl lock holder")
+def test_a_held_queue_lock_is_waited_for_then_the_write_goes_ahead(adapter, tmp_path: Path, monkeypatch):
+    import fcntl
+    import time
+
+    queue_dir = tmp_path / "queue"
+    queue_dir.mkdir()
+    driver = tmp_path / "driver.py"
+    driver.write_text(_QUEUE_DRIVER, encoding="utf-8")
+    env = {**os.environ, "VEXJOY_AGY_DEFERRED_DIR": str(queue_dir), "HOME": str(tmp_path)}
+    with open(queue_dir / adapter._QUEUE_LOCK_NAME, "w") as held:
+        fcntl.flock(held.fileno(), fcntl.LOCK_EX)
+        started = time.monotonic()
+        result = subprocess.run(
+            [sys.executable, str(driver), str(ADAPTER_PATH), "held", "1"],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        elapsed = time.monotonic() - started
+    assert result.returncode == 0, result.stderr
+    assert elapsed >= adapter._LOCK_WAIT_SECONDS
+    monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(queue_dir))
+    assert adapter.drain_deferred_context("conv-parallel") == ["held-0"]

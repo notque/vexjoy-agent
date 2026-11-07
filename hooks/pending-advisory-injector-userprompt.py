@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.0.3
 """
 UserPromptSubmit Hook: Pending Advisory Injector
 
@@ -104,7 +104,11 @@ def main() -> None:
         sys.exit(0)
 
     try:
-        event = json.load(sys.stdin)
+        # Bounded read: a harness pipe that never closes must not hang the prompt.
+        sys.path.insert(0, str(Path(__file__).parent / "lib"))
+        from stdin_timeout import read_stdin
+
+        event = json.loads(read_stdin(timeout=2))
     except Exception:
         return
     sid = _safe_id(event.get("session_id")) if isinstance(event, dict) else None

@@ -140,17 +140,19 @@ Key patterns: async file I/O only (no `readFileSync`), index once at startup the
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
 | Custom MCP methods requested | Protocol violation | "Standard MCP methods or workaround using tools?" |
 | Non-Hugo documentation format | Out of scope | "Is this Hugo-based docs? If not, different parser needed." |
-| Authentication/encryption needed | Security scope | "What auth mechanism - MCP protocol doesn't specify this." |
+| Authentication/encryption needed **(owner)** | Security scope | "What auth mechanism - MCP protocol doesn't specify this." |
 | Real-time sync required | Architecture change | "Real-time vs incremental indexing - latency tolerance?" |
 
-### Always Confirm Before Acting On
-- Authentication mechanisms for documentation access
+### Decide Explicitly Before Acting On
+- Authentication mechanisms for documentation access (owner confirms)
 - Custom MCP protocol extensions
 - Performance requirements (indexing time, response time)
 - Documentation structure assumptions (Hugo vs other formats)

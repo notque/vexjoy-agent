@@ -13,6 +13,7 @@ from .apply import (
     run_prune,
     run_restore_settings,
     run_restore_trash,
+    run_rollback,
     run_uninstall,
 )
 from .common import MODES, TARGET_NAMES, ExitCode
@@ -20,6 +21,7 @@ from .context import Options, Result
 from .doctor import run_doctor
 from .migrate import run_migrate_overlays
 from .repair import run_repair
+from .rollback import RUN_ID_RE
 
 COMMANDS = (
     "plan",
@@ -31,8 +33,15 @@ COMMANDS = (
     "prune",
     "restore-trash",
     "restore-settings",
+    "rollback",
     "migrate-overlays",
 )
+
+
+def _run_id(value: str) -> str:
+    if not RUN_ID_RE.match(value):
+        raise argparse.ArgumentTypeError("1-64 letters, digits, '.', '_' or '-', starting with a letter or digit")
+    return value
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -58,6 +67,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="plan/apply: trash and replace unowned entries at desired dests (never honored by sync)",
     )
+    p.add_argument(
+        "--run-id",
+        type=_run_id,
+        default=None,
+        help="apply/prune/uninstall: steps sharing an id form one rollback point (install.sh passes one per run)",
+    )
     return p
 
 
@@ -80,6 +95,7 @@ def to_options(ns: argparse.Namespace) -> Options:
         show_diff=ns.show_diff,
         takeover=ns.takeover and ns.command in ("plan", "apply"),
         ts=ns.ts,
+        run_id=ns.run_id,
     )
 
 
@@ -104,6 +120,8 @@ def dispatch(opts: Options) -> Result:
         return run_restore_trash(opts)
     if cmd == "restore-settings":
         return run_restore_settings(opts)
+    if cmd == "rollback":
+        return run_rollback(opts)
     if cmd == "migrate-overlays":
         return run_migrate_overlays(opts)
     return Result(code=int(ExitCode.USAGE), err=[f"unknown command {cmd}"])

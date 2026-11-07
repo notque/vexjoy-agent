@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.1.2
+# hook-version: 2.1.3
 """
 PostToolUse Hook: Session Read Tracker
 
@@ -19,6 +19,12 @@ v2.1 (Bash reads): a Bash command that starts with a read-only pager
 to an existing file under cwd, capped at MAX_BASH_PATHS. Codex cannot
 intercept the built-in Read tool, so this keeps the warm-start file list
 populated there. Commands containing rm, mv, cp, or a redirect are ignored.
+
+v2.1.3 (parallel writers): the rewrite holds a bounded lock on
+.claude/session-reads.lock and goes through a per-writer temp file, so hooks
+running in parallel no longer drop each other's entries or crash on a
+shared temp name. The lock wait is capped; a stuck holder means an unlocked
+write, never a stalled tool call.
 
 Design Principles:
 - SILENT output (no context injection)
@@ -51,8 +57,17 @@ import os
 import re
 import shlex
 import sys
+import tempfile
+import time
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # Windows
+    fcntl = None
+    import msvcrt
 
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
@@ -63,6 +78,14 @@ from stdin_timeout import read_stdin
 EVENT_NAME = "PostToolUse"
 
 SESSION_READS_FILE = ".claude/session-reads.txt"
+# Hooks run in parallel, so every read-modify-write of SESSION_READS_FILE holds
+# an exclusive lock on this sidecar file (the data file itself is replaced).
+SESSION_READS_LOCK_FILE = ".claude/session-reads.lock"
+# A writer holds the lock for one small rewrite. Waiting longer than this means
+# the holder is stuck, and the write then goes ahead unlocked: a stuck writer
+# must never stall the tool call.
+_LOCK_WAIT_SECONDS = 1.0
+_LOCK_POLL_SECONDS = 0.01
 
 # Entries older than this are pruned on every write.
 RETENTION_DAYS = 7
@@ -144,6 +167,58 @@ def _parse_entry(line: str) -> dict | None:
     return entry
 
 
+def _try_lock(fd: int) -> bool:
+    """One non-blocking exclusive-lock attempt; True when the lock is held."""
+    try:
+        if fcntl is not None:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            os.lseek(fd, 0, os.SEEK_SET)
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+    except BlockingIOError:
+        return False
+    except OSError:
+        if fcntl is not None:
+            raise  # locking unsupported here: the caller goes ahead unlocked
+        return False  # msvcrt reports contention as a plain OSError
+    return True
+
+
+@contextmanager
+def _bounded_lock(lock_path: Path):
+    """Hold an exclusive lock on *lock_path* for the body, waiting at most
+    _LOCK_WAIT_SECONDS. On timeout, or where locking is unavailable, the body
+    runs unlocked. Closing the descriptor releases the lock."""
+    fd = None
+    try:
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+        deadline = time.monotonic() + _LOCK_WAIT_SECONDS
+        while not _try_lock(fd) and time.monotonic() < deadline:
+            time.sleep(_LOCK_POLL_SECONDS)
+    except OSError:
+        pass
+    try:
+        yield
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def _write_atomic(path: Path, text: str) -> None:
+    """Replace *path* with *text* through a temp file no other writer shares."""
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".session-reads-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def _fresh(entry: dict, cutoff: datetime) -> bool:
     """True when the entry's timestamp parses and is at or after cutoff."""
     try:
@@ -188,37 +263,38 @@ def main() -> None:
         if not new_paths:
             return
 
-        session_id = event.get("session_id") or get_session_id()
+        session_id = get_session_id(event)
         now = datetime.now(timezone.utc)
         cutoff = now - timedelta(days=RETENTION_DAYS)
 
         reads_path = Path(SESSION_READS_FILE)
         reads_path.parent.mkdir(parents=True, exist_ok=True)
 
-        entries: list[dict] = []
-        seen: set[tuple[str, str]] = set()
-        if reads_path.is_file():
-            try:
-                for line in reads_path.read_text(encoding="utf-8").splitlines():
-                    entry = _parse_entry(line)
-                    if entry is None or not _fresh(entry, cutoff):
-                        continue
-                    key = (str(entry.get("session", "")), str(entry["path"]))
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    entries.append(entry)
-            except OSError:
-                pass
+        # One lock around the whole read-modify-write, so parallel writers
+        # cannot drop each other's entries.
+        with _bounded_lock(Path(SESSION_READS_LOCK_FILE)):
+            entries: list[dict] = []
+            seen: set[tuple[str, str]] = set()
+            if reads_path.is_file():
+                try:
+                    for line in reads_path.read_text(encoding="utf-8").splitlines():
+                        entry = _parse_entry(line)
+                        if entry is None or not _fresh(entry, cutoff):
+                            continue
+                        key = (str(entry.get("session", "")), str(entry["path"]))
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        entries.append(entry)
+                except OSError:
+                    pass
 
-        for file_path in new_paths:
-            if (session_id, file_path) not in seen:
-                seen.add((session_id, file_path))
-                entries.append({"ts": now.isoformat(), "session": session_id, "path": file_path})
+            for file_path in new_paths:
+                if (session_id, file_path) not in seen:
+                    seen.add((session_id, file_path))
+                    entries.append({"ts": now.isoformat(), "session": session_id, "path": file_path})
 
-        tmp_path = reads_path.with_suffix(".tmp")
-        tmp_path.write_text("".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8")
-        tmp_path.replace(reads_path)
+            _write_atomic(reads_path, "".join(json.dumps(e) + "\n" for e in entries))
 
         # Silent output — no context injection
         empty_output(EVENT_NAME).print_and_exit()

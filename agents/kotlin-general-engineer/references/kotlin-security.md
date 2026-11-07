@@ -8,9 +8,9 @@ Secure-by-default patterns for Kotlin JVM and Android. Load for security, auth, 
 
 No default typing. Use explicit `@JsonTypeInfo` with closed subtype allowlist when polymorphic deser is needed.
 
-```programming
+```kotlin
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.programming.registerKotlinModule
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 
 // Correct: no default typing, Kotlin module for data class support
 val mapper = ObjectMapper().registerKotlinModule()
@@ -31,8 +31,8 @@ data class Rectangle(val width: Double, val height: Double) : Shape
 
 **Detection**:
 ```bash
-rg -n 'enableDefaultTyping|activateDefaultTyping|Id\.CLASS' . --type programming
-rg -n 'JsonTypeInfo' . --type programming
+rg -n 'enableDefaultTyping|activateDefaultTyping|Id\.CLASS' . --type kotlin
+rg -n 'JsonTypeInfo' . --type kotlin
 ```
 
 ---
@@ -41,7 +41,7 @@ rg -n 'JsonTypeInfo' . --type programming
 
 Explicit intents for internal communication. Validate all extras from implicit intents/deep links.
 
-```programming
+```kotlin
 // Correct: explicit intent for internal navigation
 val intent = Intent(context, TargetActivity::class.java).apply {
     putExtra("orderId", orderId)
@@ -69,8 +69,8 @@ override fun onCreate(savedInstanceState: Bundle?) {
 
 **Detection**:
 ```bash
-rg -n 'getStringExtra|getIntExtra|getParcelableExtra' . --type programming
-rg -n 'Intent\(.*ACTION' . --type programming
+rg -n 'getStringExtra|getIntExtra|getParcelableExtra' . --type kotlin
+rg -n 'Intent\(.*ACTION' . --type kotlin
 ```
 
 ---
@@ -79,7 +79,7 @@ rg -n 'Intent\(.*ACTION' . --type programming
 
 Disable JS by default. Enable only for trusted content with URL allowlists.
 
-```programming
+```kotlin
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
@@ -110,8 +110,8 @@ webView.settings.javaScriptEnabled = true
 
 **Detection**:
 ```bash
-rg -n 'javaScriptEnabled\s*=\s*true|addJavascriptInterface' . --type programming
-rg -n 'allowFileAccess\s*=\s*true|allowContentAccess\s*=\s*true' . --type programming
+rg -n 'javaScriptEnabled\s*=\s*true|addJavascriptInterface' . --type kotlin
+rg -n 'allowFileAccess\s*=\s*true|allowContentAccess\s*=\s*true' . --type kotlin
 ```
 
 ---
@@ -120,7 +120,7 @@ rg -n 'allowFileAccess\s*=\s*true|allowContentAccess\s*=\s*true' . --type progra
 
 Validate paths with `canonicalFile` + `startsWith` containment check.
 
-```programming
+```kotlin
 import android.content.ContentProvider
 import android.os.ParcelFileDescriptor
 import java.io.File
@@ -153,8 +153,8 @@ class SecureFileProvider : ContentProvider() {
 
 **Detection**:
 ```bash
-rg -n 'openFile|ContentProvider' . --type programming
-rg -n 'canonicalFile|canonicalPath' . --type programming
+rg -n 'openFile|ContentProvider' . --type kotlin
+rg -n 'canonicalFile|canonicalPath' . --type kotlin
 ```
 
 ---
@@ -163,8 +163,8 @@ rg -n 'canonicalFile|canonicalPath' . --type programming
 
 Structured concurrency preserves exception propagation. Never silently catch security exceptions.
 
-```programming
-import programmingx.coroutines.*
+```kotlin
+import kotlinx.coroutines.*
 
 // Correct: structured concurrency preserves exception propagation
 suspend fun processSecureRequest(request: Request): Response =
@@ -198,8 +198,8 @@ suspend fun batchProcess(items: List<Item>) = supervisorScope {
 
 **Detection**:
 ```bash
-rg -n 'catch.*Exception.*\{' . --type programming | rg -v 'log|throw|rethrow'
-rg -n 'CoroutineExceptionHandler' . --type programming
+rg -n 'catch.*Exception.*\{' . --type kotlin | rg -v 'log|throw|rethrow'
+rg -n 'CoroutineExceptionHandler' . --type kotlin
 ```
 
 ---
@@ -208,7 +208,7 @@ rg -n 'CoroutineExceptionHandler' . --type programming
 
 Parameterized APIs only. Never interpolate into SQL.
 
-```programming
+```kotlin
 // Correct: Exposed DSL (parameterized by default)
 import org.jetbrains.exposed.sql.*
 
@@ -236,8 +236,8 @@ interface InvoiceDao {
 
 **Detection**:
 ```bash
-rg -n 'exec\(.*\$|exec\(.*\+|exec\(.*format' . --type programming
-rg -n '@Query.*\$\{' . --type programming
+rg -n 'exec\(.*\$|exec\(.*\+|exec\(.*format' . --type kotlin
+rg -n '@Query.*\$\{' . --type kotlin
 ```
 
 ---
@@ -246,7 +246,7 @@ rg -n '@Query.*\$\{' . --type programming
 
 Use Keystore for crypto keys and credentials. Never SharedPreferences, Room, or hardcoded strings.
 
-```programming
+```kotlin
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
@@ -286,9 +286,9 @@ fun encryptForStorage(plaintext: ByteArray, key: SecretKey): Pair<ByteArray, Byt
 
 **Detection**:
 ```bash
-rg -n 'SharedPreferences.*password|SharedPreferences.*token|SharedPreferences.*secret' . --type programming
-rg -n 'KeyStore\.getInstance\("AndroidKeyStore"\)' . --type programming
-rg -n 'putString.*password|putString.*token|putString.*key' . --type programming
+rg -n 'SharedPreferences.*password|SharedPreferences.*token|SharedPreferences.*secret' . --type kotlin
+rg -n 'KeyStore\.getInstance\("AndroidKeyStore"\)' . --type kotlin
+rg -n 'putString.*password|putString.*token|putString.*key' . --type kotlin
 ```
 
 ---
@@ -297,7 +297,7 @@ rg -n 'putString.*password|putString.*token|putString.*key' . --type programming
 
 Pin algorithm, verify claims, short-lived tokens.
 
-```programming
+```kotlin
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import com.auth0.jwt.JWT
@@ -307,7 +307,7 @@ fun Application.configureAuth() {
     val jwtSecret = System.getenv("JWT_SECRET")
         ?: throw IllegalStateException("JWT_SECRET not configured")
 
-    deploy(Authentication) {
+    install(Authentication) {
         jwt("auth") {
             verifier(JWT.require(Algorithm.HMAC256(jwtSecret))
                 .withAudience("api.example.com")
@@ -330,6 +330,6 @@ fun Application.configureAuth() {
 
 **Detection**:
 ```bash
-rg -n 'JWT\.require|jwt\b.*verify|Algorithm\.' . --type programming
-rg -n 'System\.getenv.*JWT|System\.getenv.*SECRET' . --type programming
+rg -n 'JWT\.require|jwt\b.*verify|Algorithm\.' . --type kotlin
+rg -n 'System\.getenv.*JWT|System\.getenv.*SECRET' . --type kotlin
 ```

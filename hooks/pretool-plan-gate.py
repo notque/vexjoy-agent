@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """
 PreToolUse:Write,Edit Hook: Plan Gate
 
-Blocks implementation when task_plan.md doesn't exist in the project root.
+Blocks implementation when the project root has no current task_plan.md.
 Forces agents to create a plan before writing implementation code.
 
 This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the Write/Edit tool.
@@ -11,12 +11,15 @@ This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the W
 Detection logic:
 - Tool is Write or Edit
 - Target resolves inside the project-root agents/ or skills/ directory
-- task_plan.md does not exist in the project root
+- task_plan.md in the project root is missing, or was last modified more than
+  _PLAN_MAX_AGE_SECONDS (24 h) ago; the deny then says the plan is stale
 
 Allow-through conditions:
 - Target file is NOT in agents/, skills/
-- task_plan.md exists in the project root
+- task_plan.md exists in the project root and was modified within 24 h
 - PLAN_GATE_BYPASS=1 env var (for use by the planning skill itself)
+
+The gate never deletes or edits task_plan.md.
 """
 
 import sys  # vexjoy-pyguard
@@ -42,6 +45,7 @@ import json
 import os
 import stat
 import sys
+import time
 import traceback
 from pathlib import Path
 from typing import NoReturn
@@ -53,6 +57,10 @@ from stdin_timeout import read_stdin
 _BYPASS_ENV = "PLAN_GATE_BYPASS"
 _PROJECT_DIR_ENV = "CLAUDE_PROJECT_DIR"
 _MAX_GIT_METADATA_BYTES = 4096
+# A root task_plan.md counts only when modified within this window. The file is
+# gitignored and per-session; one left over from an earlier task (an August
+# plan in the main checkout) otherwise kept the gate open for every later edit.
+_PLAN_MAX_AGE_SECONDS = 24 * 60 * 60
 
 _GATED_DIRECTORIES = ("agents", "skills")
 _GATED = "gated"
@@ -323,14 +331,28 @@ def _deny(reason: str, *, stderr_message: str, fix_with_planning: bool = False) 
     sys.exit(0)
 
 
-def _root_plan_exists(root: Path) -> bool:
-    """Return whether the exact root plan is a regular file, not a symlink."""
+def _root_plan_age(root: Path) -> float | None:
+    """Seconds since the exact root plan was modified, or None when there is no
+    such regular file (a symlink does not count)."""
     plan_path = root / "task_plan.md"
     try:
         resolved = plan_path.resolve(strict=True)
-        return resolved == plan_path and resolved.is_file()
+        if resolved != plan_path or not resolved.is_file():
+            return None
+        return time.time() - resolved.stat().st_mtime
     except (OSError, RuntimeError, ValueError):
-        return False
+        return None
+
+
+def _stale_plan_note(age_seconds: float) -> str:
+    """One sentence for the deny reason: the plan exists but is too old to count."""
+    hours = int(age_seconds // 3600)
+    ago = f"{hours} hours ago" if hours < 48 else f"{hours // 24} days ago"
+    return (
+        f" The task_plan.md at the project root was last modified {ago}, older than "
+        f"{_PLAN_MAX_AGE_SECONDS // 3600} hours, so it is treated as a plan from an earlier task: "
+        "update it for the current task."
+    )
 
 
 def main() -> None:
@@ -382,18 +404,22 @@ def main() -> None:
             print(f"[plan-gate] Not a gated path, allowing: {file_path}", file=sys.stderr)
         sys.exit(0)
 
-    if _root_plan_exists(root):
+    plan_age = _root_plan_age(root)
+    if plan_age is not None and plan_age <= _PLAN_MAX_AGE_SECONDS:
         if debug:
             print(
-                f"[plan-gate] task_plan.md found at {root / 'task_plan.md'} — allowing through",
+                f"[plan-gate] task_plan.md found at {root / 'task_plan.md'} "
+                f"(modified {int(plan_age // 60)} min ago) — allowing through",
                 file=sys.stderr,
             )
         sys.exit(0)
 
+    stale_note = _stale_plan_note(plan_age) if plan_age is not None else ""
     _deny(
-        "Create task_plan.md before modifying implementation code in agents/ or skills/. "
-        "[fix-with-skill] process\nCall the Skill tool with `process`.",
-        stderr_message="Create task_plan.md before modifying implementation code.",
+        "Create task_plan.md before modifying implementation code in agents/ or skills/."
+        f"{stale_note} [fix-with-skill] process\nCall the Skill tool with `process`.",
+        stderr_message="Create task_plan.md before modifying implementation code."
+        + (" The root task_plan.md is older than the freshness limit." if stale_note else ""),
         fix_with_planning=True,
     )
 
