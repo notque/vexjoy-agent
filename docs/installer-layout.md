@@ -43,8 +43,20 @@ Checked against [Skills](https://docs.cline.bot/customization/skills).
 - **One owner per name.** Overlays never replace public entries, and an `overrides` key in `overlays.json` is rejected. A collision makes `plan` and `apply` exit 3. `sync` leaves that one name as it is on disk and warns.
 - **Support dirs** (`SUPPORT_DIRS`): `shared-patterns`, `kb`, `voice-shared`. These install next to skills and have no `SKILL.md`.
 - **Data dirs** (`DATA_DIRS`): `reddit-data`, `synced`. Other tools write these under a skills root. The engine never installs, adopts, or removes them, and `doctor` names them as runtime data dirs.
-- **Mode.** Symlink mode is the default for a main git checkout outside `/tmp`. Copy mode is used otherwise. Copy and symlink modes produce the same shape. The ledger records the mode, and only `apply --mode` changes it.
-- **State.** `~/.claude/vexjoy/`: `ledger.json`, `overlays.json`, `reports/`, `backups/`, `trash/`, `lock`, `bin/python3`.
+- **Mode.** Symlink mode is the default for a main git checkout outside `/tmp` on Linux and macOS. Copy mode is the default everywhere else, including on Windows. There, a symlink needs Developer Mode (error 1314 without it). `os.readlink` also returns the link with an extended-path prefix that never matches the source, and `os.replace` cannot swap a dir link. So a link install on Windows would fail on every run after the first. Copy and symlink modes produce the same shape. The ledger records the mode, and only a run with `--mode` changes it (`./install.sh --copy` or `--symlink`). A Windows install whose ledger says symlink gets the hint to run `./install.sh --copy` whenever an entry fails.
+- **State.** `~/.claude/vexjoy/`: `ledger.json`, `overlays.json`, `reports/`, `backups/`, `trash/`, `lock` (`fcntl.flock`, or `msvcrt.locking` on Windows), `bin/python3`.
+- **Replace.** A replace works in this order:
+  1. It stages the new copy or link beside the dest.
+  2. It records the move in the trash manifest.
+  3. It moves the old entry to trash.
+  4. It renames the staged entry into place.
+
+  A dir such as `~/.claude/hooks` is missing only between the two renames. If the staged entry cannot be placed, the old entry comes back out of trash. If that also fails, the error says where in trash the old entry is, and the next run installs the entry again. A move that fails or is undone leaves no record behind, and a trash session left empty is removed. So `./install.sh --rollback` still finds the newest session that holds something.
+- **Busy paths.** Windows refuses to rename a dir while another process holds a file in it open or works inside it, such as a running hook, a virus scanner, or a terminal. It also refuses to replace a file another process has open. Engine renames and file replaces retry these errors (5 and 32) for about 3 s.
+- **Failed entries.** An entry that still fails stays as it was and keeps its ledger record, and the rest of the run goes on.
+  - A target with a failed entry keeps its settings and hook registrations (`settings.json`, profile settings, external hook configs) as they were. A registration must never point at a hook file that did not install.
+  - The run saves the ledger even when something stops it early, Ctrl-C included, because the ledger holds only finished steps.
+  - The run names each failed entry, up to five, and the report lists all of them. `apply` exits 1, `sync` warns, and the next run tries the entry again.
 - **Installed indexes.** `~/.<target>/vexjoy/index/{skills,agents}.json` (public + overlays). Readers find them through `resolve_index(kind, target)` in `scripts/routing_index_merge.py`: `$VEXJOY_INDEX_DIR`, then the installed index, then the repo public index (plus a legacy `INDEX.local.json` if one exists).
 - **Repo guard.** No engine write may resolve inside the repo or an overlay root. A write that would triggers exit 4. Every command also refuses up front (exit 4) when the state dir or any target root resolves inside the repo, for example `HOME` set to the checkout.
 - **Legacy git hook.** The pre-engine `install.sh` wrote a `post-merge` that linked repo items into each runtime root after every pull. Under Git Bash without symlink privilege, `ln -s` made copies, which the engine treats as user edits and stops updating. An apply run of `./install.sh` (not `--dry-run`, `--configure-only` or `--uninstall`) writes its git hooks before it checks Python or runs `apply`. It replaces a hook marked `Written by vexjoy-agent` in the main checkout's `.git/hooks`, even when the install then fails. `doctor` (`legacy-git-hook`, error) and the SessionStart sync (one `[sync] warning` line, in worktree sessions too) report a legacy hook in the hooks dir git uses (`core.hooksPath`, else `git rev-parse --git-path hooks`). Neither rewrites it (repo guard). To fix one, delete it, or remove its `ln -s` loop if the file also runs your own hooks. The pre-engine installer wrote `.git/hooks/post-merge` under whatever directory it ran from, so check other clones too: `grep -l 'auto-syncs new items' <clone>/.git/hooks/post-merge`.
@@ -144,6 +156,7 @@ Claude Code reads hooks from the `settings.json` of the config dir it runs with.
 | Write overlays from the legacy private roots | `./install.sh --migrate-overlays` |
 | Preview | `./install.sh --dry-run` or `vexinstall plan --dry-run --takeover --target all` |
 | Install or repair | `./install.sh` (`vexinstall apply --takeover`) |
+| Switch mode (recorded in the ledger) | `./install.sh --copy`, or `./install.sh --symlink` on Linux and macOS |
 | Pick the hook python | `VEXJOY_PYTHON=/abs/python3 ./install.sh` |
 | Uninstall | `./install.sh --uninstall`: renames install.sh's `post-merge` hook (no `--target` only), runs `vexinstall uninstall`, and removes the no-agent-summary block from `~/.bashrc` |
 | Roll back the last apply or uninstall | `./install.sh --rollback` (`restore-settings` + `restore-trash` with the newest ts) |

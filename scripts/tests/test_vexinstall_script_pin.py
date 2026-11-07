@@ -221,12 +221,11 @@ def test_missing_modules_probes_the_script_pin_interpreter(tmp_path: Path, monke
     assert len(argv0) == 1
 
 
-def test_apply_doctor_sync_uninstall_with_a_script_pin(
-    world: Env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Only the python pin loses symlinks; every other install path keeps the host's real os.symlink."""
-    if not _can_symlink(tmp_path):
-        pytest.skip("host cannot create symlinks, so the fixture's other installs fail first")
+def test_apply_doctor_sync_uninstall_with_a_script_pin(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only the python pin loses symlinks; every other install path keeps the host's real os.symlink.
+
+    A host that refuses symlinks installs everything else in copy mode.
+    """
     real = os.symlink
 
     def refuse_pin(src: object, dst: object, *a: object, **k: object) -> None:
@@ -252,11 +251,8 @@ def test_apply_doctor_sync_uninstall_with_a_script_pin(
 
 
 def test_apply_writes_settings_and_ledger_when_the_pin_cannot_be_written(
-    world: Env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    world: Env, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    if not _can_symlink(tmp_path):
-        pytest.skip("host cannot create symlinks, so the fixture's other installs fail first")
-
     def locked(*_a: object, **_k: object) -> bool:
         raise PermissionError(13, "pin locked")
 
