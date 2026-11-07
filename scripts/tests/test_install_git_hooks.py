@@ -1,10 +1,10 @@
-"""install.sh --uninstall removes the post-merge hook it wrote, so the uninstall sticks (lane C, C-02).
+"""install.sh --uninstall sets aside the post-merge hook it wrote, so the uninstall sticks (lane C, C-02).
 
 The post-merge hook runs ``vexinstall sync --target all`` after every git pull. Once an uninstall
 has removed the launcher and the settings hooks, that hook is the one thing left that runs a sync,
-and a sync puts back everything the uninstall removed. --uninstall now deletes the hook when it
-carries install.sh's marker line and leaves anyone else's post-merge alone. --rollback of an
-uninstall writes it again.
+and a sync puts back everything the uninstall removed. --uninstall (no --target, or --target
+claude) renames the hook to post-merge.vexjoy-removed.<ts> when it carries install.sh's marker
+line and leaves anyone else's post-merge alone. --rollback of an uninstall writes it again.
 """
 
 from __future__ import annotations
@@ -47,36 +47,48 @@ def _checkout(tmp_path: Path, hook: str | None) -> Path:
     return co
 
 
-def _uninstall_git_hooks(co: Path, *, target: str = "all", dry_run: bool = False, env: dict | None = None):
-    """Run install.sh's uninstall_git_hooks for the checkout *co*."""
-    func = subprocess.run(
-        ["sed", "-n", "/^uninstall_git_hooks() {/,/^}/p", str(INSTALL_SH)], capture_output=True, text=True, check=True
+def _func(name: str) -> str:
+    body = subprocess.run(
+        ["sed", "-n", f"/^{name}() {{/,/^}}/p", str(INSTALL_SH)], capture_output=True, text=True, check=True
     ).stdout
-    assert func, "uninstall_git_hooks not found in install.sh"
+    assert body, f"{name} not found in install.sh"
+    return body
+
+
+def _uninstall_git_hooks(co: Path, *, target: str = "all", dry_run: bool = False, env: dict | None = None):
+    """Run install.sh's uninstall_git_hooks for the checkout *co*; prints GIT_HOOK_PROBLEM last."""
     body = (
         "set -euo pipefail\n"
-        f'GREEN=""; YELLOW=""; NC=""; SCRIPT_DIR="{co}"; TARGET="{target}"; DRY_RUN={str(dry_run).lower()}\n'
-        f"{func}\nuninstall_git_hooks\n"
+        f'GREEN=""; YELLOW=""; BLUE=""; NC=""; SCRIPT_DIR="{co}"; TARGET="{target}"; DRY_RUN={str(dry_run).lower()}\n'
+        'GIT_HOOK_PROBLEM=""\n'
+        f"{_func('main_hooks_dir')}\n{_func('uninstall_git_hooks')}\n"
+        'uninstall_git_hooks\necho "problem=${GIT_HOOK_PROBLEM}"\n'
     )
     full_env = {"PATH": "/usr/bin:/bin", **(env or {})}
     return subprocess.run(["bash", "-c", body], capture_output=True, text=True, env=full_env, timeout=60)
 
 
+def _renamed(co: Path) -> list[Path]:
+    return sorted((co / ".git" / "hooks").glob("post-merge.vexjoy-removed.*"))
+
+
 @pytest.mark.parametrize("target", ["all", "claude"])
-def test_uninstall_removes_the_post_merge_install_sh_wrote(tmp_path: Path, target: str) -> None:
+def test_uninstall_renames_the_post_merge_install_sh_wrote(tmp_path: Path, target: str) -> None:
     co = _checkout(tmp_path, _post_merge_body())
     res = _uninstall_git_hooks(co, target=target)
     assert res.returncode == 0, res.stderr
     assert not os.path.lexists(co / ".git" / "hooks" / "post-merge")
-    assert "Removed post-merge hook" in res.stdout
+    assert [p.read_text() for p in _renamed(co)] == [_post_merge_body()]
+    assert "Renamed post-merge hook" in res.stdout and res.stdout.rstrip().endswith("problem="), res.stdout
 
 
 def test_uninstall_leaves_a_foreign_post_merge_alone(tmp_path: Path) -> None:
     co = _checkout(tmp_path, FOREIGN)
     res = _uninstall_git_hooks(co)
     assert res.returncode == 0, res.stderr
-    assert (co / ".git" / "hooks" / "post-merge").read_text() == FOREIGN
-    assert "not install.sh's" in res.stdout and str(co / ".git" / "hooks" / "post-merge") in res.stdout
+    assert (co / ".git" / "hooks" / "post-merge").read_text() == FOREIGN and not _renamed(co)
+    assert "Keeping post-merge hook (not written by vexjoy-agent)" in res.stdout
+    assert str(co / ".git" / "hooks" / "post-merge") in res.stdout
 
 
 @pytest.mark.parametrize("target", ["codex", "hermes"])
@@ -86,29 +98,38 @@ def test_a_partial_uninstall_keeps_the_hook(tmp_path: Path, target: str) -> None
     co = _checkout(tmp_path, _post_merge_body())
     res = _uninstall_git_hooks(co, target=target)
     assert res.returncode == 0, res.stderr
-    assert (co / ".git" / "hooks" / "post-merge").is_file() and res.stdout == ""
+    assert (co / ".git" / "hooks" / "post-merge").is_file() and not _renamed(co)
+    assert "Keeping post-merge hook (a --target uninstall keeps it" in res.stdout, res.stdout
 
 
 def test_dry_run_only_says_so(tmp_path: Path) -> None:
     co = _checkout(tmp_path, _post_merge_body())
     res = _uninstall_git_hooks(co, dry_run=True)
     assert res.returncode == 0, res.stderr
-    assert (co / ".git" / "hooks" / "post-merge").is_file()
-    assert "Would remove post-merge hook" in res.stdout
+    assert (co / ".git" / "hooks" / "post-merge").is_file() and not _renamed(co)
+    assert "Would rename post-merge hook" in res.stdout
 
 
-@pytest.mark.parametrize("case", ["no-git-hooks-env", "worktree", "no-hook"])
+@pytest.mark.parametrize("case", ["no-git-hooks-env", "no-hook"])
 def test_nothing_to_do(tmp_path: Path, case: str) -> None:
     co = _checkout(tmp_path, None if case == "no-hook" else _post_merge_body())
     env = {"VEXJOY_NO_GIT_HOOKS": "1"} if case == "no-git-hooks-env" else None
-    if case == "worktree":  # a worktree's .git is a file; install.sh never wrote hooks there
-        shutil.rmtree(co / ".git")
-        (co / ".git").write_text("gitdir: /elsewhere\n")
     res = _uninstall_git_hooks(co, env=env)
     assert res.returncode == 0, res.stderr
-    assert res.stdout == ""
+    assert not _renamed(co) and res.stdout.rstrip().endswith("problem="), res.stdout
     if case == "no-git-hooks-env":
         assert (co / ".git" / "hooks" / "post-merge").is_file()
+        assert "Git hooks skipped (VEXJOY_NO_GIT_HOOKS=1)" in res.stdout
+
+
+def test_an_unreadable_worktree_git_file_is_a_problem(tmp_path: Path) -> None:
+    # A worktree's .git is a file; when git cannot follow it, the main checkout's hook may still run.
+    co = _checkout(tmp_path, None)
+    shutil.rmtree(co / ".git")
+    (co / ".git").write_text("gitdir: /elsewhere\n")
+    res = _uninstall_git_hooks(co)
+    assert res.returncode == 0, res.stderr
+    assert "run ./install.sh --uninstall in the main checkout too" in res.stdout.splitlines()[-1], res.stdout
 
 
 UNDID_UNINSTALL = "[rollback] run install-1 (uninstall)\n  trash 1: restored 3, skipped 0 (occupied or missing)"

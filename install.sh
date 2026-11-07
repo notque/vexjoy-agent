@@ -6,10 +6,12 @@
 # anything it removes to ~/.claude/vexjoy/trash/. Layout: docs/installer-layout.md.
 #
 # Usage:
-#   ./install.sh                     # apply (symlink mode for a main checkout, else copy)
+#   ./install.sh                     # apply (symlink mode for a main checkout off Windows, else copy)
 #   ./install.sh --symlink|--copy    # choose the mode (recorded in the ledger)
 #   ./install.sh --dry-run           # show the plan; write nothing
-#   ./install.sh --uninstall         # remove every engine-owned entry (to trash)
+#   ./install.sh --uninstall         # remove every engine-owned entry (to trash); with no --target
+#                                    # or --target claude, also rename install.sh's post-merge hook
+#                                    # so git skips it
 #   ./install.sh --rollback          # undo the last run: restore what it trashed and its settings backup
 #   ./install.sh --migrate-overlays  # write ~/.claude/vexjoy/overlays.json, then exit
 #                                    # (apply runs it when overlays.json is missing and
@@ -47,11 +49,13 @@ usage() {
     cat << 'EOF'
 Usage: ./install.sh [options]
 
-  --symlink            Link entries to this checkout (default for a main git checkout)
-  --copy               Copy entries (default for worktrees and /tmp checkouts)
+  --symlink            Link entries to this checkout (default for a main git checkout off Windows)
+  --copy               Copy entries (default on Windows and for worktrees and /tmp checkouts)
   --dry-run            Print the vexinstall plan; write nothing
-  --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
-                       and the post-merge git hook install.sh wrote (it reinstalls on pull)
+  --uninstall          Move every engine-owned entry to trash; remove owned settings hooks.
+                       With no --target or --target claude, also rename install.sh's post-merge
+                       git hook so git skips it (it reinstalls on pull). The pre-commit
+                       private-leak gate stays.
   --rollback           Undo the last install or uninstall run: restore what it moved to trash
                        and the settings.json it replaced (later syncs are left alone)
   --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
@@ -217,26 +221,58 @@ exit 0
 HOOK
 }
 
-# --uninstall: the post-merge hook syncs every target after each git pull, which puts back all that
-# an uninstall removed, so delete it when install.sh wrote it (the marker line) and leave anyone
-# else's post-merge alone. A partial uninstall keeps it: claude's SessionStart sync puts the other
-# target back either way, and the hook keeps claude current. The pre-commit leak gate stays.
-uninstall_git_hooks() {
-    local hook="${SCRIPT_DIR}/.git/hooks/post-merge"
-    [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ] && return 0
-    [ "$TARGET" = "all" ] || [ "$TARGET" = "claude" ] || return 0
-    [ -d "${SCRIPT_DIR}/.git" ] || return 0
-    [ -e "$hook" ] || [ -L "$hook" ] || return 0
-    if ! grep -q "Written by vexjoy-agent" "$hook" 2>/dev/null; then
-        echo -e "${YELLOW}  post-merge hook is not install.sh's; left in place: ${hook}${NC}"
-    elif [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}  Would remove post-merge hook (it reinstalls after every git pull): ${hook}${NC}"
-    elif rm -f "$hook"; then
-        echo -e "${GREEN}  ✓ Removed post-merge hook (it reinstalled after every git pull): ${hook}${NC}"
-    else
-        echo -e "${YELLOW}  ⚠ Could not remove post-merge hook; delete it or the next git pull reinstalls: ${hook}${NC}"
+# main_hooks_dir: the dir install.sh writes hooks to, <main checkout>/.git/hooks. From a linked worktree
+# it asks git for the main .git, since git runs the main checkout's hooks for merges in every worktree.
+# Prints nothing without .git or for a submodule (install.sh never writes hooks there). Fails when
+# .git is a file git cannot read.
+main_hooks_dir() {
+    local common
+    if [ -d "${SCRIPT_DIR}/.git" ]; then
+        printf '%s\n' "${SCRIPT_DIR}/.git/hooks"
+    elif [ -f "${SCRIPT_DIR}/.git" ]; then
+        common=$(git -C "$SCRIPT_DIR" rev-parse --git-common-dir 2> /dev/null) && [ -n "$common" ] \
+            && common=$(cd "$SCRIPT_DIR" && cd "$common" && pwd) || return 1
+        [ "${common##*/}" != ".git" ] || printf '%s\n' "${common}/hooks"
     fi
-    return 0
+}
+
+# Uninstall without --target (or with --target claude) renames our post-merge to
+# post-merge.vexjoy-removed.<UTC time>, which git never runs: its `sync --target all` (or a pre-engine
+# hook's `ln -s` loop) would re-install everything on the next pull. Another --target uninstall keeps it:
+# claude's SessionStart sync re-installs that target either way, and the hook keeps claude current.
+# The pre-commit private-leak gate stays: it installs nothing.
+# When a marked post-merge may still run, GIT_HOOK_PROBLEM says why, and the uninstall exits 1.
+uninstall_git_hooks() {
+    local dir name hook ts
+    if [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ]; then
+        echo -e "${YELLOW}  Git hooks skipped (VEXJOY_NO_GIT_HOOKS=1)${NC}"
+        return 0
+    fi
+    if ! dir=$(main_hooks_dir); then
+        GIT_HOOK_PROBLEM="Git hooks not checked: git cannot read ${SCRIPT_DIR}/.git; run ./install.sh --uninstall in the main checkout too"
+        echo -e "${YELLOW}  ⚠ ${GIT_HOOK_PROBLEM}${NC}"
+        return 0
+    fi
+    ts=$(date -u +%Y%m%dT%H%M%SZ)
+    [ -n "$dir" ] || return 0
+    for name in post-merge pre-commit; do
+        hook="${dir}/${name}"
+        [ -e "$hook" ] || continue
+        if ! grep -q "Written by vexjoy-agent" "$hook" 2> /dev/null; then
+            echo -e "  Keeping ${name} hook (not written by vexjoy-agent): ${hook}"
+        elif [ "$name" = pre-commit ]; then
+            echo -e "  Keeping pre-commit hook (the private-leak gate installs nothing; delete it to stop the check): ${hook}"
+        elif [ "$TARGET" != all ] && [ "$TARGET" != claude ]; then
+            echo -e "${YELLOW}  Keeping post-merge hook (a --target uninstall keeps it; its sync re-installs every present target on each pull): ${hook}${NC}"
+        elif [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would rename post-merge hook to ${hook}.vexjoy-removed.${ts}${NC}"
+        elif mv -f "$hook" "${hook}.vexjoy-removed.${ts}"; then
+            echo -e "${GREEN}  ✓ Renamed post-merge hook to ${hook}.vexjoy-removed.${ts}; git does not run it${NC}"
+        else
+            GIT_HOOK_PROBLEM="${hook} is still in place: delete it, or the next pull re-installs everything"
+            echo -e "${YELLOW}  ⚠ Could not rename post-merge hook: ${hook}${NC}"
+        fi
+    done
 }
 
 # pip_requirements PYTHON: install requirements.txt into PYTHON; --break-system-packages when pip knows
@@ -343,10 +379,14 @@ uninstall_no_agent_summary() {
     echo -e "${GREEN}  ✓ no-agent-summary: removed ${NAS_HOOK}${NC}"
 }
 
-# Git hooks first: a pre-engine post-merge links repo items into runtime roots on every pull,
-# so replacing it must not wait for a working python or a successful apply.
+# Git hooks first, so neither a missing python nor a failed engine run leaves the wrong post-merge:
+# apply replaces a pre-engine one, which links repo items into runtime roots on every pull, and
+# uninstall renames ours, since its sync would re-install everything on the next pull.
+GIT_HOOK_PROBLEM=""
 if [ "$ACTION" = "apply" ] && [ "$DRY_RUN" = false ] && [ "$CONFIGURE_ONLY" = false ]; then
     install_git_hooks
+elif [ "$ACTION" = "uninstall" ]; then
+    uninstall_git_hooks
 fi
 
 check_python
@@ -362,9 +402,12 @@ if [ "$ACTION" = "uninstall" ]; then
     args=(uninstall --target "$TARGET" --run-id "$RUN_ID")
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
-    uninstall_git_hooks
     [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
-    exit $?
+    if [ -n "$GIT_HOOK_PROBLEM" ]; then
+        echo -e "${RED}⚠ ${GIT_HOOK_PROBLEM}${NC}"
+        exit 1
+    fi
+    exit 0
 fi
 
 if [ "$ACTION" = "rollback" ]; then

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import json
 import os
 import secrets
 import shutil
 import stat
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -16,6 +18,33 @@ from pathlib import Path
 from .common import GuardError, is_inside, iter_tree_files, parse_ts, realpath, utc_iso
 
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+
+# Windows refuses to rename a dir while another process holds a file in it open or works
+# inside it, and to replace a file another process has open: ERROR_ACCESS_DENIED or
+# ERROR_SHARING_VIOLATION. Hooks and virus scanners let go within a second, so a rename
+# retries for about 3 s. A terminal or editor working inside the dir does not let go; that
+# entry then fails, and apply.execute_target leaves it as it was and goes on.
+_WIN_BUSY = frozenset({5, 32})
+_BUSY_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8, 1.6)
+
+
+def is_busy(exc: BaseException) -> bool:
+    """True for the Windows errors a rename gets while another process uses the path."""
+    return getattr(exc, "winerror", None) in _WIN_BUSY
+
+
+def retry_rename(src: Path | str, dest: Path | str, *, replace: bool = False) -> None:
+    """``os.rename`` (``os.replace`` with *replace*), retried while Windows reports *src* or *dest* busy."""
+    op = os.replace if replace else os.rename
+    for delay in _BUSY_DELAYS:
+        try:
+            op(src, dest)
+            return
+        except OSError as exc:
+            if not is_busy(exc):
+                raise
+        time.sleep(delay)
+    op(src, dest)
 
 
 @dataclass
@@ -95,7 +124,7 @@ def atomic_write_bytes(dest: Path, data: bytes, guard: Guard, mode: int = 0o644)
             fh.flush()
             os.fsync(fh.fileno())
         os.chmod(tmp, mode)
-        os.replace(tmp, dest)
+        retry_rename(tmp, dest, replace=True)
     except BaseException:
         if os.path.lexists(tmp):
             os.unlink(tmp)
@@ -180,11 +209,18 @@ def _copy_file(src: Path, dst: Path) -> None:
     os.chmod(dst, mode)
 
 
-def copy_entry(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | None) -> None:
-    """Copy a file or tree to an absent *dest* via a temp sibling and rename."""
+def discard_staged(tmp: Path) -> None:
+    """Remove a staged temp copy (file, link, or tree). Never raises: a leftover is only clutter."""
+    if os.path.isdir(tmp) and not os.path.islink(tmp):
+        shutil.rmtree(tmp, ignore_errors=True)
+    else:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+
+
+def stage_copy(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | None) -> Path:
+    """Copy a file or tree into a temp sibling of *dest* and return it. *dest* is not touched."""
     guard.check(dest)
-    if os.path.lexists(dest):
-        raise FileExistsError(errno.EEXIST, "dest exists", str(dest))
     tmp = _tmp_name(dest)
     try:
         if src.is_file():
@@ -199,13 +235,37 @@ def copy_entry(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | Non
                 d = tmp / rel
                 d.parent.mkdir(parents=True, exist_ok=True)
                 _copy_file(s, d)
-        os.rename(tmp, dest)
     except BaseException:
-        if os.path.isdir(tmp) and not os.path.islink(tmp):
-            shutil.rmtree(tmp, ignore_errors=True)
-        elif os.path.lexists(tmp):
-            os.unlink(tmp)
+        discard_staged(tmp)
         raise
+    return tmp
+
+
+def stage_link(target: Path, dest: Path, guard: Guard) -> Path:
+    """Create a symlink to *target* in a temp sibling of *dest* and return it. *dest* is not touched."""
+    guard.check(dest)
+    tmp = _tmp_name(dest)
+    os.symlink(str(target), tmp)
+    return tmp
+
+
+def place_staged(tmp: Path, dest: Path) -> None:
+    """Rename the staged copy or link *tmp* onto the absent *dest*. Remove *tmp* when that fails."""
+    try:
+        if os.path.lexists(dest):
+            raise FileExistsError(errno.EEXIST, "dest exists", str(dest))
+        retry_rename(tmp, dest)
+    except BaseException:
+        discard_staged(tmp)
+        raise
+
+
+def copy_entry(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | None) -> None:
+    """Copy a file or tree to an absent *dest* via a temp sibling and rename."""
+    guard.check(dest)
+    if os.path.lexists(dest):
+        raise FileExistsError(errno.EEXIST, "dest exists", str(dest))
+    place_staged(stage_copy(src, dest, guard, files), dest)
 
 
 @dataclass
@@ -223,7 +283,11 @@ class Trash:
         return self.root / self.ts
 
     def move(self, path: Path, home: Path, reason: str) -> Path:
-        """Move *path* (link, file, or dir; never followed) into trash."""
+        """Move *path* (link, file, or dir; never followed) into trash.
+
+        The manifest names the move before the rename. A run killed in between leaves a
+        record that restore-trash skips, never an entry in trash that nothing points to.
+        """
         self.guard.check(path)
         try:
             rel = path.relative_to(home)
@@ -233,15 +297,46 @@ class Trash:
         mkdirs(dest.parent, self.guard)
         if os.path.lexists(dest):
             dest = dest.with_name(dest.name + "." + secrets.token_hex(3))
+        item = {"original": str(path), "trashed": str(dest), "reason": reason, "at": utc_iso()}
+        self._save([*self.items, item])
         try:
-            os.rename(path, dest)
+            retry_rename(path, dest)
         except OSError as exc:
             if exc.errno != errno.EXDEV:
+                with contextlib.suppress(OSError):
+                    self._forget()
                 raise
             shutil.move(str(path), str(dest))
-        self.items.append({"original": str(path), "trashed": str(dest), "reason": reason, "at": utc_iso()})
-        atomic_write_json(self.dir / "manifest.json", {"ts": self.ts, "items": self.items}, self.guard)
+        self.items.append(item)
         return dest
+
+    def put_back(self, trashed: Path, original: Path) -> None:
+        """Undo :meth:`move` for an entry whose replacement could not be placed.
+
+        When the entry cannot come back, the OSError says where it is in trash.
+        """
+        self.guard.check(original)
+        try:
+            retry_rename(trashed, original)
+        except OSError as exc:
+            raise OSError(exc.errno, f"missing; the old entry is in trash at {trashed} ({exc})") from exc
+        self.items = [i for i in self.items if i["trashed"] != str(trashed)]
+        with contextlib.suppress(OSError):  # restore-trash skips a record whose trashed path is gone
+            self._forget()
+
+    def _save(self, items: list[dict[str, str]]) -> None:
+        atomic_write_json(self.dir / "manifest.json", {"ts": self.ts, "items": items}, self.guard)
+
+    def _forget(self) -> None:
+        """Rewrite the manifest after a move failed or was undone.
+
+        A session left with no items is removed, so no empty session lingers in trash for
+        ``restore-trash`` to list, and the rollback point of the run names none.
+        """
+        if self.items:
+            self._save(self.items)
+        else:
+            shutil.rmtree(self.dir, ignore_errors=True)
 
 
 def _is_empty_real_dir(path: Path) -> bool:
@@ -279,7 +374,7 @@ def restore_trash(
             continue
         guard.check(orig)
         mkdirs(orig.parent, guard)
-        os.rename(src, orig)
+        retry_rename(src, orig)
         restored.append(str(orig))
     return restored, skipped
 

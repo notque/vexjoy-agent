@@ -195,10 +195,18 @@ def _fail(*_args: object, **_kwargs: object) -> None:
     raise PermissionError(13, "simulated write failure")
 
 
-def test_an_apply_that_dies_partway_is_the_run_rolled_back(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+def _interrupt(*_args: object, **_kwargs: object) -> None:
+    raise KeyboardInterrupt
+
+
+@pytest.mark.parametrize("stop", ["oserror", "interrupt"])
+def test_an_apply_that_dies_partway_is_the_run_rolled_back(
+    world: Env, monkeypatch: pytest.MonkeyPatch, stop: str
+) -> None:
     # The run that died after its takeover is what --rollback undoes. The earlier run-1, never rolled
     # back, used to stand in for it: rollback put back run-1's alpha and the settings.json from before
-    # run-1, and left the failed run's displaced omega in trash.
+    # run-1, and left the failed run's displaced omega in trash. An OSError stops the run with exit 1
+    # (it saves the ledger and records its point as usual); Ctrl-C or a bug re-raises after both.
     alpha, spath = _user_home(world)
     _ok(world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-1"))
     installed = spath.read_bytes()
@@ -210,9 +218,14 @@ def test_an_apply_that_dies_partway_is_the_run_rolled_back(world: Env, monkeypat
     omega.mkdir()
     (omega / "SKILL.md").write_text(USER_OMEGA)
     with monkeypatch.context() as mp:
-        mp.setattr(apply_mod, "apply_settings", _fail)  # dies after the takeover moved omega to trash
-        with pytest.raises(PermissionError):
-            world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-2")
+        # dies after the takeover moved omega to trash
+        mp.setattr(apply_mod, "apply_settings", _fail if stop == "oserror" else _interrupt)
+        if stop == "oserror":
+            res = world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-2")
+            assert res.code == 1 and any("run stopped early" in line for line in res.err), res
+        else:
+            with pytest.raises(KeyboardInterrupt):
+                world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-2")
     assert _point(world)["run"] == "run-2"
     assert str(omega) in world.ledger_dests("claude"), "the ledger keeps what the failed run installed"
     res = world.run("rollback")
