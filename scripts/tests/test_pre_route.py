@@ -270,6 +270,7 @@ class TestTriggerScopedGuards:
             "send my manuscript for review",  # send and review families: manuscript
             "publish a book this year",  # phrase guard "publish a book" (#993 had made it "content a book")
             "fish out the bug",
+            "a shared repository of ideas",  # metaphor; the flat "ideas" guard used to catch it
         ],
     )
     def test_idioms_stay_suppressed(self, pre_route, real_entries, query: str) -> None:
@@ -319,7 +320,15 @@ class TestSecurityVocabulary:
             "high",
         ), result
 
-    @pytest.mark.parametrize("query", ["use dependency injection in the service layer", "keep the secrets in my diary"])
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "use dependency injection in the service layer",
+            "keep the secrets in my diary",
+            "look for vulnerabilities in my argument",
+            "check my essay for vulnerabilities in its reasoning",
+        ],
+    )
     def test_near_misses_do_not_route_to_security(self, pre_route, real_entries, query: str) -> None:
         assert pre_route.route(query, entries=real_entries)["skill"] != "security"
 

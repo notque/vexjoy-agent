@@ -386,6 +386,8 @@ SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
             "transmute",
             "deref",
         },
+        # "look for vulnerabilities in my argument" critiques prose, not code.
+        "for vulnerabilities": {"argument", "arguments", "essay", "thesis", "reasoning"},
     },
 }
 
@@ -554,6 +556,7 @@ SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
         "google drive",
         "to dropbox",
         "repository of knowledge",
+        "repository of ideas",
     },
 }
 

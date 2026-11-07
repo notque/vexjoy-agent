@@ -2228,6 +2228,24 @@
       "notes": "Idiom overlap; phrase guard 'publish a book' must suppress the 'publish this' trigger (#993 had renamed it 'content a book') (adr/pr-create-skill-guard.md)"
     },
     {
+      "request": "a shared repository of ideas",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Metaphor; phrase guard 'repository of ideas' must suppress the 'shared repository' trigger, which no longer takes the commit and merge guard word 'ideas'"
+    },
+    {
+      "request": "look for vulnerabilities in my argument",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "security",
+      "notes": "Critique of prose; guard word 'argument' must suppress the 'for vulnerabilities' trigger"
+    },
+    {
       "request": "address review comments on an upstream PR in a repo I don't own",
       "expected_agent": null,
       "expected_skill": "pr-workflow",
