@@ -3,7 +3,8 @@
 The aggregate routing rows in learning.db are keyed `(topic, key)` — they carry
 no per-dispatch history, so faithful offline replay of "request → route →
 outcome" is impossible from them alone. This module adds that history: one JSONL
-line per event, append-only, at `<CLAUDE_LEARNING_DIR>/route-events.jsonl`.
+line per event, append-only, at `<CLAUDE_LEARNING_DIR>/route-events.jsonl`,
+created owner-only (0600) because request snippets come from user prompts.
 
 Two producers:
   - routing-decision-recorder.py (PostToolUse:Agent) appends a DECISION event
@@ -29,6 +30,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from hook_utils import ensure_owner_only_dir, open_owner_only_append
+
 _DEFAULT_DIR = Path.home() / ".claude" / "learning"
 _EVENTS_FILENAME = "route-events.jsonl"
 
@@ -53,9 +56,9 @@ def _append(event: dict[str, Any]) -> None:
     """Append one JSON line. Best-effort: swallow every error (never break a hook)."""
     try:
         path = _events_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_owner_only_dir(path.parent)
         line = json.dumps(event, separators=(",", ":"), ensure_ascii=False)
-        with open(path, "a", encoding="utf-8") as f:
+        with open_owner_only_append(path) as f:
             f.write(line + "\n")
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
