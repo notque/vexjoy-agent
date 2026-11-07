@@ -28,6 +28,7 @@ WRITE_OPS = frozenset({"add", "replace", "remove", "container"})
 PROFILE_REASON = "disabled by install profile"
 COLLAPSE_REASON = "folded into whole-dir entry"
 TAKEOVER_REASON = "takeover: unowned entry moved to trash and replaced"
+_WINDOWS = os.name == "nt"
 
 
 @dataclass
@@ -593,7 +594,14 @@ def build_plan(ctx: Context, targets: list[str], full_adoption: bool, *, takeove
 
 
 def default_mode(source_root: Path) -> str:
-    """symlink for a main git checkout outside ephemeral paths, else copy."""
+    """symlink for a main git checkout outside ephemeral paths, else copy. Windows always copies.
+
+    Windows creates a symlink only with Developer Mode, ``os.readlink`` returns it with an
+    extended-path prefix that never matches the source, and ``os.replace`` cannot swap a
+    dir link, so a link install there would fail on every run after the first.
+    """
+    if _WINDOWS:
+        return "copy"
     if gitutil.is_git_checkout(source_root) and not gitutil.is_worktree(source_root):
         if not gitutil.is_ephemeral(source_root):
             return "symlink"
