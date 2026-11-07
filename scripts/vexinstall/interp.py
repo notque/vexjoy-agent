@@ -8,19 +8,21 @@ through the launcher script ``hooks/lib/pyrun.sh``::
     sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/x.py"
 
 The engine points ``~/.claude/vexjoy/bin/python3`` at one verified 3.10+
-interpreter, and ``pyrun.sh`` runs it first. The command string carries no
+interpreter, and ``pyrun.sh`` runs it first. A host that refuses symlinks
+(Windows without Developer Mode) gets a script pin there instead: an sh script
+that names the interpreter and execs it (:func:`pin_script_bytes`). The command string carries no
 machine path, so the repo ``.claude/settings.json`` and every installed copy
 hold the same string and Claude Code dedupes them (differing strings run the
 hook twice in repo sessions). Its first path is inside ``hooks/``, so every
 engine version, older ones included, owns the entry. Claude Code runs hook
-commands with ``/bin/sh -c``. A missing or dangling link falls back to
+commands with ``/bin/sh -c``. A missing or dangling pin falls back to
 python3.1x on PATH, then ``python3``; the guard at the top of every hook
 (``scripts/hook-pyguard.py``) re-execs or blocks under anything older.
 
 Resolution order: ``$VEXJOY_PYTHON``, well-known system paths, ``python3`` and
 ``python3.N`` on PATH, then the interpreter running the engine. Each candidate
-is run to read its version and whether it is a venv. Shims and venvs are never
-linked. Versioned install dirs (Homebrew Cellar, pyenv, asdf, mise, uv, rye)
+is run to read its version and whether it is a venv. Version-manager shims
+(``/shims/``) and venvs are never linked. Versioned install dirs (Homebrew Cellar, pyenv, asdf, mise, uv, rye)
 are used only when nothing stable qualifies, because an upgrade or uninstall
 removes them.
 """
@@ -29,13 +31,15 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import subprocess
 import sys
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
-from .fsops import Guard, atomic_symlink, mkdirs
+from .fsops import Guard, atomic_symlink, atomic_write_bytes, mkdirs
 
 MIN_VERSION = (3, 10)
 OVERRIDE_ENV = "VEXJOY_PYTHON"
@@ -47,6 +51,14 @@ _SHIM_PARTS = ("/shims/",)
 _LITERAL_UNSTABLE_PARTS = ("/Cellar/",)
 # Checked on the literal path and its realpath (a python3.12 link into the uv store is still the uv store).
 _UNSTABLE_PARTS = ("/.pyenv/versions/", "/.asdf/installs/", "/mise/installs/", "/uv/python/", "/.rye/")
+# Script pin (hosts that refuse symlinks): line 2 marks the file as ours, line 3 names the interpreter for
+# read_pin and pyrun.sh, line 4 execs it. Only the first _PIN_SCRIPT_HEAD lines are ever read.
+PIN_SCRIPT_MARK = "# vexjoy-python-shim"
+PIN_SCRIPT_TARGET = "# vexjoy-python-target: "
+_PIN_SCRIPT_HEAD = 3
+_PIN_SCRIPT_READ = 4096
+_WIN_NO_SYMLINK = 1314  # ERROR_PRIVILEGE_NOT_HELD: no Developer Mode and no create-symlink privilege
+_WIN_NOT_SUPPORTED = 50  # ERROR_NOT_SUPPORTED: the volume has no symlinks (FAT, some network shares)
 _VERSIONED_NAME = re.compile(r"^python3\.(\d+)$")
 _PROBE = "import sys; print('%d.%d %d' % (sys.version_info[0], sys.version_info[1], sys.prefix != sys.base_prefix))"
 
@@ -207,47 +219,154 @@ def resolve(
     )
 
 
+@dataclass(frozen=True)
+class Pin:
+    """What sits at the pin path, read once.
+
+    ``kind`` is ``missing``, ``link`` (a symlink), ``script`` (a script pin, see
+    :func:`pin_script_bytes`), or ``foreign`` (anything else; the engine never touches it).
+    ``target`` is the symlink's target or the interpreter a script pin names, else None.
+    """
+
+    kind: Literal["missing", "link", "script", "foreign"]
+    target: str | None = None
+
+
+def read_pin(link: Path) -> Pin:
+    """Classify *link*: a script pin is a regular file whose first lines carry :data:`PIN_SCRIPT_MARK`."""
+    if os.path.islink(link):
+        return Pin("link", os.readlink(link))
+    if not os.path.lexists(link):
+        return Pin("missing")
+    if not os.path.isfile(link):
+        return Pin("foreign")
+    try:
+        with open(link, encoding="utf-8", errors="replace", newline="") as fh:
+            head = fh.read(_PIN_SCRIPT_READ).split("\n")[:_PIN_SCRIPT_HEAD]
+    except OSError:
+        return Pin("foreign")
+    if PIN_SCRIPT_MARK not in (line.rstrip("\r") for line in head):
+        return Pin("foreign")
+    named = [line[len(PIN_SCRIPT_TARGET) :] for line in head if line.startswith(PIN_SCRIPT_TARGET)]
+    # pyrun.sh reads the line as sh does, carriage return included, so a CRLF target is unusable to both.
+    return Pin("script", named[0] if named and named[0] and "\r" not in named[0] else None)
+
+
+def _posix(path: str) -> str:
+    """Forward slashes, the way Git Bash's sh and the script pin spell a Windows path."""
+    return path.replace("\\", "/")
+
+
+def _same_path(a: str, b: str) -> bool:
+    """True for two spellings of one path (Windows readlink returns backslashes for a forward-slash target)."""
+    return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
+
+
+def pin_script_bytes(interpreter_path: str) -> bytes:
+    """The script pin for *interpreter_path*: name it, then exec it with every argument.
+
+    Hooks run the pin from sh (``pyrun.sh``), so it is an sh script: sh cannot exec a ``.cmd``
+    or ``.bat``, and Git for Windows supplies the sh. ``pyrun.sh`` reads the target line and
+    skips the pin once that interpreter is gone, the way a dangling symlink fails its ``-x``
+    test, so hooks still fall back to a python on PATH and the sync hook can repair the pin.
+    """
+    target = _posix(interpreter_path)
+    return f'#!/bin/sh\n{PIN_SCRIPT_MARK}\n{PIN_SCRIPT_TARGET}{target}\nexec {shlex.quote(target)} "$@"\n'.encode()
+
+
+def _symlink_unsupported(exc: BaseException) -> bool:
+    """True when a symlink failure means this host cannot create links at all."""
+    if isinstance(exc, NotImplementedError):
+        return True
+    return isinstance(exc, OSError) and getattr(exc, "winerror", None) in (_WIN_NO_SYMLINK, _WIN_NOT_SUPPORTED)
+
+
+def _probe_path(link: Path, pin: Pin) -> str | None:
+    """What to run to reach the pinned interpreter: the symlink, a script pin's absolute target, else None.
+
+    A script pin is probed through its interpreter because Windows cannot run an sh script directly.
+    """
+    if pin.kind == "link":
+        return str(link)
+    if pin.kind == "script" and pin.target and os.path.isabs(pin.target):
+        return pin.target
+    return None
+
+
 def link_ok(home: Path) -> bool:
-    """True when the link is a symlink to a python 3.10+ that runs (one probe, about 25 ms)."""
+    """True when the pin reaches a python 3.10+ that runs (one probe, about 25 ms)."""
     link = link_path(home)
-    if not (os.path.islink(link) and os.path.exists(link)):
+    path = _probe_path(link, read_pin(link))
+    if path is None or not os.path.exists(path):
         return False
-    version = probe(str(link))
+    version = probe(path)
     return version is not None and version >= MIN_VERSION
 
 
 def link_blocker(home: Path) -> str | None:
-    """Why the link cannot be written (a non-link at its path or its dir); None when it can."""
+    """Why the pin cannot be written (a foreign file at its path or its dir); None when it can."""
     link = link_path(home)
     if os.path.lexists(link.parent) and (os.path.islink(link.parent) or not os.path.isdir(link.parent)):
         return f"{link.parent} is not a real directory; move it away and rerun ./install.sh"
-    if os.path.lexists(link) and not os.path.islink(link):
-        return f"{link} is a regular file, not a symlink; move it away and rerun ./install.sh"
+    if read_pin(link).kind == "foreign":
+        return (
+            f"{link} is a regular file, not a symlink or a vexjoy script pin (no {PIN_SCRIPT_MARK!r} line); "
+            "move it away and rerun ./install.sh"
+        )
     return None
 
 
 def write_link(home: Path, interpreter: Interpreter, guard: Guard) -> bool:
-    """Point the link at *interpreter*; True when it changed."""
+    """Point the pin at *interpreter*; True when it changed.
+
+    Writes a symlink. A host that cannot create one (Windows error 1314 without Developer Mode or
+    the create-symlink privilege, error 50 on a volume without symlinks, NotImplementedError) gets
+    a script pin instead. A script pin stays a script pin and is rewritten in place when its
+    interpreter or format changes; delete it and rerun ``./install.sh`` to get a symlink once the
+    host allows one.
+    """
     link = link_path(home)
-    if os.path.islink(link) and os.readlink(link) == interpreter.path:
+    pin = read_pin(link)
+    if pin.kind == "link" and pin.target and _same_path(pin.target, interpreter.path):
         return False
+    body = pin_script_bytes(interpreter.path)
     mkdirs(link.parent, guard)
-    atomic_symlink(link, Path(interpreter.path), guard)
+    if pin.kind == "script":  # atomic_symlink refuses to replace a regular file
+        try:
+            with open(link, "rb") as fh:
+                current = fh.read(len(body) + 1)
+        except OSError:
+            current = b""
+        if current == body and os.access(link, os.X_OK):
+            return False
+        atomic_write_bytes(link, body, guard, 0o755)
+        return True
+    try:
+        atomic_symlink(link, Path(interpreter.path), guard)
+    except (OSError, NotImplementedError) as exc:
+        if not _symlink_unsupported(exc):
+            raise
+        atomic_write_bytes(link, body, guard, 0o755)
     return True
 
 
 def drift(home: Path) -> list[tuple[str, str]]:
-    """(check, detail) for each problem with the link; empty when it is a verified 3.10+ python."""
+    """(check, detail) for each problem with the pin; empty when it reaches a verified 3.10+ python."""
     link = link_path(home)
     fix = "rerun ./install.sh"
-    if not os.path.lexists(link):
+    pin = read_pin(link)
+    if pin.kind == "missing":
         return [("python-pin-missing", f"hooks fall back to bare python3; {fix}")]
-    if not os.path.islink(link):
-        return [("python-pin-not-link", f"expected a symlink to python 3.10+; {fix}")]
-    target = os.readlink(link)
-    if not os.path.exists(link):
+    if pin.kind == "foreign":
+        return [("python-pin-not-link", f"expected a symlink or a vexjoy script pin to python 3.10+; {fix}")]
+    target = pin.target or ""
+    if pin.kind == "script" and not os.path.isabs(target):
+        what = f"names a relative interpreter {target!r}" if target else "has no readable target line"
+        return [("python-pin-broken", f"script pin {link} {what}; {fix}")]
+    path = str(link) if pin.kind == "link" else target
+    if not os.path.exists(path):
         return [("python-pin-dangling", f"{target} is gone; hooks fall back to bare python3; {fix}")]
-    version = probe(str(link))
+    version = probe(path)
     if version is None:
         return [("python-pin-broken", f"{target} does not run; {fix}")]
     if version < MIN_VERSION:
@@ -267,11 +386,17 @@ _MISSING_PROBE = (
 
 
 def missing_modules(home: Path, modules: Iterable[str] = REQUIRED_MODULES, timeout: float = 10.0) -> list[str]:
-    """Modules the linked interpreter cannot import (find_spec only, nothing is imported); [] when unknown."""
+    """Modules the pinned interpreter cannot import (find_spec only, nothing is imported); [] when unknown.
+
+    A script pin is probed through its interpreter: Windows cannot run an sh script directly.
+    """
     link = link_path(home)
+    path = _probe_path(link, read_pin(link))
+    if path is None:
+        return []
     try:
         out = subprocess.run(
-            [str(link), "-I", "-c", _MISSING_PROBE, *modules],
+            [path, "-I", "-c", _MISSING_PROBE, *modules],
             capture_output=True,
             text=True,
             timeout=timeout,

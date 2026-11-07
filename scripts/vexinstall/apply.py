@@ -347,12 +347,21 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
         "notes": plan.notes,
     }
     guard_hit: GuardError | None = None
+    pin_error: str | None = None
     try:
         for t in targets:
             execute_target(plan.targets[t], ctx, trash, guard, ledger, skip)
         if python is not None:
-            changed = interp.write_link(ctx.home, python, guard)
-            report["python"] = {"link": str(interp.link_path(ctx.home)), "target": python.label, "changed": changed}
+            link = interp.link_path(ctx.home)
+            # A pin that cannot be written must not strand the copies above without settings or a ledger.
+            try:
+                changed = interp.write_link(ctx.home, python, guard)
+                kind = interp.read_pin(link).kind
+            except OSError as exc:
+                pin_error = f"python pin {link} not written: {exc}; hooks fall back to python3 on PATH"
+                report["python"] = {"link": str(link), "target": python.label, "error": str(exc)}
+            else:
+                report["python"] = {"link": str(link), "target": python.label, "changed": changed, "kind": kind}
         if "claude" in targets:
             report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
             report["accounts"] = accounts_mod.apply_all(ctx, guard)
@@ -389,8 +398,15 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     res.data = report
     line = summary_line(label, plan, ledger)
     res.out.append(line)
-    if report.get("python", {}).get("changed") and not sync:
-        res.out.append(f"[{label}] python: {report['python']['link']} -> {report['python']['target']}")
+    py = report.get("python", {})
+    if py.get("changed") and not sync:
+        how = " (script pin: this host refuses symlinks)" if py.get("kind") == "script" else ""
+        res.out.append(f"[{label}] python: {py['link']} -> {py['target']}{how}")
+    if pin_error and sync:
+        res.err.append(f"[{label}] warning: {pin_error}")
+    elif pin_error:
+        res.code = int(ExitCode.ERROR)
+        res.err.append(f"[{label}] {pin_error}")
     res.out.extend(accounts_mod.report_lines(report.get("accounts", [])))
     for a in report.get("accounts", []):
         if a.get("error"):
@@ -442,7 +458,7 @@ def run_uninstall(opts: Options) -> Result:
                 accounts_report = accounts_mod.apply_all(ctx, guard, desired={}, links=False)
                 ctx.ledger.settings.pop("claude", None)
                 link = interp.link_path(ctx.home)
-                if os.path.islink(link):
+                if interp.read_pin(link).kind in ("link", "script"):
                     trash.move(link, ctx.home, "uninstall")
                     removed.append(str(link))
             ledger_mod.save(ledger_mod.ledger_path(sdir), ctx.ledger, guard)

@@ -77,24 +77,25 @@ A target other than claude is planned only when its root dir exists (`--target a
 Hooks need Python 3.10+. Under 3.9 they crash at import with exit 1, and Claude Code blocks only on exit 2, so a safety gate would fail open. Three layers prevent that (`scripts/vexinstall/interp.py`, `hooks/lib/pyrun.sh`, `scripts/hook-pyguard.py`):
 
 - **Link.** `apply` resolves one interpreter and points `~/.claude/vexjoy/bin/python3` at it. Order: `$VEXJOY_PYTHON`, `/opt/homebrew/bin/python3`, `/usr/local/bin/python3`, `/usr/bin/python3`, then `python3` and `python3.N` on `PATH`, then the interpreter running the engine. Each candidate is run to read its version and whether it is a venv.
-  - Shims (`/shims/`) and venvs are never linked.
+  - Version-manager shims (`/shims/`) and venvs are never linked.
   - Versioned dirs (pyenv, asdf, mise, uv, rye, checked on the path and its realpath; Homebrew `Cellar`, checked on the literal path only) are used only when nothing stable qualifies.
-  - No 3.10+ found, or a regular file or non-dir in the way at `~/.claude/vexjoy/bin`: `apply` exits 1 before any write.
-  - `sync` probes the link each run and re-resolves it when it is missing, dangling, broken, or older than 3.10. It never fails. `uninstall` trashes the link.
+  - A host that cannot create a symlink (Windows error 1314 without Developer Mode or the create-symlink privilege, error 50 on a volume without symlinks) gets a script pin instead: an sh file whose line 2 is `# vexjoy-python-shim`, line 3 is `# vexjoy-python-target: <interpreter>`, and line 4 execs that interpreter. `sync`, `doctor`, and the dependency check probe the named interpreter, because Windows cannot run an sh file directly. A script pin stays a script pin; delete it and rerun `./install.sh` to get a symlink once the host allows one.
+  - No 3.10+ found, or a foreign file (neither a symlink nor a script pin) or non-dir in the way at `~/.claude/vexjoy/bin`: `apply` exits 1 before any write. Any other error writing the pin makes `apply` exit 1 (`sync` warns) after it writes settings and the ledger; hooks then fall back to `python3` on `PATH`.
+  - `sync` probes the pin each run and re-resolves it when it is missing, dangling, broken, or older than 3.10. It never fails. `uninstall` trashes the pin.
 - **Launcher.** Every repo hook command has this form, and the engine copies it unchanged into `~/.claude`, every profile, and (with `~/.factory/` paths) Factory:
 
   ```sh
   sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/<file>.py"
   ```
 
-  `pyrun.sh` runs the link, else the first `python3.14`…`python3.10` on `PATH`, `/opt/homebrew/bin/python3`, `/usr/local/bin/python3`, then `python3`, skipping shims. The command string holds no machine path on purpose: Claude Code dedupes hooks by exact command string across project and user settings, and differing strings run every hook twice in repo sessions. Its first path sits inside `hooks/`, so every engine version owns the entry, older ones included: an older engine or a revert replaces the 70 entries instead of adding 70 duplicates. The command needs no shell syntax beyond quoting, so it also works in fish.
+  `pyrun.sh` runs the pin, else the first `python3.14`…`python3.10` on `PATH`, `/opt/homebrew/bin/python3`, `/usr/local/bin/python3`, then `python3`, skipping shims. For a script pin it execs the interpreter named on line 3, and only when that path is absolute and exists, as a dangling symlink fails `-x`, so the fallbacks run and the sync hook can repair the pin; a regular file that names no such interpreter is never run. The command string holds no machine path on purpose: Claude Code dedupes hooks by exact command string across project and user settings, and differing strings run every hook twice in repo sessions. Its first path sits inside `hooks/`, so every engine version owns the entry, older ones included: an older engine or a revert replaces the 70 entries instead of adding 70 duplicates. The command needs no shell syntax beyond quoting, so it also works in fish.
 - **Guard.** Every registered hook starts with a version check that runs before any other import and parses on 3.8+. Under <3.10 it first re-execs the hook once under a `python3.1x` found on `PATH`, `/opt/homebrew/bin`, `/usr/local/bin`, or `/usr/bin`. That keeps a session working while its settings still say bare `python3` (an upgrade before the first sync) and lets the sync hook repair the link. With none found:
   - Gates (PreToolUse hooks that deny, `GATES` in `scripts/hook-pyguard.py`) exit 2 with a one-line message to run `./install.sh` from a terminal outside Claude Code.
   - Every other hook exits 0 with the same line on stderr. Stop and SubagentStop hooks stay advisory, because exit 2 there makes the model keep going.
   - `codex-hook-adapter.py` exits 2 only for `--failure-policy closed`.
 
   Every guarded file must also parse with the 3.8 grammar: a 3.10-only construct (`match`) is a SyntaxError on 3.9 before the guard runs. Stamp a new hook with `python3 scripts/hook-pyguard.py --apply --file hooks/<file>.py`; `register-hook.py add` refuses an unguarded hook. CI runs `hook-pyguard.py --check`.
-- **Doctor.** `doctor` reports `python-pin-missing`, `python-pin-dangling`, `python-pin-not-link`, `python-pin-broken`, or `python-pin-old` (error).
+- **Doctor.** `doctor` reports `python-pin-missing`, `python-pin-dangling`, `python-pin-not-link` (a foreign file at the pin path; a script pin is a valid pin), `python-pin-broken`, or `python-pin-old` (error).
 
 Runtime scope:
 
@@ -106,7 +107,7 @@ Runtime scope:
 | reasonix | no, bare `python3` | yes (advisory hooks only) | non-tool hooks only; the re-exec covers 3.9 |
 | hermes | none | n/a | no hooks |
 
-Residual: no 3.10+ anywhere and no `python3` exits 127, which fails open. Windows has no `sh` and is out of scope.
+Residual: no 3.10+ anywhere and no `python3` exits 127, which fails open. On Windows, hooks run only under Git for Windows' `sh`.
 
 **Homes with no launcher.** A home that never ran `./install.sh` has no `~/.claude/hooks/lib/pyrun.sh`. There, `sh` cannot open the launcher, exits 2, and every hook blocks with `sh: 0: cannot open .../pyrun.sh`. The repo's sync hook cannot repair this, because it also runs through the launcher.
 
