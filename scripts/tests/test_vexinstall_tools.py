@@ -150,6 +150,41 @@ def test_validate_skill_names_on_real_repo() -> None:
     assert validator.main(["--repo", str(SCRIPTS_DIR.parent)]) == 0
 
 
+SKILL_CALL = re.compile(r"(?i)call the Skill tool with `([a-z0-9][a-z0-9-]*)`")
+
+
+def stale_command_calls(root: Path, skill_dirs: set[str]) -> list[tuple[str, str]]:
+    """(command, skill) for each shipped command that calls a skill with no SKILL.md."""
+    return [
+        (p.name, name)
+        for p in sorted((root / "commands").glob("*.md"))
+        for name in SKILL_CALL.findall(p.read_text(encoding="utf-8"))
+        if name not in skill_dirs
+    ]
+
+
+def retro_unknown_subcommands(root: Path) -> set[str] | None:
+    """learning-db.py subcommands commands/retro.md runs that the CLI lacks; None when it runs none."""
+    cli = (root / "scripts" / "learning-db.py").read_text(encoding="utf-8")
+    known = set(re.findall(r'add_parser\(\s*"([a-z][a-z-]*)"', cli))
+    named = set(re.findall(r"learning-db\.py ([a-z][a-z-]*)", (root / "commands" / "retro.md").read_text("utf-8")))
+    return (named - known) if named else None
+
+
+def test_shipped_commands_call_skills_that_exist() -> None:
+    # Every runtime gets commands/. /generate-claudemd and /reddit-moderate called skills since folded
+    # into toolkit and content; /retro called a skill retired with the learning-capture loop.
+    root = SCRIPTS_DIR.parent
+    gitutil.clear_cache()
+    skill_dirs = {
+        Path(rel).parent.name
+        for rel in gitutil.tracked_files(root)
+        if rel.startswith("skills/") and rel.endswith("/SKILL.md")
+    }
+    assert stale_command_calls(root, skill_dirs) == []
+    assert retro_unknown_subcommands(root) == set()
+
+
 # ---------------------------------------------------------------- doctor
 
 
