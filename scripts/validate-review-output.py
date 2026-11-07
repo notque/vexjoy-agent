@@ -125,10 +125,21 @@ VERDICT_BUCKETS: dict[str, dict[str, tuple[str, ...]]] = {
 }
 
 # File:line pattern — matches paths like handler.go:42, internal/api/routes.go:123.
-# The path needs a directory or a file extension, so 02:00, localhost:8080 and
-# 127.0.0.1:8000 are not taken as locations, and a token right after ':' or '/'
-# (a URL like http://host:80) never starts a match.
-FILE_LINE_RE = re.compile(r"`?(?<![\w./:\-])((?:[\w.\-]+/)+[\w.\-]+:\d+|[\w.\-]*\.[A-Za-z]\w*:\d+)`?")
+# The path needs a directory (absolute paths included), a file extension, or a
+# well-known extensionless file name (Makefile, Dockerfile), so 02:00,
+# localhost:8080 and 127.0.0.1:8000 are not taken as locations, and a token
+# right after ':' or '/' (a URL like http://host:80) never starts a match.
+_BARE_FILE_NAMES = (
+    "Makefile|GNUmakefile|Dockerfile|Containerfile|Jenkinsfile|Vagrantfile|Gemfile|Rakefile"
+    "|Podfile|Brewfile|Procfile|Justfile|Tiltfile|Earthfile|CODEOWNERS|BUILD|WORKSPACE"
+)
+FILE_LINE_RE = re.compile(
+    r"`?(?<![\w./:\-])("
+    r"/?(?:[\w.\-]+/)+[\w.\-]+:\d+"
+    r"|[\w.\-]*\.[A-Za-z]\w*:\d+"
+    rf"|(?:{_BARE_FILE_NAMES}):\d+"
+    r")`?"
+)
 
 # Plain label lines that open a severity section, e.g. "BLOCKING:" or
 # "**SHOULD FIX:**", optionally followed by inline text ("BLOCKING: none").

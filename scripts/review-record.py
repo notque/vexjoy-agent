@@ -62,8 +62,14 @@ def _validate_findings_content(content: str, review_type: str | None = None) -> 
     if not content.strip():
         return ["findings content is empty"]
 
+    # Markdown headings, or the unindented label lines of the review skill's
+    # Phase 4 template ("Review Summary:", "BLOCKING:", "Verdict: PASS").
     if not re.search(
         r"^#{1,4}\s+(?:Verdict|Critical|Important|Findings|Scope|Summary|Strengths|Review|Analysis|Severity)\b",
+        content,
+        re.MULTILINE | re.IGNORECASE,
+    ) and not re.search(
+        r"^\**(?:Verdict|Review Summary|Blocking|Should Fix|Suggestions)\**:",
         content,
         re.MULTILINE | re.IGNORECASE,
     ):

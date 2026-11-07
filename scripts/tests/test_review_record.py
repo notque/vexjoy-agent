@@ -170,6 +170,24 @@ def test_mark_with_type_accepts_valid_review(repo: Path):
     assert record["version"] == 2
 
 
+# The review skill's Phase 4 template (skills/review/review/SKILL.md): label
+# lines only, no markdown headings.
+PHASE4_PASS = (
+    "Review Summary:\n  Files Reviewed: 3 | Lines Changed: +10/-2\n  Test Status: PASS\n  Risk Level: LOW\n\n"
+    "BLOCKING: none\nSHOULD FIX: none\nSUGGESTIONS:\n  1. Name the 3600 constant - internal/auth/token.go:62\n\n"
+    "Verdict: PASS\nRationale: Only an optional rename.\n"
+)
+
+
+@pytest.mark.parametrize("typed", [False, True])
+def test_mark_accepts_the_review_skill_label_template(repo: Path, typed: bool):
+    if typed:
+        pytest.importorskip("jsonschema", exc_type=ImportError)
+    extra = ("--type", "systematic") if typed else ()
+    proc = mark(repo, *extra, findings=findings_file(repo, PHASE4_PASS))
+    assert proc.returncode == 0, proc.stderr
+
+
 def test_mark_with_type_lists_schema_errors(repo: Path):
     pytest.importorskip("jsonschema", exc_type=ImportError)
     text = SYSTEMATIC_PASS.replace("Risk Level: LOW\n\n", "")

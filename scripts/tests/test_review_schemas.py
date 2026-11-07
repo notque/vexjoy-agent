@@ -826,6 +826,10 @@ def test_verdict_line_shapes(line: str, expected: str) -> None:
         ("Leak in `internal/api/handler.go:42`", "internal/api/handler.go:42"),
         ("Leak in handler_test.go:15 under load", "handler_test.go:15"),
         ("Workflow .github/workflows/test.yml:7 pins nothing", ".github/workflows/test.yml:7"),
+        ("Leak in /home/user/repo/scripts/x.py:12", "/home/user/repo/scripts/x.py:12"),
+        ("See https://example.com/a/b.py:12", None),
+        ("Target has no .PHONY - Makefile:12", "Makefile:12"),
+        ("Runs as root - `Dockerfile:3`", "Dockerfile:3"),
     ],
 )
 def test_file_line_needs_a_path(text: str, location: str | None) -> None:

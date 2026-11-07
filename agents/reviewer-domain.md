@@ -150,7 +150,7 @@ This agent uses the **Reviewer Schema** with domain-specific sections loaded fro
 | MEDIUM | N | [categories] |
 | LOW | N | [categories] |
 
-## 4. RECOMMENDATION: [BLOCK MERGE / FIX BEFORE MERGE / APPROVE WITH NOTES]
+## 4. RECOMMENDATION: [the next step in one line; it follows the VERDICT above and adds no other verdict word]
 ```
 
 ## STOP Blocks
