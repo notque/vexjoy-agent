@@ -81,6 +81,20 @@ class JevTransportError(RuntimeError):
 REQUEST_TOO_LARGE = "request_too_large"
 IMAGES_UNSUPPORTED = "images_unsupported"
 INVALID_IMAGE = "invalid_image"
+# JEV_MAX_RUN_TOKENS refused the request: nothing was sent, and no fallback may send it elsewhere.
+RUN_BUDGET = "run_budget"
+
+
+def _budget_refused(exc: BaseException) -> bool:
+    """True when ``jev_router_common.RunBudgetExceeded`` is anywhere in ``exc``'s cause chain."""
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        if isinstance(cur, jev_router_common.RunBudgetExceeded):
+            return True
+        seen.add(id(cur))
+        cur = cur.__cause__ or cur.__context__
+    return False
 
 
 def select() -> tuple[str | None, str]:
@@ -351,6 +365,9 @@ def evaluate_with_fallback(
         result.setdefault("_meta", {})["is_jev"] = True
         return result
     except JevTransportError as exc:
+        if _budget_refused(exc):
+            # The run budget is a stop, not an outage: never re-send to a second provider.
+            raise JevTransportError(str(exc), source=RUN_BUDGET, telemetry=exc.telemetry) from exc
         _reject_images_for_alt_model(state, questions, images)
         reason = f"{exc.source}: {str(exc)[:200]}"
         try:

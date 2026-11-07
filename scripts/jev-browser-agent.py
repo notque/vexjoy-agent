@@ -52,7 +52,7 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, quote_plus, urlparse
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -499,6 +499,8 @@ def _scrub(snapshot: dict, values: set[str]) -> dict:
     back by the page (a GET form's query string, a title, a truncated value)."""
     if not values:
         return snapshot
+    # A GET form or a redirect percent-encodes what was typed: mask those spellings too.
+    values = {form for v in values if v for form in (v, quote_plus(v), quote(v, safe=""))}
     out = dict(snapshot)
     for key in ("url", "title", "text"):
         if isinstance(out.get(key), str):

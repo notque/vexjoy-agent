@@ -592,6 +592,21 @@ def test_scrub_masks_url_title_and_cut_off_values():
     assert agent._scrub({"text": "pw hunter2 hun", "elements": []}, {"hunter2"})["text"] == "pw (secret) hun"
 
 
+def test_scrub_masks_a_url_encoded_secret():
+    """A GET form percent-encodes the secret in the query string; the encoded form is masked too."""
+    from urllib.parse import quote, quote_plus
+
+    typed = "pw " + "a/b+c=d&e" + "Q" * 8  # synthetic; space, slash, plus, equals and ampersand
+    snap = {
+        "url": f"http://127.0.0.1:1/?k={quote_plus(typed)}&p={quote(typed, safe='')}",
+        "text": f"echo {quote_plus(typed)[:14]}",
+        "elements": [],
+    }
+    out = agent._scrub(snap, {typed})
+    assert out["url"] == "http://127.0.0.1:1/?k=(secret)&p=(secret)"
+    assert out["text"] == "echo (secret)"
+
+
 def test_snapshot_offsite_check_compares_exact_origins():
     """https://a.com.evil.net must not count as on-site for https://a.com (was a prefix match)."""
     import shutil
