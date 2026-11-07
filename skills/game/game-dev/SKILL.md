@@ -44,17 +44,13 @@ routing:
     - unity cli
     - unity editor
     - unity project
-    - unity game
-    - unity build
-    - build unity
+    - unity hub
+    - unity license
     - unity batch mode
     - unity batchmode
-    - batchmode
-    - executemethod
-    - unity license
-    - unity hub
-    - unity test
     - unity.exe
+    - editmode tests
+    - playmode tests
   pairs_with:
     - frontend
     - workflow
@@ -235,9 +231,9 @@ or classic `Unity.exe -batchmode`. Load the reference that matches the task:
 2. **Probe.** Run `unity --version`, `unity editors -i --json`, and `unity license status --json`. Without the CLI, use classic `Unity.exe`; installing or upgrading software needs the user's OK.
 3. **Pick the tool** from the table in `references/unity-batchmode-builds.md`.
 4. **Warn before launching.** Batch runs can still bring Unity windows to the front, so tell the user before Unity starts on a desktop they are using, and group the runs.
-5. **Run headless with `--timeout` and a log file.** Check `unity editors running --json` first: one Editor per project folder.
+5. **Run headless with `--timeout` and a log file:** `--log-file` for `unity build`, `-- -logFile <path>` for `unity run`; `unity test` logs to `<project>/Logs/Editor.log`. Check `unity editors running --json` first: one Editor per project folder.
 6. **Read the result.** Branch on the exit code, then on `errors[0].code`, then on the log (`error CS`, `Build Finished, Result:`).
-7. **On exit code 198 or another license error,** follow `references/unity-licensing.md` before you retry.
+7. **On a license error,** follow `references/unity-licensing.md` before you retry. Signals: `Unity.exe` exit 198, or CLI exit 6 with 198 in `errors[0].message`.
 
 ---
 

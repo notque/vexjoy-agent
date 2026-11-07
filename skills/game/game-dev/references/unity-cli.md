@@ -2,7 +2,7 @@
 
 The `unity` CLI is Unity's standalone command-line tool, in beta (1.0.0-beta releases). It installs Editors and modules, manages projects and licenses, runs batch builds and tests, and drives a running Editor. It replaces the Hub CLI (`"Unity Hub.exe" -- --headless`).
 
-Source tags used below:
+Source tags:
 
 - **(beta.6)**: checked on 2026-11-07 against `unity` 1.0.0-beta.6 `--help` output and real runs on Windows 11 with Unity 6000.6.0f1.
 - **(docs)**: from docs.unity.com or Unity's own agent skill, which track the newest CLI (1.0.0-beta.17 on that date). Not run locally.
@@ -49,7 +49,8 @@ In PowerShell, set `$env:UNITY_NON_INTERACTIVE = '1'` and the other variables fi
 - Default output is `human` on a terminal and `tsv` when piped (docs). Pass `--json` or `--format ndjson` every time.
 - Error text goes to stderr. In `json` and `ndjson` modes the failed result is also on stdout.
 - `--format github` prints failures as GitHub Actions annotations.
-- Other variables: `UNITY_PROJECT_PATH` (default `--project-path`), `UNITY_BUILD_TIMEOUT`, `UNITY_RUN_TIMEOUT`, `UNITY_TEST_TIMEOUT`, `UNITY_EDITOR_VERSION`, `UNITY_PROXY`, `UNITY_NO_ELEVATE` (Windows), and `UNITY_SERVICE_ACCOUNT_ID` with `UNITY_SERVICE_ACCOUNT_SECRET` for service-account sign-in.
+- Other variables in beta.6 help: `UNITY_PROJECT_PATH` (default `--project-path`), `UNITY_BUILD_TIMEOUT`, `UNITY_RUN_TIMEOUT`, `UNITY_TEST_TIMEOUT`, `UNITY_EDITOR_VERSION`, and `UNITY_PROXY`.
+- From the docs: `UNITY_NO_ELEVATE` (Windows), and `UNITY_SERVICE_ACCOUNT_ID` with `UNITY_SERVICE_ACCOUNT_SECRET` for service-account sign-in. In beta.6, sign a service account in with `unity auth login --client-id <id> --secret-from-stdin`.
 
 ## Parse the output
 
@@ -77,12 +78,14 @@ Branch on the exit code first, then on `errors[0].code`. beta.6 departs from the
 | 2 | Usage error: bad flag, value, or missing argument. Also `unity open --wait` on Windows (docs). | no |
 | 3 | Not signed in, expired session, or permission denied | after sign-in |
 | 4 | A required setting or context is missing | after setup |
-| 6 | Primary operation failed: Editor exited non-zero, compile error, project lock, `--timeout` hit (beta.6) | no; `unity test` yes |
+| 6 | Primary operation failed: Editor exited non-zero, compile error, project lock, `--timeout` hit (beta.6) | after fixing the cause |
 | 7 | A Unity service was unreachable | yes |
 | 8 | `unity test` only: tests ran and some failed | no |
 | 130, 143 | Interrupted (Ctrl+C) or terminated (SIGTERM) | yes |
 
 Newer CLIs add 9 `INSTALL_LOCKED`, 10 `READY_TIMEOUT`, 11 `NOT_FOUND`, 12 `EDITOR_UNREACHABLE`, 13 `REMOTE_COMMAND_FAILED`, 14 `TIMEOUT`, 15 `RUN_FAILED`, 16 `JOB_SUSPENDED`, 17 `UNAVAILABLE`, 18 `AWAITING_INPUT`, and 141 `OUTPUT_CLOSED` (docs). Of these, retry 9, 10, 12, 14, 16, 17, and 18 once the cause clears. Treat any other non-zero code as a failure.
+
+The CLI reports its own exit code. The Editor's code appears only in `errors[0].message`, for example `Unity process exited with code 1.` (`unity run`) or `Build failed (exit 1)` (`unity build`).
 
 ## Commands verified in beta.6
 

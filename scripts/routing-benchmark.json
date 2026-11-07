@@ -2147,6 +2147,105 @@
       "routing_tier": "pre_route_negative",
       "forbid_force_route_to": "game-dev",
       "notes": "Plain-English 'unity' must not force-route to game-dev; Unity triggers are multi-word or Unity-only flags"
+    },
+    {
+      "request": "add Unity Catalog permission tests for our Databricks tables",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "build Unity Catalog lineage dashboards for the data team",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "set up the Unity Catalog CLI for our Databricks workspace",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "Unity container tests fail after upgrading to .NET 8",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "enable unity builds in CMake to cut our C++ compile time",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "write Unity tests for my STM32 firmware with Ceedling",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "set up a Unity framework project for our embedded firmware tests",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "pdflatex -interaction=batchmode hides my errors, fix the thesis build",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "migrate HttpClient.executeMethod calls to Apache HttpClient 5",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "draft a toast about unity for the editor's retirement party",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "write a WrestleJoy column about unity in the game this year",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
     }
   ]
 }

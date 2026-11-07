@@ -11,6 +11,8 @@ Every Editor launch needs a valid license from the Unity Licensing Client. That 
 
 The two are independent. On the test machine, `unity auth status` reported `sessionState: expired` and exited 3. At the same time `unity license status` reported Unity Personal active, `unity doctor --ci` passed `LICENSE_OK`, and batch builds succeeded. A signed-out CLI does not block builds; a lapsed license does.
 
+`unity license status` also reports `data.signedIn`, which follows the licensing client's sign-in, not the CLI session: it read `true` while `unity auth status` read `expired`. Check CLI sign-in with `unity auth status` only.
+
 ## Preflight
 
 ```bash
@@ -32,8 +34,10 @@ grep -o '<UpdateDate>[^<]*' "$LOCALAPPDATA/Unity/licenses/UnityEntitlementLicens
 |---|---|---|
 | Exit code 198. The Editor log shows `No valid Unity Editor license found`, `'com.unity.editor.headless' was not found`, and `Found 0 entitlement groups`. | The Unity Personal entitlement cache lapsed: `<UpdateDate>` is in the past. | Start Unity Hub while signed in. It refreshed the cache within seconds and moved `<UpdateDate>` a month ahead. Then rerun. |
 | The same signature with the Hub signed out (not field-tested) | No signed-in user to refresh the entitlement | Ask the user to sign in to the Hub. Or run `unity auth login`, then `unity license activate --personal --accept-eula` after the user agrees to Unity's terms. |
-| `unity license status` shows `data.active: false` | No license on the machine | Activate one; see the table below. |
+| `unity license status` shows `data.active: false` | No license on the machine | Activate one; see "Activate or return a license". |
 | `unity license activate --floating` exits 4 (docs) | No floating license server configured | Run `unity license server list`, then configure the server. |
+
+198 is `Unity.exe`'s exit code. Through the CLI, expect exit 6 with the Editor's code in `errors[0].message`: `Unity process exited with code 198.` from `unity run`, or `Build failed (exit 198)` from `unity build`. That form is inferred from the captured exit-1 messages; a 198 through the CLI was not captured.
 
 These lines are harmless; every successful run on the test machine logged them:
 
