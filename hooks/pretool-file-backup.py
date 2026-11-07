@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.0.3
 """
 PreToolUse:Edit Hook: File Backup Before Edit
 
@@ -16,7 +16,10 @@ Design:
 - Skips binary files (non-UTF-8)
 - Uses monotonic timestamp for ordering: {unix_ms}-{basename}
 - Session-scoped directory prevents cross-session conflicts
-- /tmp/ clears on reboot — no active cleanup needed
+- Owner-only: directories are created 0700 and backup files 0600, so other
+  accounts on the machine cannot read the copies
+- No cleanup: /tmp is not cleared on every machine's reboot (on some it is
+  never cleared), so backups stay until removed by hand
 
 Performance target: <10ms (single file copy, no compression).
 
@@ -59,10 +62,31 @@ _MAX_FILE_SIZE = 10 * 1024 * 1024
 # Session ID from environment, fall back to PID
 _SESSION_ID = os.environ.get("CLAUDE_SESSION_ID", str(os.getpid()))
 
-_BACKUP_ROOT = Path("/tmp/.claude-backups") / _SESSION_ID
+_BACKUP_BASE = Path("/tmp/.claude-backups")
+_BACKUP_ROOT = _BACKUP_BASE / _SESSION_ID
 
 
 _BYPASS_ENV = "PRETOOL_FILE_BACKUP_BYPASS"
+
+
+def _copy_owner_only(src: Path, dest: Path) -> None:
+    """Copy contents and timestamps like shutil.copy2, but create dest 0600 instead of copying src's mode.
+
+    An existing dest is overwritten as before and tightened to 0600; a symlink
+    at dest is not followed.
+    """
+    st = src.stat()
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(str(dest), flags, 0o600)
+    fchmod = getattr(os, "fchmod", None)
+    if fchmod is not None:
+        try:
+            fchmod(fd, 0o600)
+        except OSError:
+            pass
+    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
+        shutil.copyfileobj(inp, out)
+    os.utime(str(dest), ns=(st.st_atime_ns, st.st_mtime_ns))
 
 
 def main() -> None:
@@ -98,8 +122,9 @@ def main() -> None:
     except OSError:
         sys.exit(0)
 
-    # Create backup directory
-    _BACKUP_ROOT.mkdir(parents=True, exist_ok=True)
+    # Create backup directories owner-only (0700). Existing ones are not chmodded.
+    _BACKUP_BASE.mkdir(parents=True, mode=0o700, exist_ok=True)
+    _BACKUP_ROOT.mkdir(mode=0o700, exist_ok=True)
 
     # Timestamp-prefixed filename for ordering
     timestamp_ms = int(time.time() * 1000)
@@ -108,7 +133,7 @@ def main() -> None:
 
     # Copy file — silently ignore failures
     try:
-        shutil.copy2(str(src), str(dest))
+        _copy_owner_only(src, dest)
     except (OSError, shutil.Error):
         pass
 
