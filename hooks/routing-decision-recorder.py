@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.5.1
+# hook-version: 1.5.2
 """
 PostToolUse Hook: Routing Decision Recorder (action A, formerly /do Phase 5)
 
@@ -93,7 +93,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "lib"))
 from hook_utils import hook_error
-from route_types import DO_ROUTE_MARKER_RE, HealthGateInputs
+
+try:
+    from route_types import DO_ROUTE_MARKER_RE, HealthGateInputs
+except ImportError as exc:
+    # route_types lives in scripts/lib, so an install without scripts/ cannot load it.
+    # Record why and exit 0: this hook only records telemetry.
+    hook_error("routing-decision-recorder", exc)
+    sys.exit(0)
 from routing_outcome_state import append_pending_outcome, claim_dispatch
 from stdin_timeout import read_stdin
 

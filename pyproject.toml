@@ -19,7 +19,8 @@ quality = [
     "ruff>=0.8.0",
 ]
 dev = [
-    "ruff>=0.8.0",
+    # The version CI lints and formats with (.github/workflows/test.yml).
+    "ruff==0.15.12",
     "mypy>=1.13.0",
     "pytest>=8.0.0",
     "pytest-xdist>=3.5",
@@ -28,6 +29,13 @@ dev = [
 # dependency: see skills/process/testing/SKILL.md, "Mutation testing".
 mutation = [
     "cosmic-ray>=8.7,<9",
+]
+# Motion-data scripts (scripts/motion-pipeline.py, bake-bvh-to-glb.py,
+# generate-move-ts.py). Optional: no hook or core script imports them.
+motion = [
+    "numpy",
+    "scipy",
+    "pygltflib",
 ]
 
 [tool.ruff]
@@ -167,13 +175,28 @@ markers = [
 # Chromium) and the timing benchmarks, so the local loop stays usable. The
 # full CI tier clears this filter with -m on the command line — see
 # .github/workflows/test.yml.
-# -n auto --dist loadfile runs files in parallel (pytest-xdist, in the dev
-# extra); loadfile keeps each file on one worker. Pass -n 0 for a serial run
-# (single files, debugging, timing budgets: `pytest -m performance -n 0`).
-addopts = ["-m", "not (slow and integration) and not performance", "-n", "auto", "--dist", "loadfile"]
+# -n 4 --dist loadfile runs files in parallel (pytest-xdist, in the dev
+# extra); loadfile keeps each file on one worker. Four workers, not auto: auto
+# starts one per core, which swamps a shared machine. CI passes its own -n,
+# which overrides this. Pass -n 0 for a serial run (single files, debugging,
+# timing budgets: `pytest -m performance -n 0`).
+addopts = ["-m", "not (slow and integration) and not performance", "-n", "4", "--dist", "loadfile"]
 
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_ignores = true
 ignore_missing_imports = true
+
+# Lets `pip install -e ".[dev]"` (or any extra) install the dependencies. The
+# repo is a toolkit, not an importable package: nothing is built or installed
+# from it, and install.sh, CI and pytest run from the checkout. An explicit
+# empty module list turns off setuptools package discovery, which otherwise
+# fails on the flat layout (hooks/, scripts/, skills/, ...). setuptools 64 is
+# the first with editable (-e) installs from pyproject.toml alone.
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []
