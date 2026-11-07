@@ -15,6 +15,22 @@ sys.modules["validate_component_models"] = _mod
 _spec.loader.exec_module(_mod)  # type: ignore[attr-defined]
 
 
+def _make_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    (repo / "agents").mkdir(parents=True)
+    (repo / "skills" / "process" / "workflow" / "references").mkdir(parents=True)
+    return repo
+
+
+def _agent(repo: Path, name: str, frontmatter: str) -> None:
+    (repo / "agents" / f"{name}.md").write_text(f"---\nname: {name}\n{frontmatter}---\n", encoding="utf-8")
+
+
+def _flagged(repo: Path, monkeypatch) -> dict[str, str]:
+    monkeypatch.setattr(_mod, "REPO_ROOT", repo)
+    return {v.component: v.issue for v in _mod.validate_models()}
+
+
 def test_haiku_skill_is_flagged(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     skill_dir = repo / "skills" / "demo" / "demo-skill"
@@ -52,26 +68,76 @@ def test_do_skill_is_exempt(tmp_path: Path) -> None:
     assert violations == []
 
 
-def test_sonnet_and_opus_are_allowed(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    agents_dir = repo / "agents"
-    agents_dir.mkdir(parents=True)
-    (agents_dir / "demo-agent.md").write_text("---\nmodel: opus\n---\n", encoding="utf-8")
+def test_opus_and_inherit_are_allowed(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _agent(repo, "demo-agent", "model: opus\n")
+    skill_dir = repo / "skills" / "demo" / "demo-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("---\nmodel: inherit\n---\n", encoding="utf-8")
+    workflow_dir = repo / "skills" / "process" / "workflow" / "references"
+    (workflow_dir / "demo-pipeline.md").write_text("---\nmodel: opus\n---\n", encoding="utf-8")
+
+    assert _flagged(repo, monkeypatch) == {}
+
+
+def test_sonnet_is_flagged_everywhere(tmp_path: Path, monkeypatch) -> None:
+    # Owner policy 2026-11-01: Sonnet is no task's default, in any component class.
+    repo = _make_repo(tmp_path)
+    _agent(repo, "demo-agent", "model: sonnet\n")
     skill_dir = repo / "skills" / "demo" / "demo-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("---\nmodel: sonnet\n---\n", encoding="utf-8")
     workflow_dir = repo / "skills" / "process" / "workflow" / "references"
-    workflow_dir.mkdir(parents=True)
     (workflow_dir / "demo-pipeline.md").write_text("---\nmodel: sonnet\n---\n", encoding="utf-8")
 
-    original_root = _mod.REPO_ROOT
-    _mod.REPO_ROOT = repo
-    try:
-        violations = _mod.validate_models()
-    finally:
-        _mod.REPO_ROOT = original_root
+    flagged = _flagged(repo, monkeypatch)
 
-    assert violations == []
+    assert set(flagged) == {"demo-agent", "demo-skill", "demo-pipeline"}
+    assert all("sonnet" in issue for issue in flagged.values())
+
+
+def test_haiku_is_allowed_on_a_read_only_agent(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _agent(repo, "scout-csv", "model: haiku\ntools: Read, Grep, Glob, WebFetch\n")
+    _agent(repo, "scout-list", "model: haiku\nallowed-tools:\n  - Read\n  - Grep\n  - WebSearch\n")
+
+    assert _flagged(repo, monkeypatch) == {}
+
+
+def test_haiku_is_flagged_on_an_agent_that_can_write(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _agent(repo, "editor", "model: haiku\ntools: Read, Edit\n")
+    _agent(repo, "writer", "model: haiku\nallowed-tools:\n  - Read\n  - Write\n")
+    _agent(repo, "shell", "model: haiku\ntools: Read, Bash(git diff:*)\n")
+    _agent(repo, "notebook", "model: haiku\ntools: [Read, NotebookEdit]\n")
+
+    flagged = _flagged(repo, monkeypatch)
+
+    assert set(flagged) == {"editor", "writer", "shell", "notebook"}
+    assert "read-only" in flagged["editor"]
+
+
+def test_haiku_is_flagged_when_no_tool_list_limits_the_agent(tmp_path: Path, monkeypatch) -> None:
+    # No tools list means the agent inherits every tool, including Edit and Write.
+    repo = _make_repo(tmp_path)
+    _agent(repo, "inherits-all", "model: haiku\n")
+
+    assert set(_flagged(repo, monkeypatch)) == {"inherits-all"}
+
+
+def test_unknown_model_is_flagged(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _agent(repo, "odd", "model: gpt-4o\n")
+
+    assert set(_flagged(repo, monkeypatch)) == {"odd"}
+
+
+def test_exempt_component_may_pin_any_model(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _agent(repo, "legacy", "model: sonnet\n")
+    monkeypatch.setattr(_mod, "EXEMPT_COMPONENTS", {("agent", "legacy")})
+
+    assert _flagged(repo, monkeypatch) == {}
 
 
 def test_image_gen_skill_is_exempt(tmp_path: Path) -> None:

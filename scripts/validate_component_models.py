@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Validate model policy for agents, skills, and workflow pipeline references."""
+"""Validate model policy for agents, skills, and workflow pipeline references.
+
+Anthropic model policy (owner, 2026-11-01): Opus does all code, edits,
+debugging, deciding reviews, and decisions; Haiku does read-only gathering that
+an Opus thread judges; Sonnet is no task's default. So a component may pin
+``opus`` or ``inherit``, may pin ``haiku`` only when its declared tool list
+(``tools`` or ``allowed-tools``) holds no tool that can change files, and may
+pin anything else (``sonnet`` included) only through EXEMPT_COMPONENTS.
+"""
 
 from __future__ import annotations
 
@@ -11,8 +19,15 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.frontmatter import parse_frontmatter
+
 MODEL_RE = re.compile(r"^model:\s*(.+)$", re.MULTILINE)
-ALLOWED_MODELS = {"sonnet", "opus"}
+ALLOWED_MODELS = {"opus", "inherit"}
+READ_ONLY_MODELS = {"haiku"}
+# Tools that can change files. Bash counts: a shell can write anything.
+WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"}
 EXEMPT_COMPONENTS: set[tuple[str, str]] = {
     ("skill", "do"),
     # image-generation skill; its Gemini image model is legitimate
@@ -41,6 +56,39 @@ def scan_targets() -> list[tuple[str, str, Path]]:
     return targets
 
 
+def declared_tools(text: str) -> list[str] | None:
+    """Tool names from frontmatter ``tools`` or ``allowed-tools``; None when neither is set.
+
+    Accepts a YAML list or a comma/space separated string. ``Bash(git diff:*)``
+    counts as ``Bash``.
+    """
+    frontmatter, _ = parse_frontmatter(text)
+    if not frontmatter:
+        return None
+    raw = frontmatter.get("tools", frontmatter.get("allowed-tools"))
+    if raw is None:
+        return None
+    items = raw if isinstance(raw, list) else re.split(r"[,\s]+", str(raw))
+    return [str(item).split("(", 1)[0].strip() for item in items if str(item).strip()]
+
+
+def model_issue(model: str, text: str) -> str | None:
+    """Return why *model* breaks the policy for this component, or None when it is allowed."""
+    if model in ALLOWED_MODELS:
+        return None
+    if model in READ_ONLY_MODELS:
+        tools = declared_tools(text)
+        if tools is None:
+            return f"model '{model}' is for read-only gathering; declare a read-only tools list (no tools list inherits Edit and Write)"
+        writers = sorted(set(tools) & WRITE_TOOLS)
+        if writers:
+            return f"model '{model}' is for read-only gathering; this component declares {', '.join(writers)}"
+        return None
+    if model == "sonnet":
+        return "model 'sonnet' is no task's default (owner policy 2026-11-01); use 'opus' or 'inherit', or add an EXEMPT_COMPONENTS entry with the reason"
+    return f"model '{model}' is not allowed; use 'opus', 'inherit', or 'haiku' on a read-only component"
+
+
 def validate_models() -> list[Violation]:
     violations: list[Violation] = []
     for component_type, component, path in scan_targets():
@@ -52,8 +100,8 @@ def validate_models() -> list[Violation]:
         if not match:
             continue
 
-        model = match.group(1).strip()
-        if model in ALLOWED_MODELS:
+        issue = model_issue(match.group(1).strip(), text)
+        if issue is None:
             continue
 
         violations.append(
@@ -61,7 +109,7 @@ def validate_models() -> list[Violation]:
                 component_type=component_type,
                 component=component,
                 file=str(path.relative_to(REPO_ROOT)),
-                issue=f"model '{model}' is not allowed; use 'sonnet' or 'opus' (except /do)",
+                issue=issue,
             )
         )
     return violations
