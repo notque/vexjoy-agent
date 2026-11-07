@@ -143,6 +143,97 @@ def test_mark_refuses_blocking_verdict(repo: Path):
     assert "blocking verdict" in proc.stderr
 
 
+@pytest.mark.parametrize(
+    "line",
+    ["VERDICT: NEEDS_CHANGES", "7. VERDICT: REQUEST_CHANGES", "Verdict: REQUEST-CHANGES"],
+)
+def test_mark_refuses_non_pass_verdicts(repo: Path, line: str):
+    proc = mark(repo, findings=findings_file(repo, f"## Scope\nReviewed changes.\n\n{line}\n"))
+    assert proc.returncode == 1
+    assert "blocking verdict" in proc.stderr
+
+
+SYSTEMATIC_PASS = (
+    "## Summary\nReviewed the token module and its callers end to end.\n\n"
+    "SUGGESTIONS:\n  1. Name the 3600 constant - internal/auth/token.go:62\n\n"
+    "Risk Level: LOW\n\nVerdict: PASS\nRationale: Only an optional rename.\n"
+)
+
+
+def test_mark_with_type_accepts_valid_review(repo: Path):
+    pytest.importorskip("jsonschema", exc_type=ImportError)
+    body = SYSTEMATIC_PASS.encode()
+    proc = mark(repo, "--type", "systematic", findings=findings_file(repo, SYSTEMATIC_PASS))
+    assert proc.returncode == 0, proc.stderr
+    record = json.loads(Path(json.loads(proc.stdout)["path"]).read_text())
+    assert record["findings_sha256"] == hashlib.sha256(body).hexdigest()
+    assert record["version"] == 2
+
+
+def test_mark_with_type_lists_schema_errors(repo: Path):
+    pytest.importorskip("jsonschema", exc_type=ImportError)
+    text = SYSTEMATIC_PASS.replace("Risk Level: LOW\n\n", "")
+    proc = mark(repo, "--type", "systematic", findings=findings_file(repo, text))
+    assert proc.returncode == 1
+    assert "systematic schema" in proc.stderr
+    assert "MISSING: risk_level" in proc.stderr
+
+
+def _isolated_recorder(tmp_path: Path, validator_source: str | None) -> Path:
+    """Copy review-record.py next to a stand-in validator (or none)."""
+    scripts = tmp_path / "iso" / "scripts"
+    scripts.mkdir(parents=True)
+    (tmp_path / "iso" / "hooks").mkdir()
+    (tmp_path / "iso" / "hooks" / "lib").symlink_to(SCRIPT.parent.parent / "hooks" / "lib")
+    script = scripts / "review-record.py"
+    script.write_text(SCRIPT.read_text())
+    if validator_source is not None:
+        (scripts / "validate-review-output.py").write_text(validator_source)
+    return script
+
+
+@pytest.mark.parametrize(
+    ("validator_source", "message"),
+    [
+        ("raise SystemExit(3)\n", "exited 3"),
+        ("raise RuntimeError('boom')\n", "RuntimeError: boom"),
+        (None, "is missing"),
+        (
+            "def parse_markdown(content, review_type):\n    raise ValueError('bad table')\n"
+            "def validate_structure(data, review_type):\n    return []\n",
+            "ValueError: bad table",
+        ),
+    ],
+)
+def test_mark_with_type_refuses_when_validator_cannot_run(
+    repo: Path, tmp_path: Path, validator_source: str | None, message: str
+):
+    script = _isolated_recorder(tmp_path, validator_source)
+    findings = findings_file(repo, SYSTEMATIC_PASS)
+    env = {**os.environ, "HOME": str(repo.parent / "home")}
+    args = ["--summary", "clean", "--critical", "0", "--important", "0", "--findings-file", str(findings)]
+    proc = subprocess.run(
+        [sys.executable, str(script), "mark", *args, "--type", "systematic", "--repo-dir", str(repo)],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert proc.returncode == 1, proc.stdout
+    assert "refused" in proc.stderr and message in proc.stderr
+    assert run(repo, "check").returncode == 1
+
+
+def test_mark_without_type_does_not_need_the_validator(repo: Path, tmp_path: Path):
+    script = _isolated_recorder(tmp_path, "raise SystemExit(3)\n")
+    findings = findings_file(repo)
+    env = {**os.environ, "HOME": str(repo.parent / "home")}
+    args = ["--summary", "clean", "--critical", "0", "--important", "0", "--findings-file", str(findings)]
+    proc = subprocess.run(
+        [sys.executable, str(script), "mark", *args, "--repo-dir", str(repo)], capture_output=True, text=True, env=env
+    )
+    assert proc.returncode == 0, proc.stderr
+
+
 def test_records_root_respects_antigravity_runtime(monkeypatch):
     import sys
 

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -37,6 +38,10 @@ for _lib in (
         sys.path.insert(0, str(_lib))
 
 import review_record
+
+# Verdicts that mean findings are still open: the current NEEDS_CHANGES and
+# BLOCK, plus the older REQUEST-CHANGES / REQUEST_CHANGES spellings.
+_NON_PASS_VERDICT = r"(?:BLOCK|NEEDS_CHANGES|REQUEST[-_]CHANGES)"
 
 
 def _active_runtime_prefix() -> str:
@@ -66,42 +71,49 @@ def _validate_findings_content(content: str, review_type: str | None = None) -> 
 
     for line in content.splitlines():
         stripped = line.strip()
-        if re.search(r"\b(BLOCK|REQUEST-CHANGES)\b", stripped, re.IGNORECASE):
-            if not re.search(r"\b0\s+(?:BLOCK|REQUEST-CHANGES)\b", stripped, re.IGNORECASE) and not re.search(
-                r"\b(?:no|zero)\s+(?:BLOCK|REQUEST-CHANGES)\b", stripped, re.IGNORECASE
+        if re.search(rf"\b{_NON_PASS_VERDICT}\b", stripped, re.IGNORECASE):
+            if not re.search(rf"\b0\s+{_NON_PASS_VERDICT}\b", stripped, re.IGNORECASE) and not re.search(
+                rf"\b(?:no|zero)\s+{_NON_PASS_VERDICT}\b", stripped, re.IGNORECASE
             ):
                 return [f"findings file contains blocking verdict: {stripped}"]
 
-    vro_path = Path(__file__).resolve().parent / "validate-review-output.py"
-    if vro_path.is_file():
-        try:
-            import importlib.util
-
-            import jsonschema
-
-            spec = importlib.util.spec_from_file_location("validate_review_output", vro_path)
-            if spec and spec.loader:
-                vro = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(vro)
-                types_to_try = (
-                    [review_type] if review_type else ["base", "systematic", "parallel", "sapcc-review", "sapcc-audit"]
-                )
-                valid = False
-                for t in types_to_try:
-                    try:
-                        data = vro.parse_markdown(content, t)
-                        if data and not vro.validate_structure(data, t):
-                            valid = True
-                            break
-                    except Exception:
-                        pass
-                if review_type and not valid:
-                    return [f"failed validation against {review_type} schema"]
-        except BaseException:
-            # If jsonschema is not installed or validate-review-output cannot run,
-            # structural checks above already verified headings and non-blocking verdict.
-            pass
+    if review_type:
+        return _schema_errors(content, review_type)
     return []
+
+
+def _schema_errors(content: str, review_type: str) -> list[str]:
+    """Run validate-review-output.py's parser and schema check for one type.
+
+    Any failure to run the validator is an error, never a pass: --type asks
+    for schema validation, so a missing jsonschema or a validator crash refuses
+    the record with the reason instead of silently skipping the check.
+    """
+    vro_path = Path(__file__).resolve().parent / "validate-review-output.py"
+    if not vro_path.is_file():
+        return [f"cannot validate against the {review_type} schema: {vro_path} is missing"]
+    try:
+        spec = importlib.util.spec_from_file_location("validate_review_output", vro_path)
+        if spec is None or spec.loader is None:
+            return [f"cannot validate against the {review_type} schema: cannot load {vro_path}"]
+        vro = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(vro)
+    except SystemExit as exc:
+        # The validator exits 3 at import when jsonschema is not installed.
+        return [
+            f"cannot validate against the {review_type} schema: the validator exited {exc.code} on load "
+            "(is jsonschema installed? pip install -r requirements.txt)"
+        ]
+    except Exception as exc:
+        return [f"cannot validate against the {review_type} schema: {type(exc).__name__}: {exc}"]
+    try:
+        data = vro.parse_markdown(content, review_type)
+        if not data:
+            return [f"failed validation against the {review_type} schema: no review structure found"]
+        errors = vro.validate_structure(data, review_type)
+    except Exception as exc:
+        return [f"{review_type} schema validation crashed: {type(exc).__name__}: {exc}"]
+    return [f"failed validation against the {review_type} schema: {err}" for err in errors]
 
 
 def _remotes(repo_dir: str) -> dict[str, str]:
