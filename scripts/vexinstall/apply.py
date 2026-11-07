@@ -511,7 +511,9 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
         tag = f"[{label}] warning:" if sync else f"[{label}]"
         res.err.extend(f"{tag} {line}" for line in failed[:_FAILED_SHOWN])
         if len(failed) > _FAILED_SHOWN:
-            res.err.append(f"{tag} {len(failed) - _FAILED_SHOWN} more not done; the report in {sdir / 'reports'} lists all")
+            res.err.append(
+                f"{tag} {len(failed) - _FAILED_SHOWN} more not done; the report in {sdir / 'reports'} lists all"
+            )
         res.err.extend(
             f"{tag} {t}: settings and hook registrations not updated until every {t} entry installs" for t in held_back
         )
