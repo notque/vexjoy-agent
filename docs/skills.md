@@ -88,7 +88,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 
 | Skill | Description | Invoke |
 |-------|-------------|--------|
-| `game-dev` | Game development: design, asset pipelines, Phaser, vanilla JS frontend, GM mode, match booking. | `/game-dev` |
+| `game-dev` | Game development: design, asset pipelines, Phaser, Unity CLI and builds, vanilla JS frontend, GM mode, match booking. | `/game-dev` |
 | `game-trailer` | Make a trailer, promo, teaser, sizzle reel, launch or gameplay video for one of our browser games (Road to AEW / ROAD TO THE BIG TIME, 5 Star Booke... | `/game-trailer` |
 
 ---
