@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.4
+# hook-version: 1.2.0
 """
 PreToolUse Hook: Unified Gate (ADR-068)
 
@@ -13,7 +13,9 @@ Consolidates 5 PreToolUse gate hooks into a single entry point:
                               path — the handshake worktree agents without
                               the Task tool can perform (see section 4)
 5. pretool-sensitive-file-guard — Write+Edit: blocks writes to .env, credentials, SSH keys, etc.
-                              Read: warns (does not block) on the same patterns.
+                              Read: warns (does not block) on the same patterns; the
+                              warning reaches the model as additionalContext and is
+                              recorded as a governance event.
 6. public-dev-server-guard     — Bash: blocks dev servers bound to non-loopback interfaces
                                   (python http.server binds 0.0.0.0 by default; php -S, vite --host, etc.)
                                   Supersedes the narrow, dormant prevent-homedir-server.py.
@@ -64,6 +66,12 @@ from stdin_timeout import read_stdin
 # Module-level state set by main() so _block() can enrich governance events.
 _CURRENT_EVENT: dict | None = None
 _CURRENT_COMMAND: str = ""
+
+# Allow-path advisories for the model. PreToolUse stderr on exit 0 reaches no
+# one, so main() prints these once as additionalContext after every check has
+# passed. A deny exits inside _block() first, so stdout never carries two JSON
+# documents (Claude Code would then read both as plain text and lose the deny).
+_ADVISORIES: list[str] = []
 
 # ═══════════════════════════════════════════════════════════════
 # 1. GITIGNORE BYPASS (block-gitignore-bypass.py)
@@ -1530,6 +1538,17 @@ def _block(message: str, tool_name: str = "", reason: str = "") -> None:
     sys.exit(0)
 
 
+def _emit_advisories() -> None:
+    """Print queued allow-path advisories as one PreToolUse additionalContext.
+
+    No permissionDecision: the tool call proceeds exactly as before, and the
+    model now sees the advisory.
+    """
+    if _ADVISORIES:
+        context = "\n\n".join(_ADVISORIES)
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": context}}))
+
+
 # ═══════════════════════════════════════════════════════════════
 # CHECK FUNCTIONS — each returns normally (allow) or calls _block (JSON deny + exit 0)
 # ═══════════════════════════════════════════════════════════════
@@ -1906,14 +1925,27 @@ def check_sensitive_file(file_path: str, *, deny: bool = True) -> None:
     for pattern, category, description in all_patterns:
         if pattern.search(file_path):
             if not deny:
-                print(
+                advisory = (
                     f"[sensitive-file-guard] ADVISORY: Read of sensitive file ({category})\n"
                     f"[sensitive-file-guard] Path: {file_path}\n"
                     f"[sensitive-file-guard] Pattern: {description}\n"
                     f"[sensitive-file-guard] Reading credential files needs owner approval "
-                    f"(OWNER-APPROVED-SECRET-READ) per CLAUDE.md. Not blocked — flagged for review.",
-                    file=sys.stderr,
+                    f"(OWNER-APPROVED-SECRET-READ) per CLAUDE.md. Not blocked — flagged for review."
                 )
+                print(advisory, file=sys.stderr)
+                try:
+                    record_governance(
+                        "security_finding",
+                        hook_name="pretool-unified-gate",
+                        tool_name="Read",
+                        hook_phase="pre",
+                        severity="warning",
+                        blocked=False,
+                        event=_CURRENT_EVENT,
+                    )
+                except Exception:
+                    pass  # Never let recording change the outcome
+                _ADVISORIES.append(advisory)
                 return
             _block(
                 f"[sensitive-file-guard] BLOCKED: Write to sensitive file ({category})\n"
@@ -3604,6 +3636,7 @@ def check_sysadmin_security(command: str) -> None:
 
 def main() -> None:
     global _CURRENT_EVENT, _CURRENT_COMMAND
+    _ADVISORIES.clear()
     raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
@@ -3649,6 +3682,8 @@ def main() -> None:
         if not file_path:
             return
         check_sensitive_file(file_path, deny=False)
+
+    _emit_advisories()
 
 
 if __name__ == "__main__":

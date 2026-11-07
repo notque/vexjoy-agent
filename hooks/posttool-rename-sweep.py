@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """
 PostToolUse Hook: Post-Rename Reference Sweep
 
 After a `git mv` command, scans .py/.json/.md/.yaml files for stale
-references to the old filename stem and prints a warning listing them.
+references to the old filename stem and warns with a list of them. The
+warning goes out as hookSpecificOutput.additionalContext: plain PostToolUse
+stdout only shows in the transcript view (ctrl+o), so the model never saw it.
 
 Design Principles:
 - SILENT by default (only speaks when stale references are found)
@@ -41,7 +43,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import get_tool_input, get_tool_result, hook_error, is_tool_error
+from hook_utils import context_output, get_tool_input, get_tool_result, hook_error, is_tool_error
 from stdin_timeout import read_stdin
 
 
@@ -174,18 +176,19 @@ def main():
             return
 
         max_shown = 20
-        print(f'[rename-sweep] Stale references to "{stem}" found after git mv:')
+        lines = [f'[rename-sweep] Stale references to "{stem}" found after git mv:']
         for line in filtered[:max_shown]:
             # Make path relative to search_root for readability
             try:
                 rel = os.path.relpath(line.split(":")[0], search_root)
                 rest = ":".join(line.split(":")[1:])
-                print(f"  {rel}:{rest}")
+                lines.append(f"  {rel}:{rest}")
             except Exception:
-                print(f"  {line}")
+                lines.append(f"  {line}")
         if len(filtered) > max_shown:
-            print(f"  ... and {len(filtered) - max_shown} more")
-        print("Consider updating these references before committing.")
+            lines.append(f"  ... and {len(filtered) - max_shown} more")
+        lines.append("Consider updating these references before committing.")
+        context_output("PostToolUse", "\n".join(lines)).print_and_exit()
 
     except Exception as e:
         hook_error("posttool-rename-sweep", e)
