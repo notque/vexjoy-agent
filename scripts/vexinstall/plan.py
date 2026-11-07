@@ -303,13 +303,6 @@ def _user_edited(dest: Path, led: LedgerEntry, hashes: _Hashes) -> bool:
     return hashes.of(dest) != led.sha256
 
 
-def _clean_copy(dest: Path, led: LedgerEntry, hashes: _Hashes) -> bool:
-    """A real dir holding exactly the copy its ledger record names, so every file in it is the engine's."""
-    if led.mode != "copy" or not led.sha256 or os.path.islink(dest) or not os.path.isdir(dest):
-        return False
-    return hashes.of(dest) == led.sha256
-
-
 def _desired_parent(d: str, entries: dict[str, DesiredEntry]) -> str | None:
     """The desired entry strictly above *d*, if any."""
     return next((str(p) for p in Path(d).parents if str(p) in entries), None)
@@ -426,18 +419,18 @@ def plan_target(
 
     # Split: a whole-dir entry that is now a container (an install profile turned whole-dir hooks
     # per-entry). A link was swapped for a real dir above. A real dir (copy mode) stays in place:
-    # its record is dropped, its files become entries, and the files that layout skips go to trash.
-    # Trashing the dir, as a plain removal would, took every enabled hook with it.
+    # its record is dropped, its files are adopted as entries (a file the source has changed since
+    # is replaced), and the files that layout skips go to trash. Trashing the dir, as a plain
+    # removal would, took every enabled hook with it. A copy the user has edited keeps its record
+    # and stays as it is, as any user-edited copy does.
     containers = {str(c) for c in adapter.containers(home)}
     split = {
         c
         for c in containers
         if c in led_entries and c not in replaced and c not in blocked and os.path.isdir(c) and not os.path.islink(c)
     }
-    # A copy that still matches its record holds only engine files, so they are adopted as owned and
-    # a file the source has changed since is replaced. Any other split dir proves a file ours only
-    # where it matches its source.
-    owned = {c for c in split if _clean_copy(Path(c), led_entries[c], hashes)}
+    edited = {c for c in split if _user_edited(Path(c), led_entries[c], hashes)}
+    owned = split - edited
 
     def adoptable(dest: Path) -> bool:
         if any(is_inside(dest, c) and str(dest) != c for c in owned):
@@ -486,6 +479,9 @@ def plan_target(
         if why:
             tp.actions.append(_action("blocked", de, hashes, reason=why))
             continue
+        if any(is_inside(d, c) and d != c for c in edited):
+            tp.actions.append(_action("skip", de, hashes, reason="inside a user-edited copy; not replaced"))
+            continue
         led = led_entries.get(d)
         if fresh or not os.path.lexists(dest):
             tp.actions.append(_action("add", de, hashes))
@@ -506,7 +502,8 @@ def plan_target(
             else {}
         )
         refusal = _fold_blocker(dest, de.source, inner, hashes) if inner else None
-        if refusal is not None and not takeover:
+        if refusal is not None and (refusal[0] == "skip" or not takeover):
+            # Takeover replaces only a file no entry owns, never a user edit.
             tp.actions.append(_action(refusal[0], de, hashes, reason=refusal[1]))
             continue
         if refusal is None and (inner or adoptable(dest)):
@@ -529,7 +526,7 @@ def plan_target(
         if any(is_inside(d, c) and d != c for c in replaced):
             # Entries recorded under a replaced container move with it.
             continue
-        if d in replaced or d in split:
+        if d in replaced or d in owned:
             # A whole-dir entry that is now a container: the container op already trashed
             # the link, or the dir stays and its files are planned as entries. Drop the record.
             tp.actions.append(Action(op="forget", target=target, dest=d, kind=led.kind, reason=SPLIT_REASON))
@@ -568,9 +565,7 @@ def plan_target(
             base.reason = "dangling link" if os.path.islink(dest) and not os.path.exists(dest) else "no longer desired"
         tp.actions.append(base)
 
-    leftovers = [
-        a for c in sorted(split) for a in _leftovers(c, led_entries, desire, containers, owned, collision_dests)
-    ]
+    leftovers = [a for c in sorted(owned) for a in _leftovers(c, led_entries, desire, containers, collision_dests)]
     tp.actions.extend(leftovers)
 
     if full_adoption:
@@ -612,17 +607,14 @@ def _leftovers(
     led_entries: dict[str, LedgerEntry],
     desire: TargetDesire,
     containers: set[str],
-    owned: set[str],
     collision_dests: set[str],
 ) -> list[Action]:
-    """Removals for the files of the old whole-dir copy at *whole* that the per-entry layout skips.
+    """Removals for the files of the old whole-dir entry at *whole* that the per-entry layout skips.
 
     A disabled hook goes with PROFILE_REASON, anything else (such as hooks/tests) with
-    LEFTOVER_REASON. In a copy the user has edited, only a file equal to its source is known to
-    be the engine's, so the rest stays where it is.
+    LEFTOVER_REASON. The entry is not user-edited, so the engine owns every file in it.
     """
     led = led_entries[whole]
-    src = Path(led.source)
     out: list[Action] = []
     for c in sorted(x for x in containers if is_inside(x, whole)):
         if os.path.islink(c) or not os.path.isdir(c):
@@ -639,8 +631,6 @@ def _leftovers(
                 continue
             if any(is_inside(x, d) for x in containers):
                 continue  # a container (hooks/lib) is not an entry
-            if whole not in owned and not copy_matches_source(Path(d), src / os.path.relpath(d, whole)):
-                continue
             item = desire.filtered.get(d)
             out.append(
                 Action(

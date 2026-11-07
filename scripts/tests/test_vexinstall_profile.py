@@ -272,6 +272,7 @@ def test_a_user_edit_keeps_the_hooks_per_entry(world: Env, profile_file: Path) -
     assert (whole["op"], whole["reason"]) == ("skip", "user-edited copy h2.py inside; not replaced")
 
     _ok(world.run("sync", "--target", "claude"))
+    _ok(world.run("apply", "--target", "claude", "--takeover"))
     assert _entries(hooks) == ENABLED_HOOKS and (hooks / "h2.py").read_text() == "# my h2\n"
     assert _hook_records(world) == records and _trashed(world) == set()
 
@@ -294,19 +295,22 @@ def test_an_unowned_file_blocks_the_fold_until_takeover(world: Env, profile_file
     assert _trashed(world) == {str(hooks)}
 
 
-def test_a_split_keeps_user_files_and_owns_what_matches_its_source(world: Env, profile_file: Path) -> None:
-    """A whole-dir copy the user edited proves a file the engine's only where it matches its source."""
+def test_a_user_edited_whole_dir_copy_stays_as_it_is(world: Env, profile_file: Path) -> None:
+    """The engine stops updating a copy the user edited, so the split leaves it alone, takeover included."""
     _ok(world.run("apply", "--target", "claude", "--mode", "copy"))
     hooks = world.root("claude") / "hooks"
     (hooks / "h2.py").write_text("# my h2\n", encoding="utf-8")
-    (hooks / "mine.py").write_text("# mine\n", encoding="utf-8")
     _hook_profile(profile_file)
+    actions = _hook_actions(world)
+    assert {(Path(a["dest"]).name, a["op"]) for a in actions} == {
+        ("hooks", "skip"),
+        *((n, "skip") for n in ("h2.py", "h3.py", "util.py", "more.py")),
+    }, actions
+
     _ok(world.run("sync", "--target", "claude"))
-    assert _entries(hooks) == ENABLED_HOOKS | {"mine.py"} and (hooks / "h2.py").read_text() == "# my h2\n"
-    assert _hook_records(world) == {str(hooks / n) for n in ("h3.py", "lib/util.py", "lib/more.py")}
-    assert _trashed(world) == {str(hooks / DISABLED_HOOK), str(hooks / "tests")}
-    blocked = {Path(a["dest"]).name for a in _hook_actions(world) if a["op"] == "blocked"}
-    assert blocked == {"h2.py"}
+    _ok(world.run("apply", "--target", "claude", "--takeover"))
+    assert _entries(hooks) == WHOLE_HOOKS and (hooks / "h2.py").read_text() == "# my h2\n"
+    assert _hook_records(world) == {str(hooks)} and _trashed(world) == set()
 
 
 def test_a_fold_that_cannot_place_the_dir_leaves_every_hook_installed(
