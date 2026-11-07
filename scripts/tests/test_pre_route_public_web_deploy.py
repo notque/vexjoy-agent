@@ -40,6 +40,7 @@ POSITIVE = [
     "go live with my website",  # verb-only idiom confirmed by a plain site companion
     "make my website public on github pages",  # "make ... public" deploy family, managed hosting
     "deploy my landing page",  # deploy-target noun
+    "deploy my frontend site to netlify",  # "frontend" names the site, not work on it
 ]
 
 

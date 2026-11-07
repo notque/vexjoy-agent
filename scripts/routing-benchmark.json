@@ -941,6 +941,63 @@
       "notes": "Safety question about code - 'code safe' trigger with no mechanics guard word must fire"
     },
     {
+      "request": "check the signup form for SQL injection",
+      "expected_agent": null,
+      "expected_skill": "security",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Vulnerability vocabulary the security INDEX triggers lack; supplemental trigger 'sql injection' must fire"
+    },
+    {
+      "request": "check the comment box for XSS",
+      "expected_agent": null,
+      "expected_skill": "security",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Vulnerability vocabulary the security INDEX triggers lack; supplemental trigger 'xss' must fire"
+    },
+    {
+      "request": "look for cross-site scripting in the templates",
+      "expected_agent": null,
+      "expected_skill": "security",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Vulnerability vocabulary the security INDEX triggers lack; supplemental trigger 'cross site scripting' must fire"
+    },
+    {
+      "request": "add CSRF protection to the login form",
+      "expected_agent": null,
+      "expected_skill": "security",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Vulnerability vocabulary the security INDEX triggers lack; supplemental trigger 'csrf' must fire"
+    },
+    {
+      "request": "scan the repo for leaked secrets",
+      "expected_agent": null,
+      "expected_skill": "security",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Vulnerability vocabulary the security INDEX triggers lack; supplemental trigger 'leaked secret' must fire"
+    },
+    {
+      "request": "review the auth flow for vulnerabilities",
+      "expected_agent": null,
+      "expected_skill": "security",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Vulnerability vocabulary the security INDEX triggers lack; supplemental trigger 'for vulnerabilities' must fire"
+    },
+    {
+      "request": "use dependency injection in the service layer",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "security",
+      "notes": "Design pattern, not a vulnerability: only 'sql injection' is a security trigger"
+    },
+    {
       "request": "resume the plan for the schema migration",
       "expected_agent": null,
       "expected_skill": "process",
@@ -1392,6 +1449,14 @@
       "category": "pre-route-deploy",
       "routing_tier": "pre_route_only",
       "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my frontend site to netlify",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "'frontend' names the site, not work on it; the #993 rename had made it a site-work guard word"
     },
     {
       "request": "use my domain knowledge to design the schema",
@@ -1871,6 +1936,33 @@
       "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
     },
     {
+      "request": "redesign the deploy site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Site work, not a deploy: 'design'/'redesign' guard the site triggers (#993 had renamed them 'frontend'/'refrontend')"
+    },
+    {
+      "request": "design a new landing page for my domain",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Site work, not a deploy: 'design'/'redesign' guard the site triggers (#993 had renamed them 'frontend'/'refrontend')"
+    },
+    {
+      "request": "redesign my public site on my domain",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Site work, not a deploy: 'design'/'redesign' guard the site triggers (#993 had renamed them 'frontend'/'refrontend')"
+    },
+    {
       "request": "rebrand my portfolio site",
       "expected_agent": null,
       "expected_skill": null,
@@ -2032,6 +2124,38 @@
       "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
     },
     {
+      "request": "create a pull request against main",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "PR-creation triggers carry no unigram guard; 'against' guards only push triggers (adr/pr-create-skill-guard.md)"
+    },
+    {
+      "request": "open a PR against the release branch",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "PR-creation triggers carry no unigram guard; 'against' guards only push triggers (adr/pr-create-skill-guard.md)"
+    },
+    {
+      "request": "git push origin HEAD",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "'head' guards merge idioms, not push triggers (adr/pr-create-skill-guard.md)"
+    },
+    {
+      "request": "I pushed the fix, now open a PR",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "PR-creation triggers carry no unigram guard; 'pushed' guards only push triggers (adr/pr-create-skill-guard.md)"
+    },
+    {
       "request": "ship of Theseus",
       "expected_agent": null,
       "expected_skill": null,
@@ -2066,6 +2190,42 @@
       "routing_tier": "pre_route_negative",
       "forbid_force_route_to": "pr-workflow",
       "notes": "Idiom overlap; must not force-route to pr-workflow (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "push back on my changes",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; the push trigger's guard word 'back' must suppress it (adr/pr-create-skill-guard.md)"
+    },
+    {
+      "request": "commit these ideas to memory",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; the commit trigger's guard word 'ideas' must suppress it (adr/pr-create-skill-guard.md)"
+    },
+    {
+      "request": "merge this in your head",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; the merge trigger's guard word 'head' must suppress it (adr/pr-create-skill-guard.md)"
+    },
+    {
+      "request": "publish a book this year",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; phrase guard 'publish a book' must suppress the 'publish this' trigger (#993 had renamed it 'content a book') (adr/pr-create-skill-guard.md)"
     },
     {
       "request": "address review comments on an upstream PR in a repo I don't own",

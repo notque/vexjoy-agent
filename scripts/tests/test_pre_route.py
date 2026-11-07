@@ -231,6 +231,118 @@ class TestSemanticSafety:
         assert "skill:pr-workflow" in candidates
 
 
+class TestTriggerScopedGuards:
+    """pr-workflow idiom guards apply per trigger, through the trigger's own verbs.
+
+    One flat guard set applied to every trigger dropped genuine git requests
+    whenever another family's idiom word sat in the window: "against" (push
+    back against) and "head" (merge ideas in your head) were the common ones.
+    """
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "create a pull request against main",
+            "open a PR against the release branch",
+            "git push origin HEAD",
+            "I pushed the fix, now open a PR",
+            "open a PR to roll back the deploy",
+            "push my branch to origin then open a PR against main",
+        ],
+    )
+    def test_genuine_git_requests_force_route(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert (result["skill"], result["match_type"], result["confidence"]) == (
+            "pr-workflow",
+            "force_route",
+            "high",
+        ), result
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "push back on this",
+            "push back on my changes",  # push family: back
+            "commit these ideas to memory",  # commit family: ideas
+            "merge this in your head",  # merge family: head
+            "the captain will ship this",  # ship family: captain
+            "publish this paper",  # publish family: paper
+            "send my manuscript for review",  # send and review families: manuscript
+            "publish a book this year",  # phrase guard "publish a book" (#993 had made it "content a book")
+            "fish out the bug",
+        ],
+    )
+    def test_idioms_stay_suppressed(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert result["skill"] not in ("pr-workflow", "deploy"), result
+        assert result.get("pipeline") != "pr-pipeline", result
+
+    def test_guard_words_follow_the_trigger_verbs(self, pre_route) -> None:
+        guards = pre_route._verb_guards
+        assert {"back", "against"} <= guards("pr-workflow", "push my changes")
+        assert "head" not in guards("pr-workflow", "git push")
+        assert "head" in guards("pr-workflow", "merge this in")
+        assert "manuscript" in guards("pr-workflow", "send for review")
+        assert guards("pr-workflow", "check ci") == set()
+
+    @pytest.mark.parametrize(
+        "trigger", ["create pull request", "open pr", "push and pr", "merge contributor pr", "pr-fix"]
+    )
+    def test_triggers_that_name_a_pr_carry_no_unigram_guard(self, pre_route, trigger: str) -> None:
+        assert pre_route._verb_guards("pr-workflow", trigger) == set()
+
+    def test_pr_fix_loop_keeps_every_pr_workflow_guard_word(self, pre_route) -> None:
+        pr_words = set().union(*pre_route.TRIGGER_VERB_GUARDS["pr-workflow"].values())
+        assert pr_words <= pre_route.SEMANTIC_GUARDS["pr-fix-loop"]
+
+
+class TestSecurityVocabulary:
+    """Standard vulnerability names force-route to security without an INDEX keyword."""
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "SQL injection",
+            "check the signup form for SQL injection",
+            "check the comment box for XSS",
+            "look for cross-site scripting in the templates",
+            "add CSRF protection to the login form",
+            "scan the repo for leaked secrets",
+            "review the auth flow for vulnerabilities",
+        ],
+    )
+    def test_vulnerability_vocabulary_force_routes_to_security(self, pre_route, real_entries, query: str) -> None:
+        result = pre_route.route(query, entries=real_entries)
+        assert (result["skill"], result["match_type"], result["confidence"]) == (
+            "security",
+            "force_route",
+            "high",
+        ), result
+
+    @pytest.mark.parametrize("query", ["use dependency injection in the service layer", "keep the secrets in my diary"])
+    def test_near_misses_do_not_route_to_security(self, pre_route, real_entries, query: str) -> None:
+        assert pre_route.route(query, entries=real_entries)["skill"] != "security"
+
+
+class TestDeploySiteWorkGuard:
+    """The words "design" and "redesign" mark work ON a site; #993's design->frontend rename broke both."""
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "redesign the deploy site",
+            "design a new landing page for my domain",
+            "redesign my public site on my domain",
+        ],
+    )
+    def test_design_work_on_a_site_is_not_a_deploy(self, pre_route, real_entries, query: str) -> None:
+        assert pre_route.route(query, entries=real_entries)["skill"] != "deploy"
+
+    def test_a_frontend_site_still_deploys(self, pre_route, real_entries) -> None:
+        result = pre_route.route("deploy my frontend site to netlify", entries=real_entries)
+        assert (result["skill"], result["match_type"]) == ("deploy", "force_route"), result
+
+
 # ---------------------------------------------------------------------------
 # Output schema tests
 # ---------------------------------------------------------------------------
@@ -289,8 +401,8 @@ class TestConfidence:
         """Force-route with 1 trigger -> high.
 
         A force match that reached scoring already passed every semantic
-        guard; the /do fast path and Step 1(a) safety override act only on
-        "high", so a single surviving force trigger must report it.
+        guard; /do Phase 2 Step 1(a)'s safety override acts only on "high",
+        so a single surviving force trigger must report it.
         """
         match = pre_route.ScoredMatch(
             name="test",
@@ -569,7 +681,7 @@ class TestSeparatorEquivalence:
 
     @pytest.mark.parametrize(
         ("query", "skill"),
-        [("push back on this frontend", "pr-workflow"), ("fish for bugs", "deploy")],
+        [("push back on this design", "pr-workflow"), ("fish for bugs", "deploy")],
     )
     def test_idioms_do_not_match(self, pre_route, real_entries, query: str, skill: str) -> None:
         result = pre_route.route(query, entries=real_entries)
