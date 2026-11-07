@@ -60,9 +60,10 @@ $EDITOR .local/profile.yaml
 ```
 
 Without `.local/profile.yaml`, the installer includes the full toolkit. It
-also installs the full toolkit, with no warning, when PyYAML is missing or the
-profile does not parse. The picker uses `questionary` when available and falls back to a numbered prompt;
-it adds no required dependency.
+also installs the full toolkit when PyYAML is missing (with no warning) or the
+profile is not valid YAML (with only a warning on stderr). The picker uses
+`questionary` when available and falls back to a numbered prompt; it adds no
+required dependency.
 
 Profile entries name skills by install name (the skill's directory name, such
 as `debugging`), agents by file stem, and hooks by filename (`foo.py`). Skills

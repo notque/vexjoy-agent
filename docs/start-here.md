@@ -137,7 +137,7 @@ Turn a gate off by setting its variable to `1` in the environment that launches 
 
 It fails open if it crashes. Its overrides are documented only in the hook source, on purpose: a deny that turns out to be a false positive should not teach anyone, or any agent, to switch the guard off.
 
-Everything else is advisory. `pretool-dispatch-spec-gate` only warns unless `DISPATCH_SPEC_GATE_MODE=deny` is set, and `pretool-routing-gate` runs only on Antigravity CLI. No Stop or SubagentStop hook blocks: `stop-drift-guard` can wake a stopped session to report drift, and `subagent-completion-guard` emits a deny that SubagentStop ignores.
+Everything else is advisory. `pretool-dispatch-spec-gate` only warns unless `DISPATCH_SPEC_GATE_MODE=deny` is set, and `pretool-routing-gate` runs only on Antigravity CLI. No Stop or SubagentStop hook blocks: `stop-drift-guard` can wake a stopped session in this checkout to report drift, and `subagent-completion-guard` emits a deny that SubagentStop ignores.
 
 ## Where Next
 
