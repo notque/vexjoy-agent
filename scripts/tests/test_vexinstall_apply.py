@@ -24,6 +24,7 @@ from scripts.tests.vexinstall_support import (
     find_named,
     git,
     make_world,
+    skill_md,
     tree_hash,
     world,
     write_overlays,
@@ -325,3 +326,121 @@ def test_source_root_change_needs_adopt_source(world: Env) -> None:
     assert world.run("apply", "--target", "claude", source=clone).code == 6
     _ok(world.run("apply", "--target", "claude", "--adopt-source", source=clone))
     assert os.readlink(world.skills("claude") / "alpha").startswith(str(clone))
+
+
+def _uninstalled(env: Env) -> set[str]:
+    return set(env.ledger().get("uninstalled", {}))
+
+
+def _add_public_skill(env: Env, name: str) -> None:
+    (env.repo / "skills" / "meta" / name).mkdir(parents=True)
+    (env.repo / "skills" / "meta" / name / "SKILL.md").write_text(skill_md(name))
+    commit_all(env.repo, f"add {name}")
+
+
+def test_uninstall_then_sync_reinstalls_nothing(world: Env) -> None:
+    world.root("codex").mkdir()
+    _ok(world.run("apply", "--target", "all", "--mode", "copy"))
+    _ok(world.run("uninstall"))
+    assert _uninstalled(world) == set(TARGETS)
+    (world.home / ".hermes").mkdir()  # a runtime dir created after the uninstall stays alone too
+    res = world.run("sync", "--target", "all")
+    _ok(res)
+    assert any("skipped uninstalled target(s) claude, codex, hermes" in e for e in res.err), res.err
+    assert [e for e in world.ledger()["entries"]] == []
+    for t in ("claude", "codex", "hermes"):
+        assert _entries(world.skills(t)) == set(), t
+
+
+def test_target_uninstall_survives_sync_all(world: Env) -> None:
+    world.root("codex").mkdir()
+    _ok(world.run("apply", "--target", "all", "--mode", "copy"))
+    _ok(world.run("uninstall", "--target", "codex"))
+    assert _uninstalled(world) == {"codex"}
+    _add_public_skill(world, "fresh")
+    res = world.run("sync", "--target", "all")
+    _ok(res)
+    assert any("skipped uninstalled target(s) codex;" in e for e in res.err), res.err
+    assert (world.skills("claude") / "fresh" / "SKILL.md").is_file()
+    assert world.ledger_dests("codex") == set()
+    assert _entries(world.skills("codex")) == set()
+    _ok(world.run("sync", "--target", "codex"))
+    assert world.ledger_dests("codex") == set()
+
+
+def test_apply_after_uninstall_clears_record(world: Env) -> None:
+    world.root("codex").mkdir()
+    _ok(world.run("apply", "--target", "all", "--mode", "copy"))
+    _ok(world.run("uninstall", "--target", "codex"))
+    _ok(world.run("apply", "--target", "codex", "--mode", "copy"))
+    assert _uninstalled(world) == set()
+    assert world.ledger_dests("codex")
+    _add_public_skill(world, "fresh")
+    sync = world.run("sync", "--target", "all")
+    _ok(sync)
+    assert not any("uninstalled" in e for e in sync.err), sync.err
+    assert (world.skills("codex") / "fresh" / "SKILL.md").is_file()
+    _ok(world.run("uninstall"))
+    _ok(world.run("apply", "--target", "claude", "--mode", "copy"))
+    assert _uninstalled(world) == set(TARGETS) - {"claude"}
+    _ok(world.run("apply", "--target", "all", "--mode", "copy"))
+    assert _uninstalled(world) == set()
+
+
+def _add_runtime_adapters(env: Env) -> None:
+    (env.repo / "hooks" / "codex-hook-adapter.py").write_text("# adapter\n")
+    (env.repo / "hooks" / "agy-hook-adapter.py").write_text("# adapter\n")
+    (env.repo / "scripts" / "codex-hooks-allowlist.txt").write_text(
+        "SessionStart:h1.py matcher=startup class=native mode=native failure=open\n"
+        "Stop:h2.py class=native mode=native failure=open\n"
+    )
+    commit_all(env.repo, "adapters")
+
+
+USER_HOOK = {"type": "command", "command": "python3 /opt/mine/hook.py"}
+
+
+def test_uninstall_removes_only_owned_external_hook_entries(world: Env) -> None:
+    _add_runtime_adapters(world)
+    for t in ("codex", "factory", "reasonix", "antigravity"):
+        world.root(t).mkdir()
+    (world.root("codex") / "config.toml").write_text('model = "x"\n')
+    agy = world.root("antigravity") / "config" / "hooks.json"
+    agy.parent.mkdir()
+    agy.write_text(json.dumps({"mine": {"enabled": True, "Stop": [USER_HOOK]}}))
+    _ok(world.run("apply", "--target", "all", "--mode", "copy"))
+    factory = world.root("factory") / "settings.json"
+    reasonix = world.root("reasonix") / "settings.json"
+    codex = world.root("codex") / "hooks.json"
+    for path in (factory, reasonix, codex):
+        data = json.loads(path.read_text())
+        data["model"] = "keep-me"
+        data["hooks"].setdefault("Stop", []).append(
+            {"matcher": "", "hooks": [USER_HOOK]} if path != reasonix else USER_HOOK
+        )
+        path.write_text(json.dumps(data))
+    assert "vexjoy-agent" in json.loads(agy.read_text())
+    config_before = (world.root("codex") / "config.toml").read_bytes()
+    backups = world.home / ".claude" / "vexjoy" / "backups"
+    before = {p.name for p in backups.iterdir()}
+
+    res = world.run("uninstall")
+    _ok(res)
+    for path in (factory, reasonix, codex):
+        data = json.loads(path.read_text())
+        assert data["model"] == "keep-me", path
+        blob = json.dumps(data["hooks"])
+        assert "/opt/mine/hook.py" in blob, path
+        assert f"{path.parent}/hooks/" not in blob and "/.claude/hooks/" not in blob, (path, blob)
+    assert json.loads(agy.read_text()) == {"mine": {"enabled": True, "Stop": [USER_HOOK]}}
+    assert (world.root("codex") / "config.toml").read_bytes() == config_before
+    new = {p.name for p in backups.iterdir()} - before
+    assert {n.rsplit(".", 1)[0] for n in new if not n.startswith("settings.")} == {
+        "codex-hooks.json",
+        "factory-settings.json",
+        "reasonix-settings.json",
+        "antigravity-hooks.json",
+    }
+    mtimes = {p: p.stat().st_mtime_ns for p in (factory, reasonix, codex, agy)}
+    _ok(world.run("uninstall"))
+    assert {p: p.stat().st_mtime_ns for p in mtimes} == mtimes, "a clean config is not rewritten"

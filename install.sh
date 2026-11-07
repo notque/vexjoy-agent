@@ -244,9 +244,10 @@ main_hooks_dir() {
 }
 
 # Uninstall without --target renames our post-merge to post-merge.vexjoy-removed.<UTC time>, which git
-# never runs: its `sync --target all` (or a pre-engine hook's `ln -s` loop) would re-install everything on
-# the next pull. A --target uninstall keeps it, since that sync re-installs the target either way and the
-# targets still installed need it. The pre-commit private-leak gate stays: it installs nothing.
+# never runs. The engine records uninstalled targets and `sync` skips them, but a pre-engine hook's `ln -s`
+# loop, or an engine from a checkout older than that record, would re-install everything on the next pull.
+# A --target uninstall keeps it: its sync skips the uninstalled target and the targets still installed
+# need it. The pre-commit private-leak gate stays: it installs nothing.
 # When a marked post-merge may still run, GIT_HOOK_PROBLEM says why, and the uninstall exits 1.
 uninstall_git_hooks() {
     local dir name hook ts
@@ -269,7 +270,7 @@ uninstall_git_hooks() {
         elif [ "$name" = pre-commit ]; then
             echo -e "  Keeping pre-commit hook (the private-leak gate installs nothing; delete it to stop the check): ${hook}"
         elif [ "$TARGET" != all ]; then
-            echo -e "${YELLOW}  Keeping post-merge hook (a --target uninstall keeps it; its sync re-installs every present target on each pull): ${hook}${NC}"
+            echo -e "${YELLOW}  Keeping post-merge hook (a --target uninstall keeps it; its sync skips the uninstalled target and updates the rest): ${hook}${NC}"
         elif [ "$DRY_RUN" = true ]; then
             echo -e "${BLUE}  Would rename post-merge hook to ${hook}.vexjoy-removed.${ts}${NC}"
         elif mv -f "$hook" "${hook}.vexjoy-removed.${ts}"; then
