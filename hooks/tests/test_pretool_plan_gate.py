@@ -589,3 +589,88 @@ def test_codex_adapter_denies_relative_patch_without_plan(project: Path) -> None
 
     assert result.returncode == 0, result.stderr
     assert _decision(result) == "deny"
+
+
+# ---------------------------------------------------------------------------
+# G-03: a plan left from an earlier task no longer opens the gate
+# ---------------------------------------------------------------------------
+
+
+def _load_hook_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("pretool_plan_gate_freshness", HOOK)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _age_plan(plan: Path, hours: float) -> None:
+    import time
+
+    stamp = time.time() - hours * 3600
+    os.utime(plan, (stamp, stamp))
+
+
+def test_plan_age_limit_is_24_hours() -> None:
+    assert _load_hook_module()._PLAN_MAX_AGE_SECONDS == 24 * 60 * 60
+
+
+def test_stale_root_plan_denies_and_says_it_is_stale(project: Path) -> None:
+    plan = project / "task_plan.md"
+    plan.write_text("# Plan from an earlier task\n", encoding="utf-8")
+    _age_plan(plan, 25)
+
+    result = _run_hook(
+        str(project / "skills" / "example" / "SKILL.md"),
+        event_cwd=str(project),
+        project_dir=str(project),
+    )
+
+    _assert_denied(result)
+    reason = json.loads(result.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+    assert "task_plan.md" in reason
+    assert "25 hours ago" in reason
+    assert "older than 24 hours" in reason
+    assert "[plan-gate] BLOCKED" in result.stderr
+    assert plan.is_file(), "the gate must never delete the stale plan"
+
+
+def test_plan_modified_within_24_hours_allows(project: Path) -> None:
+    plan = project / "task_plan.md"
+    plan.write_text("# Plan\n", encoding="utf-8")
+    _age_plan(plan, 23)
+
+    result = _run_hook(
+        str(project / "agents" / "example" / "agent.md"),
+        event_cwd=str(project),
+        project_dir=str(project),
+    )
+
+    _assert_allowed(result)
+
+
+def test_missing_plan_deny_does_not_mention_a_stale_plan(project: Path) -> None:
+    result = _run_hook(
+        str(project / "skills" / "example" / "SKILL.md"),
+        event_cwd=str(project),
+        project_dir=str(project),
+    )
+
+    _assert_denied(result)
+    assert "hours ago" not in json.loads(result.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+def test_bypass_still_allows_with_a_stale_plan(project: Path) -> None:
+    plan = project / "task_plan.md"
+    plan.write_text("# Plan\n", encoding="utf-8")
+    _age_plan(plan, 24 * 30)
+
+    result = _run_hook(
+        str(project / "skills" / "example" / "SKILL.md"),
+        event_cwd=str(project),
+        project_dir=str(project),
+        extra_env={"PLAN_GATE_BYPASS": "1"},
+    )
+
+    _assert_allowed(result)
