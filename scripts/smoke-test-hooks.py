@@ -8,8 +8,8 @@ Complements benchmark-hooks.py (timing) with correctness checks (exit codes).
 Valid hook exit codes:
   0 — advisory output or no action (always OK)
   2 — block action (OK for blocking hooks; advisory hooks should not emit 2)
-  Any other — unexpected, flag as WARN
-  Crash / exception — FAIL
+  Any other — a crash (an uncaught exception exits 1): FAIL. Claude Code blocks
+  only on exit 2, so a crashed gate lets the tool call through.
 
 Each hook gets its registered timeout, which is in seconds as Claude Code reads it.
 
@@ -237,7 +237,7 @@ def run_hook(
             env=child_env,
         )
         exit_code = result.returncode
-        status = "PASS" if exit_code in VALID_EXIT_CODES else "WARN"
+        status = "PASS" if exit_code in VALID_EXIT_CODES else "FAIL"
         return {
             **hook,
             "status": status,
@@ -297,7 +297,7 @@ def main() -> int:
 
     # Print results
     fails = 0
-    statuses = {"PASS": 0, "WARN": 0, "FAIL": 0, "MISSING": 0, "TIMEOUT": 0}
+    statuses = {"PASS": 0, "FAIL": 0, "MISSING": 0, "TIMEOUT": 0}
 
     for r in results:
         status = r["status"]
@@ -324,7 +324,7 @@ def main() -> int:
     total = len(results)
     print()
     print(
-        f"Hooks: {total} | PASS: {statuses['PASS']} | WARN: {statuses['WARN']} | "
+        f"Hooks: {total} | PASS: {statuses['PASS']} | "
         f"FAIL: {statuses['FAIL']} | MISSING: {statuses['MISSING']} | TIMEOUT: {statuses['TIMEOUT']}"
     )
 

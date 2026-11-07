@@ -171,13 +171,16 @@ jobs:
           python-version: "3.12"
       - run: pip install pyyaml
       # Static checks (dormancy, schema, mirror, allowlist) read the repo
-      # directly. Liveness (smoke-test) + register-hook validate read
-      # ~/.claude, so deploy hooks + settings.json there first.
-      - name: Deploy hooks and settings to ~/.claude
+      # directly, and matcher-liveness seeds its own throwaway HOME. The smoke
+      # test + register-hook validate read ~/.claude, so deploy hooks, scripts and
+      # settings.json there first. scripts/ goes in as a real install puts it:
+      # hooks import from scripts/lib and run scripts from it.
+      - name: Deploy hooks, scripts and settings to ~/.claude
         run: |
-          mkdir -p "$HOME/.claude/hooks/lib"
+          mkdir -p "$HOME/.claude/hooks/lib" "$HOME/.claude/scripts"
           cp hooks/*.py "$HOME/.claude/hooks/"
           cp hooks/lib/*.py "$HOME/.claude/hooks/lib/" 2>/dev/null || true
+          cp -r scripts/. "$HOME/.claude/scripts/"
           cp .claude/settings.json "$HOME/.claude/settings.json"
       - name: Every registered hook carries the python version guard
         run: python scripts/hook-pyguard.py --check
