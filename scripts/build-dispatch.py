@@ -306,7 +306,7 @@ _FALLBACK_REASON_MAX = 80
 # Complexities where a skill is mandatory. do/SKILL.md already states this as
 # the "Skill-greediness gate (HARD — non-negotiable for Simple+)"; 23 of the 128
 # recorded fallbacks violated it because nothing enforced it. Trivial dispatches
-# stay exempt (they carry no skill by frontend).
+# stay exempt (they carry no skill by design).
 _SKILL_REQUIRED_COMPLEXITY = frozenset({"simple", "medium", "complex"})
 
 # Complexity -> thinking directive. Trivial never dispatches; medium is
