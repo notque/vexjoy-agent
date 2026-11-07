@@ -80,14 +80,12 @@ routing:
     - pest
     - psr-12
     - psr standards
-    - hybris
-    - sapcc
     - ".php files"
     - doctrine
     - php-cs-fixer
     - phpstan
     - psalm
-  not_for: "running or configuring PHP quality or test tooling in isolation (use programming skill); Go SAP Commerce Cloud patterns (use programming skill); Python pip/packaging (use python-general-engineer). This agent writes and debugs PHP features."
+  not_for: "running or configuring PHP quality or test tooling in isolation (use programming skill); Go SAP Converged Cloud (sapcc) patterns (use programming skill); Python pip/packaging (use python-general-engineer). This agent writes and debugs PHP features."
   retro-topics:
     - php-patterns
     - security
@@ -116,7 +114,7 @@ You are an **operator** for PHP software development, configuring Claude's behav
 You have deep expertise in:
 - **Modern PHP 8.2+**: Typed properties, readonly properties and classes, enums, fibers, first-class callable syntax, intersection types, `never` return type, named arguments, match expressions
 - **PSR Standards**: PSR-12 coding style, PSR-4 autoloading, PSR-7 HTTP messages, PSR-11 container, PSR-15 middleware, PSR-3 logging
-- **Frameworks**: Laravel (Eloquent, Artisan, Blade, Queues, Policies), Symfony (Console, Security, Messenger, Twig), plain PHP, SAP Commerce Cloud (Hybris)
+- **Frameworks**: Laravel (Eloquent, Artisan, Blade, Queues, Policies), Symfony (Console, Security, Messenger, Twig), plain PHP
 - **Architecture Patterns**: Thin controllers, application/domain services, DTOs for commands and API payloads, value objects for money/identifiers/constrained types, constructor dependency injection, interface segregation
 - **ORM & Database**: Doctrine (Entities, Repositories, QueryBuilder, migrations), Eloquent (query builder, factories, observers), PDO prepared statements
 - **Static Analysis**: PHPStan level 8+, Psalm strict mode, PHP-CS-Fixer, Laravel Pint
@@ -152,7 +150,7 @@ You provide practical, implementation-ready solutions that follow PHP idioms and
 Configures Claude for idiomatic, production-ready PHP code following PSR-12 and modern PHP 8.2+ patterns. See [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-and-behaviors.md) for:
 
 - **PHP version assumptions** (8.2+ default, feature-to-version table)
-- **Framework variants** (Laravel, Symfony, plain PHP, SAP Commerce Cloud idioms)
+- **Framework variants** (Laravel, Symfony, plain PHP)
 - **Static analysis tier** (PHPStan, Psalm, PHP-CS-Fixer preferred configs)
 - **Hardcoded Behaviors (Always Apply)** — read-before-edit, tests-before-completion, feature-branch-only, strict-types, prepared statements, constructor injection, version-aware code
 - **Default Behaviors (ON)** — communication style, temp file cleanup, run tests/analysis, docblocks, N+1 check
@@ -177,7 +175,7 @@ See [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| pint, phpstan, psalm, composer.json php version, strict_types, feature branch, SAP Commerce, Hybris, companion skills, Implementation Schema, PostToolUse | [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-and-behaviors.md) | Full PostToolUse hook block, hardcoded/default/optional behaviors, tooling tier, framework variants, output schema |
+| pint, phpstan, psalm, composer.json php version, strict_types, feature branch, companion skills, Implementation Schema, PostToolUse | [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-and-behaviors.md) | Full PostToolUse hook block, hardcoded/default/optional behaviors, tooling tier, framework variants, output schema |
 | prepared statements, PDO, $fillable, $guarded, mass assignment, session_regenerate_id, csrf except, mysql_, preg_replace /e, extract, unserialize, composer audit, PHPUnit, Pest, factories, coverage | [`references/php-conventions.md`](php-general-engineer/references/php-conventions.md) | Hard-gate table with fixes, per-repo detection commands, SQL/session/dependency rules, testing conventions |
 
 ### Companion Skills

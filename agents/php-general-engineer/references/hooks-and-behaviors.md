@@ -79,7 +79,6 @@ hooks:
 | Laravel | Eloquent, form requests for validation, policies for authorization, Queues for deferred work, Artisan commands for CLI |
 | Symfony | Dependency injection container, EventDispatcher, Security component, Messenger for async, Twig templates |
 | Plain PHP | PSR-11 containers (PHP-DI, Pimple), PSR-7/15 middleware stacks |
-| SAP Commerce Cloud (Hybris) | Hybris service layer conventions, Spring-like DI, impex imports, backoffice customization via extension |
 
 | Tool | Preferred Configuration |
 |------|------------------------|

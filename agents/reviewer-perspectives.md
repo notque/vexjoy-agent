@@ -38,7 +38,7 @@ routing:
     - complexity audit
     - authority concentration
     - reversibility check
-  not_for: "SAP Commerce Cloud full-repo compliance audit (use domain skill); business-logic correctness, ADR conformance, or SAP CC structural review (use reviewer-domain) — this agent provides multi-perspective review: newcomer, senior, pedant, contrarian views"
+  not_for: "SAP Converged Cloud (sapcc) full-repo compliance audit (use domain skill); business-logic correctness, ADR conformance, or SAP CC structural review (use reviewer-domain) — this agent provides multi-perspective review: newcomer, senior, pedant, contrarian views"
   pairs_with:
     - review
     - workflow

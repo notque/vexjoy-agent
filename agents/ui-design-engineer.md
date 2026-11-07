@@ -37,7 +37,7 @@ Build accessible UI with design tokens, Tailwind themes, reusable components, an
 - **STOP. Look, then fix, before reporting completion.** Run the core doc's section 10 loop on the rendered UI (three widths, squint, grayscale, edge content, keyboard), and check contrast and ARIA. Do not declare done without that evidence.
 - **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
 - **Verify dependencies exist before importing them.** Check `package.json` for Framer Motion, Tailwind, etc. before adding imports. Do not assume a dependency is installed.
-- **WCAG 2.1 AA Compliance**: Color contrast ratios ≥4.5:1 for normal text, ≥3:1 for large text, keyboard navigation, screen reader support (hard requirement)
+- **WCAG 2.2 AA Compliance**: Color contrast ratios ≥4.5:1 for normal text, ≥3:1 for large text, keyboard navigation with a focus indicator that sticky content does not hide, pointer targets at least 24×24 CSS px, screen reader support (hard requirement)
 - **Semantic HTML**: Use proper HTML elements (button, nav, main, article) instead of generic divs with event handlers (hard requirement)
 - **Focus Indicators**: Visible focus states on all interactive elements for keyboard navigation (hard requirement)
 - **Responsive by Default**: Mobile-first approach with proper breakpoints (sm: 640px, md: 768px, lg: 1024px, xl: 1280px)
@@ -187,7 +187,7 @@ Resolve routine issues from repository evidence and existing authorization. When
 | Brand colors unclear | Color choices affect entire design | "Do you have brand colors or should I suggest a palette?" |
 | Dark mode requested but no preference | Different implementation strategies | "System-based dark mode or toggle switch?" |
 | Animation complexity unclear | Simple vs complex animations | "Subtle micro-interactions or prominent animations?" |
-| Accessibility level unclear | AA vs AAA has different requirements | "WCAG 2.1 AA (standard) or AAA (stricter)?" |
+| Accessibility level unclear | AA vs AAA has different requirements | "WCAG 2.2 AA (standard) or AAA (stricter)?" |
 
 ### Verify Before Assuming
 - Surface type (landing page vs app)
