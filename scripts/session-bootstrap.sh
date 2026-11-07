@@ -16,6 +16,7 @@
 # every path exits 0. Install output goes to ~/.claude/vexjoy/bootstrap.log.
 
 [ -f "$HOME/.claude/hooks/lib/pyrun.sh" ] && exit 0
+start=$(date +%s)
 
 repo="${CLAUDE_PROJECT_DIR:-}"
 [ -n "$repo" ] || repo=$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)
@@ -30,10 +31,10 @@ log_dir="$HOME/.claude/vexjoy"
 mkdir -p "$log_dir" 2>/dev/null || exit 0
 log="$log_dir/bootstrap.log"
 payload="$log_dir/bootstrap-sessionstart.json"
-cat > "$payload" 2>/dev/null || : > "$payload"
+if [ -t 0 ]; then : > "$payload"; else cat > "$payload" 2>/dev/null || : > "$payload"; fi
 
 limit=""
-command -v timeout >/dev/null 2>&1 && limit="timeout 220"
+command -v timeout >/dev/null 2>&1 && limit="timeout -k 10 200"
 if $limit bash "$repo/install.sh" < /dev/null > "$log" 2>&1 && [ -f "$HOME/.claude/hooks/lib/pyrun.sh" ]; then
     if grep -q "⚠" "$log" 2>/dev/null; then
         status="[session-bootstrap] installed the toolkit into $HOME/.claude with warnings (log: $log)"
@@ -41,7 +42,7 @@ if $limit bash "$repo/install.sh" < /dev/null > "$log" 2>&1 && [ -f "$HOME/.clau
         status="[session-bootstrap] installed the toolkit into $HOME/.claude (log: $log)"
     fi
     out=$(sh "$HOME/.claude/hooks/lib/pyrun.sh" "$repo/scripts/session-bootstrap-replay.py" \
-        "$repo/.claude/settings.json" "$payload" "$status" < /dev/null 2>>"$log")
+        "$repo/.claude/settings.json" "$payload" "$status" "$((start + 232))" < /dev/null 2>>"$log")
     if [ -n "$out" ]; then
         printf '%s\n' "$out"
     else

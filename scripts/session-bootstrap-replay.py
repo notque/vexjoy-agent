@@ -7,8 +7,10 @@ install is done, the bootstrap runs this script: it runs those hooks again with 
 SessionStart payload, in parallel, and prints one SessionStart JSON object whose
 ``additionalContext`` joins what they returned. The bootstrap's own entry is skipped.
 
-Usage: session-bootstrap-replay.py <repo settings.json> <payload file> [status line]
+Usage: session-bootstrap-replay.py <repo settings.json> <payload file> [status line] [deadline]
 The status line, when given, leads the context, and is printed alone when no hook adds any.
+The deadline (epoch seconds) bounds every replayed hook so the bootstrap ends inside its
+own hook timeout; a hook that cannot start before it is skipped.
 Always exits 0; a hook that fails or times out contributes nothing.
 """
 
@@ -19,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -35,7 +38,10 @@ def commands(settings: dict, source: str) -> list[str]:
         if not isinstance(group, dict):
             continue
         matcher = group.get("matcher") or ""
-        if matcher and matcher != "*" and not re.fullmatch(matcher, source or ""):
+        try:
+            if matcher and matcher != "*" and not re.fullmatch(matcher, source or ""):
+                continue
+        except re.error:
             continue
         for entry in group.get("hooks", []):
             cmd = entry.get("command") if isinstance(entry, dict) else None
@@ -61,10 +67,13 @@ def context_of(stdout: str) -> str:
     return text
 
 
-def run(cmd: str, payload: bytes) -> str:
+def run(cmd: str, payload: bytes, deadline: float | None = None) -> str:
+    budget = PER_HOOK_TIMEOUT if deadline is None else min(PER_HOOK_TIMEOUT, deadline - time.time())
+    if budget <= 1:
+        return ""
     try:
         proc = subprocess.run(
-            ["sh", "-c", cmd], input=payload, capture_output=True, timeout=PER_HOOK_TIMEOUT, env=os.environ.copy()
+            ["sh", "-c", cmd], input=payload, capture_output=True, timeout=budget, env=os.environ.copy()
         )
     except (OSError, subprocess.TimeoutExpired):
         return ""
@@ -81,9 +90,15 @@ def main(argv: list[str]) -> int:
         source = json.loads(payload or b"{}").get("source", "startup")
     except (json.JSONDecodeError, AttributeError):
         source = "startup"
+    try:
+        deadline = float(argv[4]) if len(argv) > 4 else None
+    except ValueError:
+        deadline = None
     cmds = commands(settings, source)
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        parts = [p for p in pool.map(lambda c: run(c, payload), cmds) if p]
+    parts: list[str] = []
+    if cmds:
+        with ThreadPoolExecutor(max_workers=len(cmds)) as pool:
+            parts = [p for p in pool.map(lambda c: run(c, payload, deadline), cmds) if p]
     if len(argv) > 3 and argv[3]:
         parts.insert(0, argv[3])
     if parts:

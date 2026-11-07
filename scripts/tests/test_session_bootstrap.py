@@ -178,6 +178,9 @@ def test_replay_respects_matchers_and_skips_the_bootstrap() -> None:
     }
     assert mod.commands(settings, "startup") == ["a", "c"]
     assert mod.commands(settings, "resume") == ["a", "b"]
+    settings["hooks"]["SessionStart"].append({"matcher": "[", "hooks": [{"command": "bad"}]})
+    assert mod.commands(settings, "startup") == ["a", "c"]
+    assert mod.run("echo late", b"", deadline=0) == ""
     assert mod.context_of("") == "" and mod.context_of("text") == "text"
     assert mod.context_of('{"hookSpecificOutput": {"additionalContext": " x "}}') == "x"
     assert mod.context_of('{"hookSpecificOutput": {"hookEventName": "SessionStart"}}') == ""
