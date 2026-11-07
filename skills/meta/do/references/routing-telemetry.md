@@ -32,7 +32,7 @@ Triggers: re-route, lazy re-dispatch, validator misroute, harness reject. A righ
 
 ## Re-deriving the router's prose figures
 
-SKILL.md quotes three telemetry figures: the floor of one filled surface, the Agent-greediness share, and the Pairing rule. Each is a DATED observation, not an invariant: no test pins it, because pinning a live DB read would make CI depend on runtime data. Re-measure before editing either number — a swapped figure with no query behind it is how the earlier "82% carried a correct specialist skill" claim became unreproducible ("correct" is not a recorded column, so nothing could confirm or refute it).
+SKILL.md quotes three telemetry figures: the floor of one filled surface, the Agent-greediness share, and the Pairing rule. Each is a DATED observation, not an invariant: no test pins it, because pinning a live DB read would make CI depend on runtime data. Re-measure before editing any of them — a swapped figure with no query behind it is how the earlier "82% carried a correct specialist skill" claim became unreproducible ("correct" is not a recorded column, so nothing could confirm or refute it).
 
 Source: `evidence_route_decisions` in `~/.claude/learning/learning.db` (two other learning.db files exist and lack this table). Read-only:
 
