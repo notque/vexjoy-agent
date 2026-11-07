@@ -158,7 +158,7 @@ def test_git_hooks_install_before_python_and_apply(tmp_path, python, failure):
 
 
 @needs_bash
-@pytest.mark.parametrize("flag", ["--dry-run", "--configure-only", "--uninstall"])
+@pytest.mark.parametrize("flag", ["--dry-run", "--configure-only"])
 def test_runs_that_do_not_apply_write_no_git_hooks(tmp_path, flag):
     script, hooks, env = _install_world(tmp_path)
     _bash(script, env, flag)
@@ -189,6 +189,107 @@ def test_git_hooks_skipped_with_a_note_when_dot_git_is_a_file(tmp_path):
     r = _bash(script, env)
     assert "Git hooks skipped" in r.stdout, r.stdout + r.stderr
     assert "vexinstall apply failed" in r.stdout, r.stdout + r.stderr
+
+
+# Passes the version probe; `-m vexinstall uninstall ...` prints its argv and succeeds; any other call fails.
+_UNINSTALL_PYTHON = (
+    '#!/bin/sh\n[ "$1" = -c ] && exit 0\n[ "$2 $3" = "vexinstall uninstall" ] && echo "engine: $*" && exit 0\nexit 1\n'
+)
+
+
+@needs_bash
+def test_uninstall_removes_our_hook_first_and_keeps_the_leak_gate(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    (hooks / "post-merge").write_text(_extract_post_merge_hook() + "\n", encoding="utf-8", newline="\n")
+    gate = _extract_git_hook("pre-commit") + "\n"
+    (hooks / "pre-commit").write_text(gate, encoding="utf-8", newline="\n")
+    r = _bash(script, env, "--uninstall")
+    out = r.stdout
+    assert r.returncode == 0, out + r.stderr
+    assert not (hooks / "post-merge").exists()
+    assert (hooks / "pre-commit").read_text(encoding="utf-8") == gate
+    assert "Kept pre-commit hook" in out, out
+    engine = "engine: -m vexinstall uninstall --target all --source-root"
+    assert "Removed post-merge hook" in out and engine in out, out
+    assert out.index("Removed post-merge hook") < out.index(engine), out
+
+
+@needs_bash
+@pytest.mark.parametrize(
+    ("python", "failure"),
+    [
+        pytest.param(_PROBE_ONLY_PYTHON, "", id="uninstall-fails"),
+        pytest.param("#!/bin/sh\nexit 1\n", "not a runnable python 3.10+", id="no-python-3.10"),
+    ],
+)
+def test_failed_uninstall_still_removes_our_hook(tmp_path, python, failure):
+    """Neither a missing python nor a failed engine run may leave a hook that re-installs on the next pull."""
+    script, hooks, env = _install_world(tmp_path, python)
+    r = _bash(script, env, "--uninstall")
+    assert r.returncode == 1 and failure in r.stdout, r.stdout + r.stderr
+    assert not (hooks / "post-merge").exists()
+    assert not (hooks / "pre-commit").exists()
+
+
+@needs_bash
+def test_uninstall_keeps_unmarked_hooks(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    mine = "#!/bin/sh\necho my own hook\n"
+    for name in ("post-merge", "pre-commit"):
+        (hooks / name).write_text(mine, encoding="utf-8", newline="\n")
+    r = _bash(script, env, "--uninstall")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert [(hooks / n).read_text(encoding="utf-8") for n in ("post-merge", "pre-commit")] == [mine, mine]
+    assert "post-merge hook not written by vexjoy-agent; not removing" in r.stdout, r.stdout
+    assert "Kept pre-commit hook" not in r.stdout, r.stdout
+
+
+@needs_bash
+def test_uninstall_dry_run_removes_no_hook(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    r = _bash(script, env, "--uninstall", "--dry-run")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
+    assert not (hooks / "pre-commit").exists()
+    assert "Would remove post-merge hook" in r.stdout, r.stdout
+    assert "engine: -m vexinstall uninstall --target all --dry-run" in r.stdout, r.stdout
+
+
+@needs_bash
+def test_uninstall_leaves_hooks_alone_with_no_git_hooks_set(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    r = _bash(script, {**env, "VEXJOY_NO_GIT_HOOKS": "1"}, "--uninstall")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
+    assert "post-merge hook" not in r.stdout, r.stdout
+
+
+@needs_bash
+def test_uninstall_from_a_worktree_points_to_the_main_checkout(tmp_path):
+    """Git runs the main checkout's hooks in every worktree, so a worktree uninstall says to run it there too."""
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    shutil.rmtree(hooks.parent)
+    (script.parent / ".git").write_text("gitdir: /elsewhere/.git/worktrees/repo\n", encoding="utf-8")
+    r = _bash(script, env, "--uninstall")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "run ./install.sh --uninstall in the main checkout too" in r.stdout, r.stdout
+
+
+@needs_bash
+@pytest.mark.skipif(
+    os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+    reason="needs POSIX dir permissions and a non-root user",
+)
+def test_unremovable_hook_warns_and_uninstall_continues(tmp_path):
+    script, hooks, env = _install_world(tmp_path, _UNINSTALL_PYTHON)
+    hooks.chmod(0o555)
+    try:
+        r = _bash(script, env, "--uninstall")
+    finally:
+        hooks.chmod(0o755)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "Could not remove post-merge hook" in r.stdout, r.stdout
+    assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
 
 
 def _post_merge_world(tmp_path: Path, *, fail: bool = False) -> tuple[Path, Path]:

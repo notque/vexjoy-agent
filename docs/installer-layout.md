@@ -3,7 +3,7 @@
 This page is the layout contract for the `vexinstall` engine (`scripts/vexinstall/`). The engine installs each runtime from this contract, and `vexinstall doctor` checks it.
 
 - Engine CLI: `PYTHONPATH=<repo>/scripts python3 -m vexinstall <plan|apply|sync|doctor|uninstall|repair-repo|prune|restore-trash|restore-settings|migrate-overlays>`
-- Callers: `install.sh` (runs `apply`, takeover on) and the SessionStart hook `hooks/sync-to-user-claude.py` (runs `sync --target all`, fail-open). No other code writes a runtime root.
+- Callers: `install.sh` (runs `apply`, takeover on), the SessionStart hook `hooks/sync-to-user-claude.py` (runs `sync --target all`, fail-open), and the `post-merge` git hook that `install.sh` writes (runs `sync --target all` after each pull). No other code writes a runtime root.
 - Source of truth for the per-target tables: `ADAPTERS` in `scripts/vexinstall/adapters.py`. If this page and the code disagree, the code is the bug report.
 
 ## Verified Claude Code behavior
@@ -48,6 +48,7 @@ Checked against [Skills](https://docs.cline.bot/customization/skills).
 - **Installed indexes.** `~/.<target>/vexjoy/index/{skills,agents}.json` (public + overlays). Readers find them through `resolve_index(kind, target)` in `scripts/routing_index_merge.py`: `$VEXJOY_INDEX_DIR`, then the installed index, then the repo public index (plus a legacy `INDEX.local.json` if one exists).
 - **Repo guard.** No engine write may resolve inside the repo or an overlay root. A write that would triggers exit 4. Every command also refuses up front (exit 4) when the state dir or any target root resolves inside the repo, for example `HOME` set to the checkout.
 - **Legacy git hook.** The pre-engine `install.sh` wrote a `post-merge` that linked repo items into each runtime root after every pull. Under Git Bash without symlink privilege, `ln -s` made copies, which the engine treats as user edits and stops updating. An apply run of `./install.sh` (not `--dry-run`, `--configure-only` or `--uninstall`) writes its git hooks before it checks Python or runs `apply`. It replaces a hook marked `Written by vexjoy-agent` in the main checkout's `.git/hooks`, even when the install then fails. `doctor` (`legacy-git-hook`, error) and the SessionStart sync (one `[sync] warning` line, in worktree sessions too) report a legacy hook in the hooks dir git uses (`core.hooksPath`, else `git rev-parse --git-path hooks`). Neither rewrites it (repo guard). To fix one, delete it, or remove its `ln -s` loop if the file also runs your own hooks. The pre-engine installer wrote `.git/hooks/post-merge` under whatever directory it ran from, so check other clones too: `grep -l 'auto-syncs new items' <clone>/.git/hooks/post-merge`.
+- **Uninstall and git hooks.** `./install.sh --uninstall` removes `post-merge` from the main checkout's `.git/hooks` when the file carries `Written by vexjoy-agent`, because that hook's `sync --target all` would re-install everything on the next pull. The removal runs before the Python check and `vexinstall uninstall`, so a failed uninstall cannot leave the hook behind. An unmarked `post-merge` stays. `pre-commit` stays too: the private-leak gate guards commits and installs nothing. `--dry-run` only reports; `VEXJOY_NO_GIT_HOOKS=1` skips the step. Git runs the main checkout's hooks in every linked worktree, so an uninstall run from a worktree prints a note to run it in the main checkout too.
 - **Takeover** (`apply --takeover`, never `sync`). An unowned entry at a desired dest (stale copy, foreign link, or a linked container dir) moves to trash and is replaced. The report lists it under `taken_over`; `restore-trash <ts>` undoes it. Unowned entries at other names are left alone. Takeover containers do not count toward the mass-removal cap.
 
 ## Per-target layout
@@ -143,4 +144,5 @@ Claude Code reads hooks from the `settings.json` of the config dir it runs with.
 | Preview | `./install.sh --dry-run` or `vexinstall plan --dry-run --takeover --target all` |
 | Install or repair | `./install.sh` (`vexinstall apply --takeover`) |
 | Pick the hook python | `VEXJOY_PYTHON=/abs/python3 ./install.sh` |
+| Uninstall | `./install.sh --uninstall` (`vexinstall uninstall`, plus install.sh's `post-merge` git hook) |
 | Roll back the last apply | `./install.sh --rollback` (`restore-settings` + `restore-trash` with the newest ts) |

@@ -9,7 +9,7 @@
 #   ./install.sh                     # apply (symlink mode for a main checkout, else copy)
 #   ./install.sh --symlink|--copy    # choose the mode (recorded in the ledger)
 #   ./install.sh --dry-run           # show the plan; write nothing
-#   ./install.sh --uninstall         # remove every engine-owned entry (to trash)
+#   ./install.sh --uninstall         # remove every engine-owned entry (to trash) and the post-merge hook
 #   ./install.sh --rollback          # restore the newest settings backup and trash session
 #   ./install.sh --migrate-overlays  # write ~/.claude/vexjoy/overlays.json, then exit
 #                                    # (apply runs it when overlays.json is missing and
@@ -48,6 +48,7 @@ Usage: ./install.sh [options]
   --copy               Copy entries (default for worktrees and /tmp checkouts)
   --dry-run            Print the vexinstall plan; write nothing
   --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
+                       and the post-merge git hook (the pre-commit leak gate stays)
   --rollback           Restore the newest settings.json backup and the newest trash session
   --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
   --no-takeover        Leave unowned entries at desired paths in place (default: trash and replace)
@@ -225,6 +226,32 @@ exit 0
 HOOK
 }
 
+# Uninstall removes our post-merge: its `sync --target all` would re-install everything on the next
+# pull. The pre-commit leak gate stays, since it guards commits and installs nothing. Unmarked hooks stay.
+uninstall_git_hooks() {
+    local hook="${SCRIPT_DIR}/.git/hooks/post-merge" gate="${SCRIPT_DIR}/.git/hooks/pre-commit"
+    [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ] && return 0
+    if [ -f "${SCRIPT_DIR}/.git" ]; then
+        echo -e "${YELLOW}  Git hooks skipped: ${SCRIPT_DIR}/.git is a file (worktree or submodule); run ./install.sh --uninstall in the main checkout too, or its post-merge hook re-installs on the next pull${NC}"
+        return 0
+    fi
+    [ -d "${SCRIPT_DIR}/.git" ] || return 0
+    if [ -e "$hook" ]; then
+        if ! grep -q "Written by vexjoy-agent" "$hook" 2>/dev/null; then
+            echo -e "${YELLOW}  Existing post-merge hook not written by vexjoy-agent; not removing: ${hook}${NC}"
+        elif [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove post-merge hook: ${hook}${NC}"
+        elif rm -f "$hook"; then
+            echo -e "${GREEN}  ✓ Removed post-merge hook: ${hook}${NC}"
+        else
+            echo -e "${YELLOW}  ⚠ Could not remove post-merge hook: ${hook}; delete it, or the next pull re-installs${NC}"
+        fi
+    fi
+    if [ -e "$gate" ] && grep -q "Written by vexjoy-agent" "$gate" 2>/dev/null; then
+        echo -e "  Kept pre-commit hook (private-leak gate; it guards commits, not installs): ${gate}"
+    fi
+}
+
 # pip_requirements PYTHON: install requirements.txt into PYTHON; --break-system-packages when pip knows
 # it, then --user as a fallback. Prints the manual command on failure.
 pip_requirements() {
@@ -326,10 +353,13 @@ uninstall_no_agent_summary() {
     echo -e "${GREEN}  ✓ no-agent-summary: removed ${NAS_HOOK}${NC}"
 }
 
-# Git hooks first: a pre-engine post-merge links repo items into runtime roots on every pull,
-# so replacing it must not wait for a working python or a successful apply.
+# Git hooks first, so neither a missing python nor a failed engine run leaves the wrong post-merge:
+# apply replaces a pre-engine one, which links repo items into runtime roots on every pull, and
+# uninstall removes ours, whose sync would re-install everything on the next pull.
 if [ "$ACTION" = "apply" ] && [ "$DRY_RUN" = false ] && [ "$CONFIGURE_ONLY" = false ]; then
     install_git_hooks
+elif [ "$ACTION" = "uninstall" ]; then
+    uninstall_git_hooks
 fi
 
 check_python
