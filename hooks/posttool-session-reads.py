@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.1.2
+# hook-version: 2.1.3
 """
 PostToolUse Hook: Session Read Tracker
 
@@ -188,7 +188,7 @@ def main() -> None:
         if not new_paths:
             return
 
-        session_id = event.get("session_id") or get_session_id()
+        session_id = get_session_id(event)
         now = datetime.now(timezone.utc)
         cutoff = now - timedelta(days=RETENTION_DAYS)
 
