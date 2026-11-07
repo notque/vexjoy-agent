@@ -22,7 +22,8 @@ Consolidates 5 PreToolUse gate hooks into a single entry point:
 
 Attribution blocking removed: use settings.json {"attribution": {"commit": "", "pr": ""}} instead.
 Each check preserves its original stderr prefix and bypass mechanism.
-Exit 0 always. Blocks emit JSON permissionDecision:deny to stdout. Entire main() wrapped in try/except to fail OPEN.
+Exit 0 always. Blocks emit JSON permissionDecision:deny to stdout. Entire main() wrapped in try/except to fail OPEN;
+a crash is recorded with hook_error() so it shows in hook-errors.jsonl.
 
 Creation-gate allowlist: see _CREATION_PATH_ALLOWLIST. Path shapes produced
 by named non-skill-creator skills (e.g. writing → skills/voice-*/SKILL.md)
@@ -60,7 +61,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import record_governance
+from hook_utils import hook_error, record_governance
 from stdin_timeout import read_stdin
 
 # Module-level state set by main() so _block() can enrich governance events.
@@ -3692,7 +3693,9 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let sys.exit(0) propagate normally
     except Exception as e:
-        # Fail OPEN — a crashed hook must never block tools.
+        # Fail OPEN — a crashed hook must never block tools. Record the crash so
+        # it shows in hook-errors.jsonl instead of only in unseen stderr.
         print(f"[unified-gate] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
+        hook_error("pretool-unified-gate", e)
     finally:
         sys.exit(0)
