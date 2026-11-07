@@ -377,6 +377,10 @@ if [ "$DRY_RUN" = true ]; then
     exit $?
 fi
 
+# Git hooks before apply: a pre-engine post-merge links repo items into runtime roots on
+# every pull, so replacing it must not wait for apply to succeed.
+install_git_hooks
+
 echo -e "${YELLOW}vexinstall apply ${args[*]}${NC}"
 rc=0
 vexinstall apply "${args[@]}" || rc=$?
@@ -388,7 +392,6 @@ fi
 if [ "$TAKEOVER" = true ]; then
     vexinstall prune --unowned --confirm --target "$TARGET" || true
 fi
-install_git_hooks
 install_deps
 install_no_agent_summary
 harden_permissions

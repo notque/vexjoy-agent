@@ -303,7 +303,7 @@ def _legacy_hook_fix(root: Path, hooks: Path, text: str) -> str:
     if in_dot_git and INSTALL_HOOK_MARKER in text:
         return (
             f"{what}; run ./install.sh from the main checkout (it replaces a hook marked"
-            f" '{INSTALL_HOOK_MARKER}' once apply succeeds) or {body}"
+            f" '{INSTALL_HOOK_MARKER}', even when apply fails) or {body}"
         )
     return (
         f"{what}; {body} (./install.sh replaces only .git/hooks/post-merge in the main checkout,"

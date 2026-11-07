@@ -102,6 +102,43 @@ def test_post_merge_hook_syncs_and_never_links():
     assert "sync-to-user-claude.py" not in body and "rollout" not in body, "no legacy path remains"
 
 
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_git_hooks_install_even_when_apply_fails(tmp_path):
+    """A failed apply must not leave a pre-engine post-merge running on every pull.
+
+    No real python runs: VEXJOY_PYTHON is a stub that passes install.sh's
+    version probe and fails ``-m vexinstall apply``.
+    """
+    repo = tmp_path / "repo"
+    hooks = repo / ".git" / "hooks"
+    hooks.mkdir(parents=True)
+    script = repo / "install.sh"
+    script.write_text(INSTALL_SH.read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
+    legacy = hooks / "post-merge"
+    legacy.write_text(
+        "#!/usr/bin/env bash\n# Written by vexjoy-agent install.sh — auto-syncs new items after git pull.\n"
+        'for item in "$REPO_DIR"/skills/*; do ln -s "$item" "$HOME/.claude/skills/"; done\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    legacy.chmod(0o755)
+    stub = tmp_path / "python3"
+    stub.write_text('#!/bin/sh\n[ "$1" = -c ] && exit 0\nexit 1\n', encoding="utf-8", newline="\n")
+    stub.chmod(0o755)
+    (tmp_path / "home").mkdir()
+    env = {
+        "HOME": str(tmp_path / "home"),
+        "PATH": "/usr/bin:/bin",
+        "VEXJOY_PYTHON": stub.as_posix(),
+        "VEXJOY_NO_DEPS": "1",
+        "TERM": "dumb",
+    }
+    r = subprocess.run(["bash", script.as_posix()], capture_output=True, text=True, env=env, timeout=60)
+    assert r.returncode == 1 and "vexinstall apply failed" in r.stdout, r.stdout + r.stderr
+    assert legacy.read_text(encoding="utf-8") == _extract_post_merge_hook() + "\n"
+    assert (hooks / "pre-commit").is_file()
+
+
 def _post_merge_world(tmp_path: Path, *, fail: bool = False) -> tuple[Path, Path]:
     """Fake checkout with a stub vexinstall package that logs its argv."""
     repo = tmp_path / "repo"
