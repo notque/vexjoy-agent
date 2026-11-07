@@ -158,7 +158,7 @@ CRITICAL (must fix):
 
 IMPORTANT (should fix):
   3. agents/hook-development-engineer.md — Document Notification event type [inject-pattern, ~15min]
-  4. skills/engineering/go-patterns/SKILL.md — Apply the new pattern from the release notes [inject-pattern, ~10min]
+  4. skills/programming/programming/SKILL.md — Apply the new pattern from the release notes [inject-pattern, ~10min]
 
 MINOR (nice to have):
   5. agents/skill-creator.md — Add new frontmatter field docs [upgrade, ~5min]

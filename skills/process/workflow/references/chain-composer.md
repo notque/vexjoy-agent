@@ -47,13 +47,13 @@ This skill composes valid pipeline chains for each subdomain in a Component Mani
 - The agent decision (new_agent or reuse_agent)
 - Per-subdomain metadata: references_needed, scripts_needed, routing_triggers
 
-**Step 2**: Load `skills/workflow/references/pipeline-scaffolder/references/step-menu.md`. This file contains:
+**Step 2**: Load `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md`. This file contains:
 - Step families with output schemas and consumption rules
 - The type compatibility matrix
 - Composition rules (structural, profile-aware, optimization, delegation, type)
 - Operator profile definitions and chain examples
 
-**Step 3**: Load `skills/workflow/references/chain-composer/references/canonical-chains.md`. This contains the 8 canonical chain templates per task type, including common variants.
+**Step 3**: Load `skills/process/workflow/references/chain-composer/references/canonical-chains.md`. This contains the 8 canonical chain templates per task type, including common variants.
 
 **Step 4**: Identify the operator profile from the Component Manifest. Valid profiles: `personal`, `work`, `ci`, `production`.
 
@@ -233,7 +233,7 @@ rm -f /tmp/pipeline-{run-id}/chain-*.json
 
 **Why the Pipeline Spec is JSON, not markdown**: *Constraint: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`.* The human-readable summary is a companion, not a replacement. *Constraint: Produce JSON rather than markdown. The scaffolder consumes JSON, parses field names, iterates subdomain arrays, and extracts step objects programmatically.*
 
-**Step 1**: Load `skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
+**Step 1**: Load `skills/process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
 
 **Step 1a**: Compute the ADR hash for integrity binding:
 ```bash

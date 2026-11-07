@@ -8,7 +8,7 @@ Supports two optimization scopes:
 Pattern: uses `claude -p` so generation runs through Claude Code directly.
 
 Usage:
-    python3 skills/meta/agent-comparison/scripts/generate_variant.py \
+    python3 skills/meta/toolkit/scripts/agent-comparison/generate_variant.py \
         --target agents/golang-general-engineer.md \
         --goal "improve error handling instructions" \
         --current-content "..." \

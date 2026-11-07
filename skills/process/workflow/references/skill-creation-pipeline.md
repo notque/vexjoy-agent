@@ -213,7 +213,7 @@ or user-confirmed). Proceed to Phase 3.
 **Step 1**: Read the saved design brief from `skills/{name}/design-brief.md`.
 
 **Step 2**: Generate the SKILL.md following the structural patterns from
-the agent template (`skills/meta/skill-creator/references/agent-template.md`). Include these sections in this order:
+the agent template (`skills/meta/toolkit/references/skill-creator/agent-template.md`). Include these sections in this order:
 
 1. **Frontmatter** with `name`, `description`, `version`, `user-invocable`,
    `agent`, `allowed-tools` (required fields)

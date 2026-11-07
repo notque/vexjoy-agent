@@ -286,6 +286,6 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 - `references/evolution-history.md` -- Shipped proposal ledger, shelved conditions, rejected proposals, cycle summaries
 - `skills/meta/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation
 - `skills/analysis/assessment/SKILL.md` -- Multi-Persona Critique mode (inline fallback in references)
-- `skills/meta/skill-creator/SKILL.md` -- Skill creation methodology
-- `skills/meta/agent-comparison/SKILL.md` -- A/B testing methodology
+- `skills/meta/toolkit/references/skill-creator.md` -- Skill creation methodology
+- `skills/meta/toolkit/references/agent-comparison.md` -- A/B testing methodology
 - `skills/infrastructure/deploy/references/headless-cron-creator.md` -- Cron job creation patterns

@@ -428,4 +428,4 @@ print(f'Range: {estimate * low_mult:.0f}h - {estimate * high_mult:.0f}h')
 
 - `roi-frameworks.md` — T-shirt sizing, basic three-point estimation, story points, and ROI calculation
 - `feasibility-scoring.md` — confidence-adjusted feasibility assessment using estimation data
-- `skills/strategic-decision/references/risk-assessment.md` — probability-weighted outcomes when estimate uncertainty is high
+- `skills/business/business-ops/references/risk-assessment.md` — probability-weighted outcomes when estimate uncertainty is high

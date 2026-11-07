@@ -405,4 +405,4 @@ print(f'Shadow failures in log: {len(lines)}')
 
 - `tco-framework.md` — TCO calculation that includes migration cost as a line item
 - `vendor-evaluation.md` — data portability and export capability checklist
-- `skills/project-evaluation/references/feasibility-scoring.md` — technical feasibility assessment for migration complexity
+- `skills/business/business-ops/references/feasibility-scoring.md` — technical feasibility assessment for migration complexity

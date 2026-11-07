@@ -258,5 +258,5 @@ Converted to hours: ___ points × ___ hours/point = ___ hours
 ## See Also
 
 - `feasibility-scoring.md` — feasibility scoring models and go/no-go decision framework
-- `skills/build-vs-buy/references/tco-framework.md` — TCO analysis for technology procurement decisions
-- `skills/strategic-decision/references/decision-matrices.md` — decision matrices for comparing projects
+- `skills/business/business-ops/references/tco-framework.md` — TCO analysis for technology procurement decisions
+- `skills/business/business-ops/references/decision-matrices.md` — decision matrices for comparing projects

@@ -47,7 +47,7 @@ multi-component changes driven by external events.
 # Common target patterns:
 agents/golang-general-engineer.md
 agents/python-general-engineer.md
-skills/engineering/go-patterns/SKILL.md
+skills/programming/programming/SKILL.md
 ```
 
 If the user names an agent without a path, resolve it:
@@ -97,7 +97,7 @@ Retro candidates: [N found | none]
 **Step 1**: Compare target against the agent template structure. Read the template:
 ```bash
 # Read the agent template
-cat skills/meta/skill-creator/references/agent-template.md | head -50
+cat skills/meta/toolkit/references/skill-creator/agent-template.md | head -50
 ```
 
 Check for required sections. For agents:
@@ -298,7 +298,7 @@ Cause: The agent has carried no routed dispatches, or telemetry is not populated
 Solution: Proceed on the evaluation baseline alone and note the gap in the diff report. An agent with zero routes over a long window is a retirement candidate, not just an upgrade candidate.
 
 ### Error: "Agent template not found in repository"
-Cause: Template file not at expected path (`skills/meta/skill-creator/references/agent-template.md`).
+Cause: Template file not at expected path (`skills/meta/toolkit/references/skill-creator/agent-template.md`).
 Solution: Use the highest-scoring agent (from recent agent-evaluation runs or MEMORY.md) as the de facto template for structural comparison. Note the substitution in the diff report.
 
 ### Error: "Regression detected in Phase 5 (delta is negative)"
