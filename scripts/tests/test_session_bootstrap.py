@@ -18,9 +18,14 @@ REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts" / "session-bootstrap.sh"
 
 
-def _run(home: Path, project: Path | str) -> subprocess.CompletedProcess:
+def _run(home: Path, project: Path | str, *, remote: bool = True) -> subprocess.CompletedProcess:
     env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": str(home), "CLAUDE_PROJECT_DIR": str(project)}
+    if remote:
+        env["CLAUDE_CODE_REMOTE"] = "true"
     return subprocess.run(["sh", str(SCRIPT)], env=env, capture_output=True, text=True, timeout=60)
+
+
+INSTALLS_LAUNCHER = 'mkdir -p "$HOME/.claude/hooks/lib" && touch "$HOME/.claude/hooks/lib/pyrun.sh"\n'
 
 
 def _fake_repo(tmp_path: Path, body: str) -> Path:
@@ -30,36 +35,51 @@ def _fake_repo(tmp_path: Path, body: str) -> Path:
     return repo
 
 
-def test_installed_home_is_a_silent_no_op(tmp_path: Path) -> None:
+def _home(tmp_path: Path) -> Path:
     home = tmp_path / "home"
+    home.mkdir()
+    return home
+
+
+def test_installed_home_is_a_silent_no_op(tmp_path: Path) -> None:
+    home = _home(tmp_path)
     (home / ".claude" / "hooks" / "lib").mkdir(parents=True)
     (home / ".claude" / "hooks" / "lib" / "pyrun.sh").write_text("")
-    repo = _fake_repo(tmp_path, 'touch "$HOME/ran"\n')
-    proc = _run(home, repo)
+    proc = _run(home, _fake_repo(tmp_path, 'touch "$HOME/ran"\n'))
     assert proc.returncode == 0 and proc.stdout == "" and not (home / "ran").exists()
 
 
-def test_missing_launcher_runs_the_repo_installer(tmp_path: Path) -> None:
-    home = tmp_path / "home"
-    home.mkdir()
-    repo = _fake_repo(tmp_path, 'mkdir -p "$HOME/.claude/hooks/lib" && touch "$HOME/.claude/hooks/lib/pyrun.sh"\n')
-    proc = _run(home, repo)
-    assert proc.returncode == 0
+def test_cloud_session_without_launcher_runs_the_repo_installer(tmp_path: Path) -> None:
+    home = _home(tmp_path)
+    proc = _run(home, _fake_repo(tmp_path, INSTALLS_LAUNCHER))
+    assert proc.returncode == 0 and proc.stdout.startswith("[session-bootstrap] installed")
     assert (home / ".claude" / "hooks" / "lib" / "pyrun.sh").is_file()
-    assert proc.stdout.startswith("[session-bootstrap] installed")
+
+
+def test_local_home_with_an_earlier_install_is_repaired(tmp_path: Path) -> None:
+    home = _home(tmp_path)
+    (home / ".claude" / "vexjoy").mkdir(parents=True)
+    (home / ".claude" / "vexjoy" / "ledger.json").write_text("{}")
+    proc = _run(home, _fake_repo(tmp_path, INSTALLS_LAUNCHER), remote=False)
+    assert proc.returncode == 0 and proc.stdout.startswith("[session-bootstrap] installed")
+
+
+def test_local_home_never_installed_is_told_and_left_alone(tmp_path: Path) -> None:
+    home = _home(tmp_path)
+    proc = _run(home, _fake_repo(tmp_path, INSTALLS_LAUNCHER), remote=False)
+    assert proc.returncode == 0 and "run ./install.sh" in proc.stdout
+    assert not any(home.iterdir())
 
 
 def test_failed_install_reports_and_never_blocks(tmp_path: Path) -> None:
-    home = tmp_path / "home"
-    home.mkdir()
+    home = _home(tmp_path)
     proc = _run(home, _fake_repo(tmp_path, "echo boom >&2\nexit 1\n"))
     assert proc.returncode == 0 and "install failed" in proc.stdout
     assert "boom" in (home / ".claude" / "vexjoy" / "bootstrap.log").read_text()
 
 
 def test_no_checkout_exits_zero_and_writes_nothing(tmp_path: Path) -> None:
-    home = tmp_path / "home"
-    home.mkdir()
+    home = _home(tmp_path)
     proc = _run(home, tmp_path / "nowhere")
     assert proc.returncode == 0 and proc.stdout == "" and not any(home.iterdir())
 
