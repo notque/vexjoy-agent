@@ -225,4 +225,4 @@ Use these anchors to score confidence consistently:
 ## See Also
 
 - `roi-frameworks.md` — ROI calculation templates, effort estimation, risk-adjusted NPV
-- `skills/project-evaluation/SKILL.md` — full project evaluation workflow with RICE scoring
+- `skills/business/business-ops/SKILL.md` (EVALUATION mode) — full project evaluation workflow

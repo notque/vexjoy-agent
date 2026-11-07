@@ -54,8 +54,8 @@ Checks *framing*, not *topic* or *voice*. The writing workflow owns voice fideli
 Auto-detection (priority order):
 1. Explicit `--mode` flag → use that
 2. `agents/*.md` → **instruction**
-3. `skills/*/SKILL.md` → **instruction**
-4. `skills/workflow/references/*.md` → **instruction**
+3. `skills/**/SKILL.md` → **instruction**
+4. `skills/process/workflow/references/*.md` → **instruction**
 5. `CLAUDE.md` or `README.md` → **instruction**
 6. Everything else → **writing**
 

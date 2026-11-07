@@ -10,7 +10,7 @@ portrait-loop generate phase.
 Each test is a thin, fast, deterministic check that a specific Codex finding
 no longer reproduces. Run:
 
-    python3 skills/game/game-sprite-pipeline/scripts/test_pipeline_glue.py
+    python3 skills/game/game-dev/scripts/test_pipeline_glue.py
 """
 
 from __future__ import annotations

@@ -8,6 +8,8 @@ functions (which default-write into the repo) are never called.
 from __future__ import annotations
 
 import contextlib
+import copy
+import functools
 import importlib.util
 import io
 import os
@@ -17,12 +19,30 @@ from types import ModuleType
 
 from .adapters import ADAPTERS
 from .common import utc_iso
-from .fsops import Guard, atomic_write_json
+from .fsops import Guard, write_json_if_changed
 from .ledger import Ledger, LedgerEntry
 from .sources import skill_md_of
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 _MODULES: dict[str, ModuleType | None] = {}
+
+
+def _memoize_frontmatter(mod: ModuleType) -> None:
+    """Parse each distinct file text once per process: every target indexes the same skills and agents.
+
+    The generators' ``extract_frontmatter(content)`` depends on the text alone (YAML through the
+    pure-Python loader, about 5 ms a file), so six targets used to pay six times for one file.
+    Callers get a deep copy, so a caller that edits the parsed dict cannot change a later result.
+    """
+    parse = getattr(mod, "extract_frontmatter", None)
+    if not callable(parse):
+        return
+    cached = functools.lru_cache(maxsize=1024)(parse)
+
+    def extract_frontmatter(content: str) -> object:
+        return copy.deepcopy(cached(content))
+
+    mod.extract_frontmatter = extract_frontmatter
 
 
 def _load(filename: str) -> ModuleType | None:
@@ -36,6 +56,7 @@ def _load(filename: str) -> ModuleType | None:
             mod = importlib.util.module_from_spec(spec)
             with contextlib.redirect_stdout(io.StringIO()):
                 spec.loader.exec_module(mod)
+            _memoize_frontmatter(mod)
     except Exception:
         mod = None
     _MODULES[filename] = mod
@@ -137,12 +158,17 @@ def build(home: Path, target: str, ledger: Ledger) -> dict[str, dict]:
 
 
 def write(home: Path, target: str, ledger: Ledger, guard: Guard) -> list[str]:
-    """Write the installed indexes for *target*; returns written paths."""
+    """Write the installed indexes for *target*; returns their paths, current either way.
+
+    An index whose content is unchanged keeps its bytes and its old ``generated`` stamp (only the
+    mtime moves), so an idle sync rewrites nothing and the routing-manifest cache, keyed on these
+    bytes, stays valid.
+    """
     index_dir = ADAPTERS[target].index_dir(home)
     written = []
     for kind, data in build(home, target, ledger).items():
         path = index_dir / f"{kind}.json"
-        atomic_write_json(path, data, guard)
+        write_json_if_changed(path, data, guard, stamps=("generated",))
         written.append(str(path))
     return written
 

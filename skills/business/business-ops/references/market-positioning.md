@@ -250,5 +250,5 @@ curl -s "https://www.reddit.com/search.json?q={competitor-name}&sort=new&limit=1
 ## See Also
 
 - `competitive-mapping.md` — competitive landscape mapping, feature comparison matrices
-- `skills/strategic-decision/references/strategic-frameworks.md` — SWOT scoring and Porter's Five Forces
-- `skills/growth-strategy/references/audience-segmentation.md` — ICP scoring for segment selection
+- `skills/business/business-ops/references/strategic-frameworks.md` — SWOT scoring and Porter's Five Forces
+- `skills/business/business-ops/references/audience-segmentation.md` — ICP scoring for segment selection

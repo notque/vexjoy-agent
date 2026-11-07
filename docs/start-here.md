@@ -115,7 +115,7 @@ The installer registers its hooks in `~/.claude/settings.json`, so they run in e
 | `ci-merge-gate` | `gh pr merge` while CI checks fail or are pending | `CI_MERGE_GATE_BYPASS` |
 | `security-review-hook` | `git commit` when the staged changes have HIGH or CRITICAL findings | `VEXJOY_SECURITY_REVIEW_SKIP` |
 | `pretool-ruff-format-gate` | `git push` when changed Python files fail `ruff format`, in repos that enforce ruff format | `RUFF_FORMAT_GATE_BYPASS` |
-| `pretool-plan-gate` | Write and Edit under the project root's `agents/` or `skills/` until `task_plan.md` exists | `PLAN_GATE_BYPASS` |
+| `pretool-plan-gate` | Write and Edit under the project root's `agents/` or `skills/` until a `task_plan.md` modified in the last 24 hours exists there | `PLAN_GATE_BYPASS` |
 | `pretool-adr-creation-gate` | Writing a new `agents/<name>.md`, `skills/<name>/SKILL.md`, `pipelines/<name>/SKILL.md`, or top-level hook file when no ADR for it exists in `~/.vexjoy-agent/<repo>/adrs/` or the repo's `adr/` | `ADR_CREATION_GATE_BYPASS` |
 | `pretool-worktree-edit-guard` | An agent working in a worktree editing the main checkout | `WORKTREE_EDIT_GUARD_BYPASS` |
 | `pretool-private-name-leak-gate` | Commits, pushes, and PR text that name a private component; it does nothing without `~/private-skills` | `PRIVATE_NAME_GATE_BYPASS` |

@@ -73,18 +73,18 @@ Source: `hooks/operator-context-detector.py`.
 Meaning: The detected operator environment, emitted on two consecutive lines. The first line names the profile and its summary; the second names the detection trigger that picked it.
 
 Profiles:
-- `personal`: local dev, full autonomy
+- `personal`: local dev, autonomous for routine work, within branch safety and the CLAUDE.md approval rules
 - `work`: org repo, prefer explicit approval before destructive operations
 - `ci`: CI runner, non-interactive, no prompts
 - `production`: prod infrastructure, mandatory approval gates for all writes
 
-Action: Apply the profile's approval gates for the entire session. A `production` profile means stop and confirm before any write, deploy, or destructive operation. A `ci` profile means no interactive prompts. A `personal` profile means proceed without approval gates for routine operations.
+Action: Apply the profile's approval gates for the entire session. A `production` profile means stop and confirm before any write, deploy, or destructive operation. A `ci` profile means no interactive prompts. A `personal` profile means no extra approval steps for routine code and git work; actions CLAUDE.md reserves for owner approval still need it.
 
 ### `<afk-mode>` block
 
-Source: `hooks/afk-mode.py` (SessionStart; fires in SSH, tmux, screen, and headless sessions).
-Meaning: The user is not actively watching the terminal.
-Action: Work proactively. Complete multi-step tasks without confirmation prompts. Produce concise task-completion summaries when finishing long-running work. Do not ask "should I proceed" for routine next steps. Proceed and report.
+Source: `hooks/afk-mode.py` (SessionStart). In the default `always` mode (`CLAUDE_AFK_MODE`) it fires in every session; in `auto` mode only in SSH, tmux and screen sessions.
+Meaning: The configured AFK mode says to work as if the user may not be watching. Nothing checked whether anyone is watching; `auto` mode only saw an SSH, tmux or screen session.
+Action: Work proactively. Complete multi-step tasks without confirmation prompts. Produce concise task-completion summaries when finishing long-running work. Do not ask "should I proceed" for routine next steps. Actions that CLAUDE.md reserves for owner approval still need that approval.
 
 ### `[dream] {one-line summary}` (followed by multi-KB markdown payload)
 

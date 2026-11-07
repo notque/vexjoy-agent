@@ -200,11 +200,15 @@ def parse_allowlist(text: str) -> list[dict]:
             }
         )
 
-    seen: set[tuple[str, str]] = set()
+    # One hook may register under two matchers: the unified gate needs a native
+    # Bash entry and an apply_patch entry for its one Claude registration.
+    seen: set[tuple[str, str, str | None]] = set()
     for entry in entries:
-        key = (entry["event"], entry["filename"])
+        key = (entry["event"], entry["filename"], entry["matcher"])
         if key in seen:
-            raise ValueError(f"Duplicate hook registration: {entry['event']}:{entry['filename']}.")
+            raise ValueError(
+                f"Duplicate hook registration: {entry['event']}:{entry['filename']} (matcher={entry['matcher']})."
+            )
         seen.add(key)
 
     return entries

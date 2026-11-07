@@ -206,7 +206,7 @@ These patterns violate performance optimization principles. If encountered:
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -215,7 +215,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 | Performance vs feature trade-off | Business decision | "Feature X adds 50KB - acceptable trade-off?" |
 | Budget vs target conflict | User sets priorities | "Can't meet both <200KB budget and <2.5s LCP - which is priority?" |
 
-### Always Confirm First
+### Decide Explicitly First
 - Performance budget limits (business decision)
 - Acceptable trade-offs (features vs performance)
 - Target audience device/network profile

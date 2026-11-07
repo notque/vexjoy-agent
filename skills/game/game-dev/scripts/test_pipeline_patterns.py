@@ -2,7 +2,7 @@
 """Tests for pipeline patterns: deterministic idle, action coaching, padding gate, provenance.
 
 Run:
-    python3 -m pytest skills/game/game-sprite-pipeline/scripts/test_pipeline_patterns.py -x -q
+    python3 -m pytest skills/game/game-dev/scripts/test_pipeline_patterns.py -x -q
 """
 
 from __future__ import annotations

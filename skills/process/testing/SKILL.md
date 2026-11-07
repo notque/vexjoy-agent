@@ -120,7 +120,9 @@ internals.
 
 ### Phase 4: Commit
 
-Commit test and implementation as an atomic unit. Run the full suite first.
+Run the full suite first. Commit only when the user asked for commits: then commit test and
+implementation together as one unit, with a one-sentence lowercase message in the AGENTS.md
+writing style (what changed and why). Otherwise leave the change uncommitted and report it.
 
 ### TDD Error Recovery
 
@@ -185,7 +187,7 @@ breaks a previously-passing test, investigate before proceeding.
 
 ### Phase 4: VERIFY
 
-Run full suite. Verify flaky tests are now deterministic (run 3x). Confirm no
+Run full suite. Verify flaky tests are now deterministic (run 3x). Confirm
 no tests were accidentally removed or disabled. Report: bad patterns fixed,
 files modified, tests affected, suite status.
 
@@ -357,10 +359,12 @@ bare `vitest` enters watch mode.
 
 | Scope | Command |
 |---|---|
-| Full suite | `npx vitest run --reporter=verbose 2>&1` |
-| File or directory | `npx vitest run path/to/test.ts 2>&1` |
-| Test-name pattern | `npx vitest run -t "pattern" 2>&1` |
-| Coverage | `npx vitest run --coverage 2>&1` |
+| Full suite | `npx --no vitest run --reporter=verbose 2>&1` |
+| File or directory | `npx --no vitest run path/to/test.ts 2>&1` |
+| Test-name pattern | `npx --no vitest run -t "pattern" 2>&1` |
+| Coverage | `npx --no vitest run --coverage 2>&1` |
+
+`--no` makes npx fail instead of downloading Vitest when the project has none.
 
 Capture exit code and full output. Report pass/fail, scope, counts, duration.
 For failures: retain file, test name, assertion diff, relevant stack. Nonzero
@@ -370,7 +374,7 @@ exit is failure; partial output is not a passing run.
 
 | Problem | Fix |
 |---|---|
-| Vitest missing / no node_modules | `npm install` or `npm install -D vitest` |
+| Vitest missing / no node_modules | Report setup needed. `npm install` (declared deps) or `npm install -D vitest` (edits `package.json`) only when the user asks |
 | No test files found | Check naming (`*.test.ts`, `*.spec.ts`) and include/exclude globs |
 | Missing DOM environment | Check for `jsdom`/`happy-dom` in config; suggest devDependency |
 | Out of memory | Batch by directory, use `--pool=forks` or `--shard=1/N` |

@@ -24,7 +24,7 @@ produce either unauthorized bulk edits or subtly incorrect results that bypass d
 
 **Why wrong**: The user must control which upgrades happen. Requiring a second approval for an accepted plan also blocks requested work.
 
-Do instead: Follow `skills/workflow/references/system-upgrade.md` Phase 3. Present the ranked table, continue within existing authorization, and ask about uncovered changes. Honor interactive and plan-only requests.
+Do instead: Follow `skills/process/workflow/references/system-upgrade.md` Phase 3. Present the ranked table, continue within existing authorization, and ask about uncovered changes. Honor interactive and plan-only requests.
 
 ---
 

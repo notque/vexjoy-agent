@@ -106,9 +106,9 @@ The generation chain has 5 links. Each link is a component of the pipeline gener
 |------|-----------|-----------------|-----------------|
 | 1. Domain Research | `workflow` skill (research phase) | Subdomain discovery, task type classification | The domain research artifact from Phase 1 |
 | 2. Chain Composition | `workflow` skill (composition phase) | Step selection, step ordering, type compatibility | The Pipeline Spec JSON |
-| 3. Scaffolder Template | `generated-skill-template.md` | Phase implementation patterns, chain-to-phase mapping | `skills/workflow/references/generated-skill-template.md` |
-| 4. Architecture Rules | `architecture-rules.md` | Structural constraints on generated components | `skills/workflow/references/architecture-rules.md` |
-| 5. Step Menu | `step-menu.md` | Available step types, output schemas, type compatibility | `skills/workflow/references/step-menu.md` |
+| 3. Scaffolder Template | `generated-skill-template.md` | Phase implementation patterns, chain-to-phase mapping | `skills/process/workflow/references/pipeline-scaffolder/references/generated-skill-template.md` |
+| 4. Architecture Rules | `architecture-rules.md` | Structural constraints on generated components | `skills/process/workflow/references/pipeline-scaffolder/references/architecture-rules.md` |
+| 5. Step Menu | `step-menu.md` | Available step types, output schemas, type compatibility | `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md` |
 
 **For each failure**:
 
@@ -156,27 +156,27 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 **Fix Proposals by Classification**:
 
 **`research-miss`** -- Domain research failed to discover the right information.
-- Target: `skills/workflow/SKILL.md` (research phase)
+- Target: `skills/process/workflow/SKILL.md` (research phase)
 - Propose: Adding a new research agent aspect, modifying discovery prompts, or expanding the subdomain classification criteria
 - Evidence required: Show what the research missed and how it led to the downstream failure
 
 **`chain-error`** -- Chain composition selected wrong steps or wrong order.
-- Target: `skills/workflow/references/canonical-chains.md` (pattern library) or `skills/workflow/references/step-menu.md` (step definitions)
+- Target: `skills/process/workflow/references/chain-composer/references/canonical-chains.md` (pattern library) or `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md` (step definitions)
 - Propose: Adding a new canonical chain pattern, modifying step ordering rules, or adding a profile gate
 - Evidence required: Show the chain that was composed, the step that was wrong, and the correct alternative
 
 **`template-bug`** -- The generated-skill-template produced an incorrect phase implementation.
-- Target: `skills/workflow/references/generated-skill-template.md`
+- Target: `skills/process/workflow/references/pipeline-scaffolder/references/generated-skill-template.md`
 - Propose: Fixing the chain-to-phase mapping for the affected step family, correcting template variable substitution, or adding missing template sections
 - Evidence required: Show the template output vs. what it should have produced
 
 **`missing-rule`** -- Architecture rules lack coverage for this case.
-- Target: `skills/workflow/references/architecture-rules.md`
+- Target: `skills/process/workflow/references/pipeline-scaffolder/references/architecture-rules.md`
 - Propose: A new rule with full format: Rule N, BANNED/REQUIRED statement, evidence citation, test/enforcement guidance
 - Evidence required: The failure trace that proves the rule is necessary. Per the ADR: "Rules earn their place through data."
 
 **`missing-step`** -- The step menu lacks a step type that was needed.
-- Target: `skills/workflow/references/step-menu.md`
+- Target: `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md`
 - Propose: A new step entry with: name, output schema, consumes, parallel flag, when-to-use description
 - Evidence required: Show the gap in the chain that a new step type would fill, and why existing steps cannot cover it
 - NOTE: Step menu changes are always presented for review, never auto-applied. Step menu changes affect the type system of ALL pipeline composition. A bad step type is worse than a missing one.
@@ -413,4 +413,4 @@ Save the report to the pipeline run directory alongside the test runner output.
 
 - **Pipeline Orchestrator**: [agents/pipeline-orchestrator-engineer.md](../../agents/pipeline-orchestrator-engineer.md) -- The agent that invokes this skill as Phase 6
 - **Three-Layer Pattern ADR**: [adr/self-improving-pipeline-generator.md](../../adr/self-improving-pipeline-generator.md) -- Design rationale for Layer 1/2/3 discipline
-- **Workflow Skill**: [skills/workflow/SKILL.md](../SKILL.md) -- Consolidated workflow skill (replaces chain-composer, pipeline-scaffolder, pipeline-test-runner, domain-research)
+- **Workflow Skill**: [skills/process/workflow/SKILL.md](../SKILL.md) -- Consolidated workflow skill (replaces chain-composer, pipeline-scaffolder, pipeline-test-runner, domain-research)

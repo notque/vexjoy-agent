@@ -134,7 +134,7 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Installs into `~/.claude/`, and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, `~/.reasonix/`, `~/.gemini/` (Antigravity), and `~/.cline/` when that home directory exists. `install.sh` first creates the home of each runtime whose command is on PATH (not Cline's). `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the checkout re-syncs every runtime through the same engine, and so does the `post-merge` git hook after `git pull`. Symlinks (default in a git checkout) follow `git pull`; `--copy` gives a stable snapshot.
+Installs into `~/.claude/`, and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, `~/.reasonix/`, `~/.gemini/` (Antigravity), and `~/.cline/` when that home directory exists. `install.sh` first creates the home of each runtime whose command is on PATH (not Cline's). `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the checkout re-syncs every runtime through the same engine, and so does the `post-merge` git hook after `git pull`. Symlinks (default in a git checkout on Linux and macOS) follow `git pull`; `--copy` gives a stable snapshot and is the default on Windows.
 
 The install also changes your machine outside those directories, and its hooks then run in every repo you open with Claude Code:
 
@@ -148,9 +148,9 @@ Every change, its opt-out, and how to turn off a gate: [What the installer chang
 |---|---|
 | `--dry-run` | Print the plan; write nothing |
 | `--target <t>` | Only `claude`, `codex`, `factory`, `hermes`, `reasonix`, `antigravity`, `cline`, or `all` |
-| `--copy` / `--symlink` | Copy entries for a stable snapshot / link them to this checkout (the default in a main git checkout) |
+| `--copy` / `--symlink` | Copy entries for a stable snapshot / link them to this checkout (the default in a main git checkout on Linux and macOS; copy is the default on Windows) |
 | `--no-takeover` | Leave old unowned copies in place (default: move them to trash and replace) |
-| `--uninstall` / `--rollback` | Remove owned entries / restore the newest trash and settings backup |
+| `--uninstall` / `--rollback` | Remove owned entries and, with no `--target` or `--target claude`, rename install.sh's post-merge hook so git skips it / undo the last install or uninstall run (its trash and settings backup) |
 
 Layout and safety rules: [docs/installer-layout.md](docs/installer-layout.md).
 

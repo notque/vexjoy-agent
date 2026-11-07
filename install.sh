@@ -6,11 +6,13 @@
 # anything it removes to ~/.claude/vexjoy/trash/. Layout: docs/installer-layout.md.
 #
 # Usage:
-#   ./install.sh                     # apply (symlink mode for a main checkout, else copy)
+#   ./install.sh                     # apply (symlink mode for a main checkout off Windows, else copy)
 #   ./install.sh --symlink|--copy    # choose the mode (recorded in the ledger)
 #   ./install.sh --dry-run           # show the plan; write nothing
-#   ./install.sh --uninstall         # remove every engine-owned entry (to trash)
-#   ./install.sh --rollback          # restore the newest settings backup and trash session
+#   ./install.sh --uninstall         # remove every engine-owned entry (to trash); with no --target
+#                                    # or --target claude, also rename install.sh's post-merge hook
+#                                    # so git skips it
+#   ./install.sh --rollback          # undo the last run: restore what it trashed and its settings backup
 #   ./install.sh --migrate-overlays  # write ~/.claude/vexjoy/overlays.json, then exit
 #                                    # (apply runs it when overlays.json is missing and
 #                                    # ~/private-skills or ~/pgh/private-skills exists)
@@ -30,6 +32,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
 STATE_DIR="${CLAUDE_DIR}/vexjoy"
 RUNTIMES=(codex factory hermes reasonix)
+# One id per run: the engine groups this run's apply and prune (or uninstall) into the
+# rollback point that --rollback restores.
+RUN_ID="install-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 
 MODE=""
 ACTION="apply"
@@ -44,11 +49,15 @@ usage() {
     cat << 'EOF'
 Usage: ./install.sh [options]
 
-  --symlink            Link entries to this checkout (default for a main git checkout)
-  --copy               Copy entries (default for worktrees and /tmp checkouts)
+  --symlink            Link entries to this checkout (default for a main git checkout off Windows)
+  --copy               Copy entries (default on Windows and for worktrees and /tmp checkouts)
   --dry-run            Print the vexinstall plan; write nothing
-  --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
-  --rollback           Restore the newest settings.json backup and the newest trash session
+  --uninstall          Move every engine-owned entry to trash; remove owned settings hooks.
+                       With no --target or --target claude, also rename install.sh's post-merge
+                       git hook so git skips it (it reinstalls on pull). The pre-commit
+                       private-leak gate stays.
+  --rollback           Undo the last install or uninstall run: restore what it moved to trash
+                       and the settings.json it replaced (later syncs are left alone)
   --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
   --no-takeover        Leave unowned entries at desired paths in place (default: trash and replace)
   --allow-mass-remove  Allow a plan that removes more than 10 entries or 20% of a target
@@ -119,34 +128,21 @@ vexinstall() {
         --source-root "$SCRIPT_DIR"
 }
 
-# newest_ts GLOB PREFIX SUFFIX: newest engine timestamp among matching names (empty if none).
-newest_ts() {
-    local dir=$1 prefix=$2 suffix=$3 name best=""
-    [ -d "$dir" ] || return 0
-    for name in $(ls -1 "$dir" 2>/dev/null); do
-        name=${name#"$prefix"}
-        name=${name%"$suffix"}
-        [[ $name =~ ^[0-9]{8}T[0-9]{12}Z$ ]] || continue
-        [[ $name > $best ]] && best=$name
-    done
-    printf '%s' "$best"
-}
-
+# The engine restores the rollback point that this script's last apply and prune (or uninstall)
+# recorded: every trash session of that run and the settings.json backup it took. The newest
+# trash session and backup on disk are often a later sync's, so they are never picked by date.
+# Undoing an uninstall also writes back the post-merge hook that the uninstall removed. The engine
+# prints its "[rollback] run <id> (...)" line only for a run it has rolled back and marked done, so
+# the hook comes back on exit 1 too (a trash session or backup was gone): no later --rollback could.
 rollback() {
-    local ts rc=0
-    ts=$(newest_ts "${STATE_DIR}/backups" "settings." ".json")
-    if [ -n "$ts" ]; then
-        echo -e "${YELLOW}Restoring settings.json backup ${ts}...${NC}"
-        [ "$DRY_RUN" = true ] || vexinstall restore-settings "$ts" || rc=$?
-    else
-        echo -e "${YELLOW}No settings backup in ${STATE_DIR}/backups${NC}"
-    fi
-    ts=$(newest_ts "${STATE_DIR}/trash" "" "")
-    if [ -n "$ts" ]; then
-        echo -e "${YELLOW}Restoring trash session ${ts}...${NC}"
-        [ "$DRY_RUN" = true ] || vexinstall restore-trash "$ts" || rc=$?
-    else
-        echo -e "${YELLOW}No trash session in ${STATE_DIR}/trash${NC}"
+    local -a args=(rollback)
+    local out rc=0
+    [ "$DRY_RUN" = true ] && args+=(--dry-run)
+    out=$(vexinstall "${args[@]}") || rc=$?
+    [ -z "$out" ] || printf '%s\n' "$out"
+    # Only the first line: a later "skipped: <path>" line may hold any text.
+    if [ "$DRY_RUN" = false ] && [[ ${out%%$'\n'*} == "[rollback] run "*" (uninstall)" ]]; then
+        install_git_hooks
     fi
     return "$rc"
 }
@@ -225,6 +221,60 @@ exit 0
 HOOK
 }
 
+# main_hooks_dir: the dir install.sh writes hooks to, <main checkout>/.git/hooks. From a linked worktree
+# it asks git for the main .git, since git runs the main checkout's hooks for merges in every worktree.
+# Prints nothing without .git or for a submodule (install.sh never writes hooks there). Fails when
+# .git is a file git cannot read.
+main_hooks_dir() {
+    local common
+    if [ -d "${SCRIPT_DIR}/.git" ]; then
+        printf '%s\n' "${SCRIPT_DIR}/.git/hooks"
+    elif [ -f "${SCRIPT_DIR}/.git" ]; then
+        common=$(git -C "$SCRIPT_DIR" rev-parse --git-common-dir 2> /dev/null) && [ -n "$common" ] \
+            && common=$(cd "$SCRIPT_DIR" && cd "$common" && pwd) || return 1
+        [ "${common##*/}" != ".git" ] || printf '%s\n' "${common}/hooks"
+    fi
+}
+
+# Uninstall without --target (or with --target claude) renames our post-merge to
+# post-merge.vexjoy-removed.<UTC time>, which git never runs: its `sync --target all` (or a pre-engine
+# hook's `ln -s` loop) would re-install everything on the next pull. Another --target uninstall keeps it:
+# claude's SessionStart sync re-installs that target either way, and the hook keeps claude current.
+# The pre-commit private-leak gate stays: it installs nothing.
+# When a marked post-merge may still run, GIT_HOOK_PROBLEM says why, and the uninstall exits 1.
+uninstall_git_hooks() {
+    local dir name hook ts
+    if [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ]; then
+        echo -e "${YELLOW}  Git hooks skipped (VEXJOY_NO_GIT_HOOKS=1)${NC}"
+        return 0
+    fi
+    if ! dir=$(main_hooks_dir); then
+        GIT_HOOK_PROBLEM="Git hooks not checked: git cannot read ${SCRIPT_DIR}/.git; run ./install.sh --uninstall in the main checkout too"
+        echo -e "${YELLOW}  ⚠ ${GIT_HOOK_PROBLEM}${NC}"
+        return 0
+    fi
+    ts=$(date -u +%Y%m%dT%H%M%SZ)
+    [ -n "$dir" ] || return 0
+    for name in post-merge pre-commit; do
+        hook="${dir}/${name}"
+        [ -e "$hook" ] || continue
+        if ! grep -q "Written by vexjoy-agent" "$hook" 2> /dev/null; then
+            echo -e "  Keeping ${name} hook (not written by vexjoy-agent): ${hook}"
+        elif [ "$name" = pre-commit ]; then
+            echo -e "  Keeping pre-commit hook (the private-leak gate installs nothing; delete it to stop the check): ${hook}"
+        elif [ "$TARGET" != all ] && [ "$TARGET" != claude ]; then
+            echo -e "${YELLOW}  Keeping post-merge hook (a --target uninstall keeps it; its sync re-installs every present target on each pull): ${hook}${NC}"
+        elif [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would rename post-merge hook to ${hook}.vexjoy-removed.${ts}${NC}"
+        elif mv -f "$hook" "${hook}.vexjoy-removed.${ts}"; then
+            echo -e "${GREEN}  ✓ Renamed post-merge hook to ${hook}.vexjoy-removed.${ts}; git does not run it${NC}"
+        else
+            GIT_HOOK_PROBLEM="${hook} is still in place: delete it, or the next pull re-installs everything"
+            echo -e "${YELLOW}  ⚠ Could not rename post-merge hook: ${hook}${NC}"
+        fi
+    done
+}
+
 # pip_requirements PYTHON: install requirements.txt into PYTHON; --break-system-packages when pip knows
 # it, then --user as a fallback. Prints the manual command on failure.
 pip_requirements() {
@@ -278,8 +328,8 @@ harden_permissions() {
 }
 
 # no-agent-summary: Bun preload that suppresses Claude Code's agent_summary side-query.
-# Deploys the JS file to a space-free path (BUN_OPTIONS splits on whitespace) and adds
-# an idempotent managed block to ~/.bashrc exporting BUN_OPTIONS.
+# Deploys the JS file to a space-free path (BUN_OPTIONS splits on whitespace) and keeps
+# one managed block in ~/.bashrc exporting BUN_OPTIONS.
 # MIT: Flamerix AI (upstream), declanbx (fork). Vendored in hooks/no-agent-summary/.
 NAS_DEST="$HOME/.local/share/no-agent-summary"
 NAS_HOOK="$NAS_DEST/no-agent-summary.js"
@@ -287,21 +337,8 @@ NAS_BEGIN="# >>> no-agent-summary >>>"
 NAS_END="# <<< no-agent-summary <<<"
 NAS_RC="$HOME/.bashrc"
 
-install_no_agent_summary() {
-    local src="$SCRIPT_DIR/hooks/no-agent-summary/no-agent-summary.js"
-    if [ ! -f "$src" ]; then
-        echo -e "${YELLOW}  no-agent-summary: source not found at ${src}; skipping${NC}"
-        return 0
-    fi
-    mkdir -p "$NAS_DEST"
-    cp "$src" "$NAS_HOOK"
-    cp "$SCRIPT_DIR/hooks/no-agent-summary/status.sh" "$NAS_DEST/status.sh"
-
-    # Idempotent bashrc block: strip any existing block, then append.
-    if [ -f "$NAS_RC" ]; then
-        sed -i "/^${NAS_BEGIN}\$/,/^${NAS_END}\$/d" "$NAS_RC"
-    fi
-    cat >> "$NAS_RC" <<NASEOF
+nas_block() {
+    cat <<NASEOF
 ${NAS_BEGIN}
 # Bun preload that stops Claude Code's agent_summary side-query (status-line labels
 # for background agents, each a full-transcript model call every 30 s).
@@ -312,24 +349,44 @@ case " \${BUN_OPTIONS-} " in
 esac
 ${NAS_END}
 NASEOF
-    echo -e "${GREEN}  ✓ no-agent-summary: deployed ${NAS_HOOK} and block in ${NAS_RC}${NC}"
+}
+
+# nas_shellrc set|remove: scripts/vexinstall/shellrc.py edits only the block, in place, writes
+# nothing when it is current, keeps a symlinked rc a link, backs the old file up first, and leaves
+# the file alone when a marker line is missing.
+nas_shellrc() {
+    PYTHONPATH="${SCRIPT_DIR}/scripts${PYTHONPATH:+:$PYTHONPATH}" "$PYTHON_CMD" -m vexinstall.shellrc "$1" \
+        "$NAS_RC" "$NAS_BEGIN" "$NAS_END" --backup-dir "${STATE_DIR}/backups" --label no-agent-summary
+}
+
+install_no_agent_summary() {
+    local src="$SCRIPT_DIR/hooks/no-agent-summary/no-agent-summary.js"
+    if [ ! -f "$src" ]; then
+        echo -e "${YELLOW}  no-agent-summary: source not found at ${src}; skipping${NC}"
+        return 0
+    fi
+    mkdir -p "$NAS_DEST"
+    cp "$src" "$NAS_HOOK"
+    cp "$SCRIPT_DIR/hooks/no-agent-summary/status.sh" "$NAS_DEST/status.sh"
+    echo -e "${GREEN}  ✓ no-agent-summary: deployed ${NAS_HOOK}${NC}"
+    nas_block | nas_shellrc set || echo -e "${YELLOW}  ⚠ no-agent-summary: ${NAS_RC} not updated (see above)${NC}"
 }
 
 uninstall_no_agent_summary() {
-    # Remove the bashrc block.
-    if [ -f "$NAS_RC" ]; then
-        sed -i "/^${NAS_BEGIN}\$/,/^${NAS_END}\$/d" "$NAS_RC"
-        echo -e "${GREEN}  ✓ no-agent-summary: removed block from ${NAS_RC}${NC}"
-    fi
+    nas_shellrc remove || echo -e "${YELLOW}  ⚠ no-agent-summary: ${NAS_RC} not updated (see above)${NC}"
     # Remove the deployed JS file and status script.
     rm -f "$NAS_HOOK" "$NAS_DEST/status.sh"
     echo -e "${GREEN}  ✓ no-agent-summary: removed ${NAS_HOOK}${NC}"
 }
 
-# Git hooks first: a pre-engine post-merge links repo items into runtime roots on every pull,
-# so replacing it must not wait for a working python or a successful apply.
+# Git hooks first, so neither a missing python nor a failed engine run leaves the wrong post-merge:
+# apply replaces a pre-engine one, which links repo items into runtime roots on every pull, and
+# uninstall renames ours, since its sync would re-install everything on the next pull.
+GIT_HOOK_PROBLEM=""
 if [ "$ACTION" = "apply" ] && [ "$DRY_RUN" = false ] && [ "$CONFIGURE_ONLY" = false ]; then
     install_git_hooks
+elif [ "$ACTION" = "uninstall" ]; then
+    uninstall_git_hooks
 fi
 
 check_python
@@ -342,11 +399,15 @@ if [ "$ACTION" = "migrate-overlays" ]; then
 fi
 
 if [ "$ACTION" = "uninstall" ]; then
-    args=(uninstall --target "$TARGET")
+    args=(uninstall --target "$TARGET" --run-id "$RUN_ID")
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
     [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
-    exit $?
+    if [ -n "$GIT_HOOK_PROBLEM" ]; then
+        echo -e "${RED}⚠ ${GIT_HOOK_PROBLEM}${NC}"
+        exit 1
+    fi
+    exit 0
 fi
 
 if [ "$ACTION" = "rollback" ]; then
@@ -391,14 +452,14 @@ fi
 
 echo -e "${YELLOW}vexinstall apply ${args[*]}${NC}"
 rc=0
-vexinstall apply "${args[@]}" || rc=$?
+vexinstall apply "${args[@]}" --run-id "$RUN_ID" || rc=$?
 if [ "$rc" -ne 0 ]; then
     echo -e "${RED}vexinstall apply failed (exit ${rc}). Nothing was forced. Review:${NC}"
     echo -e "${RED}  PYTHONPATH=${SCRIPT_DIR}/scripts python3 -m vexinstall plan --target ${TARGET} --takeover${NC}"
     exit "$rc"
 fi
 if [ "$TAKEOVER" = true ]; then
-    vexinstall prune --unowned --confirm --target "$TARGET" || true
+    vexinstall prune --unowned --confirm --target "$TARGET" --run-id "$RUN_ID" || true
 fi
 install_deps
 install_no_agent_summary

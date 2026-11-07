@@ -32,7 +32,7 @@ Force-route entries bind when their domain matches the request's meaning. If PR 
 
 A dispatch should preserve both the selected route and the evidence used to select it. That distinction powers later evaluation: a route can be syntactically valid yet semantically wrong, and a successful task does not prove every stacked enhancement helped. The feedback loop therefore records the agent, primary skill, enhancements, and eventual outcome separately. Health-aware reranking can adjust future choices without rewriting the routing taxonomy after one anecdote.
 
-The former `skill-evaluator` and `auto-plan-detector` hooks are disabled or removed. Their routing and planning responsibilities now live in `/do`, whose plan rule is an instruction. The one hook check is narrower: `pretool-plan-gate` blocks Write and Edit under the project root's `agents/` and `skills/` directories until `task_plan.md` exists there.
+The former `skill-evaluator` and `auto-plan-detector` hooks are disabled or removed. Their routing and planning responsibilities now live in `/do`, whose plan rule is an instruction. The one hook check is narrower: `pretool-plan-gate` blocks Write and Edit under the project root's `agents/` and `skills/` directories until a `task_plan.md` modified in the last 24 hours exists there.
 
 ## Agent Architecture
 

@@ -282,5 +282,5 @@ sha256:{digest}
 ## See Also
 
 - `consultation-preferred-patterns.md` — ADR quality failure modes that reviewers should catch
-- `skills/review/parallel-code-review/SKILL.md` — Fan-out/fan-in pattern this skill adapts
+- `skills/review/review/SKILL.md` (Parallel mode) — Fan-out/fan-in pattern this skill adapts
 - `agents/reviewer-perspectives.md` — Perspectives agent (contrarian, user-advocate, meta-process lenses)

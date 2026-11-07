@@ -284,13 +284,35 @@ def get_project_dir() -> Path:
     return Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
 
 
-def get_session_id() -> str:
-    """Get session ID from environment or generate a unique fallback.
+def _usable_session_id(value: object) -> Optional[str]:
+    """Return *value* when it can safely name a per-session file, else None.
 
-    Falls back to PPID + timestamp hash if CLAUDE_SESSION_ID is not set.
-    This handles container scenarios where PPID might be 1 (init).
+    Session ids end up in file names (``/tmp/claude-<prefix>-<id>.state``), so
+    an id with a path separator, a control character, or the name ``.``/``..``
+    is not used.
     """
-    session_id = os.environ.get("CLAUDE_SESSION_ID")
+    if not isinstance(value, str) or not value or len(value) > 128 or value in (".", ".."):
+        return None
+    if "/" in value or "\\" in value or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        return None
+    return value
+
+
+def get_session_id(event: Optional[dict] = None) -> str:
+    """Return the session id for per-session state.
+
+    Order: the ``session_id`` in the hook input *event* (Claude Code sends it
+    on every event and never sets ``CLAUDE_SESSION_ID``), then the
+    ``CLAUDE_SESSION_ID`` env var (set by the Codex and Antigravity adapters),
+    then a PPID + hour hash. The hash changes whenever the parent process does,
+    so state keyed on it does not survive across hook calls.
+    """
+    if isinstance(event, dict):
+        session_id = _usable_session_id(event.get("session_id"))
+        if session_id:
+            return session_id
+
+    session_id = _usable_session_id(os.environ.get("CLAUDE_SESSION_ID"))
     if session_id:
         return session_id
 
@@ -305,17 +327,18 @@ def get_session_id() -> str:
     return hashlib.md5(unique_str.encode()).hexdigest()[:12]
 
 
-def get_state_file(prefix: str) -> Path:
+def get_state_file(prefix: str, event: Optional[dict] = None) -> Path:
     """
     Get a session-specific state file path.
 
     Args:
         prefix: Prefix for the state file name
+        event: The parsed hook input, so the file is keyed on its session_id
 
     Returns:
         Path to state file in /tmp
     """
-    session_id = get_session_id()
+    session_id = get_session_id(event)
     return Path(f"/tmp/claude-{prefix}-{session_id}.state")
 
 

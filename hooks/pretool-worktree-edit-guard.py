@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 PreToolUse Hook: Worktree Edit Guard (ADR: worktree-edit-guard)
 
@@ -79,7 +79,24 @@ try:
 except Exception:  # pragma: no cover - lib import must never hard-fail the hook
 
     def read_stdin(timeout: int = 10) -> str:
-        return sys.stdin.read()
+        """Same contract as lib/stdin_timeout: "" once *timeout* seconds pass."""
+        import signal
+
+        if not hasattr(signal, "SIGALRM"):
+            return sys.stdin.read()
+
+        def _expired(_signum: int, _frame: object) -> None:
+            raise TimeoutError
+
+        previous = signal.signal(signal.SIGALRM, _expired)
+        signal.alarm(timeout)
+        try:
+            return sys.stdin.read()
+        except (TimeoutError, OSError):
+            return ""
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous)
 
 
 try:
