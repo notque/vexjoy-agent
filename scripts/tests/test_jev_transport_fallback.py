@@ -108,6 +108,32 @@ def test_fallback_refuses_images_without_calling_alt_model(monkeypatch: pytest.M
     assert called == []
 
 
+@pytest.mark.parametrize("transport", ["direct", "vercel"])
+def test_fallback_does_not_send_to_alt_model_when_the_run_budget_refuses(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, transport: str
+) -> None:
+    """JEV_MAX_RUN_TOKENS stops the run; the fallback must not send the same request to a second provider."""
+    import jev_router_common
+
+    monkeypatch.setattr(jev_router_common, "_run_tokens", 0)
+    monkeypatch.setenv("JEV_MAX_RUN_TOKENS", "1")
+    monkeypatch.setenv("JEV_TRANSPORT", transport)
+    monkeypatch.setenv("TYPESAFE_API_KEY" if transport == "direct" else "AI_GATEWAY_API_KEY", "test-key")
+    bridge = tmp_path / "gateway.mjs"
+    bridge.write_text("// bridge")
+    monkeypatch.setattr(jev_transport.jev_vercel, "_BRIDGE", bridge)
+    network = AssertionError("nothing may be sent")
+    monkeypatch.setattr(jev_router_common, "_open_url", lambda *_a, **_k: (_ for _ in ()).throw(network))
+    monkeypatch.setattr(jev_transport.jev_vercel.subprocess, "run", lambda *_a, **_k: (_ for _ in ()).throw(network))
+    called = []
+    monkeypatch.setattr(jev_transport.jev_alt_model, "answer", lambda *_a, **_k: called.append(1) or _returns_alt())
+
+    with pytest.raises(jev_transport.JevTransportError) as exc_info:
+        jev_transport.evaluate_with_fallback(STATE, QUESTIONS, timeout=5)
+    assert exc_info.value.source == jev_transport.RUN_BUDGET
+    assert called == []
+
+
 # ---------------------------------------------------------------------------
 # evaluate_second_opinion
 # ---------------------------------------------------------------------------
