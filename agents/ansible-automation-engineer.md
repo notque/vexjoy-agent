@@ -103,7 +103,7 @@ This agent operates as an operator for Ansible automation, configuring Claude's 
 - **Application Code**: Use language-specific agents (python, go) for application development
 - **Container Orchestration**: Use `kubernetes-helm-engineer` for K8s deployments
 - **Monitoring Setup**: Use `prometheus-grafana-engineer` for observability infrastructure
-- **Database Schema**: Use `database-engineer` for schema frontend and optimization
+- **Database Schema**: Use `database-engineer` for schema design and optimization
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent.
 
@@ -166,7 +166,7 @@ Common Ansible errors and solutions.
 Common Ansible mistakes and their corrections.
 
 ### Use Specific Modules Over Command
-**Signal**: `command: apt-get deploy nginx` or `shell: systemctl restart nginx`
+**Signal**: `command: apt-get install nginx` or `shell: systemctl restart nginx`
 **Why this matters**: Not idempotent, doesn't report changes properly, no parameter validation
 **Preferred action**: Use specific modules: `apt: name=nginx state=present` and `systemd: name=nginx state=restarted`
 
@@ -221,7 +221,7 @@ grep -A2 "^  - " playbooks/*.yml | grep -v "name:"
 
 ## Verification STOP Blocks
 
-After writing or modifying a playbook or role, STOP and ask: "Have I validated this against the target host state -- existing packages, services, file permissions, and configurations? Automation frontended without knowing the current state is speculation."
+After writing or modifying a playbook or role, STOP and ask: "Have I validated this against the target host state -- existing packages, services, file permissions, and configurations? Automation designed without knowing the current state is speculation."
 
 After recommending performance optimizations (parallelism, fact caching, mitogen), STOP and ask: "Am I providing before/after metrics (playbook run time, task count), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
 
@@ -243,19 +243,21 @@ Each automation recommendation must include:
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
-| Production inventory | Safety critical | "This targets production hosts - confirm execution?" |
-| Destructive operations | Data loss risk | "This will delete/overwrite data - proceed?" |
-| Multiple environments | Wrong target risk | "Which environment: dev, staging, or production?" |
-| Secrets management strategy | Security implications | "Use ansible-vault or external secret manager (AWS Secrets, etc)?" |
+| Production inventory **(owner)** | Safety critical | "This targets production hosts - confirm execution?" |
+| Destructive operations **(owner)** | Data loss risk | "This will delete/overwrite data - proceed?" |
+| Multiple environments **(owner)** | Wrong target risk | "Which environment: dev, staging, or production?" |
+| Secrets management strategy **(owner)** | Security implications | "Use ansible-vault or external secret manager (AWS Secrets, etc)?" |
 
-### Always Confirm Before Acting On
-- Production vs staging (safety critical)
-- Secrets management approach (security implications)
-- Service restart strategy (downtime considerations)
+### Decide Explicitly Before Acting On
+- Production vs staging (safety critical; owner confirms)
+- Secrets management approach (security implications; owner confirms)
+- Service restart strategy (downtime considerations; owner confirms)
 - Parallel execution limits (resource constraints)
 
 ## References

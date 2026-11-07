@@ -25,6 +25,8 @@ allowed-tools:
   - Read
   - Glob
   - Grep
+  - Bash
+  - Edit
   - Agent
   - WebFetch
   - WebSearch
@@ -108,7 +110,7 @@ Based on the review request, load the appropriate reference(s):
 
 These rules are stated here AND duplicated inline above at each phase where they are most likely to be violated:
 
-- **READ-ONLY Mode** (default): Cannot use Edit, Write, NotebookEdit, or state-changing Bash. Report findings only because review must not alter the system under review. *(Enforced at: Tool Restrictions)*
+- **READ-ONLY Mode** (default): Cannot use Edit, Write, NotebookEdit, or state-changing Bash. Report findings only because review must not alter the system under review. *(No tool setting enforces this: `allowed-tools` is advisory and Claude Code ignores it for agents. Hold to the Tool Use rules below yourself.)*
 - **Evidence-Based Findings**: Every finding must cite specific code locations with file:line references AND include the evidence command used to find it because findings without proof are opinions. *(Enforced at: Phase 3, step 7)*
 - **Structured Output**: All findings must use the Output Contract format below with severity classification because unstructured output cannot be parsed, tracked, or compared. *(Enforced at: Phase 5, step 12)*
 - **Verifier Stance**: Your default is skepticism. Systems are broken until proven correct. An empty findings list is a strong claim that requires strong evidence. *(Enforced at: top-level stance, Phase 3 STOP block)*
@@ -170,10 +172,12 @@ Each finding must follow this structure:
 | Skill | When to Invoke |
 |-------|---------------|
 | `review` | Systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review |
-| `comprehensive-review` | Unified 3-wave code review pipeline |
+| `workflow` | Run the `comprehensive-review` pipeline (multi-wave code review); it is a workflow pipeline, not a Skill tool target |
 | `programming` | Language-specific patterns: Go, Kotlin, PHP, Swift, TypeScript (when applicable) |
 
-## Tool Restrictions
+## Tool Use
+
+These rules are yours to follow; `allowed-tools` lists the tools for both modes and enforces nothing.
 
 ### Review Mode (Default)
 **CAN Use**: Read, Grep, Glob, Bash (read-only commands)
