@@ -1,6 +1,6 @@
 ---
 name: game-dev
-description: "Game development: design, asset pipelines, Phaser, vanilla JS frontend, GM mode, match booking."
+description: "Game development: design, asset pipelines, Phaser, Unity CLI and builds, vanilla JS frontend, GM mode, match booking."
 agent: project-coordinator-engineer
 user-invocable: true
 allowed-tools:
@@ -41,6 +41,20 @@ routing:
     - pixel art
     - screen shake
     - game qa
+    - unity cli
+    - unity editor
+    - unity project
+    - unity game
+    - unity build
+    - build unity
+    - unity batch mode
+    - unity batchmode
+    - batchmode
+    - executemethod
+    - unity license
+    - unity hub
+    - unity test
+    - unity.exe
   pairs_with:
     - frontend
     - workflow
@@ -50,11 +64,11 @@ routing:
 
 # Game Development
 
-Five modes: **Design** (diagnosis, auditing, improvement), **Pipeline** (full
+Six modes: **Design** (diagnosis, auditing, improvement), **Pipeline** (full
 lifecycle orchestration), **Sprite** (AI sprite generation), **Phaser** (2D
-engine builds), **GM** (large multi-system implementations). Cross-cutting
-concerns (audio, QA, deploy) load as needed. Classify the request and follow
-the matching section.
+engine builds), **Unity** (`unity` CLI, batch builds, tests, licensing), **GM**
+(large multi-system implementations). Cross-cutting concerns (audio, QA,
+deploy) load as needed. Classify the request and follow the matching section.
 
 ## Mode Selection
 
@@ -64,6 +78,7 @@ the matching section.
 | **Pipeline** | make game, scaffold, game lifecycle, game audio, deploy game, game QA |
 | **Sprite** | AI sprite, generate character, portrait, spritesheet, animated sheet, pixel art |
 | **Phaser** | Phaser, 2D game, platformer, arcade physics, tilemap, side scroller |
+| **Unity** | Unity project, `unity` CLI, `Unity.exe -batchmode`, `-executeMethod`, Unity build or tests, Unity license error, exit code 198 |
 | **GM** | large GM implementation, multi-system GM, CPU systems, multi-wave overhaul |
 
 If the request spans modes, load both primary references. Design + Pipeline is
@@ -129,7 +144,7 @@ DEPLOY. Each phase can be entered independently.
 
 ### Phase 1: SCAFFOLD
 
-Detect engine (Three.js, Phaser, or vanilla canvas). Delegate to the appropriate engine skill or scaffold from template.
+Detect engine (Three.js, Phaser, or vanilla canvas). Delegate to the appropriate engine skill or scaffold from template. A folder with `ProjectSettings/ProjectVersion.txt` is a Unity project: switch to Unity mode.
 
 ### Phase 2: ASSETS
 
@@ -200,6 +215,29 @@ Load `references/core-patterns.md` for scene lifecycle, transitions, and input h
 | Screen shake, particles, hit-stop | `references/game-feel-patterns.md` |
 | Polish scaffolds | `references/polish-scaffolds.md` |
 | Animate scaffolds | `references/animate-scaffolds.md` |
+
+---
+
+## Unity Mode
+
+Build, test, and inspect Unity projects from a terminal, with the `unity` CLI
+or classic `Unity.exe -batchmode`. Load the reference that matches the task:
+
+| Signal | Reference |
+|--------|-----------|
+| `unity` CLI install, version drift, JSON output, exit codes, editors, projects, Editor control, Hub CLI migration | `references/unity-cli.md` |
+| Player build, compile check, tests, `-executeMethod`, CLI-to-Editor flags, project lock, parallel builds | `references/unity-batchmode-builds.md` |
+| License errors, exit code 198, `No valid Unity Editor license found`, Personal entitlement, activation, CI seats | `references/unity-licensing.md` |
+
+### Workflow
+
+1. **Locate.** Find the folder that holds `ProjectSettings/ProjectVersion.txt`; it can sit below the repository root. Read `m_EditorVersion`.
+2. **Probe.** Run `unity --version`, `unity editors -i --json`, and `unity license status --json`. Without the CLI, use classic `Unity.exe`; installing or upgrading software needs the user's OK.
+3. **Pick the tool** from the table in `references/unity-batchmode-builds.md`.
+4. **Warn before launching.** Batch runs can still bring Unity windows to the front, so tell the user before Unity starts on a desktop they are using, and group the runs.
+5. **Run headless with `--timeout` and a log file.** Check `unity editors running --json` first: one Editor per project folder.
+6. **Read the result.** Branch on the exit code, then on `errors[0].code`, then on the log (`error CS`, `Build Finished, Result:`).
+7. **On exit code 198 or another license error,** follow `references/unity-licensing.md` before you retry.
 
 ---
 

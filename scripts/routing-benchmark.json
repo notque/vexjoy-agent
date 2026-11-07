@@ -2114,6 +2114,39 @@
       "category": "false-positive-guard",
       "routing_tier": "pre_route_negative",
       "notes": "Read-only or own-repo request: pr-fix-loop guards must not force-route"
+    },
+    {
+      "request": "build my Unity project from the command line with the unity cli",
+      "expected_agent": null,
+      "expected_skill": "game-dev",
+      "category": "game-development",
+      "routing_tier": "pre_route_only",
+      "notes": "Unity mode: unity CLI build request force-routes to game-dev (references/unity-cli.md)"
+    },
+    {
+      "request": "Unity.exe -batchmode build fails with exit code 198 and No valid Unity Editor license found",
+      "expected_agent": null,
+      "expected_skill": "game-dev",
+      "category": "game-development",
+      "routing_tier": "pre_route_only",
+      "notes": "Unity mode: batch-mode license failure force-routes to game-dev (references/unity-licensing.md)"
+    },
+    {
+      "request": "run the EditMode tests for my Unity game",
+      "expected_agent": null,
+      "expected_skill": "game-dev",
+      "category": "game-development",
+      "routing_tier": "pre_route_only",
+      "notes": "Unity mode: Unity game test run force-routes to game-dev (references/unity-batchmode-builds.md)"
+    },
+    {
+      "request": "write a short speech about unity and teamwork for the offsite",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "game-dev",
+      "notes": "Plain-English 'unity' must not force-route to game-dev; Unity triggers are multi-word or Unity-only flags"
     }
   ]
 }
