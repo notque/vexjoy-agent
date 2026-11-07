@@ -36,7 +36,9 @@ except ImportError:  # install.sh installs python-dotenv; exported vars still wo
 
 # The only ~/.env entries this module and its alt-model path read. Every other
 # key in that file stays out of this process and out of any child it starts.
-ENV_FILE_KEYS = ("JEV_TRANSPORT", "AI_GATEWAY_API_KEY", "TYPESAFE_API_KEY", "JEV_ALT_MODEL_API_KEY")
+# JEV_KEY_ONLY is a non-secret switch read by jev_router_common.typesafe_available;
+# cron and standalone runs document setting it in ~/.env.
+ENV_FILE_KEYS = ("JEV_TRANSPORT", "AI_GATEWAY_API_KEY", "TYPESAFE_API_KEY", "JEV_ALT_MODEL_API_KEY", "JEV_KEY_ONLY")
 
 
 def _load_env_file_keys() -> None:

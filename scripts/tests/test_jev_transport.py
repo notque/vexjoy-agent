@@ -49,6 +49,16 @@ def test_exported_value_wins_over_home_env(tmp_path: Path, monkeypatch: pytest.M
     assert jev_transport.os.environ["TYPESAFE_API_KEY"] == "exported"
 
 
+def test_key_only_switch_still_loads_from_home_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """JEV_KEY_ONLY=1 in ~/.env keeps working for cron and standalone runs."""
+    pytest.importorskip("dotenv")
+    (tmp_path / ".env").write_text("JEV_KEY_ONLY=1\n", encoding="utf-8")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("JEV_KEY_ONLY", raising=False)
+    jev_transport._load_env_file_keys()
+    assert jev_transport.os.environ.get("JEV_KEY_ONLY") == "1"
+
+
 def _clear(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("JEV_TRANSPORT", "AI_GATEWAY_API_KEY", "TYPESAFE_API_KEY"):
         monkeypatch.delenv(name, raising=False)
