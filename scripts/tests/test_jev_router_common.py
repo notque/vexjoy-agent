@@ -345,6 +345,17 @@ class TestCircuitBreaker:
         assert call_count["n"] == 2
         assert data["answers"]["q"]["noul"] == 0.5
 
+    def test_breaker_read_from_file_keeps_its_original_expiry(self) -> None:
+        """A breaker another process tripped 50 s ago (TTL 60) expires 10 s from now, not 60."""
+        common._breaker_path().write_text(json.dumps({"status": 402, "ts": time.time() - 50}), encoding="utf-8")
+        common._jev_down = None
+        with patch.dict(os.environ, {"JEV_BREAKER_TTL_S": "60"}):
+            assert common._check_breaker() == 402
+            common._breaker_path().unlink()  # only the in-process copy is left
+            real = time.monotonic()
+            with patch.object(common.time, "monotonic", return_value=real + 15):
+                assert common._check_breaker() is None
+
     def test_success_clears_breaker(self) -> None:
         """A 2xx response clears the breaker file."""
         # Manually trip the breaker
@@ -544,8 +555,8 @@ class TestCountCallSessionId:
 
     @patch.dict("os.environ", {}, clear=False)
     @patch.object(common, "_record_jev_call")
-    def test_no_env_vars_gives_none(self, mock_record):
-        """No session env vars -> session_id is None."""
+    def test_no_env_vars_gives_the_run_id(self, mock_record):
+        """No session env vars -> session_id is this process's run id, so a run can be totalled."""
         import os
 
         os.environ.pop("JEV_SESSION_ID", None)
@@ -561,12 +572,13 @@ class TestCountCallSessionId:
             error=None,
         )
         mock_record.assert_called_once()
-        assert mock_record.call_args.kwargs["session_id"] is None
+        assert mock_record.call_args.kwargs["session_id"] == common.RUN_ID
+        assert common.RUN_ID.startswith("run-")
 
     @patch.dict("os.environ", {"JEV_AGENT_ID": "py-eng"}, clear=False)
     @patch.object(common, "_record_jev_call")
-    def test_agent_id_without_session_not_appended(self, mock_record):
-        """JEV_AGENT_ID without a session_id does not produce ':py-eng'."""
+    def test_agent_id_without_session_tags_the_run_id(self, mock_record):
+        """JEV_AGENT_ID without a session id is appended to the run id, never a bare ':py-eng'."""
         import os
 
         os.environ.pop("JEV_SESSION_ID", None)
@@ -581,7 +593,50 @@ class TestCountCallSessionId:
             error=None,
         )
         mock_record.assert_called_once()
-        assert mock_record.call_args.kwargs["session_id"] is None
+        assert mock_record.call_args.kwargs["session_id"] == f"{common.RUN_ID}:py-eng"
+
+
+class TestRunBudget:
+    """Every request that reaches the network counts toward one run, on any caller's path."""
+
+    @pytest.fixture(autouse=True)
+    def _fresh_run(self, monkeypatch):
+        monkeypatch.setattr(common, "_run_tokens", 0)
+        monkeypatch.setattr(common, "_run_warned", False)
+        monkeypatch.delenv("JEV_MAX_RUN_TOKENS", raising=False)
+        monkeypatch.setenv("JEV_CACHE_TTL_S", "0")
+
+    def _payload(self, size: int, tag: str = "") -> dict:
+        return {"model": "m", "state": {"t": tag + "x" * size}, "questions": {"q": {"type": "noul"}}}
+
+    def test_direct_caller_over_the_request_limit_is_warned(self, monkeypatch, capsys) -> None:
+        monkeypatch.setattr(common, "_open_url", lambda _request, **_kw: _ok_response({"q": {"noul": 0.5}}))
+        common.validated_call_jev(self._payload(4 * (common.jev_limits.MAX_REQUEST_TOKENS + 50)), "k", 5)
+        err = capsys.readouterr().err
+        assert f"[jev-budget] {common.RUN_ID}: request is ~" in err
+
+    def test_run_total_warns_once_past_the_per_run_budget(self, monkeypatch, capsys) -> None:
+        monkeypatch.setattr(common, "_open_url", lambda _request, **_kw: _ok_response({"q": {"noul": 0.5}}))
+        per_call = 4 * 4_000  # ~4k tokens each: under the request limit, 14 of them pass 50k
+        for i in range(14):
+            common.call_jev(self._payload(per_call, tag=str(i)), "k", 5)
+        err = capsys.readouterr().err
+        assert err.count("per-run budget") == 1
+        assert common._run_tokens > common.jev_limits.CASCADE_TOKENS_PER_RUN
+
+    def test_opt_in_hard_cap_refuses_before_sending(self, monkeypatch) -> None:
+        monkeypatch.setenv("JEV_MAX_RUN_TOKENS", "100")
+        sent = {"n": 0}
+
+        def fake(request, timeout=None):
+            sent["n"] += 1
+            return _ok_response({"q": {"noul": 0.5}})
+
+        monkeypatch.setattr(common, "_open_url", fake)
+        with pytest.raises(common.RunBudgetExceeded, match="JEV_MAX_RUN_TOKENS=100"):
+            common.call_jev(self._payload(4_000, tag="cap"), "k", 5)
+        assert sent["n"] == 0
+        assert common._inflight == {}  # the refused call released its in-flight slot
 
 
 # ---------------------------------------------------------------------------
@@ -824,3 +879,76 @@ class TestValidatedCallFailsClosed:
         data = {"answers": {"q": {"noul": 0.4}, "c": {"choice": "a", "probabilities": {"a": 1.0}}}}
         monkeypatch.setattr(common, "call_jev", lambda *_a, **_k: (data, 2.0))
         assert common.validated_call_jev({}, "k", 5) == (data, 2.0)
+
+
+def _raw_response(body: bytes):
+    resp = MagicMock()
+    resp.read.return_value = body
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    return resp
+
+
+class TestCallJevReleasesAndValidates:
+    """A bad reply must not stall the next caller, poison the cache, or reach only one waiter."""
+
+    def _payload(self, tag: str) -> dict:
+        return {"model": "m", "state": {"t": tag}, "questions": {"q": {"type": "noul", "instructions": "x"}}}
+
+    def test_non_json_reply_releases_the_in_flight_slot(self, monkeypatch) -> None:
+        replies = [_raw_response(b"<html>gateway error</html>"), _raw_response(b'{"answers": {"q": {"noul": 0.3}}}')]
+        monkeypatch.setattr(common, "_open_url", lambda _request, **_kw: replies.pop(0))
+        with pytest.raises(ValueError, match="not JSON"):
+            common.call_jev(self._payload("non-json"), "k", 5)
+        assert common._inflight == {}
+        started = time.monotonic()
+        data, _ = common.call_jev(self._payload("non-json"), "k", 5)
+        assert time.monotonic() - started < 2.0  # no wait on an orphaned in-flight event
+        assert data["answers"]["q"]["noul"] == 0.3
+
+    def test_invalid_answers_are_not_cached(self, monkeypatch) -> None:
+        monkeypatch.setenv("JEV_CACHE_TTL_S", "120")
+        replies = [_ok_response({"q": {"noul": 4}}), _ok_response({"q": {"noul": 0.2}})]
+        calls = {"n": 0}
+
+        def fake(request, timeout=None):
+            calls["n"] += 1
+            return replies.pop(0)
+
+        monkeypatch.setattr(common, "_open_url", fake)
+        with pytest.raises(ValueError, match="invalid Jev response"):
+            common.validated_call_jev(self._payload("bad-cache"), "k", 5)
+        data, _ = common.validated_call_jev(self._payload("bad-cache"), "k", 5)
+        assert calls["n"] == 2  # the bad answer was never served from the cache
+        assert data["answers"]["q"]["noul"] == 0.2
+
+    def test_every_waiter_gets_the_in_flight_result(self, monkeypatch) -> None:
+        monkeypatch.setenv("JEV_CACHE_TTL_S", "0")
+        entered = threading.Event()
+        release = threading.Event()
+        calls = {"n": 0}
+
+        def slow(request, timeout=None):
+            calls["n"] += 1
+            entered.set()
+            release.wait(5)
+            return _ok_response({"q": {"noul": 0.6}})
+
+        monkeypatch.setattr(common, "_open_url", slow)
+        results: list = []
+
+        def call() -> None:
+            results.append(common.call_jev(self._payload("waiters"), "k", 5)[0])
+
+        owner = threading.Thread(target=call)
+        owner.start()
+        assert entered.wait(5)
+        waiters = [threading.Thread(target=call) for _ in range(2)]
+        for t in waiters:
+            t.start()
+        time.sleep(0.3)  # let both waiters block on the owner's event
+        release.set()
+        for t in [owner, *waiters]:
+            t.join(10)
+        assert calls["n"] == 1
+        assert [r["answers"]["q"]["noul"] for r in results] == [0.6, 0.6, 0.6]

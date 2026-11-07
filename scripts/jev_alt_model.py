@@ -34,6 +34,7 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import jev_images
+import jev_redact
 import jev_router_common
 
 SOURCE = "alt-model"
@@ -266,7 +267,11 @@ def answer(state: Any, questions: dict[str, Any], *, timeout: float = DEFAULT_TI
 
     api_key = _alt_model_api_key()
     backend = _resolve_backend(api_key)
-    prompt = _prompt(state, questions)
+    # The same scrub call_jev applies: nothing reaches the second provider unredacted.
+    safe, n_redacted = jev_redact.redact_payload({"state": state, "questions": questions})
+    if n_redacted:
+        print(f"[jev-redact] {n_redacted} value(s) redacted before alt-model send", file=sys.stderr)
+    prompt = _prompt(safe["state"], safe["questions"])
     if backend == "claude-cli":
         # The CLI starts a full subprocess and routinely needs more wall time
         # than a caller sizes for a fast API/Gateway call; never starve it
@@ -291,7 +296,7 @@ def answer(state: Any, questions: dict[str, Any], *, timeout: float = DEFAULT_TI
     result: dict[str, Any] = {
         "answers": answers,
         "model": ALT_MODEL,
-        "_meta": {"is_jev": False, "source": SOURCE, "backend": source},
+        "_meta": {"is_jev": False, "source": SOURCE, "backend": source, "n_redacted": n_redacted},
     }
     valid, errors = jev_router_common.validate_jev_response(result)
     if not valid:

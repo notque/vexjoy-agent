@@ -68,6 +68,7 @@ _LIVE_KEY_ENV = (
     "ANTHROPIC_API_KEY",
     "JEV_ALT_MODEL_API_KEY",
     "JEV_ALT_MODEL_BACKEND",
+    "JEV_MAX_RUN_TOKENS",  # an opt-in cap in the shell would refuse calls once the suite's run total grew
 )
 
 
