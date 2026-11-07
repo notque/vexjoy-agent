@@ -217,15 +217,17 @@ Before writing Peewee code, check for these patterns. If found:
 
 Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
+
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
 | Concurrent write requirements | SQLite limitation | "Need concurrent writes? Consider PostgreSQL instead of SQLite" |
 | Large dataset (>100k rows) | Performance implications | "How many rows expected? SQLite efficient to ~1M rows" |
-| Complex migration needed | Data transformation required | "Need to transform existing data during migration?" |
+| Complex migration needed **(owner)** | Data transformation rewrites existing rows | "Need to transform existing data during migration?" |
 | Full-text search requirements | FTS5 configuration decisions | "What fields to index for search? Tokenizer preference?" |
 
 ### Decide Explicitly First
 - Concurrent write patterns (SQLite limitation)
 - Data scale (affects SQLite viability)
-- Migration data transformations (need user logic)
+- Migration data transformations (need user logic; owner confirms before one runs against existing data)
 - Search requirements (FTS5 configuration)
