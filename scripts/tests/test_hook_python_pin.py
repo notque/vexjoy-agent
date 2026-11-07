@@ -367,6 +367,58 @@ def test_pyrun_falls_back_to_python31x_when_the_link_dangles_and_skips_shims(tmp
     assert proc.returncode == 0 and proc.stdout.startswith("path311 "), proc
 
 
+def _script_pin(home: Path, interpreter: Path) -> None:
+    link = interp.link_path(home)
+    link.parent.mkdir(parents=True)
+    link.write_bytes(interp.pin_script_bytes(str(interpreter)))
+    link.chmod(0o755)
+
+
+def test_pyrun_runs_a_script_pin_whose_interpreter_exists(tmp_path: Path) -> None:
+    home = _home_with_hooks(tmp_path)
+    _script_pin(home, _fake_runner(tmp_path / "pinned" / "python3", "pinned"))
+    other = _fake_runner(tmp_path / "bin" / "python3.12", "path312").parent
+    proc = _pyrun(home, [other])
+    assert proc.returncode == 0 and proc.stdout == f"pinned {home}/.claude/hooks/x.py\n", proc
+
+
+def test_pyrun_skips_a_script_pin_whose_interpreter_is_gone(tmp_path: Path) -> None:
+    """A script pin passes -x even when its python is gone; the launcher must still fall back, never exit 127."""
+    home = _home_with_hooks(tmp_path)
+    _script_pin(home, tmp_path / "gone" / "python3")
+    real = _fake_runner(tmp_path / "bin" / "python3.11", "path311").parent
+    proc = _pyrun(home, [real])
+    assert proc.returncode == 0 and proc.stdout == f"path311 {home}/.claude/hooks/x.py\n", proc
+
+
+def test_pyrun_execs_the_python_a_script_pin_names(tmp_path: Path) -> None:
+    """The launcher runs the python it checked (line 3), so a stale exec line cannot turn into exit 127."""
+    home = _home_with_hooks(tmp_path)
+    pinned = _fake_runner(tmp_path / "pinned" / "python3", "pinned")
+    link = interp.link_path(home)
+    link.parent.mkdir(parents=True)
+    gone = tmp_path / "gone" / "python3"
+    link.write_text(f'#!/bin/sh\n{interp.PIN_SCRIPT_MARK}\n{interp.PIN_SCRIPT_TARGET}{pinned}\nexec {gone} "$@"\n')
+    link.chmod(0o755)
+    proc = _pyrun(home, [_fake_runner(tmp_path / "bin" / "python3.11", "path311").parent])
+    assert proc.returncode == 0 and proc.stdout == f"pinned {home}/.claude/hooks/x.py\n", proc
+
+
+@pytest.mark.parametrize("named", [None, "bin/python3"], ids=["no-target-line", "relative-target"])
+def test_pyrun_skips_a_pin_file_that_names_no_absolute_python(tmp_path: Path, named: str | None) -> None:
+    """Only a target line the launcher can check makes a regular file runnable; sync then repairs the pin."""
+    home = _home_with_hooks(tmp_path)
+    pinned = _fake_runner(tmp_path / "pinned" / "python3", "pinned")
+    target = "" if named is None else f"{interp.PIN_SCRIPT_TARGET}{named}\n"
+    link = interp.link_path(home)
+    link.parent.mkdir(parents=True)
+    link.write_text(f'#!/bin/sh\n{interp.PIN_SCRIPT_MARK}\n{target}exec {pinned} "$@"\n')
+    link.chmod(0o755)
+    real = _fake_runner(tmp_path / "bin" / "python3.11", "path311").parent
+    proc = _pyrun(home, [real])
+    assert proc.returncode == 0 and proc.stdout == f"path311 {home}/.claude/hooks/x.py\n", proc
+
+
 def test_link_missing_still_runs_the_hook_through_the_launcher(tmp_path: Path) -> None:
     home = _home_with_hooks(tmp_path)
     bindir = tmp_path / "bin"
