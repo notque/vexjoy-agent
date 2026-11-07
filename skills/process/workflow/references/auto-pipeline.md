@@ -109,7 +109,7 @@ a stale catalog silently weakens the HARD BLOCK below.
 
 **Goal**: Determine whether to crystallize immediately or run ephemeral.
 
-**Toolkit repo rule**: If running in this repo (detected by `skills/process/workflow/references/auto-pipeline.md` (or installed `skills/process/workflow/references/auto-pipeline.md`) existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Capture the pattern immediately on the first run.
+**Toolkit repo rule**: If running in this repo (detected by `skills/process/workflow/references/auto-pipeline.md` existing in CWD, or by the installed `~/.claude/skills/workflow/references/auto-pipeline.md` when CWD is `~/.claude`), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Capture the pattern immediately on the first run.
 
 **Outside toolkit repo rule**: Wait for 3+ ephemeral executions in the same domain before crystallizing. This ensures the pattern is stable and not a one-off.
 
@@ -159,7 +159,7 @@ grep -c "ephemeral {task_type}" .claude/ephemeral-runs.log 2>/dev/null || echo 0
 
 **Step 7 — INTEGRATE**: Wire into routing:
 - Run `python3 ~/.claude/scripts/generate-skill-index.py` to update INDEX.json
-- The routing-table-updater skill handles /do routing table updates
+- The toolkit skill's Routing Tables mode handles /do routing table updates
 
 **Step 8 — VERIFY**: Confirm the new pipeline is discoverable:
 - Check `skills/INDEX.json` contains the new pipeline

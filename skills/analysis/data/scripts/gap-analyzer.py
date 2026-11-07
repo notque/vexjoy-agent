@@ -8,7 +8,7 @@ outputs a JSON report of sub-domains missing reference coverage.
 
 Usage:
     python3 skills/analysis/data/scripts/gap-analyzer.py --agent golang-general-engineer
-    python3 skills/analysis/data/scripts/gap-analyzer.py --skill systematic-code-review
+    python3 skills/analysis/data/scripts/gap-analyzer.py --skill review
     python3 skills/analysis/data/scripts/gap-analyzer.py --agent python-general-engineer --verbose
 
 Exit code: always 0 (analysis tool, not a gate).

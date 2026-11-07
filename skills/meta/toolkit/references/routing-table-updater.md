@@ -177,10 +177,7 @@ This skill is typically invoked after other creation skills complete:
 - **During repository maintenance**: Periodic sync to catch manual drift
 - **After pipeline-scaffolder Phase 3**: N skills created for a domain, all need routing (batch mode)
 
-Invocation by other skills:
-```
-skill: routing-table-updater
-```
+Invocation by other skills: call the Skill tool with `toolkit` and run its Routing Tables mode.
 
 The skill reads metadata from all skills and agents but never modifies them. Its only write targets are the generated indices `skills/INDEX.json` and `agents/INDEX.json`, always via the repo generator scripts.
 

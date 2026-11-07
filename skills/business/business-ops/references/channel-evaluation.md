@@ -190,4 +190,4 @@ If selected channel hours > 80% of available hours: remove a channel.
 ## See Also
 
 - `audience-segmentation.md` — ICP scoring, persona matrices, audience segmentation for channel targeting
-- `skills/business/business-ops/SKILL.md` (GROWTH mode) — full growth strategy workflow; 90-day planning is in `content-funnel.md`
+- `skills/business/business-ops/SKILL.md` (GROWTH mode) — full growth strategy workflow; the 90-day plan is GROWTH Phase 3 in `csuite.md`

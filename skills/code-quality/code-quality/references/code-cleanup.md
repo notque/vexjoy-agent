@@ -16,8 +16,8 @@ Scan repositories for 9 categories of technical debt (TODOs, unused imports, dea
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| writing the cleanup report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
-| running per-language scans: unused imports, dead code, debug statements | `scan-commands.md` | Loads detailed guidance from `scan-commands.md`. |
+| writing the cleanup report | `cleanup-report-template.md` | Loads detailed guidance from `cleanup-report-template.md`. |
+| running per-language scans: unused imports, dead code, debug statements | `cleanup-scan-commands.md` | Loads detailed guidance from `cleanup-scan-commands.md`. |
 | checking which cleanup tools are installed per language | `tools.md` | Loads detailed guidance from `tools.md`. |
 
 ## Instructions
@@ -59,7 +59,7 @@ If critical tools are missing, offer to proceed with partial scan using availabl
 
 **Goal**: Detect all cleanup opportunities within scope using deterministic tools.
 
-Run applicable scans based on language and scope. See `references/scan-commands.md` for full command reference.
+Run applicable scans based on language and scope. See `references/cleanup-scan-commands.md` for full command reference.
 
 **Core scans (all languages)**:
 1. **Stale TODOs**: grep for TODO/FIXME/HACK/XXX, then age every match with git blame -- a 180-day-old TODO about a data race is fundamentally different from yesterday's "TODO: add test case", so age-based triage is essential for prioritization
@@ -141,7 +141,7 @@ Generate report with this structure:
 4. Polish items grouped by type
 5. Files sorted by issue count
 
-See `references/report-template.md` for complete template.
+See `references/cleanup-report-template.md` for complete template.
 
 Print the complete report to stdout so the user can inspect every finding in full.
 
@@ -270,6 +270,6 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/scan-commands.md`: Language-specific scan commands and expected output
-- `${CLAUDE_SKILL_DIR}/references/report-template.md`: Full structured report template
+- `${CLAUDE_SKILL_DIR}/references/cleanup-scan-commands.md`: Language-specific scan commands and expected output
+- `${CLAUDE_SKILL_DIR}/references/cleanup-report-template.md`: Full structured report template
 - `${CLAUDE_SKILL_DIR}/references/tools.md`: Tool installation, versions, and capabilities
