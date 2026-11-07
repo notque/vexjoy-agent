@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Validate that bash/python command examples in docs reference real files.
 
-Extracts ```bash``` and ```python``` fenced code blocks from docs/ + root markdown,
-finds invocations of `python3 path/to/script.py` and `./path/to/script.sh`, and
-verifies each referenced script exists on disk.
+Extracts ```bash``` and ```python``` fenced code blocks and inline code spans from
+docs/ + the root guides, finds invocations of `python3 path/to/script.py` and
+`./path/to/script.sh`, and verifies each referenced script exists on disk.
+
+An installed path (`~/.claude/scripts/X.py`, `$HOME/.codex/hooks/X.py`, and the other
+runtime homes) is checked as the repo file it is installed from (`scripts/X.py`,
+`hooks/X.py`), so a doc cannot keep running a script the repo deleted.
 
 Skips:
-- Commands that reference `~/.claude/...` (those are runtime-installed, not in repo)
-- Variables, environment placeholders ($HOME, $VAR)
+- Other home and system paths (`~/tools/...`, `/tmp/...`) and paths outside the repo (`../`)
+- Variables, environment placeholders ($HOME, $VAR) outside the installed homes
 - External commands without paths (gh, git, ls, claude, codex, etc.)
 
 Exits 0 when every script-by-path reference resolves; exits 1 otherwise.
@@ -28,14 +32,28 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
-ROOT_MARKDOWN = ["README.md", "CONTRIBUTING.md", "CLAUDE.md"]
+ROOT_MARKDOWN = [
+    "README.md",
+    "CONTRIBUTING.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    "hooks/README.md",
+    ".local.example/README.md",
+]
 
 FENCE = re.compile(r"```(bash|sh|python|console)\s*\n(.*?)\n```", re.DOTALL)
+ANY_FENCE = re.compile(r"```[^\n]*\n.*?\n```", re.DOTALL)
+INLINE_CODE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
 
 # python3 scripts/foo.py | python3 ~/path/foo.py
 PY_INVOKE = re.compile(r"python3?\s+([^\s|;&<>]+\.py)")
-# ./scripts/foo.sh | ./install.sh
-SH_INVOKE = re.compile(r"(?<![\w/])(\./[\w./-]+\.(?:sh|py))")
+# ./scripts/foo.sh | ./install.sh (not the tail of ../x.sh or an elided .../x.sh)
+SH_INVOKE = re.compile(r"(?<![\w./])(\./[\w./-]+\.(?:sh|py))")
+# The installer fills each runtime home's scripts/ and hooks/ from the repo dirs of the same name.
+INSTALLED = re.compile(
+    r"^(?:~|\$HOME|\$\{HOME\})/\.(?:claude|codex|factory|hermes|reasonix|gemini)/(scripts|hooks)/([^\s]+)$"
+)
 
 EXTERNAL_PREFIXES = (
     "~/",
@@ -44,6 +62,7 @@ EXTERNAL_PREFIXES = (
     "/dev/",
     "/etc/",
     "/var/",
+    "../",
 )
 
 
@@ -65,6 +84,27 @@ def is_repo_local(path: str) -> bool:
 def resolve_repo_path(invocation: str) -> Path:
     p = invocation.lstrip("./")
     return REPO_ROOT / p
+
+
+def repo_file_for(invocation: str) -> Path | None:
+    """The repo file a doc invocation runs, or None when it points outside the repo."""
+    installed = INSTALLED.match(invocation)
+    if installed:
+        return REPO_ROOT / installed.group(1) / installed.group(2)
+    if not is_repo_local(invocation):
+        return None
+    return resolve_repo_path(invocation)
+
+
+def invocations(text: str) -> list[str]:
+    """Script paths run in fenced bash/sh/python/console blocks and in inline code spans."""
+    snippets = [fence.group(2) for fence in FENCE.finditer(text)]
+    snippets.extend(span.group(1) for span in INLINE_CODE.finditer(ANY_FENCE.sub("", text)))
+    found: list[str] = []
+    for snippet in snippets:
+        found.extend(match.group(1) for match in PY_INVOKE.finditer(snippet))
+        found.extend(match.group(1) for match in SH_INVOKE.finditer(snippet))
+    return found
 
 
 # ---------------------------------------------------------------------------
@@ -125,22 +165,13 @@ def main() -> int:
     for md in collect_markdown_files():
         text = md.read_text(encoding="utf-8", errors="replace")
         rel = md.relative_to(REPO_ROOT)
-        for fence_match in FENCE.finditer(text):
-            block = fence_match.group(2)
-            for invoke_match in PY_INVOKE.finditer(block):
-                target = invoke_match.group(1)
-                if not is_repo_local(target):
-                    continue
-                checked += 1
-                if not resolve_repo_path(target).is_file():
-                    missing.append({"source": str(rel), "target": target})
-            for invoke_match in SH_INVOKE.finditer(block):
-                target = invoke_match.group(1)
-                if not is_repo_local(target):
-                    continue
-                checked += 1
-                if not resolve_repo_path(target).is_file():
-                    missing.append({"source": str(rel), "target": target})
+        for target in invocations(text):
+            repo_file = repo_file_for(target)
+            if repo_file is None:
+                continue
+            checked += 1
+            if not repo_file.is_file():
+                missing.append({"source": str(rel), "target": target})
 
     if args.json:
         print(json.dumps({"checked": checked, "missing": missing}, indent=2))
