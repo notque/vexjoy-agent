@@ -179,16 +179,22 @@ _write_git_hook() {
         echo -e "${YELLOW}  Existing ${name} hook found; not overwriting: ${hook}${NC}"
         return 0
     fi
-    mkdir -p "${SCRIPT_DIR}/.git/hooks"
-    printf '%s\n' "$body" > "$hook"
-    chmod +x "$hook"
-    echo -e "${GREEN}  ✓ Installed ${name} hook${NC}"
+    # A failed write warns and lets the install go on: the hooks run before apply.
+    if mkdir -p "${SCRIPT_DIR}/.git/hooks" && printf '%s\n' "$body" > "$hook" && chmod +x "$hook"; then
+        echo -e "${GREEN}  ✓ Installed ${name} hook${NC}"
+    else
+        echo -e "${YELLOW}  ⚠ Could not write ${name} hook: ${hook}${NC}"
+    fi
 }
 
 # post-merge: engine sync after git pull. pre-commit: private-leak gate (spec 7.5).
 install_git_hooks() {
-    [ -d "${SCRIPT_DIR}/.git" ] || return 0
     [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ] && return 0
+    if [ -f "${SCRIPT_DIR}/.git" ]; then
+        echo -e "${YELLOW}  Git hooks skipped: ${SCRIPT_DIR}/.git is a file (worktree or submodule); ./install.sh in the main checkout writes them${NC}"
+        return 0
+    fi
+    [ -d "${SCRIPT_DIR}/.git" ] || return 0
     _write_git_hook post-merge << 'HOOK'
 #!/usr/bin/env bash
 # Written by vexjoy-agent install.sh: syncs runtime installs after git pull.
@@ -320,6 +326,12 @@ uninstall_no_agent_summary() {
     echo -e "${GREEN}  ✓ no-agent-summary: removed ${NAS_HOOK}${NC}"
 }
 
+# Git hooks first: a pre-engine post-merge links repo items into runtime roots on every pull,
+# so replacing it must not wait for a working python or a successful apply.
+if [ "$ACTION" = "apply" ] && [ "$DRY_RUN" = false ] && [ "$CONFIGURE_ONLY" = false ]; then
+    install_git_hooks
+fi
+
 check_python
 
 if [ "$ACTION" = "migrate-overlays" ]; then
@@ -376,10 +388,6 @@ if [ "$DRY_RUN" = true ]; then
     vexinstall plan --dry-run "${args[@]}"
     exit $?
 fi
-
-# Git hooks before apply: a pre-engine post-merge links repo items into runtime roots on
-# every pull, so replacing it must not wait for apply to succeed.
-install_git_hooks
 
 echo -e "${YELLOW}vexinstall apply ${args[*]}${NC}"
 rc=0

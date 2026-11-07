@@ -73,12 +73,6 @@ def hooks_dir(root: Path) -> Path | None:
     return configured or _abs_path(root, _git(root, "rev-parse", "--git-path", "hooks"))
 
 
-def default_hooks_dir(root: Path) -> Path | None:
-    """``<git-common-dir>/hooks``: where git looks when ``core.hooksPath`` is unset."""
-    common = _abs_path(root, _git(root, "rev-parse", "--git-common-dir"))
-    return common / "hooks" if common else None
-
-
 def ephemeral_prefixes() -> list[str]:
     """Realpath prefixes treated as ephemeral (default ``/tmp``)."""
     raw = os.environ.get(EPHEMERAL_ENV, DEFAULT_EPHEMERAL)

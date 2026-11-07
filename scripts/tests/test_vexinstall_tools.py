@@ -223,6 +223,9 @@ done
 exit 0
 """
 )
+# Advice for a hook carrying install.sh's marker, and for one without it.
+MARKED = "delete it (the SessionStart sync keeps installs current)"
+UNMARKED = "remove its ln -s loop"
 
 
 @pytest.fixture
@@ -262,12 +265,19 @@ def _same(a: str | Path | None, b: Path) -> bool:
 @pytest.mark.parametrize(
     ("body", "advice"),
     [
-        pytest.param(LEGACY_POST_MERGE, "run ./install.sh from the main checkout", id="legacy"),
-        pytest.param(LEGACY_POST_MERGE.replace(LEGACY_HEADER, ""), "./install.sh replaces only", id="header-removed"),
+        pytest.param(LEGACY_POST_MERGE, MARKED, id="legacy"),
+        pytest.param(LEGACY_POST_MERGE.replace(LEGACY_HEADER, ""), UNMARKED, id="header-removed"),
         pytest.param(
             f'#!/bin/sh\n{LEGACY_HEADER}cp -R "$REPO_DIR"/skills/* "$HOME/.claude/skills/"\n',
-            "run ./install.sh",
+            MARKED,
             id="header-only",
+        ),
+        pytest.param(
+            LEGACY_POST_MERGE.replace(
+                "exit 0\n", 'python3 -m vexinstall sync --target all --source-root "$REPO_DIR"\nexit 0\n'
+            ),
+            MARKED,
+            id="legacy-loop-plus-engine-sync",
         ),
     ],
 )
@@ -278,8 +288,8 @@ def test_doctor_flags_legacy_post_merge_hook(hook_world: Env, body: str, advice:
     found = [f for f in res.data["findings"] if f["check"] == "legacy-git-hook"]
     assert [(f["level"], f["target"]) for f in found] == [("error", "repo")]
     assert _same(found[0]["path"], hook)
-    assert advice in found[0]["detail"]
-    assert res.code == 1
+    assert advice in found[0]["detail"] and "the engine stops updating them" in found[0]["detail"]
+    assert any("legacy-git-hook" in line for line in res.out), res.out
     assert hook.read_bytes() == before, "doctor must never rewrite the hook"
 
 
@@ -295,6 +305,14 @@ def test_doctor_passes_the_install_sh_post_merge(hook_world: Env) -> None:
         pytest.param('#!/bin/sh\ngit lfs post-merge "$@"\n', id="git-lfs"),
         pytest.param('#!/bin/sh\nln -sf "$PWD/build/out" "$PWD/dist/latest"\n', id="ln-outside-runtime-roots"),
         pytest.param("#!/bin/sh\n# never ln -s into ~/.claude from here\nmake docs\n", id="ln-in-comment"),
+        pytest.param("#!/bin/sh\nmake docs  # never ln -s into ~/.claude\n", id="ln-in-trailing-comment"),
+        pytest.param(
+            '#!/bin/sh\nln -sf "$HOME/dotfiles/CLAUDE.md" "$HOME/.claude/CLAUDE.md"\n', id="own-file-into-runtime-root"
+        ),
+        pytest.param(
+            '#!/bin/sh\nln -sf "$PWD/tools/x" "$HOME/bin/x"\n[ -f "$HOME/.claude/settings.json" ] && echo ok\n',
+            id="runtime-file-check",
+        ),
         pytest.param(
             f"#!/bin/sh\n{LEGACY_HEADER}python3 -m vexinstall sync --target all\n", id="old-header-engine-body"
         ),
@@ -319,7 +337,7 @@ def test_doctor_reads_the_hooks_dir_core_hooks_path_names(hook_world: Env) -> No
     git(hook_world.repo, "config", "core.hooksPath", "../githooks")
     found = _hook_findings(hook_world)
     assert len(found) == 1 and _same(found[0]["path"], hook)
-    assert "./install.sh replaces only" in found[0]["detail"]
+    assert MARKED in found[0]["detail"]
 
 
 def test_doctor_global_hooks_path_skips_a_source_root_without_git(hook_world: Env) -> None:
@@ -342,7 +360,7 @@ def test_doctor_finds_the_hook_from_a_linked_worktree(hook_world: Env) -> None:
     assert (wt / ".git").is_file()
     found = _hook_findings(hook_world, source=wt)
     assert len(found) == 1 and _same(found[0]["path"], hook)
-    assert "run ./install.sh from the main checkout" in found[0]["detail"]
+    assert MARKED in found[0]["detail"]
 
 
 def test_hooks_dir_expands_tilde_and_needs_the_checkout_top(hook_world: Env) -> None:
