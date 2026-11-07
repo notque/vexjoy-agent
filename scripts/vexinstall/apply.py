@@ -34,9 +34,11 @@ from .common import (
 )
 from .context import Options, Result, guard_for, load_context, state_dir
 from .fsops import (
+    CarryLog,
     Guard,
     Trash,
     atomic_symlink,
+    carry_node_modules,
     copy_entry,
     discard_staged,
     is_busy,
@@ -169,13 +171,15 @@ def _install(a: Action, guard: Guard) -> None:
         copy_entry(src, dest, guard, a.files)
 
 
-def _replace(a: Action, trash: Trash, home: Path, guard: Guard) -> None:
+def _replace(a: Action, trash: Trash, home: Path, guard: Guard, carry: CarryLog) -> None:
     """Move the entry at ``a.dest`` to trash and install *a* there.
 
     The new copy or link is staged before the old entry moves. A live dir such as
     ~/.claude/hooks is then missing only between two renames, and stays in place when
     Windows keeps it busy or refuses the link. When the staged entry cannot be placed, the
-    old entry comes back out of trash.
+    old entry comes back out of trash. Once a new copy is in place, the node_modules dirs
+    of the old copy move into it (``carry_node_modules``): the engine never copies them,
+    and the Jev gateway needs the ones ``./install.sh`` installed.
     """
     dest = Path(a.dest)
     reason = a.reason if a.takeover else f"replaced ({a.reason})"
@@ -194,6 +198,8 @@ def _replace(a: Action, trash: Trash, home: Path, guard: Guard) -> None:
         finally:
             discard_staged(staged)
         raise
+    if trashed is not None and a.mode == "copy":
+        carry_node_modules(trashed, dest, guard, carry)
 
 
 _NOT_DONE = {"remove": "not removed", "add": "not installed"}
@@ -235,12 +241,20 @@ def _record(ledger: Ledger, a: Action, now: str) -> None:
 
 
 def execute_target(
-    tp: TargetPlan, ctx: Context, trash: Trash, guard: Guard, ledger: Ledger, skip: set[str], failed: list[str]
+    tp: TargetPlan,
+    ctx: Context,
+    trash: Trash,
+    guard: Guard,
+    ledger: Ledger,
+    skip: set[str],
+    failed: list[str],
+    carry: CarryLog,
 ) -> None:
     """Carry out one target's plan. Ops are atomic per file; ledger updated in memory.
 
     An entry whose op fails with an OSError (a dir Windows keeps busy, a full disk) stays as
     it was and keeps its ledger record. Its line goes to *failed*, and the other entries run.
+    Replaced copies log the node_modules dirs they carried over to *carry*.
     """
     now = utc_iso()
     home = ctx.home
@@ -270,7 +284,7 @@ def execute_target(
             if a.op == "replace" and a.mode == "symlink" and os.path.islink(dest) and not a.takeover:
                 atomic_symlink(dest, Path(str(a.source)), guard)
             elif a.op == "replace":
-                _replace(a, trash, home, guard)
+                _replace(a, trash, home, guard, carry)
             elif a.op == "add":
                 _install(a, guard)
         except OSError as exc:
@@ -453,6 +467,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     pin_error: str | None = None
     failed: list[str] = []
     held_back: list[str] = []
+    carry = CarryLog()
 
     def record_point() -> None:
         rollback_mod.record(
@@ -468,7 +483,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
         try:
             for t in targets:
                 before = len(failed)
-                execute_target(plan.targets[t], ctx, trash, guard, ledger, skip, failed)
+                execute_target(plan.targets[t], ctx, trash, guard, ledger, skip, failed, carry)
                 if len(failed) > before:
                     held_back.append(t)
             if python is not None:
@@ -524,6 +539,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     report["trash"] = str(trash.dir) if trash.items else None
     report["failed"] = failed
     report["held_back"] = held_back
+    report["node_modules"] = {"carried": carry.carried, "warnings": carry.warnings}
     if guard_hit is not None:
         report["guard"] = guard_hit.path
     try:
@@ -559,6 +575,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             res.err.append(f"{tag} Windows installs need copy mode: run ./install.sh --copy")
         if not sync:
             res.code = int(ExitCode.ERROR)
+    res.err.extend(f"[{label}] warning: {line}" for line in carry.warnings)
     res.out.extend(accounts_mod.report_lines(report.get("accounts", [])))
     for a in report.get("accounts", []):
         if a.get("error"):

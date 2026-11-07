@@ -50,8 +50,15 @@ Checked against [Skills](https://docs.cline.bot/customization/skills).
   2. It records the move in the trash manifest.
   3. It moves the old entry to trash.
   4. It renames the staged entry into place.
+  5. For a copy, it moves the old copy's `node_modules` dirs into the new one (see **npm dependencies**).
 
   A dir such as `~/.claude/hooks` is missing only between the two renames. If the staged entry cannot be placed, the old entry comes back out of trash. If that also fails, the error says where in trash the old entry is, and the next run installs the entry again. A move that fails or is undone leaves no record behind, and a trash session left empty is removed. So the rollback point a run records never names an empty session.
+- **npm dependencies.** The engine never copies or hashes `node_modules` (`IGNORE_NAMES`). `./install.sh` runs `npm ci` in the repo's `scripts/jev_gateway` and in each copied one under `~/.claude`, `~/.codex`, `~/.factory`, `~/.hermes`, and `~/.reasonix`. A copy-mode replace swaps a whole entry: `<root>/scripts` after any change under `scripts/` for a whole-dir target, or `<root>/scripts/jev_gateway` after a change there for a per-entry target. Once the new copy is in place, the replace moves each `node_modules` dir of the old copy, now in trash, into the same dir of the new copy (`fsops.carry_node_modules`). The Jev gateway keeps its dependencies across pulls, so `/d` keeps working without another `./install.sh`.
+  - Only a dir physically inside the old copy moves, never one reached through a link or junction. The `node_modules` behind a link install belongs to the checkout.
+  - The new copy must still ship that package's `package.json`. Otherwise the dir stays in trash with the old copy.
+  - A changed `package-lock.json` still moves the old dependencies, so `/d` keeps working as it does on a link install. `apply` and `sync` warn: `<dir> predates the new package-lock.json; run ./install.sh to update it`.
+  - A dir that cannot move stays in trash, and the warning says where. `sync` never runs `npm ci`: it must finish inside the 18 s SessionStart timeout.
+  - The report lists each move under `node_modules`. A moved dir never reads as a user edit, because the copy hash skips `node_modules`.
 - **Busy paths.** Windows refuses to rename a dir while another process holds a file in it open or works inside it, such as a running hook, a virus scanner, or a terminal. It also refuses to replace a file another process has open. Engine renames and file replaces retry these errors (5 and 32) for about 3 s.
 - **Failed entries.** An entry that still fails stays as it was and keeps its ledger record, and the rest of the run goes on.
   - A target with a failed entry keeps its settings and hook registrations (`settings.json`, profile settings, external hook configs) as they were. A registration must never point at a hook file that did not install.

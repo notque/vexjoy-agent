@@ -15,7 +15,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .common import GuardError, is_inside, iter_tree_files, parse_ts, realpath, utc_iso
+from .common import (
+    GuardError,
+    file_sha256,
+    is_ignored_name,
+    is_inside,
+    iter_tree_files,
+    parse_ts,
+    realpath,
+    utc_iso,
+)
 
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
@@ -266,6 +275,76 @@ def copy_entry(src: Path, dest: Path, guard: Guard, files: tuple[str, ...] | Non
     if os.path.lexists(dest):
         raise FileExistsError(errno.EEXIST, "dest exists", str(dest))
     place_staged(stage_copy(src, dest, guard, files), dest)
+
+
+NODE_MODULES = "node_modules"
+
+
+@dataclass
+class CarryLog:
+    """node_modules dirs that replaces moved into their new copies, and warning lines for the rest."""
+
+    carried: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+
+def _package_dirs(old: Path) -> list[Path]:
+    """Dirs of the copy *old*, itself included, that hold a node_modules dir.
+
+    Only dirs physically inside *old* count. A link or junction, at *old* or below it,
+    can lead into the repo or another checkout, whose node_modules must stay put.
+    Ignored names, node_modules included, are not entered.
+    """
+
+    def real(path: str | Path) -> str:
+        return os.path.normcase(realpath(path))
+
+    top = real(old)
+    if top != os.path.join(real(old.parent), os.path.normcase(old.name)):
+        return []
+    found: list[Path] = []
+    for dirpath, dirnames, _files in os.walk(old, followlinks=False):
+        if NODE_MODULES in dirnames and is_inside(real(dirpath), top):
+            found.append(Path(dirpath))
+        dirnames[:] = [d for d in dirnames if not is_ignored_name(d)]
+    return found
+
+
+def _lock_digest(package: Path) -> str | None:
+    """sha256 of the package's package-lock.json; None when it is missing or unreadable."""
+    try:
+        return file_sha256(package / "package-lock.json")
+    except OSError:
+        return None
+
+
+def carry_node_modules(old: Path, new: Path, guard: Guard, log: CarryLog) -> None:
+    """Move each node_modules dir of the replaced copy *old*, now in trash, into the same dir of *new*.
+
+    The engine never copies or hashes node_modules (``IGNORE_NAMES``), so without this a
+    replace leaves what ``npm ci`` installed in trash with the old copy. The Jev gateway
+    then fails until ``./install.sh`` runs again. A dir moves only when *new* still ships
+    that package's ``package.json`` and has no node_modules there; otherwise it stays in
+    trash with the old copy. A changed ``package-lock.json`` still moves the old deps and
+    logs a warning to run ``./install.sh``.
+
+    Never raises OSError: *new* is already in place, so a dir that cannot move only logs
+    a warning that names where it is in trash.
+    """
+    for package in _package_dirs(old):
+        into = new / package.relative_to(old)
+        src, dst = package / NODE_MODULES, into / NODE_MODULES
+        if not os.path.isfile(into / "package.json") or os.path.lexists(dst):
+            continue
+        try:
+            guard.check(dst)
+            retry_rename(src, dst)
+        except OSError as exc:
+            log.warnings.append(f"{dst} not carried over ({exc}); the old one is in trash at {src}; run ./install.sh")
+            continue
+        log.carried.append(str(dst))
+        if _lock_digest(package) != _lock_digest(into):
+            log.warnings.append(f"{dst} predates the new package-lock.json; run ./install.sh to update it")
 
 
 @dataclass
