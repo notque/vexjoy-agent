@@ -127,14 +127,17 @@ vexinstall() {
 # The engine restores the rollback point that this script's last apply and prune (or uninstall)
 # recorded: every trash session of that run and the settings.json backup it took. The newest
 # trash session and backup on disk are often a later sync's, so they are never picked by date.
-# Undoing an uninstall also writes back the post-merge hook that the uninstall removed.
+# Undoing an uninstall also writes back the post-merge hook that the uninstall removed. The engine
+# prints its "[rollback] run <id> (...)" line only for a run it has rolled back and marked done, so
+# the hook comes back on exit 1 too (a trash session or backup was gone): no later --rollback could.
 rollback() {
     local -a args=(rollback)
     local out rc=0
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     out=$(vexinstall "${args[@]}") || rc=$?
     [ -z "$out" ] || printf '%s\n' "$out"
-    if [ "$rc" -eq 0 ] && [ "$DRY_RUN" = false ] && [[ $out == "[rollback] run "*"(uninstall)"* ]]; then
+    # Only the first line: a later "skipped: <path>" line may hold any text.
+    if [ "$DRY_RUN" = false ] && [[ ${out%%$'\n'*} == "[rollback] run "*" (uninstall)" ]]; then
         install_git_hooks
     fi
     return "$rc"

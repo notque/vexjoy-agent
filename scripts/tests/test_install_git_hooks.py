@@ -9,8 +9,10 @@ uninstall writes it again.
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -109,11 +111,52 @@ def test_nothing_to_do(tmp_path: Path, case: str) -> None:
         assert (co / ".git" / "hooks" / "post-merge").is_file()
 
 
+UNDID_UNINSTALL = "[rollback] run install-1 (uninstall)\n  trash 1: restored 3, skipped 0 (occupied or missing)"
+
+
+@pytest.mark.parametrize(
+    ("out", "rc", "dry_run", "writes"),
+    [
+        (UNDID_UNINSTALL, 0, False, True),
+        (UNDID_UNINSTALL, 1, False, True),
+        ("[rollback] run install-1 (apply + prune)\n    skipped: /h/.claude/skills/x (uninstall)", 0, False, False),
+        ("[rollback] run install-1 was already rolled back at 2026-01-01T00:00:00Z", 0, False, False),
+        ("[rollback] would restore run install-1 (uninstall):\n  trash session 1", 0, True, False),
+        ("", 4, False, False),
+    ],
+    ids=["uninstall", "uninstall-partial", "apply-with-odd-path", "already-done", "dry-run", "guard-abort"],
+)
+def test_rollback_writes_the_hook_back_only_for_an_uninstall_it_undid(
+    out: str, rc: int, dry_run: bool, writes: bool
+) -> None:
+    # install.sh reads the engine's first line: "[rollback] run <id> (<commands>)" appears only for a
+    # run the engine rolled back and marked done, in full (exit 0) or not (exit 1).
+    func = subprocess.run(
+        ["sed", "-n", "/^rollback() {/,/^}/p", str(INSTALL_SH)], capture_output=True, text=True, check=True
+    ).stdout
+    assert func, "rollback not found in install.sh"
+    body = (
+        f"set -euo pipefail\nDRY_RUN={str(dry_run).lower()}\n"
+        f"vexinstall() {{ printf '%s\\n' {shlex.quote(out)}; return {rc}; }}\n"
+        "install_git_hooks() { echo HOOK-WRITTEN; }\n"
+        f'{func}\nrc=0; rollback || rc=$?; echo "rc=$rc"\n'
+    )
+    res = subprocess.run(
+        ["bash", "-c", body], capture_output=True, text=True, env={"PATH": "/usr/bin:/bin"}, timeout=60
+    )
+    assert res.returncode == 0, res.stderr
+    assert ("HOOK-WRITTEN" in res.stdout) is writes, res.stdout
+    assert res.stdout.rstrip().endswith(f"rc={rc}"), res.stdout
+
+
 @pytest.mark.slow
 @pytest.mark.integration
-def test_uninstall_sticks_and_rollback_puts_the_hook_back(tmp_path: Path) -> None:
+@pytest.mark.parametrize("partial", [False, True], ids=["whole", "settings-backup-gone"])
+def test_uninstall_sticks_and_rollback_puts_the_hook_back(tmp_path: Path, partial: bool) -> None:
     # A toolkit-shaped checkout with its own .git, so install.sh writes and removes hooks there
     # and never in this repo. Its engine is this repo's (scripts/vexinstall, untracked there).
+    # A rollback that cannot restore everything (exit 1) has still undone the uninstall and marked
+    # it done, so a second --rollback could never bring the hook back: it must come back now.
     co = make_repo(tmp_path / "co")
     shutil.copy2(INSTALL_SH, co / "install.sh")
     (co / "scripts" / "vexinstall").symlink_to(REPO_ROOT / "scripts" / "vexinstall")
@@ -130,11 +173,11 @@ def test_uninstall_sticks_and_rollback_puts_the_hook_back(tmp_path: Path) -> Non
         "TERM": "dumb",
     }
 
-    def install(*args: str) -> subprocess.CompletedProcess[str]:
+    def install(*args: str, rc: int = 0) -> subprocess.CompletedProcess[str]:
         res = subprocess.run(
             ["bash", str(co / "install.sh"), *args], capture_output=True, text=True, env=env, timeout=600, cwd=home
         )
-        assert res.returncode == 0, res.stdout + res.stderr
+        assert res.returncode == rc, res.stdout + res.stderr
         return res
 
     hook = co / ".git" / "hooks" / "post-merge"
@@ -145,6 +188,10 @@ def test_uninstall_sticks_and_rollback_puts_the_hook_back(tmp_path: Path) -> Non
     assert not alpha.exists()
     assert not os.path.lexists(hook), "a git pull would run the sync that reinstalls everything"
     assert (co / ".git" / "hooks" / "pre-commit").is_file(), "the private-leak gate stays"
-    rb = install("--rollback")
+    if partial:
+        state = home / ".claude" / "vexjoy"
+        point = json.loads((state / "rollback.json").read_text())
+        (state / "backups" / f"settings.{point['settings_backup']}.json").unlink()
+    rb = install("--rollback", rc=1 if partial else 0)
     assert alpha.is_file()
     assert MARKER in hook.read_text(), rb.stdout
