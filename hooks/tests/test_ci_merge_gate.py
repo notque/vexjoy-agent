@@ -48,9 +48,10 @@ def test_registered_timeout_exceeds_worst_subprocess_path():
         assert isinstance(timeout, ast.Constant) and isinstance(timeout.value, int)
         subprocess_timeouts.append(timeout.value)
 
-    # With no PR number, both subprocess calls can run sequentially.
-    worst_path_ms = sum(subprocess_timeouts) * 1000
-    assert registrations[0]["timeout"] > worst_path_ms
+    # With no PR number, both subprocess calls can run sequentially. Claude Code
+    # reads the registered timeout in seconds, the same unit as subprocess.run.
+    worst_path_s = sum(subprocess_timeouts)
+    assert registrations[0]["timeout"] > worst_path_s
 
 
 def _install_fake_gh(tmp_dir: str, checks_json: str) -> str:
