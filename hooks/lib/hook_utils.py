@@ -612,13 +612,17 @@ def ensure_owner_only_file(path: Path) -> None:
         os.close(fd)
 
 
-def open_owner_only_append(path: Path):
+def open_owner_only_append(path: Path, follow_symlinks: bool = True):
     """Open ``path`` for text append, creating it 0600; an existing file is tightened only if owned.
 
     The mode is passed to os.open, so a new file is never briefly readable by
-    others, whatever the umask.
+    others, whatever the umask. ``follow_symlinks=False`` refuses a symlink at
+    ``path`` (OSError), for files in shared directories such as /tmp.
     """
-    fd = os.open(str(path), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT
+    if not follow_symlinks:
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(str(path), flags, 0o600)
     try:
         _tighten_if_owned(fd)
         return os.fdopen(fd, "a", encoding="utf-8")
@@ -636,12 +640,13 @@ def append_hook_debug_log(path: Path, line: str) -> None:
     """Append one line to a hook debug log, only when hook debugging is on.
 
     The log is created 0600. The log lives in a shared directory (/tmp), so a
-    file another account owns is never written to. Never raises.
+    file another account owns is never written to and a symlink is never
+    followed. Never raises.
     """
     if not hook_debug_enabled():
         return
     try:
-        with open_owner_only_append(path) as f:
+        with open_owner_only_append(path, follow_symlinks=False) as f:
             getuid = getattr(os, "getuid", None)
             if getuid is not None and os.fstat(f.fileno()).st_uid != getuid():
                 return

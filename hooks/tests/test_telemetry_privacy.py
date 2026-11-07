@@ -118,7 +118,8 @@ def test_prompt_capture_redacts_secret_straddling_the_cap(tmp_path):
     rows = _run_prompt_capture(prompt, tmp_path)
     assert len(rows) == 1
     assert len(rows[0]) <= 500
-    assert AWS_KEY[:10] not in rows[0]
+    # The cap leaves 9 key characters in the row; redacting after the cap would keep them.
+    assert "AKIA" not in rows[0]
 
 
 def test_secret_redact_covers_vendor_tokens_and_pem():
@@ -297,3 +298,50 @@ def test_file_backup_dirs_and_files_owner_only(tmp_path, monkeypatch):
 def test_file_backup_docstring_no_longer_claims_tmp_clears_on_reboot():
     text = (HOOKS_DIR / "pretool-file-backup.py").read_text(encoding="utf-8")
     assert "clears on reboot" not in text
+
+
+# ---------------------------------------------------------------------------
+# Review follow-ups: bounded redaction time, no symlink following in /tmp,
+# no empty backup left when the source cannot be read
+# ---------------------------------------------------------------------------
+
+
+def test_secret_redact_runs_in_linear_time_on_long_dotted_runs():
+    """Unbounded key-name quantifiers made kv/entropy quadratic (12 KB took ~10 s, past the hook timeout)."""
+    import time
+
+    import secret_redact
+
+    text = "please look at this long thing " + "a." * 6000
+    start = time.monotonic()
+    assert secret_redact.redact_text(text) == text
+    assert time.monotonic() - start < 3.0
+    key = "my_" + "api" + "_key" + "=" + "Z" * 20
+    assert "Z" * 20 not in secret_redact.redact_text(key)
+
+
+def test_hook_debug_log_does_not_follow_a_symlink(tmp_path, monkeypatch):
+    target = tmp_path / "victim.txt"
+    target.write_text("original\n")
+    os.chmod(target, 0o644)
+    log = tmp_path / "claude_hook_debug.log"
+    log.symlink_to(target)
+    monkeypatch.setenv("CLAUDE_HOOKS_DEBUG", "1")
+    hook_utils.append_hook_debug_log(log, "planted line")
+    assert target.read_text() == "original\n"
+    assert _mode(target) == 0o644
+
+
+@pytest.mark.skipif(not hasattr(os, "getuid") or os.getuid() == 0, reason="root reads any file")
+def test_file_backup_leaves_no_empty_copy_when_source_unreadable(tmp_path):
+    mod = _load_hook("pretool-file-backup.py", "pretool_file_backup_unreadable")
+    src = tmp_path / "secret.txt"
+    src.write_text("hello")
+    os.chmod(src, 0)
+    dest = tmp_path / "copy.txt"
+    try:
+        with pytest.raises(OSError):
+            mod._copy_owner_only(src, dest)
+    finally:
+        os.chmod(src, 0o600)
+    assert not dest.exists()

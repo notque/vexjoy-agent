@@ -19,6 +19,11 @@ LAST4_MIN_LEN = 12
 
 _SENSITIVE_KEY = r"(?:secret|token|passw|api[_-]?key|private|credential|auth)"
 _VALUE_CHARS = r"[A-Za-z0-9._~+/=\-]"
+# Key-name characters around the sensitive word, bounded: an unbounded run made
+# the kv and entropy patterns quadratic on long dotted or dashed tokens (12 KB
+# took ~10 s, past the hook timeout). The url-cred scheme is bounded the same
+# way. jev_redact.py still uses ``*`` in both places.
+_KEY_CHARS = r"[A-Za-z0-9_.-]{0,64}"
 
 _PATTERNS: list[tuple[str, re.Pattern[str], int]] | None = None
 
@@ -58,13 +63,15 @@ def _patterns() -> list[tuple[str, re.Pattern[str], int]]:
             ("google", re.compile(r"\b(AIza[0-9A-Za-z_-]{35})\b"), 1),
             ("stripe", re.compile(r"\b(sk_(?:live|test)_[A-Za-z0-9]{8,})\b"), 1),
             ("openai", re.compile(r"\b(sk-[A-Za-z0-9_-]{20,})\b"), 1),
-            ("url-cred", re.compile(r"\b[A-Za-z][A-Za-z0-9+.-]*://[^\s/:@]+:([^\s/@]+)@"), 1),
+            ("url-cred", re.compile(r"\b[A-Za-z][A-Za-z0-9+.-]{0,31}://[^\s/:@]+:([^\s/@]+)@"), 1),
             (
                 "kv",
                 re.compile(
-                    r"(?i)[\"']?\b(?:[A-Za-z0-9_.-]*"
+                    r"(?i)[\"']?\b(?:"
+                    + _KEY_CHARS
                     + _SENSITIVE_KEY
-                    + r"[A-Za-z0-9_.-]*)[\"']?\s*[:=]\s*[\"']?("
+                    + _KEY_CHARS
+                    + r")[\"']?\s*[:=]\s*[\"']?("
                     + _VALUE_CHARS
                     + r"{8,})"
                 ),
@@ -73,9 +80,11 @@ def _patterns() -> list[tuple[str, re.Pattern[str], int]]:
             (
                 "entropy",
                 re.compile(
-                    r"(?i)\b[A-Za-z0-9_.-]*"
+                    r"(?i)\b"
+                    + _KEY_CHARS
                     + _SENSITIVE_KEY
-                    + r"[A-Za-z0-9_.-]*\W{1,6}((?:[A-Za-z0-9+/=_-]{32,}|[0-9a-f]{32,}))"
+                    + _KEY_CHARS
+                    + r"\W{1,6}((?:[A-Za-z0-9+/=_-]{32,}|[0-9a-f]{32,}))"
                 ),
                 1,
             ),

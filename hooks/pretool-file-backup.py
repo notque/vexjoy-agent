@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.3
+# hook-version: 1.0.4
 """
 PreToolUse:Edit Hook: File Backup Before Edit
 
@@ -77,15 +77,17 @@ def _copy_owner_only(src: Path, dest: Path) -> None:
     """
     st = src.stat()
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
-    fd = os.open(str(dest), flags, 0o600)
-    fchmod = getattr(os, "fchmod", None)
-    if fchmod is not None:
-        try:
-            fchmod(fd, 0o600)
-        except OSError:
-            pass
-    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
-        shutil.copyfileobj(inp, out)
+    # Open the source first, as copy2 does, so an unreadable source leaves no empty copy.
+    with open(src, "rb") as inp:
+        fd = os.open(str(dest), flags, 0o600)
+        fchmod = getattr(os, "fchmod", None)
+        if fchmod is not None:
+            try:
+                fchmod(fd, 0o600)
+            except OSError:
+                pass
+        with os.fdopen(fd, "wb") as out:
+            shutil.copyfileobj(inp, out)
     os.utime(str(dest), ns=(st.st_atime_ns, st.st_mtime_ns))
 
 
