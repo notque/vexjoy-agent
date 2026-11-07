@@ -65,12 +65,10 @@ jobs:
           fi
       - name: routing-map regenerates identically from public sources
         run: python scripts/generate-routing-map.py && git diff --exit-code -- docs/routing-map.md
-      # Advisory until 2026-10-01: new hard gates must carry a collected
-      # CLI-level negative control or explicit debt. On 2026-10-01, remove
-      # continue-on-error and change the command to:
-      # python scripts/validate-negative-controls.py --strict
+      # Hard gate: every hard gate in this workflow carries a collected CLI-level
+      # negative control, or explicit debt in scripts/negative-control-allowlist.txt.
+      # --strict also fails on that debt; switch to it once the allowlist is empty.
       - run: python scripts/validate-negative-controls.py
-        continue-on-error: true
       # Advisory (always exit 0): merged tracked+local index — phantom files, dead
       # agent refs, missing category/description, "NOT: " doubling, category
       # registry. Gate later with --strict (ADR router-improvement-program, C2).
