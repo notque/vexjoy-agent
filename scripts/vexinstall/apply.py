@@ -764,9 +764,14 @@ def run_prune(opts: Options) -> Result:
 
 
 def _restore_session(
-    ctx: Context, sdir: Path, ledger: Ledger, ts: str, displaced: Trash, reason: str
+    ctx: Context, sdir: Path, ledger: Ledger, ts: str, displaced: Trash, reason: str, carry: CarryLog
 ) -> tuple[list[str], list[str]]:
-    """Put trash session *ts* back. An engine-owned occupant moves to *displaced* and leaves *ledger*."""
+    """Put trash session *ts* back. An engine-owned occupant moves to *displaced* and leaves *ledger*.
+
+    The occupant's node_modules dirs then move into the entry restored in its place: the
+    replace that trashed that entry moved its node_modules into the occupant.
+    """
+    moved: dict[str, Path] = {}
 
     def clear(path: Path) -> bool:
         p = str(path)
@@ -776,12 +781,16 @@ def _restore_session(
             owned_here = bool(children) and all(os.path.join(p, c) in ledger.entries for c in children)
         if not owned_here:
             return False
-        displaced.move(path, ctx.home, reason)
+        moved[p] = displaced.move(path, ctx.home, reason)
         for d in [d for d in ledger.entries if d == p or d.startswith(p + os.sep)]:
             ledger.entries.pop(d)
         return True
 
-    return restore_trash(sdir / "trash", ts, displaced.guard, clear)
+    restored, skipped = restore_trash(sdir / "trash", ts, displaced.guard, clear)
+    for orig in restored:
+        if orig in moved:
+            carry_node_modules(moved[orig], Path(orig), displaced.guard, carry)
+    return restored, skipped
 
 
 def run_restore_trash(opts: Options) -> Result:
@@ -803,7 +812,8 @@ def run_restore_trash(opts: Options) -> Result:
             ledger = led or Ledger()
             displaced = Trash(root=sdir / "trash", ts=utc_ts(), guard=guard)
             reason = f"displaced by restore-trash {opts.ts}"
-            restored, skipped = _restore_session(ctx, sdir, ledger, opts.ts, displaced, reason)
+            carry = CarryLog()
+            restored, skipped = _restore_session(ctx, sdir, ledger, opts.ts, displaced, reason, carry)
             ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
     except FileNotFoundError:
         return Result(code=int(ExitCode.USAGE), err=[f"no trash session {opts.ts}"])
@@ -813,7 +823,13 @@ def run_restore_trash(opts: Options) -> Result:
     if displaced.items:
         out.append(f"  displaced {len(displaced.items)} engine entries to trash {displaced.ts}")
     out.extend(f"  skipped: {s}" for s in skipped)
-    return Result(out=out, data={"restored": restored, "skipped": skipped, "displaced_ts": displaced.ts})
+    data = {
+        "restored": restored,
+        "skipped": skipped,
+        "displaced_ts": displaced.ts,
+        "node_modules": {"carried": carry.carried, "warnings": carry.warnings},
+    }
+    return Result(out=out, err=[f"[restore-trash] warning: {w}" for w in carry.warnings], data=data)
 
 
 def run_restore_settings(opts: Options) -> Result:
@@ -885,7 +901,14 @@ def run_rollback(opts: Options) -> Result:
     guard = guard_for(ctx)
     out: list[str] = []
     err: list[str] = []
-    data: dict = {"restored": [], "skipped": [], "missing": [], "failed": []}
+    carry = CarryLog()
+    data: dict = {
+        "restored": [],
+        "skipped": [],
+        "missing": [],
+        "failed": [],
+        "node_modules": {"carried": carry.carried, "warnings": carry.warnings},
+    }
     try:
         with engine_lock(sdir / "lock", guard, blocking=True, timeout=APPLY_LOCK_TIMEOUT_S):
             point, why = _rollback_point(sdir)
@@ -904,7 +927,7 @@ def run_rollback(opts: Options) -> Result:
                         err.append(f"[rollback] trash session {ts} is gone (trash is kept {TRASH_RETENTION_DAYS} days)")
                         continue
                     try:
-                        restored, skipped = _restore_session(ctx, sdir, ledger, ts, displaced, reason)
+                        restored, skipped = _restore_session(ctx, sdir, ledger, ts, displaced, reason, carry)
                     except (OSError, ValueError, LookupError, TypeError, AttributeError) as exc:
                         data["failed"].append(ts)
                         err.append(
@@ -940,4 +963,6 @@ def run_rollback(opts: Options) -> Result:
         return Result(code=int(ExitCode.GUARD), err=[f"[rollback] ABORT {exc}"])
     except LockTimeoutError as exc:
         return Result(code=int(exc.exit_code), err=[str(exc)])
-    return Result(code=int(ExitCode.ERROR) if err else 0, out=out, err=err, data=data)
+    code = int(ExitCode.ERROR) if err else 0  # a node_modules left in trash only warns
+    err.extend(f"[rollback] warning: {w}" for w in carry.warnings)
+    return Result(code=code, out=out, err=err, data=data)

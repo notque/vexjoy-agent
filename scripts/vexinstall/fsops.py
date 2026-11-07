@@ -282,29 +282,36 @@ NODE_MODULES = "node_modules"
 
 @dataclass
 class CarryLog:
-    """node_modules dirs that replaces moved into their new copies, and warning lines for the rest."""
+    """node_modules dirs moved from a copy in trash into the live copy, and warning lines for the rest."""
 
     carried: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 
-def _package_dirs(old: Path) -> list[Path]:
-    """Dirs of the copy *old*, itself included, that hold a node_modules dir.
+def _real(path: str | Path) -> str:
+    return os.path.normcase(realpath(path))
 
-    Only dirs physically inside *old* count. A link or junction, at *old* or below it,
-    can lead into the repo or another checkout, whose node_modules must stay put.
+
+def _inside(path: str | Path, top: Path) -> bool:
+    """True when *path* lies physically inside *top* and *top* is no link or junction itself.
+
+    A link or junction can lead into the repo or another checkout, whose node_modules
+    must stay put and must never receive one.
+    """
+    top_real = _real(top)
+    if top_real != os.path.join(_real(top.parent), os.path.normcase(top.name)):
+        return False
+    return is_inside(_real(path), top_real)
+
+
+def _package_dirs(copy: Path) -> list[Path]:
+    """Dirs physically inside *copy*, itself included, that hold a node_modules dir.
+
     Ignored names, node_modules included, are not entered.
     """
-
-    def real(path: str | Path) -> str:
-        return os.path.normcase(realpath(path))
-
-    top = real(old)
-    if top != os.path.join(real(old.parent), os.path.normcase(old.name)):
-        return []
     found: list[Path] = []
-    for dirpath, dirnames, _files in os.walk(old, followlinks=False):
-        if NODE_MODULES in dirnames and is_inside(real(dirpath), top):
+    for dirpath, dirnames, _files in os.walk(copy, followlinks=False):
+        if NODE_MODULES in dirnames and _inside(dirpath, copy):
             found.append(Path(dirpath))
         dirnames[:] = [d for d in dirnames if not is_ignored_name(d)]
     return found
@@ -319,32 +326,35 @@ def _lock_digest(package: Path) -> str | None:
 
 
 def carry_node_modules(old: Path, new: Path, guard: Guard, log: CarryLog) -> None:
-    """Move each node_modules dir of the replaced copy *old*, now in trash, into the same dir of *new*.
+    """Move each node_modules dir of the copy *old*, now in trash, into the same dir of the live copy *new*.
 
     The engine never copies or hashes node_modules (``IGNORE_NAMES``), so without this a
-    replace leaves what ``npm ci`` installed in trash with the old copy. The Jev gateway
-    then fails until ``./install.sh`` runs again. A dir moves only when *new* still ships
-    that package's ``package.json`` and has no node_modules there; otherwise it stays in
-    trash with the old copy. A changed ``package-lock.json`` still moves the old deps and
-    logs a warning to run ``./install.sh``.
+    replace leaves what ``npm ci`` installed in trash with the old copy, and the Jev gateway
+    fails until ``./install.sh`` runs again. A restore calls it the other way round.
 
-    Never raises OSError: *new* is already in place, so a dir that cannot move only logs
-    a warning that names where it is in trash.
+    A dir moves only when *new* ships the same ``package.json`` dir with a byte-identical
+    ``package-lock.json`` and no node_modules yet, so a node_modules always matches the lock
+    beside it, as ``npm ci`` leaves it. A changed lock leaves the dir with *old* and logs a
+    warning to run ``./install.sh``; a package that left the repo leaves it there silently.
+
+    Never raises OSError: *new* is already in place, so a dir that cannot move only logs a
+    warning that says where it is.
     """
     for package in _package_dirs(old):
         into = new / package.relative_to(old)
         src, dst = package / NODE_MODULES, into / NODE_MODULES
-        if not os.path.isfile(into / "package.json") or os.path.lexists(dst):
+        if not _inside(into, new) or not os.path.isfile(into / "package.json") or os.path.lexists(dst):
+            continue
+        if _lock_digest(package) != _lock_digest(into):
+            log.warnings.append(f"{dst} not carried over: package-lock.json changed; run ./install.sh (old one: {src})")
             continue
         try:
             guard.check(dst)
             retry_rename(src, dst)
         except OSError as exc:
-            log.warnings.append(f"{dst} not carried over ({exc}); the old one is in trash at {src}; run ./install.sh")
+            log.warnings.append(f"{dst} not carried over ({exc}); run ./install.sh (old one: {src})")
             continue
         log.carried.append(str(dst))
-        if _lock_digest(package) != _lock_digest(into):
-            log.warnings.append(f"{dst} predates the new package-lock.json; run ./install.sh to update it")
 
 
 @dataclass
