@@ -123,14 +123,14 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Installs into `~/.claude/` and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, and `~/.reasonix/` when the runtime command is on PATH or its home directory exists. `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the repo re-syncs through the same engine. Symlinks (default in a git checkout) follow `git pull`; `--copy` gives a stable snapshot.
+Installs into `~/.claude/` and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, and `~/.reasonix/` when the runtime command is on PATH or its home directory exists. `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the repo re-syncs through the same engine. Symlinks (default in a git checkout on Linux and macOS) follow `git pull`; `--copy` gives a stable snapshot and is the default on Windows.
 
 | Flag | Effect |
 |---|---|
 | `--dry-run` | Print the plan; write nothing |
 | `--target <t>` | Only `claude`, `codex`, `factory`, `hermes`, `reasonix`, or `all` |
 | `--no-takeover` | Leave old unowned copies in place (default: move them to trash and replace) |
-| `--uninstall` / `--rollback` | Remove owned entries / restore the newest trash and settings backup |
+| `--uninstall` / `--rollback` | Remove owned entries and, with no `--target`, rename install.sh's post-merge hook so git skips it / restore the newest trash and settings backup |
 
 Layout and safety rules: [docs/installer-layout.md](docs/installer-layout.md).
 

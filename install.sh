@@ -6,10 +6,11 @@
 # anything it removes to ~/.claude/vexjoy/trash/. Layout: docs/installer-layout.md.
 #
 # Usage:
-#   ./install.sh                     # apply (symlink mode for a main checkout, else copy)
+#   ./install.sh                     # apply (symlink mode for a main checkout off Windows, else copy)
 #   ./install.sh --symlink|--copy    # choose the mode (recorded in the ledger)
 #   ./install.sh --dry-run           # show the plan; write nothing
-#   ./install.sh --uninstall         # remove every engine-owned entry (to trash)
+#   ./install.sh --uninstall         # remove every engine-owned entry (to trash); with no --target,
+#                                    # also rename install.sh's post-merge hook so git skips it
 #   ./install.sh --rollback          # restore the newest settings backup and trash session
 #   ./install.sh --migrate-overlays  # write ~/.claude/vexjoy/overlays.json, then exit
 #                                    # (apply runs it when overlays.json is missing and
@@ -44,10 +45,12 @@ usage() {
     cat << 'EOF'
 Usage: ./install.sh [options]
 
-  --symlink            Link entries to this checkout (default for a main git checkout)
-  --copy               Copy entries (default for worktrees and /tmp checkouts)
+  --symlink            Link entries to this checkout (default for a main git checkout off Windows)
+  --copy               Copy entries (default on Windows and for worktrees and /tmp checkouts)
   --dry-run            Print the vexinstall plan; write nothing
-  --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
+  --uninstall          Move every engine-owned entry to trash; remove owned settings hooks.
+                       With no --target, also rename install.sh's post-merge git hook so
+                       git skips it. The pre-commit private-leak gate stays.
   --rollback           Restore the newest settings.json backup and the newest trash session
   --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
   --no-takeover        Leave unowned entries at desired paths in place (default: trash and replace)
@@ -225,6 +228,59 @@ exit 0
 HOOK
 }
 
+# main_hooks_dir: the dir install.sh writes hooks to, <main checkout>/.git/hooks. From a linked worktree
+# it asks git for the main .git, since git runs the main checkout's hooks for merges in every worktree.
+# Prints nothing without .git or for a submodule (install.sh never writes hooks there). Fails when
+# .git is a file git cannot read.
+main_hooks_dir() {
+    local common
+    if [ -d "${SCRIPT_DIR}/.git" ]; then
+        printf '%s\n' "${SCRIPT_DIR}/.git/hooks"
+    elif [ -f "${SCRIPT_DIR}/.git" ]; then
+        common=$(git -C "$SCRIPT_DIR" rev-parse --git-common-dir 2> /dev/null) && [ -n "$common" ] \
+            && common=$(cd "$SCRIPT_DIR" && cd "$common" && pwd) || return 1
+        [ "${common##*/}" != ".git" ] || printf '%s\n' "${common}/hooks"
+    fi
+}
+
+# Uninstall without --target renames our post-merge to post-merge.vexjoy-removed.<UTC time>, which git
+# never runs: its `sync --target all` (or a pre-engine hook's `ln -s` loop) would re-install everything on
+# the next pull. A --target uninstall keeps it, since that sync re-installs the target either way and the
+# targets still installed need it. The pre-commit private-leak gate stays: it installs nothing.
+# When a marked post-merge may still run, GIT_HOOK_PROBLEM says why, and the uninstall exits 1.
+uninstall_git_hooks() {
+    local dir name hook ts
+    if [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ]; then
+        echo -e "${YELLOW}  Git hooks skipped (VEXJOY_NO_GIT_HOOKS=1)${NC}"
+        return 0
+    fi
+    if ! dir=$(main_hooks_dir); then
+        GIT_HOOK_PROBLEM="Git hooks not checked: git cannot read ${SCRIPT_DIR}/.git; run ./install.sh --uninstall in the main checkout too"
+        echo -e "${YELLOW}  ⚠ ${GIT_HOOK_PROBLEM}${NC}"
+        return 0
+    fi
+    ts=$(date -u +%Y%m%dT%H%M%SZ)
+    [ -n "$dir" ] || return 0
+    for name in post-merge pre-commit; do
+        hook="${dir}/${name}"
+        [ -e "$hook" ] || continue
+        if ! grep -q "Written by vexjoy-agent" "$hook" 2> /dev/null; then
+            echo -e "  Keeping ${name} hook (not written by vexjoy-agent): ${hook}"
+        elif [ "$name" = pre-commit ]; then
+            echo -e "  Keeping pre-commit hook (the private-leak gate installs nothing; delete it to stop the check): ${hook}"
+        elif [ "$TARGET" != all ]; then
+            echo -e "${YELLOW}  Keeping post-merge hook (a --target uninstall keeps it; its sync re-installs every present target on each pull): ${hook}${NC}"
+        elif [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would rename post-merge hook to ${hook}.vexjoy-removed.${ts}${NC}"
+        elif mv -f "$hook" "${hook}.vexjoy-removed.${ts}"; then
+            echo -e "${GREEN}  ✓ Renamed post-merge hook to ${hook}.vexjoy-removed.${ts}; git does not run it${NC}"
+        else
+            GIT_HOOK_PROBLEM="${hook} is still in place: delete it, or the next pull re-installs everything"
+            echo -e "${YELLOW}  ⚠ Could not rename post-merge hook: ${hook}${NC}"
+        fi
+    done
+}
+
 # pip_requirements PYTHON: install requirements.txt into PYTHON; --break-system-packages when pip knows
 # it, then --user as a fallback. Prints the manual command on failure.
 pip_requirements() {
@@ -326,10 +382,14 @@ uninstall_no_agent_summary() {
     echo -e "${GREEN}  ✓ no-agent-summary: removed ${NAS_HOOK}${NC}"
 }
 
-# Git hooks first: a pre-engine post-merge links repo items into runtime roots on every pull,
-# so replacing it must not wait for a working python or a successful apply.
+# Git hooks first, so neither a missing python nor a failed engine run leaves the wrong post-merge:
+# apply replaces a pre-engine one, which links repo items into runtime roots on every pull, and
+# uninstall renames ours, since its sync would re-install everything on the next pull.
+GIT_HOOK_PROBLEM=""
 if [ "$ACTION" = "apply" ] && [ "$DRY_RUN" = false ] && [ "$CONFIGURE_ONLY" = false ]; then
     install_git_hooks
+elif [ "$ACTION" = "uninstall" ]; then
+    uninstall_git_hooks
 fi
 
 check_python
@@ -346,7 +406,11 @@ if [ "$ACTION" = "uninstall" ]; then
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
     [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
-    exit $?
+    if [ -n "$GIT_HOOK_PROBLEM" ]; then
+        echo -e "${RED}⚠ ${GIT_HOOK_PROBLEM}${NC}"
+        exit 1
+    fi
+    exit 0
 fi
 
 if [ "$ACTION" = "rollback" ]; then
