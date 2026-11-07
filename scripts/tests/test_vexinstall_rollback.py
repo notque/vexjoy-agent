@@ -173,6 +173,22 @@ def test_missing_trash_or_backup_is_reported(world: Env) -> None:
     assert _point(world)["restored_at"]
 
 
+def test_a_damaged_session_is_reported_and_the_rest_still_comes_back(world: Env) -> None:
+    alpha, _ = _user_home(world)
+    gone = world.skills("claude") / "gone-skill"
+    gone.symlink_to(world.home / "nowhere")
+    _ok(world.run("apply", "--target", "claude", "--takeover", "--run-id", "run-1"))
+    _ok(world.run("prune", "--unowned", "--confirm", "--target", "claude", "--run-id", "run-1"))
+    apply_ts, prune_ts = _point(world)["trash"]
+    (_state(world) / "trash" / prune_ts / "manifest.json").write_text("{not json")
+    res = world.run("rollback")
+    assert res.code == 1, res
+    assert any(prune_ts in line and "not fully restored" in line for line in res.err), res.err
+    assert _users_alpha_is_back(alpha) and not os.path.lexists(gone)
+    assert str(alpha) not in world.ledger_dests("claude"), "the displaced entry left the saved ledger"
+    assert res.data["failed"] == [prune_ts] and apply_ts not in res.data["failed"]
+
+
 def test_damaged_point_never_names_a_path_outside_the_state_dir(world: Env) -> None:
     sdir = _state(world)
     sdir.mkdir(parents=True, exist_ok=True)

@@ -714,7 +714,7 @@ def run_rollback(opts: Options) -> Result:
     guard = guard_for(ctx)
     out: list[str] = []
     err: list[str] = []
-    data: dict = {"restored": [], "skipped": [], "missing": []}
+    data: dict = {"restored": [], "skipped": [], "missing": [], "failed": []}
     try:
         with engine_lock(sdir / "lock", guard, blocking=True, timeout=APPLY_LOCK_TIMEOUT_S):
             point, why = _rollback_point(sdir)
@@ -726,18 +726,27 @@ def run_rollback(opts: Options) -> Result:
             ledger = led or Ledger()
             displaced = Trash(root=sdir / "trash", ts=utc_ts(), guard=guard)
             reason = f"displaced by rollback of run {point.run}"
-            for ts in reversed(point.trash):
-                try:
-                    restored, skipped = _restore_session(ctx, sdir, ledger, ts, displaced, reason)
-                except FileNotFoundError:
-                    data["missing"].append(ts)
-                    err.append(f"[rollback] trash session {ts} is gone (trash is kept {TRASH_RETENTION_DAYS} days)")
-                    continue
-                data["restored"].extend(restored)
-                data["skipped"].extend(skipped)
-                out.append(f"  trash {ts}: restored {len(restored)}, skipped {len(skipped)} (dest occupied or missing)")
-                out.extend(f"    skipped: {s}" for s in skipped)
-            ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
+            try:
+                for ts in reversed(point.trash):
+                    if not (sdir / "trash" / ts / "manifest.json").is_file():
+                        data["missing"].append(ts)
+                        err.append(f"[rollback] trash session {ts} is gone (trash is kept {TRASH_RETENTION_DAYS} days)")
+                        continue
+                    try:
+                        restored, skipped = _restore_session(ctx, sdir, ledger, ts, displaced, reason)
+                    except (OSError, ValueError, LookupError, TypeError, AttributeError) as exc:
+                        data["failed"].append(ts)
+                        err.append(
+                            f"[rollback] trash session {ts} not fully restored ({type(exc).__name__}: {exc});"
+                            f" finish with restore-trash {ts}"
+                        )
+                        continue
+                    data["restored"].extend(restored)
+                    data["skipped"].extend(skipped)
+                    out.append(f"  trash {ts}: restored {len(restored)}, skipped {len(skipped)} (occupied or missing)")
+                    out.extend(f"    skipped: {s}" for s in skipped)
+            finally:  # entries already displaced must leave the ledger even when a session fails
+                ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
             if point.settings_backup:
                 spath = ctx.home / ".claude" / "settings.json"
                 try:
