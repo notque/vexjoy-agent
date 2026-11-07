@@ -80,7 +80,7 @@ Before editing, read the applicable sources below. Reuse them while unchanged; r
 - **Write Go/Python/TypeScript application code** — domain agents handle application development (golang-general-engineer, python-general-engineer, typescript-frontend-engineer)
 - **Create brand-new agents or skills from scratch** — toolkit skill handles new component creation with proper template scaffolding
 - **Manage CI/CD or deployment** — devops and infrastructure agents handle build pipelines and deployment
-- **Review external pull requests** — reviewer agents (reviewer-security, reviewer-code-quality, etc.) handle PR review with specialized domain knowledge
+- **Review external pull requests** — reviewer agents (reviewer-code, reviewer-system, reviewer-domain, reviewer-perspectives) handle PR review with specialized domain knowledge
 - **Modify the routing system's core logic** — the /do router's implementation is separate from the routing tables this agent manages
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent.
@@ -123,7 +123,7 @@ Load the relevant reference file before starting any governance task:
 
 ### Cross-Component Consistency Check
 
-1. **SCAN**: Glob for all agents (`agents/*.md`) and skills (`skills/*/SKILL.md`, `skills/workflow/references/*.md`)
+1. **SCAN**: Glob for all agents (`agents/*.md`) and skills (`skills/*/*/SKILL.md`, `skills/process/workflow/references/*.md`)
 2. **EXTRACT**: Parse YAML frontmatter from each component
 3. **CHECK**: Compare against required fields, validate cross-references, check routing coverage
 4. **REPORT**: Output compliance summary with specific issues and suggested fixes using the Governance Report format below
@@ -172,13 +172,19 @@ Use this format for consistency checks, audits, and multi-file operations. Singl
 
 ## Agent Reference File Validation
 
-When creating or modifying any agent that has a `references/` directory, run these two commands before committing. They cover the structural and progressive-disclosure checks the CI workflow enforces on PR.
+When creating or modifying any agent that has a `references/` directory, run these commands before committing. They cover the structural and orphan-file checks the CI workflow enforces on PR.
 
 ```bash
-# Structural checks: filenames, frontmatter, line counts, loading tables.
+# Structural checks: declared reference files exist, sizes, structure.
 python3 scripts/validate-references.py --agent {agent-name}
 
-# Progressive-disclosure behavior: agent loads the correct reference per signal.
+# Orphans: reference files on disk that no agent declares.
+python3 scripts/validate-references.py --all
+
+# Loading-table completeness (table rows match files on disk). Covers only
+# react-native-engineer, typescript-frontend-engineer, and
+# performance-optimization-engineer; for any other agent -k selects 0 tests
+# and pytest exits 5, which is not a pass.
 python3 -m pytest scripts/tests/test_reference_loading.py -k {agent-name}
 ```
 

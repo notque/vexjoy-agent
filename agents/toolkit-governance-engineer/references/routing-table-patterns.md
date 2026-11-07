@@ -135,7 +135,7 @@ for f in glob.glob('agents/*.md'):
         fm = yaml.safe_load(txt.split('---')[1])
         pairs = fm.get('routing', {}).get('pairs_with', [])
         for p in pairs:
-            if not os.path.exists(f'agents/{p}.md') and not os.path.exists(f'skills/{p}/SKILL.md'):
+            if not os.path.exists(f'agents/{p}.md') and not glob.glob(f'skills/*/{p}/SKILL.md'):
                 print(f'PHANTOM: {f} -> pairs_with: {p}')
     except: pass
 "
@@ -156,7 +156,7 @@ routing:
 
 **Preferred action:**
 
-Before committing a routing change, run `ls agents/{name}.md 2>/dev/null || ls skills/{name}/SKILL.md 2>/dev/null || echo "MISSING"` for every component in `pairs_with`. Update stale names to their current filenames, or remove entries for components that no longer exist.
+Before committing a routing change, run `ls agents/{name}.md 2>/dev/null || ls skills/*/{name}/SKILL.md 2>/dev/null || echo "MISSING"` for every component in `pairs_with`. Update stale names to their current filenames, or remove entries for components that no longer exist.
 
 **Preferred action**: Run the detection script above. For each phantom entry, either update to the current component name or remove the entry.
 
@@ -285,7 +285,7 @@ for f in glob.glob('agents/*.md'):
     try:
         fm = yaml.safe_load(txt.split('---')[1])
         for p in fm.get('routing', {}).get('pairs_with', []):
-            if not os.path.exists(f'agents/{p}.md') and not os.path.exists(f'skills/{p}/SKILL.md'):
+            if not os.path.exists(f'agents/{p}.md') and not glob.glob(f'skills/*/{p}/SKILL.md'):
                 print(f'PHANTOM: {f} -> {p}')
     except: pass
 "

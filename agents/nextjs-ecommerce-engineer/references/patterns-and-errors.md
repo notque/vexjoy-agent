@@ -114,7 +114,7 @@ See [preferred-patterns.md](preferred-patterns.md) for full catalog.
 
 ## Anti-Rationalization
 
-See [shared-patterns/anti-rationalization-core.md](../../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
+See [shared-patterns/anti-rationalization-core.md](../../../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
 
 | Rationalization | Why Wrong | Required Action |
 |----------------|-----------|-----------------|

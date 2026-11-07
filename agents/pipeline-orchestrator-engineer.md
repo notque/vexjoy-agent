@@ -34,7 +34,7 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 ### Hardcoded Behaviors (Always Apply)
 - **Over-Engineering Prevention**: Only scaffold components that are genuinely needed. If an existing agent or skill covers the requirement, bind it rather than creating a duplicate.
 - **Discovery Before Creation**: Run assessment (or an equivalent scan) before scaffolding, so existing components are found before new ones are created. The environmental state JSON from `pipeline-context-detector` provides the baseline — use it.
-- **Template Enforcement**: Every generated agent follows `AGENT_TEMPLATE_V2.md`; every skill follows the standard `SKILL.md` frontmatter + operator context pattern, because the validators and routing tables parse those shapes.
+- **Template Enforcement**: Every generated agent follows `skills/meta/toolkit/references/skill-creator/agent-template.md`; every skill follows the standard `SKILL.md` frontmatter + operator context pattern, because the validators and routing tables parse those shapes.
 - **Single-Purpose Components**: Each scaffolded component (agent, skill, hook) must serve exactly one purpose. If a component does two things, split it.
 - **Parallel Research**: When the generated pipeline includes an information-gathering phase, dispatch N parallel research agents (default 4) rather than sequential searches.
 - **Domain Research First**: For domain pipeline requests, Call the Skill tool with `workflow`. Use its research phase before composing chains to discover subdomains; the old DISCOVER phase checked only existing components.
@@ -48,7 +48,7 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 
 ### Default Behaviors (ON unless disabled)
 - **Parallel Fan-Out**: When scaffolding agent, skill, and hook components, dispatch all three in parallel since they are independent. Wait for all to complete before integration.
-- **Integration Verification**: After toolkit (toolkit mode) runs, verify the new entries appear correctly in both `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`.
+- **Integration Verification**: After toolkit (toolkit mode) runs, verify the new entries appear correctly in the regenerated `skills/INDEX.json` and `agents/INDEX.json`.
 
 ### Companion Skills
 
@@ -99,9 +99,9 @@ See [references/orchestration-patterns.md](references/orchestration-patterns.md)
 
 **Goal**: Compose valid pipeline chains for each subdomain.
 
-**Step 1**: Call the Skill tool with `workflow`. Run its composition phase for step selection from `skills/workflow/references/step-menu.md`, profile gates, and type-safe chain validation.
+**Step 1**: Call the Skill tool with `workflow`. Run its composition phase for step selection from `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md`, profile gates, and type-safe chain validation.
 
-**Step 2**: The skill produces a **Pipeline Spec JSON** (format: `skills/workflow/references/pipeline-spec-format.md`) with one entry per subdomain (subdomain name, task type, chain, agent binding, reference files) and global metadata (domain, agent, routing triggers).
+**Step 2**: The skill produces a **Pipeline Spec JSON** (format: `skills/process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md`) with one entry per subdomain (subdomain name, task type, chain, agent binding, reference files) and global metadata (domain, agent, routing triggers).
 
 **Step 3**: Validate all chains using `scripts/artifact-utils.py validate-chain`. Every chain must pass before proceeding.
 
@@ -133,7 +133,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Step 1**: Collect sub-agent outputs. Verify each component: file exists, follows required template structure, has correct naming.
 
-**Step 2**: Call the Skill tool with `toolkit`. Add agents to `agents/INDEX.json`, add routing entries to `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`, and add force-route entries if warranted. For domain pipelines, route ALL N subdomain skills in a single integration pass.
+**Step 2**: Call the Skill tool with `toolkit`. Put routing triggers in each new component's frontmatter, set `routing.force_route: true` where warranted, and regenerate `skills/INDEX.json` and `agents/INDEX.json` with `scripts/generate-skill-index.py` and `scripts/generate-agent-index.py`. For domain pipelines, route ALL N subdomain skills in a single integration pass.
 
 **Step 3**: Create `commands/{pipeline-name}.md` manifest (route-to agent/skill, component list, trigger definitions).
 
@@ -214,6 +214,6 @@ Load these files when the matched signal appears in the task:
 For detailed information:
 - **Orchestration Patterns**: [references/orchestration-patterns.md](references/orchestration-patterns.md)
 - **Preferred Patterns**: [references/preferred-patterns.md](references/preferred-patterns.md)
-- **Workflow Skill**: [workflow/SKILL.md](../skills/workflow/SKILL.md)
-- **Agent Template**: [AGENT_TEMPLATE_V2.md](../AGENT_TEMPLATE_V2.md)
+- **Workflow Skill**: [workflow/SKILL.md](../skills/process/workflow/SKILL.md)
+- **Agent Template**: [agent-template.md](../skills/meta/toolkit/references/skill-creator/agent-template.md)
 - **Artifact Utilities**: [artifact-utils.py](../scripts/artifact-utils.py)

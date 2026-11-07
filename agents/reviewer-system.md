@@ -172,7 +172,7 @@ Each finding must follow this structure:
 | Skill | When to Invoke |
 |-------|---------------|
 | `review` | Systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review |
-| `comprehensive-review` | Unified 3-wave code review pipeline |
+| `workflow` | Run the `comprehensive-review` pipeline (multi-wave code review); it is a workflow pipeline, not a Skill tool target |
 | `programming` | Language-specific patterns: Go, Kotlin, PHP, Swift, TypeScript (when applicable) |
 
 ## Tool Use

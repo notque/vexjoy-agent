@@ -52,7 +52,7 @@ Parse each actionable item as a triple: (what changed, which component types are
 |--------|----------------|--------------|------|
 | New `Write` tool event type in PostToolUse | Hooks with PostToolUse | Upgrade event schema | Critical |
 | Deprecated `--json` flag in bash | Scripts using bash --json | Upgrade call sites | Important |
-| New Claude model released (e.g. `claude-<family>-<version>`) | Agents with model: sonnet | Review model field | Minor |
+| New Claude model released (e.g. `claude-<family>-<version>`) | Agents and skills with a `model:` pin | Review model field against the 2026-11-01 policy | Minor |
 ```
 
 **Why**: A manifest without the component-type column causes the AUDIT phase to scan everything.

@@ -52,7 +52,7 @@ Use each procedure where it applies; do not load every owner at dispatch or repe
 | Check evidence and completion claims | `skills/process/testing/SKILL.md` |
 | Review scope and reuse | `skills/process/pr-workflow/references/pr-risk-policy.md` |
 | Commit, PR, CI, and merge | `skills/process/pr-workflow/SKILL.md` |
-| Context transfer | `skills/process/workflow/references/pl-context-boundary.md` and `skills/process/process/references/process.md` |
+| Context transfer | `skills/process/workflow/references/pl-context-boundary.md` and `skills/process/process/SKILL.md` (Handoff mode) |
 
 Keep domain exceptions with their domain. Follow higher-priority instructions and existing user authorization when defaults conflict; do not add another approval round.
 

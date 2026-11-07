@@ -114,7 +114,7 @@ Rules:
 
 | Pipeline | When to Invoke |
 |----------|---------------|
-| `comprehensive-review` | Multi-wave code review across all dimensions |
+| `comprehensive-review` | Multi-wave code review across all dimensions. Reach it through the `workflow` skill; it is not a Skill tool target |
 
 ## Companion Skills
 

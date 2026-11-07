@@ -4,8 +4,8 @@ Structural and design review for SAP Converged Cloud Go repos. 9 categories at t
 
 ## Required Context Loading
 Always load before reviewing:
-- `skills/go-sapcc-conventions/references/library-reference.md`
-- `skills/go-sapcc-conventions/references/go-bits-philosophy-detailed.md`
+- `skills/programming/programming/references/go/sapcc-conventions/library-reference.md`
+- `skills/programming/programming/references/go/sapcc-conventions/go-bits-philosophy-detailed.md`
 
 ## Voice
 Directive tone. "Delete this" not "consider removing this."

@@ -12,25 +12,26 @@ Agent and skill frontmatter is the contract between a component and the routing 
 
 ---
 
-## Required Fields (v2.0 Template)
+## Frontmatter Fields
 
 | Field | Type | Required In | Example |
 |-------|------|-------------|---------|
 | `name` | string | agents, skills | `name: golang-general-engineer` |
-| `version` | string (semver) | agents, skills | `version: 1.0.0` |
 | `description` | string (quoted if special chars) | agents, skills | `description: "Go dev: features, debugging"` |
 | `routing.triggers` | list of strings | agents, skills | `triggers: [edit skill, update routing]` |
-| `routing.complexity` | enum | agents, skills | `complexity: Medium` |
+| `routing.complexity` | free-form label | agents, skills | `complexity: Medium` |
 | `routing.category` | string | agents, skills | `category: meta` |
 | `allowed-tools` | list of strings (advisory for agents) | agents, skills | `allowed-tools: [Read, Glob, Grep]` |
-| `color` | string | agents | `color: blue` |
-| `model` | string | agents | `model: sonnet` |
+| `color` | string | agents (optional) | `color: blue` |
+| `model` | string | optional; omit to inherit | `model: opus` |
+
+No agent carries `version`; `validate-skill-frontmatter.py --strict` checks it on skills only. For `model`, the 2026-11-01 policy allows `opus` and `inherit`, `haiku` only on an agent whose tool list cannot change files, and `sonnet` only through an exemption in `validate_component_models.py`.
 
 ---
 
 ## Tool Lists by Agent Type (advisory)
 
-Claude Code reads `tools:` for subagents and ignores `allowed-tools:` (the skill field), so an agent's `allowed-tools` restricts nothing: every repo agent runs with all tools. The list documents the tools the role needs, and `add-companion-skills.py`, `build-subagent-spec.py`, and `validate-references.py --check-skill-calls` read it. Renaming the field to `tools:` would start enforcing it; that is an owner decision, so leave the field name alone.
+Claude Code reads `tools:` for subagents and ignores `allowed-tools:` (the skill field), so an agent's `allowed-tools` restricts nothing: every repo agent runs with all tools. The list documents the tools the role needs, and `add-companion-skills.py`, `build-subagent-spec.py`, `audit-tool-restrictions.py`, and `validate_component_models.py` read it. Renaming the field to `tools:` would start enforcing it; that is an owner decision, so leave the field name alone.
 
 | Agent Role | Listed Tools | Rationale |
 |------------|-----------------|-----------|
@@ -65,12 +66,13 @@ description: Go development and debugging
 
 ```yaml
 routing:
-  complexity: Low     # Single-file edits, read-only audits
-  complexity: Medium  # Multi-file edits, routing table updates
-  complexity: High    # Full compliance sweeps, ADR consultations
+  complexity: Medium          # Focused single-domain work
+  complexity: Medium-Complex  # Multi-file or multi-phase work
+  complexity: Complex         # Broad implementation or orchestration
+  complexity: Comprehensive   # Full audits and system-wide sweeps
 ```
 
-**Why**: Complexity matching is case-sensitive. Values outside `Low/Medium/High` are silently ignored — the router defaults to Medium.
+**Why**: These are the four values agents use today. The field is a label: `generate-agent-index.py` copies it into `agents/INDEX.json`, `list-capabilities.py` prints it, and `check-index-colocation.py` watches it for index drift. No router matches on it, so pick the closest existing value for consistency rather than inventing a new one.
 
 ---
 
@@ -116,7 +118,7 @@ routing:
 ---
 ```
 
-**Why this matters**: Without `allowed-tools`, nobody reading the agent can see its intended tool scope, `add-companion-skills.py` fails on an agent with companion skills, and `validate-references.py --check-skill-calls` cannot confirm the `Skill` tool. Claude Code grants the agent all tools either way.
+**Why this matters**: Without `allowed-tools`, nobody reading the agent can see its intended tool scope, `add-companion-skills.py` fails on an agent with companion skills, and `validate_component_models.py` rejects a `model: haiku` pin because no list shows the agent cannot write. Claude Code grants the agent all tools either way.
 
 **Preferred action:**
 
@@ -131,7 +133,7 @@ Add `allowed-tools` matched to the agent's role: reviewers get `[Read, Glob, Gre
 **Detection**:
 ```bash
 grep -n "^description: [^\"'].*:" agents/*.md
-grep -n "^description: [^\"'].*:" skills/*/SKILL.md
+grep -n "^description: [^\"'].*:" skills/*/*/SKILL.md
 ```
 
 **Signal**:
@@ -152,27 +154,26 @@ description: "Toolkit governance: edit skills, update routing"
 
 ---
 
-### Use Exact Casing for Complexity Values
+### Use an Existing Complexity Label
 
 **Detection**:
 ```bash
-grep -rn "complexity:" agents/*.md skills/*/SKILL.md | grep -vE "complexity: (Low|Medium|High)"
+grep -h "^  complexity:" agents/*.md | sort | uniq -c
 ```
 
 **Signal**:
 ```yaml
 routing:
-  complexity: moderate  # wrong casing
-  complexity: medium    # wrong casing — must be capitalized
+  complexity: moderate  # a one-off label no other agent uses
 ```
 
-**Why this matters**: Complexity matching is case-sensitive. `medium` does not match `Medium` — the router silently assigns a default.
+**Why this matters**: Nothing routes on the label, but a one-off value makes `INDEX.json` and capability listings harder to compare across agents.
 
 **Preferred action:**
 
-Use exactly `Low`, `Medium`, or `High` (capital first letter). Run `grep -rn "complexity:" agents/*.md | grep -vE "complexity: (Low|Medium|High)"` to find all mismatched values and correct them.
+Reuse one of `Medium`, `Medium-Complex`, `Complex`, or `Comprehensive`. Run `grep -h "^  complexity:" agents/*.md | sort | uniq -c` to see the labels in use and pick the closest.
 
-**Preferred action**: Use exactly `Low`, `Medium`, or `High`.
+**Preferred action**: Use a label that other agents already use.
 
 ---
 
@@ -196,30 +197,9 @@ allowed-tools:
 
 **Preferred action:**
 
-List only `Read`, `Glob`, `Grep`, and read-only `Bash` for a reviewer, and add `Edit` only when its body defines a `--fix` mode (`reviewer-code`, `reviewer-system`). Keep the read-only rule in the body. Run `grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"` and check each hit against the agent's fix mode.
+List only `Read`, `Glob`, `Grep`, and read-only `Bash` for a reviewer. Add `Edit` only when its body defines a `--fix` mode (`reviewer-code`, `reviewer-system`), and `Write` only where that mode creates files (`reviewer-code`'s test-analyzer). Keep the read-only rule in the body. Run `grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"` and check each hit against the agent's fix mode.
 
 **Preferred action**: Match each reviewer's list to its body: read-only tools by default, `Edit` only for a documented fix mode.
-
----
-
-### Bump Stable Agents to v1.0.0+
-
-**Detection**:
-```bash
-grep -rn "^version: 0\." agents/*.md
-```
-
-**Signal**:
-```yaml
-```
-
-**Why this matters**: Agents in active production use should be at `1.x.x` or higher. `0.x.x` affects coverage reporting confidence scores.
-
-**Preferred action:**
-
-Bump to `version: 1.0.0` when the agent ships its first production-ready capability. Run `grep -rn "^version: 0\." agents/*.md` to find all pre-production versioned agents that are in active routing use and need a version bump.
-
-**Preferred action**: Bump to `version: 1.0.0` once the agent is in stable use.
 
 ---
 
@@ -231,7 +211,7 @@ Bump to `version: 1.0.0` when the agent ships its first production-ready capabil
 | Agent in INDEX.json but not routed | Missing `routing.triggers` | Add `routing.triggers` list with at least one trigger string |
 | Agent changed files during a review | `allowed-tools` is advisory, so nothing blocked the write | Put the read-only rule in the agent body; the list documents intent only |
 | Description truncated in INDEX.json | Unquoted colon in description | Wrap description in double quotes |
-| Agent routes but hits wrong complexity tier | `complexity` casing mismatch | Verify exact: `Low`, `Medium`, `High` |
+| `validate_component_models.py` rejects an agent | `model` pin outside the 2026-11-01 policy | Use `opus` or `inherit`, or omit `model`; keep `haiku` for agents whose tool list cannot write |
 
 ---
 
@@ -244,20 +224,18 @@ grep -rL "allowed-tools" agents/*.md
 # Find unquoted descriptions with colons
 grep -n "^description: [^\"'].*:" agents/*.md
 
-# Find wrong complexity casing
-grep -rn "complexity:" agents/*.md | grep -vE "complexity: (Low|Medium|High)"
+# List the complexity labels in use
+grep -h "^  complexity:" agents/*.md | sort | uniq -c
 
 # Find reviewer agents that list write tools (fix-mode reviewers may list Edit)
 grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"
 
-# Find pre-production versions on deployed agents
-grep -rn "^version: 0\." agents/*.md
-
 # Validate frontmatter YAML for a single agent
 python3 -c "import yaml; yaml.safe_load(open('agents/AGENTNAME.md').read().split('---')[1])"
 
-# Scan all agents for required fields
-python3 scripts/validate-frontmatter.py --all 2>/dev/null || grep -c "^name:" agents/*.md
+# Run the agent checks CI runs (the generator rewrites the gitignored agents/INDEX.json)
+python3 scripts/generate-agent-index.py && python3 scripts/validate-index-integrity.py
+python3 scripts/validate_component_models.py
 ```
 
 ---

@@ -78,7 +78,7 @@ For TS2322 and TS2345, compare the expected and actual type structures. For race
 ### What This Agent CANNOT Do
 - **Fix Architectural Problems**: Use `typescript-frontend-engineer` or `database-engineer` for architectural redesign
 - **Performance Optimization**: Use `performance-optimization-engineer` for systematic performance tuning beyond debugging
-- **Security Vulnerabilities**: Use `reviewer-security` for security-specific debugging and fixes
+- **Security Vulnerabilities**: Use `reviewer-system` (security review) or the `security` skill for security-specific review
 - **Infrastructure Issues**: Use `kubernetes-helm-engineer` or infrastructure agents for deployment/config debugging
 
 Hand off work outside this scope to the appropriate agent.

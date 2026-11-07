@@ -34,7 +34,7 @@ Decompose multi-subdomain domains into N skills, one per subdomain, same agent. 
 
 **Detection**:
 ```bash
-grep -rn 'description:' skills/*/SKILL.md | grep ' and \| & ' | grep -v "test\|spec"
+grep -rn 'description:' skills/*/*/SKILL.md | grep ' and \| & ' | grep -v "test\|spec"
 ```
 
 ---
@@ -61,8 +61,8 @@ Phase 4 is not optional. Call the Skill tool with `toolkit`. Do this in the same
 **Detection**:
 ```bash
 comm -23 \
-  <(ls agents/*.md | xargs -I{} basename {} .md | sort) \
-  <(grep -o '`[a-z-]*-engineer\|[a-z-]*-agent`' skills/meta/do/references/routing-tables.md | tr -d '`' | sort)
+  <(ls agents/*.md | xargs -I{} basename {} .md | grep -v '^base-instructions$' | LC_ALL=C sort) \
+  <(python3 -c "import json; print('\n'.join(sorted(json.load(open('agents/INDEX.json'))['agents'])))")
 ```
 
 ---
@@ -116,13 +116,13 @@ grep -rn 'subagent_type' agents/ --include="*.md" | grep -v "spec\|manifest\|dis
 # Missing tool lists
 grep -rL 'allowed-tools' agents/*.md
 
-# Unregistered agents in routing
+# Agents missing from the generated agent index
 comm -23 \
-  <(ls agents/*.md | xargs -I{} basename {} .md | sort) \
-  <(grep -oP '[a-z-]+-engineer|[a-z-]+-agent' skills/meta/do/references/routing-tables.md | sort -u)
+  <(ls agents/*.md | xargs -I{} basename {} .md | grep -v '^base-instructions$' | LC_ALL=C sort) \
+  <(python3 -c "import json; print('\n'.join(sorted(json.load(open('agents/INDEX.json'))['agents'])))")
 
 # Multi-subdomain skills (should be split)
-grep -rn 'description:' skills/*/SKILL.md | grep ' and \| & '
+grep -rn 'description:' skills/*/*/SKILL.md | grep ' and \| & '
 
 # Missing chain validation in ADRs
 grep -rn 'validate-chain' adr/ --include="*.md"
@@ -133,5 +133,5 @@ grep -rn 'validate-chain' adr/ --include="*.md"
 ## See Also
 
 - `orchestration-patterns.md` — fan-out/fan-in patterns and gate idioms
-- `skills/workflow/references/step-menu.md` — valid steps and type signatures
+- `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md` — valid steps and type signatures
 - `scripts/artifact-utils.py` — chain validation and discovery
