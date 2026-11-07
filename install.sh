@@ -10,7 +10,7 @@
 #   ./install.sh --symlink|--copy    # choose the mode (recorded in the ledger)
 #   ./install.sh --dry-run           # show the plan; write nothing
 #   ./install.sh --uninstall         # remove every engine-owned entry (to trash)
-#   ./install.sh --rollback          # restore the newest settings backup and trash session
+#   ./install.sh --rollback          # undo the last run: restore what it trashed and its settings backup
 #   ./install.sh --migrate-overlays  # write ~/.claude/vexjoy/overlays.json, then exit
 #                                    # (apply runs it when overlays.json is missing and
 #                                    # ~/private-skills or ~/pgh/private-skills exists)
@@ -30,6 +30,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
 STATE_DIR="${CLAUDE_DIR}/vexjoy"
 RUNTIMES=(codex factory hermes reasonix)
+# One id per run: the engine groups this run's apply and prune (or uninstall) into the
+# rollback point that --rollback restores.
+RUN_ID="install-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 
 MODE=""
 ACTION="apply"
@@ -48,7 +51,8 @@ Usage: ./install.sh [options]
   --copy               Copy entries (default for worktrees and /tmp checkouts)
   --dry-run            Print the vexinstall plan; write nothing
   --uninstall          Move every engine-owned entry to trash; remove owned settings hooks
-  --rollback           Restore the newest settings.json backup and the newest trash session
+  --rollback           Undo the last install or uninstall run: restore what it moved to trash
+                       and the settings.json it replaced (later syncs are left alone)
   --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
   --no-takeover        Leave unowned entries at desired paths in place (default: trash and replace)
   --allow-mass-remove  Allow a plan that removes more than 10 entries or 20% of a target
@@ -119,36 +123,13 @@ vexinstall() {
         --source-root "$SCRIPT_DIR"
 }
 
-# newest_ts GLOB PREFIX SUFFIX: newest engine timestamp among matching names (empty if none).
-newest_ts() {
-    local dir=$1 prefix=$2 suffix=$3 name best=""
-    [ -d "$dir" ] || return 0
-    for name in $(ls -1 "$dir" 2>/dev/null); do
-        name=${name#"$prefix"}
-        name=${name%"$suffix"}
-        [[ $name =~ ^[0-9]{8}T[0-9]{12}Z$ ]] || continue
-        [[ $name > $best ]] && best=$name
-    done
-    printf '%s' "$best"
-}
-
+# The engine restores the rollback point that this script's last apply and prune (or uninstall)
+# recorded: every trash session of that run and the settings.json backup it took. The newest
+# trash session and backup on disk are often a later sync's, so they are never picked by date.
 rollback() {
-    local ts rc=0
-    ts=$(newest_ts "${STATE_DIR}/backups" "settings." ".json")
-    if [ -n "$ts" ]; then
-        echo -e "${YELLOW}Restoring settings.json backup ${ts}...${NC}"
-        [ "$DRY_RUN" = true ] || vexinstall restore-settings "$ts" || rc=$?
-    else
-        echo -e "${YELLOW}No settings backup in ${STATE_DIR}/backups${NC}"
-    fi
-    ts=$(newest_ts "${STATE_DIR}/trash" "" "")
-    if [ -n "$ts" ]; then
-        echo -e "${YELLOW}Restoring trash session ${ts}...${NC}"
-        [ "$DRY_RUN" = true ] || vexinstall restore-trash "$ts" || rc=$?
-    else
-        echo -e "${YELLOW}No trash session in ${STATE_DIR}/trash${NC}"
-    fi
-    return "$rc"
+    local -a args=(rollback)
+    [ "$DRY_RUN" = true ] && args+=(--dry-run)
+    vexinstall "${args[@]}"
 }
 
 # A runtime whose CLI is on PATH gets its root dir, so `--target all` installs it.
@@ -342,7 +323,7 @@ if [ "$ACTION" = "migrate-overlays" ]; then
 fi
 
 if [ "$ACTION" = "uninstall" ]; then
-    args=(uninstall --target "$TARGET")
+    args=(uninstall --target "$TARGET" --run-id "$RUN_ID")
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
     [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
@@ -391,14 +372,14 @@ fi
 
 echo -e "${YELLOW}vexinstall apply ${args[*]}${NC}"
 rc=0
-vexinstall apply "${args[@]}" || rc=$?
+vexinstall apply "${args[@]}" --run-id "$RUN_ID" || rc=$?
 if [ "$rc" -ne 0 ]; then
     echo -e "${RED}vexinstall apply failed (exit ${rc}). Nothing was forced. Review:${NC}"
     echo -e "${RED}  PYTHONPATH=${SCRIPT_DIR}/scripts python3 -m vexinstall plan --target ${TARGET} --takeover${NC}"
     exit "$rc"
 fi
 if [ "$TAKEOVER" = true ]; then
-    vexinstall prune --unowned --confirm --target "$TARGET" || true
+    vexinstall prune --unowned --confirm --target "$TARGET" --run-id "$RUN_ID" || true
 fi
 install_deps
 install_no_agent_summary

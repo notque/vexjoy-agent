@@ -10,11 +10,13 @@ from . import accounts as accounts_mod
 from . import external, interp
 from . import index as index_mod
 from . import ledger as ledger_mod
+from . import rollback as rollback_mod
 from . import settings as settings_mod
 from .adapters import ADAPTERS, resolve_targets
 from .common import (
     APPLY_LOCK_TIMEOUT_S,
     DATA_DIRS,
+    SETTINGS_BACKUPS_KEEP,
     SUPPORT_DIRS,
     TRASH_RETENTION_DAYS,
     ExitCode,
@@ -384,6 +386,18 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             report["index"] = _write_indexes(ctx, ledger, targets, guard)
         except GuardError as exc:
             guard_hit = exc
+    if not sync:  # a session-start sync must never become what --rollback restores
+        try:
+            rollback_mod.record(
+                sdir,
+                guard,
+                run=opts.run_id or ts,
+                command=label,
+                trash=ts if trash.items else None,
+                settings_backup=(report.get("settings") or {}).get("backup"),
+            )
+        except GuardError as exc:
+            guard_hit = guard_hit or exc
     report["timings_ms"] = int((time.monotonic() - t0) * 1000)
     report["trash"] = str(trash.dir) if trash.items else None
     if guard_hit is not None:
@@ -472,6 +486,14 @@ def run_uninstall(opts: Options) -> Result:
                 "trash": str(trash.dir) if trash.items else None,
             }
             write_report(sdir / "reports", ts, report, guard)
+            rollback_mod.record(
+                sdir,
+                guard,
+                run=opts.run_id or ts,
+                command="uninstall",
+                trash=ts if trash.items else None,
+                settings_backup=(settings_report or {}).get("backup"),
+            )
     except GuardError as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[uninstall] ABORT {exc}"])
     except LockTimeoutError as exc:
@@ -557,9 +579,38 @@ def run_prune(opts: Options) -> Result:
             for p, why in items:
                 trash.move(Path(p), ctx.home, f"prune --unowned: {why}")
             write_report(sdir / "reports", ts, {"ts": ts, "command": "prune", "trashed": trash.items}, guard)
+            rollback_mod.record(
+                sdir,
+                guard,
+                run=opts.run_id or ts,
+                command="prune",
+                trash=ts if trash.items else None,
+                settings_backup=None,
+            )
     except GuardError as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[prune] ABORT {exc}"])
     return Result(out=[f"[prune] moved {len(items)} to trash {ts}", *lines])
+
+
+def _restore_session(
+    ctx: Context, sdir: Path, ledger: Ledger, ts: str, displaced: Trash, reason: str
+) -> tuple[list[str], list[str]]:
+    """Put trash session *ts* back. An engine-owned occupant moves to *displaced* and leaves *ledger*."""
+
+    def clear(path: Path) -> bool:
+        p = str(path)
+        owned_here = p in ledger.entries
+        if not owned_here and os.path.isdir(path) and not os.path.islink(path):
+            children = os.listdir(path)
+            owned_here = bool(children) and all(os.path.join(p, c) in ledger.entries for c in children)
+        if not owned_here:
+            return False
+        displaced.move(path, ctx.home, reason)
+        for d in [d for d in ledger.entries if d == p or d.startswith(p + os.sep)]:
+            ledger.entries.pop(d)
+        return True
+
+    return restore_trash(sdir / "trash", ts, displaced.guard, clear)
 
 
 def run_restore_trash(opts: Options) -> Result:
@@ -580,21 +631,8 @@ def run_restore_trash(opts: Options) -> Result:
             led, _ = ledger_mod.load(ledger_mod.ledger_path(sdir))
             ledger = led or Ledger()
             displaced = Trash(root=sdir / "trash", ts=utc_ts(), guard=guard)
-
-            def clear(path: Path) -> bool:
-                p = str(path)
-                owned_here = p in ledger.entries
-                if not owned_here and os.path.isdir(path) and not os.path.islink(path):
-                    children = os.listdir(path)
-                    owned_here = bool(children) and all(os.path.join(p, c) in ledger.entries for c in children)
-                if not owned_here:
-                    return False
-                displaced.move(path, ctx.home, f"displaced by restore-trash {opts.ts}")
-                for d in [d for d in ledger.entries if d == p or d.startswith(p + os.sep)]:
-                    ledger.entries.pop(d)
-                return True
-
-            restored, skipped = restore_trash(sdir / "trash", opts.ts, guard, clear)
+            reason = f"displaced by restore-trash {opts.ts}"
+            restored, skipped = _restore_session(ctx, sdir, ledger, opts.ts, displaced, reason)
             ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
     except FileNotFoundError:
         return Result(code=int(ExitCode.USAGE), err=[f"no trash session {opts.ts}"])
@@ -628,3 +666,98 @@ def run_restore_settings(opts: Options) -> Result:
     except GuardError as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[restore-settings] ABORT {exc}"])
     return Result(out=[f"[restore-settings] restored backup {src}"])
+
+
+def _rollback_point(sdir: Path) -> tuple[rollback_mod.Point | None, str]:
+    """The point to restore, or (None, why there is none)."""
+    point = rollback_mod.load(sdir)
+    if point is None:
+        path = rollback_mod.point_path(sdir)
+        if os.path.lexists(path):
+            return None, f"[rollback] {path} is unreadable; nothing to roll back (restore-trash <ts> still works)"
+        return None, "[rollback] nothing to roll back: no apply, uninstall or prune --confirm has recorded a run"
+    if point.restored_at:
+        return None, f"[rollback] run {point.run} was already rolled back at {point.restored_at}"
+    return point, ""
+
+
+def _point_lines(point: rollback_mod.Point) -> list[str]:
+    lines = [f"  trash session {ts}" for ts in reversed(point.trash)]
+    if point.settings_backup:
+        lines.append(f"  settings.json backup {point.settings_backup}")
+    else:
+        lines.append("  settings.json: no backup from that run (unchanged, or there was none); left as is")
+    return lines
+
+
+def run_rollback(opts: Options) -> Result:
+    """Restore the last recorded run: its trash sessions, newest first, then its settings.json backup.
+
+    apply, uninstall and ``prune --confirm`` record the point (``rollback.json``); sync never does,
+    so a later sync's trash or backup never stands in for the run's. A point is restored once.
+    Engine-owned entries a restore displaces go to a new trash session.
+    """
+    try:
+        ctx = load_context(opts)
+    except OverlayConfigError as exc:
+        return Result(code=int(exc.exit_code), err=[str(exc)])
+    sdir = state_dir(ctx.home)
+    guard_msg = repo_root_refusal(ctx, [])
+    if guard_msg:
+        return Result(code=int(ExitCode.GUARD), err=[f"[rollback] ABORT {guard_msg}"])
+    if opts.dry_run:
+        point, why = _rollback_point(sdir)
+        if point is None:
+            return Result(out=[why])
+        head = f"[rollback] would restore run {point.run} ({' + '.join(point.commands)}):"
+        return Result(out=[head, *_point_lines(point)])
+    guard = guard_for(ctx)
+    out: list[str] = []
+    err: list[str] = []
+    data: dict = {"restored": [], "skipped": [], "missing": []}
+    try:
+        with engine_lock(sdir / "lock", guard, blocking=True, timeout=APPLY_LOCK_TIMEOUT_S):
+            point, why = _rollback_point(sdir)
+            if point is None:
+                return Result(out=[why])
+            out.append(f"[rollback] run {point.run} ({' + '.join(point.commands)})")
+            data["run"] = point.run
+            led, _ = ledger_mod.load(ledger_mod.ledger_path(sdir))
+            ledger = led or Ledger()
+            displaced = Trash(root=sdir / "trash", ts=utc_ts(), guard=guard)
+            reason = f"displaced by rollback of run {point.run}"
+            for ts in reversed(point.trash):
+                try:
+                    restored, skipped = _restore_session(ctx, sdir, ledger, ts, displaced, reason)
+                except FileNotFoundError:
+                    data["missing"].append(ts)
+                    err.append(f"[rollback] trash session {ts} is gone (trash is kept {TRASH_RETENTION_DAYS} days)")
+                    continue
+                data["restored"].extend(restored)
+                data["skipped"].extend(skipped)
+                out.append(f"  trash {ts}: restored {len(restored)}, skipped {len(skipped)} (dest occupied or missing)")
+                out.extend(f"    skipped: {s}" for s in skipped)
+            ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
+            if point.settings_backup:
+                spath = ctx.home / ".claude" / "settings.json"
+                try:
+                    settings_mod.restore(spath, sdir / "backups", point.settings_backup, guard)
+                    out.append(f"  settings.json: restored backup {point.settings_backup}")
+                except FileNotFoundError:
+                    data["missing"].append(f"settings.{point.settings_backup}.json")
+                    err.append(
+                        f"[rollback] settings backup {point.settings_backup} is gone"
+                        f" (the newest {SETTINGS_BACKUPS_KEEP} are kept); settings.json left as is"
+                    )
+            else:
+                out.append(_point_lines(point)[-1])
+            if displaced.items:
+                out.append(f"  displaced {len(displaced.items)} engine entries to trash {displaced.ts}")
+                data["displaced_ts"] = displaced.ts
+            point.restored_at = utc_iso()
+            rollback_mod.save(sdir, point, guard)
+    except GuardError as exc:
+        return Result(code=int(ExitCode.GUARD), err=[f"[rollback] ABORT {exc}"])
+    except LockTimeoutError as exc:
+        return Result(code=int(exc.exit_code), err=[str(exc)])
+    return Result(code=int(ExitCode.ERROR) if err else 0, out=out, err=err, data=data)
