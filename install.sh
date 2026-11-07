@@ -289,8 +289,8 @@ harden_permissions() {
 }
 
 # no-agent-summary: Bun preload that suppresses Claude Code's agent_summary side-query.
-# Deploys the JS file to a space-free path (BUN_OPTIONS splits on whitespace) and adds
-# an idempotent managed block to ~/.bashrc exporting BUN_OPTIONS.
+# Deploys the JS file to a space-free path (BUN_OPTIONS splits on whitespace) and keeps
+# one managed block in ~/.bashrc exporting BUN_OPTIONS.
 # MIT: Flamerix AI (upstream), declanbx (fork). Vendored in hooks/no-agent-summary/.
 NAS_DEST="$HOME/.local/share/no-agent-summary"
 NAS_HOOK="$NAS_DEST/no-agent-summary.js"
@@ -298,21 +298,8 @@ NAS_BEGIN="# >>> no-agent-summary >>>"
 NAS_END="# <<< no-agent-summary <<<"
 NAS_RC="$HOME/.bashrc"
 
-install_no_agent_summary() {
-    local src="$SCRIPT_DIR/hooks/no-agent-summary/no-agent-summary.js"
-    if [ ! -f "$src" ]; then
-        echo -e "${YELLOW}  no-agent-summary: source not found at ${src}; skipping${NC}"
-        return 0
-    fi
-    mkdir -p "$NAS_DEST"
-    cp "$src" "$NAS_HOOK"
-    cp "$SCRIPT_DIR/hooks/no-agent-summary/status.sh" "$NAS_DEST/status.sh"
-
-    # Idempotent bashrc block: strip any existing block, then append.
-    if [ -f "$NAS_RC" ]; then
-        sed -i "/^${NAS_BEGIN}\$/,/^${NAS_END}\$/d" "$NAS_RC"
-    fi
-    cat >> "$NAS_RC" <<NASEOF
+nas_block() {
+    cat <<NASEOF
 ${NAS_BEGIN}
 # Bun preload that stops Claude Code's agent_summary side-query (status-line labels
 # for background agents, each a full-transcript model call every 30 s).
@@ -323,15 +310,31 @@ case " \${BUN_OPTIONS-} " in
 esac
 ${NAS_END}
 NASEOF
-    echo -e "${GREEN}  ✓ no-agent-summary: deployed ${NAS_HOOK} and block in ${NAS_RC}${NC}"
+}
+
+# nas_shellrc set|remove: scripts/vexinstall/shellrc.py edits only the block, in place, writes
+# nothing when it is current, keeps a symlinked rc a link, backs the old file up first, and leaves
+# the file alone when a marker line is missing.
+nas_shellrc() {
+    PYTHONPATH="${SCRIPT_DIR}/scripts${PYTHONPATH:+:$PYTHONPATH}" "$PYTHON_CMD" -m vexinstall.shellrc "$1" \
+        "$NAS_RC" "$NAS_BEGIN" "$NAS_END" --backup-dir "${STATE_DIR}/backups" --label no-agent-summary
+}
+
+install_no_agent_summary() {
+    local src="$SCRIPT_DIR/hooks/no-agent-summary/no-agent-summary.js"
+    if [ ! -f "$src" ]; then
+        echo -e "${YELLOW}  no-agent-summary: source not found at ${src}; skipping${NC}"
+        return 0
+    fi
+    mkdir -p "$NAS_DEST"
+    cp "$src" "$NAS_HOOK"
+    cp "$SCRIPT_DIR/hooks/no-agent-summary/status.sh" "$NAS_DEST/status.sh"
+    echo -e "${GREEN}  ✓ no-agent-summary: deployed ${NAS_HOOK}${NC}"
+    nas_block | nas_shellrc set || echo -e "${YELLOW}  ⚠ no-agent-summary: ${NAS_RC} not updated (see above)${NC}"
 }
 
 uninstall_no_agent_summary() {
-    # Remove the bashrc block.
-    if [ -f "$NAS_RC" ]; then
-        sed -i "/^${NAS_BEGIN}\$/,/^${NAS_END}\$/d" "$NAS_RC"
-        echo -e "${GREEN}  ✓ no-agent-summary: removed block from ${NAS_RC}${NC}"
-    fi
+    nas_shellrc remove || echo -e "${YELLOW}  ⚠ no-agent-summary: ${NAS_RC} not updated (see above)${NC}"
     # Remove the deployed JS file and status script.
     rm -f "$NAS_HOOK" "$NAS_DEST/status.sh"
     echo -e "${GREEN}  ✓ no-agent-summary: removed ${NAS_HOOK}${NC}"
