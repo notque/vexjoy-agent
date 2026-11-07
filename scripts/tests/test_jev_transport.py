@@ -12,6 +12,43 @@ if str(SCRIPTS) not in sys.path:
 import jev_transport
 
 
+def test_import_loads_only_the_jev_keys_from_home_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A synthetic ~/.env under a temp HOME: only the keys the transport reads reach the process."""
+    import importlib.util
+    import os
+
+    pytest.importorskip("dotenv")
+    gateway, unrelated = "gw-" + "a" * 12, "un-" + "b" * 12
+    (tmp_path / ".env").write_text(
+        f"AI_GATEWAY_API_KEY={gateway}\nUNRELATED_SERVICE_TOKEN={unrelated}\nJEV_TRANSPORT=vercel\n",
+        encoding="utf-8",
+    )
+    # A private copy of the environment, so the import under test cannot leak into other tests.
+    environ = {k: v for k, v in os.environ.items() if k not in ("JEV_TRANSPORT", "UNRELATED_SERVICE_TOKEN")}
+    environ["HOME"] = str(tmp_path)
+    monkeypatch.setattr(os, "environ", environ)
+    spec = importlib.util.spec_from_file_location("jev_transport_import_probe", SCRIPTS / "jev_transport.py")
+    assert spec and spec.loader
+    spec.loader.exec_module(importlib.util.module_from_spec(spec))  # runs the import-time load
+    seen = {k: environ.get(k) for k in ("AI_GATEWAY_API_KEY", "UNRELATED_SERVICE_TOKEN", "JEV_TRANSPORT")}
+    seen["TYPESAFE_API_KEY"] = environ.get("TYPESAFE_API_KEY")
+    assert seen == {
+        "AI_GATEWAY_API_KEY": gateway,
+        "UNRELATED_SERVICE_TOKEN": None,
+        "JEV_TRANSPORT": "vercel",
+        "TYPESAFE_API_KEY": None,
+    }
+
+
+def test_exported_value_wins_over_home_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("dotenv")
+    (tmp_path / ".env").write_text("TYPESAFE_API_KEY=from-file\n", encoding="utf-8")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("TYPESAFE_API_KEY", "exported")
+    jev_transport._load_env_file_keys()
+    assert jev_transport.os.environ["TYPESAFE_API_KEY"] == "exported"
+
+
 def _clear(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("JEV_TRANSPORT", "AI_GATEWAY_API_KEY", "TYPESAFE_API_KEY"):
         monkeypatch.delenv(name, raising=False)

@@ -30,12 +30,30 @@ import jev_router_common
 import jev_vercel
 
 try:
-    from dotenv import load_dotenv
+    from dotenv import dotenv_values
 except ImportError:  # install.sh installs python-dotenv; exported vars still work without it.
-    load_dotenv = None
+    dotenv_values = None
 
-if load_dotenv is not None:
-    load_dotenv(os.path.expanduser("~/.env"), override=False)
+# The only ~/.env entries this module and its alt-model path read. Every other
+# key in that file stays out of this process and out of any child it starts.
+ENV_FILE_KEYS = ("JEV_TRANSPORT", "AI_GATEWAY_API_KEY", "TYPESAFE_API_KEY", "JEV_ALT_MODEL_API_KEY")
+
+
+def _load_env_file_keys() -> None:
+    """Copy ``ENV_FILE_KEYS`` from ``~/.env`` into the environment; an exported value wins."""
+    if dotenv_values is None:
+        return
+    try:
+        values = dotenv_values(os.path.expanduser("~/.env"))
+    except OSError:
+        return
+    for key in ENV_FILE_KEYS:
+        value = values.get(key)
+        if value and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_env_file_keys()
 
 VERCEL = "vercel-ai-gateway"
 DIRECT = "typesafe-jev-api"
@@ -286,15 +304,19 @@ def _reject_images_for_alt_model(
         )
 
 
-def _log_alt_model_event(questions: dict[str, Any], *, mode: str, reason: str | None) -> None:
+def _log_alt_model_event(
+    questions: dict[str, Any], *, mode: str, reason: str | None, alt: dict[str, Any] | None = None
+) -> None:
     """Best-effort telemetry so a fallback or second-opinion call shows up in the cost report."""
+    meta = alt.get("_meta") if isinstance(alt, dict) else None
+    n_redacted = meta.get("n_redacted", 0) if isinstance(meta, dict) else 0
     try:
         jev_router_common._count_call(
             ok=reason is None,
             latency_ms=None,
             data=None,
             n_questions=len(questions),
-            n_redacted=0,
+            n_redacted=n_redacted,
             error=reason,
             script_name=f"jev_transport.py:{mode}",
         )
@@ -350,7 +372,7 @@ def evaluate_with_fallback(
                 },
             ) from alt_exc
         alt["_meta"]["fallback_reason"] = reason
-        _log_alt_model_event(questions, mode="fallback", reason=None)
+        _log_alt_model_event(questions, mode="fallback", reason=None, alt=alt)
         return alt
 
 
@@ -389,5 +411,6 @@ def evaluate_second_opinion(
         questions,
         mode="second_opinion",
         reason=None if "error" not in jev_result and "error" not in alt_result else "partial_or_full_failure",
+        alt=alt_result,
     )
     return {"jev": jev_result, "alt_model": alt_result, "_meta": {"mode": "second_opinion"}}
