@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 # Voice sample capture — records authentic user prompts to learning.db as voice corpus.
 """
 UserPromptSubmit Hook: Capture user prompts as voice samples.
@@ -16,7 +16,9 @@ Filter logic:
   specs fire UserPromptSubmit like human turns (see is_machine_prompt)
 - Skip if this exact prompt was already captured this session (dedup)
 
-Records to learning.db category=voice, topic=voice-sample.
+Records to learning.db category=voice, topic=voice-sample. Secrets in the
+prompt (keys, tokens, passwords, PEM blocks) are redacted with
+secret_redact.redact_text before the 500-character cap and the write.
 Silent on skip. Advisory (non-blocking).
 """
 
@@ -50,6 +52,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import empty_output, get_session_id, hook_error
 from learning_db_v2 import record_learning
+from secret_redact import redact_text
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "UserPromptSubmit"
@@ -235,7 +238,8 @@ def main():
         record_learning(
             topic="voice-sample",
             key=key,
-            value=prompt[:500],
+            # Redact before the cap so a key cut by the cap is never half-stored.
+            value=redact_text(prompt)[:500],
             category="voice",
             confidence=0.80,
             tags=["source:user-prompt", "authentic"],

@@ -52,7 +52,7 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, quote_plus, urlparse
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -178,8 +178,17 @@ class Driver:
         return self._read()
 
     def _terminate(self) -> None:
-        if self.proc.poll() is None:
-            self.proc.kill()
+        """SIGTERM first, so the driver's exit handler stops Chromium and deletes
+        its temp profile; SIGKILL only if it is still running after CLOSE_TIMEOUT_S."""
+        if self.proc.poll() is not None:
+            return
+        self.proc.terminate()
+        try:
+            self.proc.wait(timeout=CLOSE_TIMEOUT_S)
+            return
+        except Exception:
+            pass
+        self.proc.kill()
         try:
             self.proc.wait(timeout=CLOSE_TIMEOUT_S)
         except Exception:
@@ -460,21 +469,50 @@ def generate_text(
 # ---------------------------------------------------------------------------
 
 
+# A page or snapshot.js can cut a reflected secret short (values are capped at
+# 80 characters, titles wherever the page cuts them). A run of at least this
+# many leading characters of a typed secret is masked as if it were the whole.
+SECRET_FRAGMENT_MIN = 12
+
+
+def _scrub_text(text: str, values: set[str]) -> str:
+    """Mask every typed secret in ``text``, and any cut-off leading part of one."""
+    for v in sorted((v for v in values if v), key=len, reverse=True):
+        text = text.replace(v, "(secret)")
+        if len(v) <= SECRET_FRAGMENT_MIN:
+            continue
+        head = v[:SECRET_FRAGMENT_MIN]
+        i = text.find(head)
+        while i != -1:
+            n = len(head)
+            while n < len(v) and i + n < len(text) and text[i + n] == v[n]:
+                n += 1
+            text = text[:i] + "(secret)" + text[i + n :]
+            i = text.find(head, i + len("(secret)"))
+    return text
+
+
 def _scrub(snapshot: dict, values: set[str]) -> dict:
-    """Replace typed secret values in page text and element values before any
-    model or log sees the snapshot. Password inputs are already masked in-page;
-    this covers secrets typed into ordinary fields."""
+    """Replace typed secret values in the URL, title, page text and every element
+    string before any model or log sees the snapshot. Password inputs are already
+    masked in-page; this covers secrets typed into ordinary fields and reflected
+    back by the page (a GET form's query string, a title, a truncated value)."""
     if not values:
         return snapshot
+    # A GET form or a redirect percent-encodes what was typed: mask those spellings too.
+    values = {form for v in values if v for form in (v, quote_plus(v), quote(v, safe=""))}
     out = dict(snapshot)
-    text = out.get("text") or ""
-    for v in values:
-        text = text.replace(v, "(secret)")
-    out["text"] = text
-    out["elements"] = [
-        {**e, "value": "(secret)"} if e.get("value") and any(v in str(e["value"]) for v in values) else e
-        for e in out.get("elements", [])
-    ]
+    for key in ("url", "title", "text"):
+        if isinstance(out.get(key), str):
+            out[key] = _scrub_text(out[key], values)
+
+    def element(e: dict) -> dict:
+        clean = {k: _scrub_text(v, values) if isinstance(v, str) else v for k, v in e.items()}
+        if isinstance(e.get("value"), str) and clean["value"] != e["value"]:
+            clean["value"] = "(secret)"
+        return clean
+
+    out["elements"] = [element(e) if isinstance(e, dict) else e for e in out.get("elements", [])]
     return out
 
 

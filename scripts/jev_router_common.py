@@ -30,6 +30,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import uuid
 from collections.abc import Mapping
 from email.message import Message
 from pathlib import Path
@@ -161,7 +162,8 @@ def _check_breaker() -> int | None:
         file_ts = float(raw.get("ts", 0))
         if (time.time() - file_ts) < ttl:
             file_status = int(raw["status"])
-            _jev_down = (file_status, time.monotonic())
+            # Keep the file's trip time, so reading it does not restart the TTL.
+            _jev_down = (file_status, time.monotonic() - (time.time() - file_ts))
             return file_status
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
         pass
@@ -284,6 +286,68 @@ _inflight: dict[str, threading.Event] = {}
 _inflight_results: dict[str, tuple[dict, float]] = {}
 
 
+# ---------------------------------------------------------------------------
+# Run budget -- every request that reaches the network, on any path
+# ---------------------------------------------------------------------------
+
+# One id per process. A call-log row with no session id carries this, so the
+# tokens one run spent can be totalled from the log.
+RUN_ID = f"run-{uuid.uuid4().hex[:12]}"
+_run_lock = threading.Lock()
+_run_tokens = 0
+_run_warned = False
+
+
+class RunBudgetExceeded(RuntimeError):
+    """``JEV_MAX_RUN_TOKENS`` is set and this request would pass it. Nothing was sent."""
+
+
+def _run_token_cap() -> int | None:
+    """Return the opt-in hard cap on estimated tokens per run (env ``JEV_MAX_RUN_TOKENS``), else None."""
+    raw = os.environ.get("JEV_MAX_RUN_TOKENS", "").strip()
+    try:
+        cap = int(raw)
+    except ValueError:
+        return None
+    return cap if cap > 0 else None
+
+
+def note_run_tokens(tokens: int, *, has_images: bool = False) -> int:
+    """Count one outgoing request's estimated tokens toward this run; return the run total.
+
+    Warns on stderr, with the run id, when one text request passes
+    ``jev_limits.MAX_REQUEST_TOKENS`` (callers that skip ``jev_transport`` get no
+    split) and once when the run passes ``jev_limits.CASCADE_TOKENS_PER_RUN``.
+    With ``JEV_MAX_RUN_TOKENS`` set, raises ``RunBudgetExceeded`` before the
+    request that would pass it.
+    """
+    global _run_tokens, _run_warned
+    if not has_images and tokens > jev_limits.MAX_REQUEST_TOKENS:
+        print(
+            f"[jev-budget] {RUN_ID}: request is ~{tokens} tokens, over the {jev_limits.MAX_REQUEST_TOKENS} "
+            "request limit; send it through jev_transport so it is split",
+            file=sys.stderr,
+        )
+    cap = _run_token_cap()
+    with _run_lock:
+        if cap is not None and _run_tokens + tokens > cap:
+            raise RunBudgetExceeded(
+                f"{RUN_ID}: run would reach ~{_run_tokens + tokens} tokens, over JEV_MAX_RUN_TOKENS={cap}"
+            )
+        _run_tokens += tokens
+        total = _run_tokens
+        warn = total > jev_limits.CASCADE_TOKENS_PER_RUN and not _run_warned
+        if warn:
+            _run_warned = True
+    if warn:
+        print(
+            f"[jev-budget] {RUN_ID}: this run has sent ~{total} tokens, over the "
+            f"{jev_limits.CASCADE_TOKENS_PER_RUN} per-run budget",
+            file=sys.stderr,
+        )
+    return total
+
+
 def _count_call(
     *,
     ok: bool,
@@ -303,7 +367,7 @@ def _count_call(
     usage = (data or {}).get("usage") if isinstance(data, dict) else None
     usage = usage if isinstance(usage, dict) else {}
     try:
-        sid = os.environ.get("JEV_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID")
+        sid = os.environ.get("JEV_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID") or RUN_ID
         agent_id = os.environ.get("JEV_AGENT_ID")
         if sid and agent_id:
             sid = f"{sid}:{agent_id}"
@@ -514,7 +578,8 @@ def call_jev(
        calls in the same process (and across processes for ``JEV_BREAKER_TTL_S``
        seconds) return the same failure without a network request.
     4. Cache -- on-disk SQLite cache keyed by payload hash with
-       configurable TTL (``JEV_CACHE_TTL_S``, default 120s, 0 disables).
+       configurable TTL (``JEV_CACHE_TTL_S``, default 1800s, 0 disables).
+       Only an answer that passes ``validate_jev_response`` is cached.
     5. In-flight dedupe -- concurrent calls with the same hash wait
        for one in-flight request instead of sending duplicates.
     """
@@ -587,7 +652,8 @@ def call_jev(
     if not owner:
         # Wait for the in-flight request to complete.
         event.wait(timeout=timeout + 5.0)
-        result = _inflight_results.pop(phash, None)
+        # Read with get: every waiter needs the result; the owner's cleanup thread removes it.
+        result = _inflight_results.get(phash)
         if result is not None:
             data, latency_ms = result
             _count_call(
@@ -616,6 +682,11 @@ def call_jev(
     start = time.monotonic()
     attempt = 0
     try:
+        # Inside the try: a refused budget still releases the in-flight slot below.
+        questions = payload.get("questions") if isinstance(payload.get("questions"), dict) else {}
+        note_run_tokens(
+            jev_limits.request_tokens(payload.get("state"), questions)["total"], has_images=bool(image_parts)
+        )
         while True:
             try:
                 with _open_url(request, timeout=timeout) as response:
@@ -679,15 +750,21 @@ def call_jev(
         raise
 
     latency_ms = (time.monotonic() - start) * 1000.0
-    data = json.loads(raw.decode("utf-8"))
-    if not isinstance(data, dict) or "answers" not in data:
+    # Parse inside a try: an exception here must still release the in-flight
+    # slot, or every later identical call waits on an event nobody sets.
+    try:
+        data = json.loads(raw.decode("utf-8"))
+        problem = None if isinstance(data, dict) and "answers" in data else "missing answers"
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        data, problem = None, "not JSON"
+    if problem is not None:
         _count_call(
             ok=False,
             latency_ms=latency_ms,
             data=None,
             n_questions=n_questions,
             n_redacted=n_redacted,
-            error="missing answers",
+            error=problem,
             payload_hash=phash,
             script_name=script_name,
         )
@@ -695,12 +772,17 @@ def call_jev(
             with _inflight_lock:
                 _inflight.pop(phash, None)
             event.set()
+        if problem == "not JSON":
+            raise ValueError("Jev response is not JSON")
         raise ValueError("Jev response missing 'answers' key")
 
     # Success: clear breaker, cache, record, and release waiters.
     _clear_breaker()
     answers = data.get("answers", {})
-    _cache_store(phash, answers, data.get("model"))
+    # Cache only an answer that passes validation, so a malformed reply is
+    # never served again for the cache lifetime.
+    if validate_jev_response(data)[0]:
+        _cache_store(phash, answers, data.get("model"))
     aj = _answers_json(data)
     _count_call(
         ok=True,

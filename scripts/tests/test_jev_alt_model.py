@@ -124,11 +124,39 @@ def test_answer_cli_backend_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(jev_alt_model.subprocess, "run", fake_run)
     result = jev_alt_model.answer({"x": 1}, NOUL_Q, timeout=5)
     assert result["answers"] == {"ok": {"type": "noul", "noul": 0.6}}
-    assert result["_meta"] == {"is_jev": False, "source": "alt-model", "backend": "claude-cli"}
+    assert result["_meta"] == {"is_jev": False, "source": "alt-model", "backend": "claude-cli", "n_redacted": 0}
     cmd, kw = calls[0]
     assert cmd[:2] == ["claude", "-p"]
     assert "--no-session-persistence" in cmd
     assert kw["cwd"] == jev_alt_model.tempfile.gettempdir()
+
+
+@pytest.mark.parametrize("backend", ["claude-cli", "api"])
+def test_answer_redacts_state_and_questions_before_they_leave(monkeypatch: pytest.MonkeyPatch, backend: str) -> None:
+    """The second provider gets the same scrubbed text Jev would, on either backend."""
+    token = "ghp_" + "x" * 36
+    monkeypatch.setattr(jev_alt_model, "ALT_MODEL_BACKEND", backend)
+    monkeypatch.setattr(jev_alt_model.shutil, "which", lambda _n: "/usr/bin/claude")
+    monkeypatch.setenv("JEV_ALT_MODEL_API_KEY", "alt-test-key")
+    sent: list[str] = []
+
+    def fake_cli(prompt, timeout):
+        sent.append(prompt)
+        return jev_alt_model._parse_reply(_ok_reply()), "claude-cli"
+
+    def fake_api(prompt, timeout, api_key, max_tokens):
+        sent.append(prompt)
+        return jev_alt_model._parse_reply(_ok_reply()), "api"
+
+    monkeypatch.setattr(jev_alt_model, "_answer_cli", fake_cli)
+    monkeypatch.setattr(jev_alt_model, "_answer_api", fake_api)
+    state = {"log": f"export GITHUB_TOKEN={token}"}
+    questions = {"ok": {"type": "noul", "instructions": f"Does {token} work?"}}
+    result = jev_alt_model.answer(state, questions, timeout=5)
+    assert token not in sent[0]
+    assert "<redacted:github:" in sent[0]
+    assert result["_meta"]["n_redacted"] == 2
+    assert token in state["log"]  # the caller's dict is untouched
 
 
 def test_answer_cli_backend_floors_timeout_at_cli_minimum(monkeypatch: pytest.MonkeyPatch) -> None:
