@@ -241,9 +241,14 @@ def execute_target(
 
     An entry whose op fails with an OSError (a dir Windows keeps busy, a full disk) stays as
     it was and keeps its ledger record. Its line goes to *failed*, and the other entries run.
+
+    A removal inside a dir this run installs whole is not moved first: placing that dir moves
+    the old one to trash with the entry inside, and ``_forget_inside`` drops the record. Moving
+    the entries first emptied a live dir such as ~/.claude/hooks, and a failed install left it so.
     """
     now = utc_iso()
     home = ctx.home
+    whole = {a.dest for a in tp.actions if a.op in ("replace", "add") and a.dest not in skip}
     for a in tp.actions:
         if a.op == "container":
             trash.move(Path(a.dest), home, "whole-dir symlink replaced by real dir")
@@ -252,6 +257,8 @@ def execute_target(
         if a.dest in skip:
             continue
         if a.op == "remove":
+            if any(str(p) in whole for p in Path(a.dest).parents):
+                continue
             try:
                 trash.move(Path(a.dest), home, a.reason or "removed")
             except OSError as exc:
