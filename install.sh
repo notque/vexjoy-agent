@@ -243,21 +243,23 @@ main_hooks_dir() {
     fi
 }
 
-# Uninstall without --target renames our post-merge to post-merge.vexjoy-removed, which git never runs:
-# its `sync --target all` (or a pre-engine hook's `ln -s` loop) would re-install everything on the next
-# pull. A --target uninstall keeps it, since that sync re-installs the target either way and the targets
-# still installed need it. The pre-commit private-leak gate stays: it installs nothing.
-# A post-merge that cannot be renamed sets GIT_HOOK_LEFT, and the uninstall exits 1.
+# Uninstall without --target renames our post-merge to post-merge.vexjoy-removed.<UTC time>, which git
+# never runs: its `sync --target all` (or a pre-engine hook's `ln -s` loop) would re-install everything on
+# the next pull. A --target uninstall keeps it, since that sync re-installs the target either way and the
+# targets still installed need it. The pre-commit private-leak gate stays: it installs nothing.
+# When a marked post-merge may still run, GIT_HOOK_PROBLEM says why, and the uninstall exits 1.
 uninstall_git_hooks() {
-    local dir name hook
+    local dir name hook ts
     if [ "${VEXJOY_NO_GIT_HOOKS:-0}" = "1" ]; then
         echo -e "${YELLOW}  Git hooks skipped (VEXJOY_NO_GIT_HOOKS=1)${NC}"
         return 0
     fi
     if ! dir=$(main_hooks_dir); then
-        echo -e "${YELLOW}  Git hooks skipped: git cannot read ${SCRIPT_DIR}/.git; run ./install.sh --uninstall in the main checkout too${NC}"
+        GIT_HOOK_PROBLEM="Git hooks not checked: git cannot read ${SCRIPT_DIR}/.git; run ./install.sh --uninstall in the main checkout too"
+        echo -e "${YELLOW}  ⚠ ${GIT_HOOK_PROBLEM}${NC}"
         return 0
     fi
+    ts=$(date -u +%Y%m%dT%H%M%SZ)
     [ -n "$dir" ] || return 0
     for name in post-merge pre-commit; do
         hook="${dir}/${name}"
@@ -269,11 +271,11 @@ uninstall_git_hooks() {
         elif [ "$TARGET" != all ]; then
             echo -e "${YELLOW}  Keeping post-merge hook (a --target uninstall keeps it; its sync re-installs every present target on each pull): ${hook}${NC}"
         elif [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would rename post-merge hook to ${hook}.vexjoy-removed${NC}"
-        elif mv -f "$hook" "${hook}.vexjoy-removed"; then
-            echo -e "${GREEN}  ✓ Renamed post-merge hook to ${hook}.vexjoy-removed; git does not run it${NC}"
+            echo -e "${BLUE}  Would rename post-merge hook to ${hook}.vexjoy-removed.${ts}${NC}"
+        elif mv -f "$hook" "${hook}.vexjoy-removed.${ts}"; then
+            echo -e "${GREEN}  ✓ Renamed post-merge hook to ${hook}.vexjoy-removed.${ts}; git does not run it${NC}"
         else
-            GIT_HOOK_LEFT=$hook
+            GIT_HOOK_PROBLEM="${hook} is still in place: delete it, or the next pull re-installs everything"
             echo -e "${YELLOW}  ⚠ Could not rename post-merge hook: ${hook}${NC}"
         fi
     done
@@ -383,7 +385,7 @@ uninstall_no_agent_summary() {
 # Git hooks first, so neither a missing python nor a failed engine run leaves the wrong post-merge:
 # apply replaces a pre-engine one, which links repo items into runtime roots on every pull, and
 # uninstall renames ours, since its sync would re-install everything on the next pull.
-GIT_HOOK_LEFT=""
+GIT_HOOK_PROBLEM=""
 if [ "$ACTION" = "apply" ] && [ "$DRY_RUN" = false ] && [ "$CONFIGURE_ONLY" = false ]; then
     install_git_hooks
 elif [ "$ACTION" = "uninstall" ]; then
@@ -404,8 +406,8 @@ if [ "$ACTION" = "uninstall" ]; then
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
     [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
-    if [ -n "$GIT_HOOK_LEFT" ]; then
-        echo -e "${RED}⚠ ${GIT_HOOK_LEFT} is still in place: delete it, or the next pull re-installs everything${NC}"
+    if [ -n "$GIT_HOOK_PROBLEM" ]; then
+        echo -e "${RED}⚠ ${GIT_HOOK_PROBLEM}${NC}"
         exit 1
     fi
     exit 0
