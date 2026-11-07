@@ -36,7 +36,7 @@ Verify agent exists: `ls ~/.claude/agents/ | grep {agent-name}`
 
 **nodejs-api-engineer**: CAN do REST endpoints, middleware, auth, webhooks, DB integration. CANNOT do frontend components, native code, infrastructure.
 
-**database-engineer**: CAN do schema frontend, migrations, indexes, query optimization. CANNOT do application code. **Mandatory sequencing**: database agent ALWAYS before application agents on schema changes.
+**database-engineer**: CAN do schema design, migrations, indexes, query optimization. CANNOT do application code. **Mandatory sequencing**: database agent ALWAYS before application agents on schema changes.
 
 **performance-optimization-engineer**: CAN do Core Web Vitals, bundle analysis, rendering optimization, profiling. CANNOT fix unrelated logic bugs.
 

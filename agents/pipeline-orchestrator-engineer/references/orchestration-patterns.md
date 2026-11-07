@@ -189,7 +189,7 @@ PROPOSED | ACCEPTED | IMPLEMENTED | DEPRECATED
 [Why needed, what triggered creation]
 
 ## Decision
-[Pipeline frontend: components, flow, triggers]
+[Pipeline design: components, flow, triggers]
 
 ## Component Manifest
 [Agents, skills, hooks, scripts — updated during discovery]

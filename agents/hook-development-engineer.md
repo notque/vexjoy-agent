@@ -185,7 +185,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Signal | Reference File | When to Load |
 |--------|---------------|--------------|
-| Pipeline diagram, event flow, telemetry directory structure | `references/architecture.md` | When explaining hook integration or reviewing system frontend |
+| Pipeline diagram, event flow, telemetry directory structure | `references/architecture.md` | When explaining hook integration or reviewing system design |
 | Blocking errors, synchronous ops, direct writes, registration order, unguarded main(), UserPromptSubmit misuse | `references/preferred-patterns.md` | When reviewing hook code or debugging session deadlocks — preferred patterns and detection |
 | Production hook template, non-blocking pattern, complete implementations | `references/code-examples.md` | When scaffolding a new hook from scratch |
 | Telemetry schema, routing and evidence writes, atomic write ops, read-only CLI | `references/telemetry-database.md` | When implementing telemetry store operations |

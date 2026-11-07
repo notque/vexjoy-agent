@@ -1,5 +1,5 @@
 ---
-description: Mapping frontend, ILM policies, index templates, and reindexing strategies with failure mode detection
+description: Mapping design, ILM policies, index templates, and reindexing strategies with failure mode detection
 ---
 
 # OpenSearch/Elasticsearch Index Management
@@ -12,7 +12,7 @@ description: Mapping frontend, ILM policies, index templates, and reindexing str
 
 ## Overview
 
-Index management failures are slow-moving disasters: dynamic mapping enables today, then causes mapping explosion in 3 months. ILM not configured today means manual deletion during a storage emergency. Mapping frontend is largely irreversible on live indices — reindexing 100GB of data takes hours. Get it right at creation time.
+Index management failures are slow-moving disasters: dynamic mapping enables today, then causes mapping explosion in 3 months. ILM not configured today means manual deletion during a storage emergency. Mapping design is largely irreversible on live indices — reindexing 100GB of data takes hours. Get it right at creation time.
 
 ---
 

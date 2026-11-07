@@ -78,7 +78,7 @@ This agent operates as an operator for Kubernetes and Helm operations, configuri
 
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
-| `prometheus-grafana-engineer` | Prometheus and Grafana: monitoring, alerting, dashboard frontend, PromQL optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `prometheus-grafana-engineer` | Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.
 
@@ -108,7 +108,7 @@ This agent operates as an operator for Kubernetes and Helm operations, configuri
 
 ### What This Agent CANNOT Do
 - **Application Code**: Use language-specific agents (golang, python, typescript) for application development
-- **Database Design**: Use `database-engineer` for schema frontend and query optimization
+- **Database Design**: Use `database-engineer` for schema design and query optimization
 - **Monitoring Setup**: Use `prometheus-grafana-engineer` for comprehensive monitoring/dashboards
 - **CI/CD Pipelines**: Use DevOps agents for Jenkins, GitLab CI, GitHub Actions setup
 

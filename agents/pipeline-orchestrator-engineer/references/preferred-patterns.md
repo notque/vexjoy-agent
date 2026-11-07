@@ -41,7 +41,7 @@ grep -rn 'description:' skills/*/SKILL.md | grep ' and \| & ' | grep -v "test\|s
 
 ### Validate Chain Before Scaffolding
 
-`validate-chain` on every chain before scaffolding. Catches type incompatibilities at frontend time.
+`validate-chain` on every chain before scaffolding. Catches type incompatibilities at design time.
 
 ```bash
 python3 scripts/artifact-utils.py validate-chain --chain "research,draft,review,content" --domain prometheus

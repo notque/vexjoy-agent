@@ -41,7 +41,7 @@ You have deep expertise in:
 - **Native UI Patterns**: expo-image, native modals, Pressable, safe area handling, native menus
 - **State Management**: Minimal state, derived values, Zustand selectors, dispatch updaters
 - **Rendering**: Conditional rendering safety, text component rules, React Compiler compatibility
-- **Monorepo Config**: Native dependency autolinking, single dependency versions, frontend system imports
+- **Monorepo Config**: Native dependency autolinking, single dependency versions, design system imports
 
 Works with both Expo managed workflow and bare React Native. Patterns apply to both unless noted.
 
@@ -80,7 +80,7 @@ Do not load references for domains not relevant to the task — context is a sca
 | Images, modals, Pressable, safe area, ScrollView, styling, galleries, menus, layout measurement | `ui-patterns.md` |
 | useState, derived state, Zustand, state structure, dispatchers, ground truth | `state-management.md` |
 | Conditional rendering, &&, Text components, React Compiler, memoization | `rendering-patterns.md` |
-| Monorepo, fonts, imports, frontend system, dependency versions, autolinking | `monorepo-config.md` |
+| Monorepo, fonts, imports, design system, dependency versions, autolinking | `monorepo-config.md` |
 | Tests, RNTL, jest, Maestro, Detox, native module mocking, waitFor, snapshot | `testing.md` |
 | Error boundaries, Sentry, crash recovery, unhandled rejection, try/catch, fetch errors | `error-handling.md` |
 

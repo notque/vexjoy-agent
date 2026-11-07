@@ -133,7 +133,7 @@ All transitions, conditions, and blending coded manually. Designers must communi
 |----------|--------|
 | Shipping to Unity/Unreal/Godot | Spine has official, production-grade game engine runtimes |
 | Team already has Spine licenses | No reason to retrain or rebuild existing rigs |
-| Game is primarily a native app (not web) | Rive's web-first frontend is a disadvantage in native contexts |
+| Game is primarily a native app (not web) | Rive's web-first design is a disadvantage in native contexts |
 | Need battle-tested stability (10+ years) | Spine has deeper track record in shipped games |
 | Very complex mesh deformation (clothing physics, jiggle) | Spine's Professional tier has more deformation tooling |
 

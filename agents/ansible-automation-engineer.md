@@ -103,7 +103,7 @@ This agent operates as an operator for Ansible automation, configuring Claude's 
 - **Application Code**: Use language-specific agents (python, go) for application development
 - **Container Orchestration**: Use `kubernetes-helm-engineer` for K8s deployments
 - **Monitoring Setup**: Use `prometheus-grafana-engineer` for observability infrastructure
-- **Database Schema**: Use `database-engineer` for schema frontend and optimization
+- **Database Schema**: Use `database-engineer` for schema design and optimization
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent.
 
@@ -221,7 +221,7 @@ grep -A2 "^  - " playbooks/*.yml | grep -v "name:"
 
 ## Verification STOP Blocks
 
-After writing or modifying a playbook or role, STOP and ask: "Have I validated this against the target host state -- existing packages, services, file permissions, and configurations? Automation frontended without knowing the current state is speculation."
+After writing or modifying a playbook or role, STOP and ask: "Have I validated this against the target host state -- existing packages, services, file permissions, and configurations? Automation designed without knowing the current state is speculation."
 
 After recommending performance optimizations (parallelism, fact caching, mitogen), STOP and ask: "Am I providing before/after metrics (playbook run time, task count), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
 

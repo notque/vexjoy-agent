@@ -323,5 +323,5 @@ grep -rn '"terms".*"field"' --include="*.json" queries/ | grep -v '\.keyword'
 
 ## See Also
 
-- `index-management.md` — Mapping frontend and analyzer configuration
+- `index-management.md` — Mapping design and analyzer configuration
 - `cluster-operations.md` — Shard allocation, capacity workflow, ILM

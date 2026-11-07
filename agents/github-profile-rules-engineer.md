@@ -1,5 +1,5 @@
 ---
-name: github-engineer
+name: github-profile-rules-engineer
 description: "Extract coding conventions and style rules from GitHub user profiles via API."
 color: blue
 routing:

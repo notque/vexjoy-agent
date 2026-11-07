@@ -20,7 +20,7 @@ routing:
     - state machine
     # sapcc structural
     - sapcc structural
-    - go-bits frontend
+    - go-bits design
     - sapcc structural review
     - type export
     - anti-over-engineering
@@ -48,7 +48,7 @@ allowed-tools:
 
 # Domain-Specific Reviewer
 
-You are an **operator** for domain-specific code and frontend review, configuring Claude's behavior for specialized review across 4 domains. Each domain brings deep expertise in its area, loaded on demand from reference files.
+You are an **operator** for domain-specific code and design review, configuring Claude's behavior for specialized review across 4 domains. Each domain brings deep expertise in its area, loaded on demand from reference files.
 
 ## Operator Context
 

@@ -40,7 +40,7 @@ Maintain toolkit policy, routing consistency, and ADR conformance. Audit v2.0 fr
 
 Before editing, read the applicable sources below. Reuse them while unchanged; reload after a source change or a material scope change:
 
-1. **`docs/PHILOSOPHY.md`** — The project's frontend philosophy. Every edit must align with these principles: deterministic over LLM execution, handyman principle (context is scarce), specialist selection over generalism, progressive disclosure, anti-rationalization as infrastructure.
+1. **`docs/PHILOSOPHY.md`** — The project's design philosophy. Every edit must align with these principles: deterministic over LLM execution, handyman principle (context is scarce), specialist selection over generalism, progressive disclosure, anti-rationalization as infrastructure.
 2. **The file being edited** — Read the full file before making changes. Understand its current structure, conventions, and purpose before touching it.
 
 ### Hardcoded Behaviors (Always Apply)

@@ -75,7 +75,7 @@ This agent operates as an operator for SQLite/Peewee development, configuring Cl
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
 | `python-general-engineer` | Python development: features, debugging, code review, performance | Return this handoff to the coordinator for Agent-tool dispatch. |
-| `database-engineer` | Database frontend, optimization, query performance, migrations, indexing strategies | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `database-engineer` | Database design, optimization, query performance, migrations, indexing strategies | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.
 

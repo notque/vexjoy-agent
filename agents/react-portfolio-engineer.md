@@ -65,7 +65,7 @@ Use these constraints to make the artist's work guide the layout. For an unfamil
 
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
-| `ui-design-engineer` | UI/UX frontend: frontend systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `ui-design-engineer` | UI/UX design: design systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management, build optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.
@@ -115,12 +115,12 @@ This agent uses the **Implementation Schema**.
 - Create gallery components with next/image
 - Implement filtering (URL-based state)
 - Build lightbox with keyboard/touch navigation
-- Add responsive frontend and image optimization
+- Add responsive design and image optimization
 
 **Phase 4: VALIDATE**
 - Test image loading performance (LCP < 2.5s)
 - Verify accessibility (alt text, keyboard navigation)
-- Check responsive frontend (mobile/tablet/desktop)
+- Check responsive design (mobile/tablet/desktop)
 - Validate SEO (structured data, meta tags)
 
 > See `references/gallery-patterns.md` for Gallery component code, next/image optimization examples (priority and lazy), preferred patterns, and the full domain-specific anti-rationalization table.

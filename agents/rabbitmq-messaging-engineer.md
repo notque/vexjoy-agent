@@ -9,7 +9,7 @@ routing:
     - message queue
     - amqp
     - event bus
-  not_for: "Kafka, Spark, or stream-processing data pipelines (use data-engineer); application webhook and REST endpoint code (use nodejs-api-engineer); running a broker on Kubernetes via manifests or Helm (use kubernetes-helm-engineer); broker metrics dashboards and alert rules (use prometheus-grafana-engineer). This agent frontends RabbitMQ topology, clustering, and high availability."
+  not_for: "Kafka, Spark, or stream-processing data pipelines (use data-engineer); application webhook and REST endpoint code (use nodejs-api-engineer); running a broker on Kubernetes via manifests or Helm (use kubernetes-helm-engineer); broker metrics dashboards and alert rules (use prometheus-grafana-engineer). This agent designs RabbitMQ topology, clustering, and high availability."
   pairs_with:
     - testing
   complexity: Medium-Complex
@@ -191,7 +191,7 @@ Before implementing RabbitMQ, check for these. If found:
 
 ## Verification STOP Blocks
 
-After frontending or modifying queue/exchange configuration, STOP and ask: "Have I validated this against the existing topology -- current exchanges, bindings, and consumers? Messaging config frontended without knowing the current state causes routing surprises."
+After designing or modifying queue/exchange configuration, STOP and ask: "Have I validated this against the existing topology -- current exchanges, bindings, and consumers? Messaging config designed without knowing the current state causes routing surprises."
 
 After recommending a performance optimization (prefetch tuning, lazy queues, connection pooling), STOP and ask: "Am I providing before/after metrics (message rate, queue depth, consumer utilization), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
 
@@ -231,7 +231,7 @@ STOP and ask the user when:
 |-----------|----------|----------|
 | Message volume unknown | Can't size cluster | "Expected message rate (msgs/sec) and message size?" |
 | Reliability requirements unclear | Affects delivery guarantees | "Can you tolerate message loss? Need exactly-once or at-least-once?" |
-| HA requirements unknown | Affects cluster frontend | "How many nodes for HA? Tolerance for node failures?" |
+| HA requirements unknown | Affects cluster design | "How many nodes for HA? Tolerance for node failures?" |
 | Retention needs unclear | Affects storage/TTL | "How long to retain unprocessed messages?" |
 
 ### Always Confirm Before Acting On

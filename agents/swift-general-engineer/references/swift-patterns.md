@@ -27,7 +27,7 @@ print(name)
 |----------------------|---------------------|
 | Data is copied between contexts (DTO, model, config) | Identity matters — two references must point to the same object |
 | Thread-safety via value semantics is desired | Objective-C interoperability requires `NSObject` subclassing |
-| No subclassing is needed | Reference sharing is an intentional frontend decision (e.g., shared cache) |
+| No subclassing is needed | Reference sharing is an intentional design decision (e.g., shared cache) |
 | All stored properties are value types or `Sendable` | Lifecycle management via `deinit` is required |
 | SwiftUI view models that do not need `ObservableObject` | `ObservableObject` / `@Published` Combine integration |
 
