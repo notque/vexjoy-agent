@@ -224,7 +224,7 @@ Do not report "cluster looks healthy" without checking each of these. Absence of
 
 ## Blocker Criteria
 
-STOP and ask the user when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -233,7 +233,7 @@ STOP and ask the user when:
 | Retention requirements unknown | Can't configure ILM | "Data retention period: 7d, 30d, 90d?" |
 | Node count unclear | Can't plan capacity | "How many nodes available and node specs (CPU, RAM, disk)?" |
 
-### Always Confirm Before Acting On
+### Decide Explicitly Before Acting On
 - Data volume (affects cluster sizing)
 - Retention period (storage costs)
 - Query patterns (mapping design)

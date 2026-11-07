@@ -244,7 +244,7 @@ Do not report "monitoring looks healthy" without checking each of these. An aler
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -253,7 +253,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 | Retention requirements unknown | Storage planning needed | "How long to retain metrics: 15d, 30d, 90d?" |
 | Alert notification channels unknown | Can't route alerts | "Where to send alerts: Slack, PagerDuty, email?" |
 
-### Always Confirm First
+### Decide Explicitly First
 - SLI/SLO definitions (business decision)
 - Retention periods (storage/cost trade-off)
 - Alert severity levels (on-call impact)

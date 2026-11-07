@@ -95,7 +95,7 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 
 - No tests exist for target code
 - Complex business logic encoding
-- Multiple valid simplification approaches (ask user)
+- Multiple valid simplification approaches (pick one, record why in the finding, and ask Jev only when genuinely unsure)
 - Simplification changes public API
 
 ## Abstraction Boundary Patterns

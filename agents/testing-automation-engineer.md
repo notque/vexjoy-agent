@@ -151,7 +151,7 @@ See [shared-patterns/anti-rationalization-testing.md](../skills/shared-patterns/
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

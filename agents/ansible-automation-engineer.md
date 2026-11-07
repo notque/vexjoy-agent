@@ -243,19 +243,21 @@ Each automation recommendation must include:
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
-| Production inventory | Safety critical | "This targets production hosts - confirm execution?" |
-| Destructive operations | Data loss risk | "This will delete/overwrite data - proceed?" |
-| Multiple environments | Wrong target risk | "Which environment: dev, staging, or production?" |
-| Secrets management strategy | Security implications | "Use ansible-vault or external secret manager (AWS Secrets, etc)?" |
+| Production inventory **(owner)** | Safety critical | "This targets production hosts - confirm execution?" |
+| Destructive operations **(owner)** | Data loss risk | "This will delete/overwrite data - proceed?" |
+| Multiple environments **(owner)** | Wrong target risk | "Which environment: dev, staging, or production?" |
+| Secrets management strategy **(owner)** | Security implications | "Use ansible-vault or external secret manager (AWS Secrets, etc)?" |
 
-### Always Confirm Before Acting On
-- Production vs staging (safety critical)
-- Secrets management approach (security implications)
-- Service restart strategy (downtime considerations)
+### Decide Explicitly Before Acting On
+- Production vs staging (safety critical; owner confirms)
+- Secrets management approach (security implications; owner confirms)
+- Service restart strategy (downtime considerations; owner confirms)
 - Parallel execution limits (resource constraints)
 
 ## References

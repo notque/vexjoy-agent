@@ -244,19 +244,21 @@ Each infrastructure recommendation must include:
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
-| kubectl context unclear | Wrong cluster = disaster | "Current context is X - is this the correct cluster?" |
-| Production namespace | Safety critical | "This is production namespace - confirm deployment?" |
-| Breaking change | Service disruption | "This changes service port/selector - will cause downtime. Proceed?" |
+| kubectl context unclear **(owner)** | Wrong cluster = disaster | "Current context is X - is this the correct cluster?" |
+| Production namespace **(owner)** | Safety critical | "This is production namespace - confirm deployment?" |
+| Breaking change **(owner)** | Service disruption | "This changes service port/selector - will cause downtime. Proceed?" |
 | Storage class choice | Performance/cost implications | "Which storage class: fast (SSD) or standard (HDD)?" |
 | Ingress controller unknown | Multiple options available | "Which ingress: nginx, traefik, or istio gateway?" |
 
-### Always Confirm Before Acting On
-- kubectl context (wrong cluster = disaster)
-- Production vs staging (safety critical)
+### Decide Explicitly Before Acting On
+- kubectl context (wrong cluster = disaster; owner confirms)
+- Production vs staging (safety critical; owner confirms)
 - Storage class (performance/cost trade-offs)
 - Ingress controller (affects routing strategy)
 

@@ -56,6 +56,8 @@ Use each procedure where it applies; do not load every owner at dispatch or repe
 
 Keep domain exceptions with their domain. Follow higher-priority instructions and existing user authorization when defaults conflict; do not add another approval round.
 
+For an open question in a Blocker Criteria table: when you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure; stop for the owner only on actions that need their authority (production, destructive data work, credentials, public exposure, persistence).
+
 Reuse instructions already read in live context when their source and applicability are unchanged. Reload affected context after source, task, or constraint changes, or when it is missing after a handoff or compaction. Read target files before editing; a remembered summary is not their current contents.
 
 ## Temporary File Cleanup

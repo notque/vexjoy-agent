@@ -66,7 +66,7 @@ These checkpoints are mandatory. Do not skip them even when confident.
 
 ## Blocker Criteria
 
-STOP and ask the user (always get explicit approval) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

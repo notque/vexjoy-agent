@@ -176,7 +176,7 @@ Common UI/UX implementation errors.
 
 ## Blocker Criteria
 
-STOP and ask the user (always get explicit approval) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 **Skip-if-answered rule**: If the user's original request already answers any of these questions, do not re-ask. The blocker table exists to close gaps, not to gate every request on ceremony. For example, if the request is "build a landing page for Acme with hero headline X", surface type and product name are already answered and the agent proceeds without re-asking.
 

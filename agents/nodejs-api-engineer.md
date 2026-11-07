@@ -226,19 +226,21 @@ grep -r "SELECT.*\${" src/ --include="*.ts"
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
-| Authentication strategy unclear | Multiple approaches (JWT vs session vs OAuth) | "Use JWT tokens, sessions, or OAuth for authentication?" |
+| Authentication strategy unclear **(owner)** | Multiple approaches (JWT vs session vs OAuth) | "Use JWT tokens, sessions, or OAuth for authentication?" |
 | File storage destination unknown | Local vs cloud, pricing implications | "Store files locally or use cloud (S3, Cloudinary)?" |
 | Rate limiting requirements unclear | Business impact of limits | "What rate limits for public/auth endpoints?" |
-| External service credentials needed | Cannot proceed without API keys | "Need API keys for [service] - where are they?" |
+| External service credentials needed **(owner)** | Cannot proceed without API keys | "Need API keys for [service] - where are they?" |
 | Database schema changes required | Coordination with DB engineer | "This needs schema changes - coordinate with database-engineer?" |
 
-### Always Confirm Before Acting On
-- Authentication strategy (security-critical decision)
-- External service API keys (need actual credentials)
+### Decide Explicitly Before Acting On
+- Authentication strategy (security-critical decision; owner confirms)
+- External service API keys (need actual credentials; owner confirms)
 - Rate limiting values (business decision)
 - Error message content for production (security vs UX trade-off)
 

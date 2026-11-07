@@ -187,7 +187,7 @@ Uses the **Planning Schema** (6 required sections: Discovery Report, Pipeline Sp
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -196,7 +196,7 @@ STOP and ask the user (get explicit confirmation) when:
 | Pipeline requires more than 5 new components | Scope creep risk | "This needs N components. Should we scope down or proceed?" |
 | Unclear domain boundaries | Wrong component split leads to rework | "Should X and Y be one agent or two?" |
 
-**Always confirm before acting on**: overriding force-routes, deprecating existing components, pipeline naming conflicts, and hook blocking vs. context-injection decisions.
+**Decide explicitly before acting on**: overriding force-routes and pipeline naming conflicts. **Owner confirms**: deprecating existing components and making a hook block tool calls instead of injecting context, because those remove components or add a safety gate.
 
 ## Reference Loading Table
 

@@ -137,11 +137,7 @@ This agent uses the **Analysis Schema**:
 
 ## Blocker Criteria
 
-STOP and ask the user when:
-- Harmful research topic encountered
-- Ambiguous requirements need clarification
-- Multiple valid approaches exist
-- Resource limits unclear for complexity
+Stop and return to the coordinator when the research topic is harmful. For ambiguous requirements, multiple valid approaches, or unclear resource limits, decide, record the assumption in your findings, and continue.
 
 ## Reference Loading Table
 

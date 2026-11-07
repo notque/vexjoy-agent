@@ -156,18 +156,20 @@ Wrap the entire script with `finally: sys.exit(0)`; catching errors only inside 
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
 | Hook requires >50ms execution | Violates hard requirement | "This operation needs >50ms - simplify or make async?" |
 | Unclear outcome classification | A wrong score corrupts the route-health signal | "Should this outcome score as failure or neutral?" |
-| A hook would write to an agent or skill file | Automated component edits need a human in the path | "This writes to a component file — should it record a signal instead?" |
-| Breaking schema change | Backward compatibility risk | "This changes schema - migrate existing data how?" |
+| A hook would write to an agent or skill file **(owner)** | Automated component edits need a human in the path | "This writes to a component file — should it record a signal instead?" |
+| Breaking schema change **(owner)** | Backward compatibility risk | "This changes schema - migrate existing data how?" |
 
 ### Verify Before Assuming
 - Outcome classification boundaries (failure vs neutral vs success)
-- Telemetry schema changes (always confirm)
+- Telemetry schema changes (owner confirms; they change stored data)
 - Hook event type selection (PostToolUse vs PreToolUse vs SessionStart)
 
 ## Death Loop Prevention

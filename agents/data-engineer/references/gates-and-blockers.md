@@ -52,7 +52,7 @@ Each pipeline or model recommendation must include:
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

@@ -153,7 +153,7 @@ Before writing Python code, check the hard-gate table in [python-local-gates.md]
 
 ## Blocker Criteria & Death Loop Prevention
 
-STOP and ask the user for explicit confirmation on fundamental design choices: async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes. Retry limit: after 3 failed attempts at the same fix, stop and reassess the diagnosis instead of iterating.
+For fundamental design choices (async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes), follow the project's existing choice; otherwise decide, record the assumption in your report, and ask Jev when genuinely unsure. Ask only when a choice leaves a material decision uncovered. Retry limit: after 3 failed attempts at the same fix, stop and reassess the diagnosis instead of iterating.
 
 ## References
 

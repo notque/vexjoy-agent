@@ -215,7 +215,7 @@ Before writing Peewee code, check for these patterns. If found:
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -224,7 +224,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 | Complex migration needed | Data transformation required | "Need to transform existing data during migration?" |
 | Full-text search requirements | FTS5 configuration decisions | "What fields to index for search? Tokenizer preference?" |
 
-### Always Confirm First
+### Decide Explicitly First
 - Concurrent write patterns (SQLite limitation)
 - Data scale (affects SQLite viability)
 - Migration data transformations (need user logic)

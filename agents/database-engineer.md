@@ -247,20 +247,22 @@ Each schema or optimization recommendation must include:
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
 | Database choice unclear | PostgreSQL vs MySQL vs SQLite affects design | "Which database: PostgreSQL, MySQL, or SQLite?" |
 | Scale requirements unknown | Affects partitioning, sharding decisions | "Expected row count and query volume?" |
-| Production migration timing | Downtime coordination needed | "Can we do zero-downtime migration or need maintenance window?" |
+| Production migration timing **(owner)** | Downtime coordination needed | "Can we do zero-downtime migration or need maintenance window?" |
 | Multi-tenant strategy unclear | Row-level vs schema-level isolation | "Multi-tenant: shared tables (row-level) or separate schemas?" |
 | Denormalization consideration | Need proof of performance problem | "Have you measured query performance issue? Benchmarks?" |
 
-### Always Confirm First
+### Decide Explicitly First
 - Database choice (PostgreSQL vs MySQL vs SQLite)
 - Scale requirements (affects schema design)
-- Migration timing (production coordination)
+- Migration timing (production coordination; owner confirms)
 - Denormalization decisions (need benchmarks)
 
 ## References

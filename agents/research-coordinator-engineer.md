@@ -218,17 +218,19 @@ Research coordination patterns to follow. See [references/delegation-patterns.md
 
 ## Blocker Criteria
 
-STOP and ask the user (get explicit confirmation) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
 | Ambiguous research scope | Risk of wrong investigation | "Should research cover X or focus only on Y?" |
 | >20 subagents needed | Hard count limit | "Research needs 25 subagents - restructure approach or reduce scope?" |
 | Conflicting subagent findings | Can't reconcile automatically | "Subagents found conflicting data on X - prioritize source A or B?" |
-| Paywall/private data needed | Can't access | "Research requires paywalled data - proceed without or user provides access?" |
+| Paywall/private data needed **(owner)** | Can't access | "Research requires paywalled data - proceed without or user provides access?" |
 
-### Always Confirm First
-- Research scope boundaries (always confirm ambiguous scope)
+### Decide Explicitly First
+- Research scope boundaries (record how you resolved an ambiguous scope)
 - Source prioritization when conflicts exist
 - Whether to expand beyond initial scope
 - Subagent count if approaching 20 (restructure first)

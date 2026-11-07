@@ -185,11 +185,13 @@ Solution: Manual copy to `~/.claude/`. Report the broken sync path.
 
 ## Blocker Criteria
 
-STOP and ask the user when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
-| Plan exceeds authorized scope | Scope risk | "These additional changes are outside the request. Include them?" |
+| Plan exceeds authorized scope **(owner)** | Scope risk | "These additional changes are outside the request. Include them?" |
 | Regression needs an unapproved tradeoff | Correctness risk | "Resolving this changes the requested behavior. Which outcome should we preserve?" |
 | Change signal unclear | Wrong plan risk | "What specifically changed in [release/goal]? Give me the concrete feature." |
 | Existing component covers the gap | Duplication risk | Reuse or extend it within scope; ask only if this changes the requested outcome. |

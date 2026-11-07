@@ -140,12 +140,14 @@ This agent operates as an operator for GitHub profile analysis, configuring Clau
 
 ## Blocker Criteria
 
-STOP and ask the user when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
 | Username returns 404 | Cannot proceed without valid target | "User '{username}' not found. Check spelling?" |
-| Rate limit exhausted with no token | Cannot fetch more data | "Rate limit hit. Provide a GitHub token for 5000 req/hr?" |
+| Rate limit exhausted with no token **(owner)** | Cannot fetch more data | "Rate limit hit. Provide a GitHub token for 5000 req/hr?" |
 | Conflicting patterns detected | User may have context on intent | "Found conflicting patterns: X in repos A,B vs Y in repo C. Which reflects current preference?" |
 
 ## References

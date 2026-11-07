@@ -225,7 +225,7 @@ Do not report "messaging looks healthy" without checking each of these. A messag
 
 ## Blocker Criteria
 
-STOP and ask the user when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -234,7 +234,7 @@ STOP and ask the user when:
 | HA requirements unknown | Affects cluster design | "How many nodes for HA? Tolerance for node failures?" |
 | Retention needs unclear | Affects storage/TTL | "How long to retain unprocessed messages?" |
 
-### Always Confirm Before Acting On
+### Decide Explicitly Before Acting On
 - Message volume (affects cluster sizing)
 - Delivery guarantees (at-least-once vs exactly-once)
 - HA requirements (number of nodes, quorum settings)

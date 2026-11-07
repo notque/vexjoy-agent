@@ -162,14 +162,16 @@ Debugging patterns to follow. See [typescript-frontend-engineer/references/engin
 
 ## Blocker Criteria
 
-STOP and ask the user (always get explicit approval) before proceeding when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
 | Cannot reproduce bug | Different environment/data needed | "Can you provide exact steps, environment, and data that triggers this?" |
 | Multiple possible causes | Need user to narrow scope | "Does this happen in local dev, staging, or only production?" |
 | Breaking changes needed | User coordination required | "Fix requires changing API contract - proceed?" |
-| Production access needed | Security/permissions | "Can you provide production logs/stack traces?" |
+| Production access needed **(owner)** | Security/permissions | "Can you provide production logs/stack traces?" |
 | Git history unclear | Need user to identify commits | "When did this start working incorrectly? Which commit last worked?" |
 
 ### Verify Before Assuming
