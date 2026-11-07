@@ -187,6 +187,18 @@ class TestRedaction:
         rules = {f["rule"] for f in json.loads(_cli(["--files", "q.py"], tmp_path, tmp_path).stdout)["findings"]}
         assert rules == {"hardcoded-secret", "sql-injection"}
 
+    def test_key_body_after_a_header_inside_another_rules_match_is_dropped(self, tmp_path):
+        # The private-key rule matches the header alone, so the redaction of
+        # another rule's match must not leave the key body that follows it.
+        sql = "q = " + _q("SEL" + "ECT * FROM t WHERE k = " + PEM_BEGIN + KEY_BODY + " %s") + " % v"  # nosec - SQL rule fixture
+        _write(tmp_path, "q.py", sql)
+        for fmt in ("json", "text"):
+            proc = _cli(["--files", "q.py"], tmp_path, tmp_path, fmt=fmt)
+            assert KEY_BODY[:12] not in proc.stdout
+            assert KEY_BODY[-12:] not in proc.stdout
+        rules = {f["rule"] for f in json.loads(_cli(["--files", "q.py"], tmp_path, tmp_path).stdout)["findings"]}
+        assert rules == {"hardcoded-secret", "sql-injection"}
+
     def test_long_match_text_is_cut(self, tmp_path):
         _write(tmp_path, "a.py", "subprocess.run(" + "x, " * 200 + "shell" + "=True)")
         [*findings] = json.loads(_cli(["--files", "a.py"], tmp_path, tmp_path).stdout)["findings"]
@@ -390,6 +402,32 @@ class TestRobustness:
         assert proc.returncode == 2, proc.stderr
         reasons = json.loads(proc.stdout)["summary"]["incomplete"]
         assert reasons and "time budget" in reasons[0]
+
+    def test_time_budget_is_checked_inside_one_long_line(self):
+        # A single multi-megabyte line must not run past the budget: the hook
+        # kills an overrunning scan and loses every finding it already had.
+        class _SpentAfterTwoChecks:
+            calls = 0
+
+            def check(self):
+                self.calls += 1
+                if self.calls > 2:
+                    raise scan._OutOfTime
+
+        line = "k='" + AWS_ID + "';" + "x" * (20 * scan._WINDOW_CHARS)
+        found: list[dict] = []
+        with pytest.raises(scan._OutOfTime):
+            scan._scan_text("min.js", line, scan._build_rules(), _SpentAfterTwoChecks(), found)
+        assert [f["match"].split(":")[1] for f in found] == ["aws-access-key-id"]
+
+    def test_budget_spent_in_a_long_line_keeps_earlier_findings(self, tmp_path):
+        _write(tmp_path, "a.py", "import os\n" + HIGH_LINE)
+        _write(tmp_path, "b.py", "x = 1;" * 400_000)
+        proc = _cli(["--time-budget", "0.3", "--files", "a.py", "b.py"], tmp_path, tmp_path)
+        report = json.loads(proc.stdout)
+        assert proc.returncode == 1, proc.stderr
+        assert [f["file"] for f in report["findings"]] == ["a.py"]
+        assert any("time budget" in r for r in report["summary"]["incomplete"])
 
     def test_findings_beyond_the_first_window_are_found_once(self, tmp_path):
         line = "var a=1;" * 1500 + "k='" + AWS_ID + "';" + "b=2;" * 3000 + "t='" + GH_PAT + "'"

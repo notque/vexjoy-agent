@@ -1120,6 +1120,7 @@ def _secret_placeholder(rule: dict, match: re.Match) -> str:
 
 # Built-in secret rules, compiled once, for redacting text that is not a secret finding.
 _SECRET_RULES: list[dict] = []
+_PRIVATE_KEY_PLACEHOLDER = "<redacted:private-key>"
 
 
 def _redact_text(text: str) -> str:
@@ -1128,6 +1129,11 @@ def _redact_text(text: str) -> str:
         _SECRET_RULES.extend(r for r in _build_rules() if r.get("secret_type"))
     for rule in _SECRET_RULES:
         text = rule["pattern"].sub(lambda m, rule=rule: _secret_placeholder(rule, m), text)
+    # The private-key rule matches the header alone; the key body follows it
+    # on the same line when a key is stored as one string, so drop the rest.
+    cut = text.find(_PRIVATE_KEY_PLACEHOLDER)
+    if cut >= 0:
+        text = text[: cut + len(_PRIVATE_KEY_PLACEHOLDER)] + "..."
     return text
 
 
@@ -1218,6 +1224,9 @@ def _scan_text(
         taken = [0] * len(applicable)  # per rule: where its last reported match ended
         secret_spans: list[tuple[int, int]] = []
         for lo, hi, accept in _windows(len(line)):
+            if deadline is not None and lo:
+                # One multi-megabyte line must not outrun the budget either.
+                deadline.check()
             context = line if hi - lo == len(line) else line[lo:hi]
             for i, rule in enumerate(applicable):
                 filter_fn = rule.get("filter_fn")
@@ -1543,7 +1552,8 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Scan what the next commit holds: every staged blob in the index (added, copied, modified, "
             "renamed or type-changed), named from the repository top level. Run before the command that "
-            "commits; files staged by that same command are not in the index yet."
+            "commits; files staged by that same command, including by git commit -a or git commit <paths>, "
+            "are not in the index yet."
         ),
     )
     parser.add_argument(

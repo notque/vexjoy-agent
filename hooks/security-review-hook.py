@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.0
+# hook-version: 1.1.1
 """
 Local Security Review Hook (ADR: adr/local-security-review.md)
 
@@ -27,6 +27,8 @@ the anchored secret signatures whatever its extension (the scanner's docstring
 says what each file type gets). Out of reach by design: a PreToolUse hook runs
 before the Bash command, so files that the same command stages (`git add x &&
 git commit` in one call) are not in the index yet and are not scanned. The
+same holds for changes `git commit -a`, `git commit --include` or `git commit
+<paths>` stage while committing: the gate sees the index as it was before. The
 gitignore rules and the unified gate's staged-secret checks are the backstops
 for that case.
 
