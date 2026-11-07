@@ -99,22 +99,41 @@ def test_sonnet_is_flagged_everywhere(tmp_path: Path, monkeypatch) -> None:
 def test_haiku_is_allowed_on_a_read_only_agent(tmp_path: Path, monkeypatch) -> None:
     repo = _make_repo(tmp_path)
     _agent(repo, "scout-csv", "model: haiku\ntools: Read, Grep, Glob, WebFetch\n")
-    _agent(repo, "scout-list", "model: haiku\nallowed-tools:\n  - Read\n  - Grep\n  - WebSearch\n")
+    _agent(repo, "scout-list", "model: haiku\ntools:\n  - Read\n  - Grep\n  - WebSearch\n")
 
     assert _flagged(repo, monkeypatch) == {}
+
+
+def test_haiku_is_flagged_when_only_allowed_tools_lists_read_only_tools(tmp_path: Path, monkeypatch) -> None:
+    # Claude Code ignores allowed-tools on agents and treats it as a grant on skills,
+    # so a read-only allowed-tools list leaves Edit, Write, and Bash available.
+    repo = _make_repo(tmp_path)
+    _agent(repo, "scout-advisory", "model: haiku\nallowed-tools:\n  - Read\n  - Grep\n  - WebSearch\n")
+    skill_dir = repo / "skills" / "demo" / "demo-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("---\nmodel: haiku\nallowed-tools: Read, Grep\n---\n", encoding="utf-8")
+
+    flagged = _flagged(repo, monkeypatch)
+
+    assert set(flagged) == {"scout-advisory", "demo-skill"}
+    assert all("allowed-tools" in issue for issue in flagged.values())
 
 
 def test_haiku_is_flagged_on_an_agent_that_can_write(tmp_path: Path, monkeypatch) -> None:
     repo = _make_repo(tmp_path)
     _agent(repo, "editor", "model: haiku\ntools: Read, Edit\n")
-    _agent(repo, "writer", "model: haiku\nallowed-tools:\n  - Read\n  - Write\n")
+    _agent(repo, "writer", "model: haiku\ntools:\n  - Read\n  - Write\n")
     _agent(repo, "shell", "model: haiku\ntools: Read, Bash(git diff:*)\n")
     _agent(repo, "notebook", "model: haiku\ntools: [Read, NotebookEdit]\n")
+    # A subagent started through Agent or Task can write, so those count too.
+    _agent(repo, "delegator", "model: haiku\ntools: Read, Agent\n")
+    _agent(repo, "tasker", "model: haiku\ntools: Read, Task\n")
 
     flagged = _flagged(repo, monkeypatch)
 
-    assert set(flagged) == {"editor", "writer", "shell", "notebook"}
+    assert set(flagged) == {"editor", "writer", "shell", "notebook", "delegator", "tasker"}
     assert "read-only" in flagged["editor"]
+    assert "Agent" in flagged["delegator"]
 
 
 def test_haiku_is_flagged_when_no_tool_list_limits_the_agent(tmp_path: Path, monkeypatch) -> None:

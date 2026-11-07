@@ -4,9 +4,13 @@
 Anthropic model policy (owner, 2026-11-01): Opus does all code, edits,
 debugging, deciding reviews, and decisions; Haiku does read-only gathering that
 an Opus thread judges; Sonnet is no task's default. So a component may pin
-``opus`` or ``inherit``, may pin ``haiku`` only when its declared tool list
-(``tools`` or ``allowed-tools``) holds no tool that can change files, and may
-pin anything else (``sonnet`` included) only through EXEMPT_COMPONENTS.
+``opus`` or ``inherit``, may pin ``haiku`` only when its ``tools`` list holds no
+tool that can change files, and may pin anything else (``sonnet`` included)
+only through EXEMPT_COMPONENTS.
+
+Only ``tools`` counts: Claude Code enforces it for subagents, ignores
+``allowed-tools`` on agents, and treats ``allowed-tools`` on skills as a grant,
+so a read-only ``allowed-tools`` list still leaves Edit, Write, and Bash in reach.
 """
 
 from __future__ import annotations
@@ -26,8 +30,9 @@ from scripts.lib.frontmatter import parse_frontmatter
 MODEL_RE = re.compile(r"^model:\s*(.+)$", re.MULTILINE)
 ALLOWED_MODELS = {"opus", "inherit"}
 READ_ONLY_MODELS = {"haiku"}
-# Tools that can change files. Bash counts: a shell can write anything.
-WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"}
+# Tools that can change files. Bash counts: a shell can write anything. Agent and
+# Task count: the subagent they start can write.
+WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash", "Agent", "Task"}
 EXEMPT_COMPONENTS: set[tuple[str, str]] = {
     ("skill", "do"),
     # image-generation skill; its Gemini image model is legitimate
@@ -57,15 +62,16 @@ def scan_targets() -> list[tuple[str, str, Path]]:
 
 
 def declared_tools(text: str) -> list[str] | None:
-    """Tool names from frontmatter ``tools`` or ``allowed-tools``; None when neither is set.
+    """Tool names from frontmatter ``tools``; None when it is not set.
 
-    Accepts a YAML list or a comma/space separated string. ``Bash(git diff:*)``
-    counts as ``Bash``.
+    ``allowed-tools`` is ignored on purpose (see the module docstring). Accepts a
+    YAML list or a comma/space separated string. ``Bash(git diff:*)`` counts as
+    ``Bash``.
     """
     frontmatter, _ = parse_frontmatter(text)
     if not frontmatter:
         return None
-    raw = frontmatter.get("tools", frontmatter.get("allowed-tools"))
+    raw = frontmatter.get("tools")
     if raw is None:
         return None
     items = raw if isinstance(raw, list) else re.split(r"[,\s]+", str(raw))
@@ -79,7 +85,10 @@ def model_issue(model: str, text: str) -> str | None:
     if model in READ_ONLY_MODELS:
         tools = declared_tools(text)
         if tools is None:
-            return f"model '{model}' is for read-only gathering; declare a read-only tools list (no tools list inherits Edit and Write)"
+            return (
+                f"model '{model}' is for read-only gathering; declare a read-only `tools:` list "
+                "(without one the component keeps Edit and Write; allowed-tools does not restrict them)"
+            )
         writers = sorted(set(tools) & WRITE_TOOLS)
         if writers:
             return f"model '{model}' is for read-only gathering; this component declares {', '.join(writers)}"

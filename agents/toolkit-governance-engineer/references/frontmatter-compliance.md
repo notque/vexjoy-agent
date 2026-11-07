@@ -25,13 +25,13 @@ Agent and skill frontmatter is the contract between a component and the routing 
 | `color` | string | agents (optional) | `color: blue` |
 | `model` | string | optional; omit to inherit | `model: opus` |
 
-No agent carries `version`; `validate-skill-frontmatter.py --strict` checks it on skills only. For `model`, the 2026-11-01 policy allows `opus` and `inherit`, `haiku` only on an agent whose tool list cannot change files, and `sonnet` only through an exemption in `validate_component_models.py`.
+No agent carries `version`; `validate-skill-frontmatter.py --strict` checks it on skills only. For `model`, the 2026-11-01 policy allows `opus` and `inherit`, `haiku` only on an agent whose `tools:` list (the field Claude Code enforces) cannot change files, and `sonnet` only through an exemption in `validate_component_models.py`. A read-only `allowed-tools` list does not qualify, because it restricts nothing.
 
 ---
 
 ## Tool Lists by Agent Type (advisory)
 
-Claude Code reads `tools:` for subagents and ignores `allowed-tools:` (the skill field), so an agent's `allowed-tools` restricts nothing: every repo agent runs with all tools. The list documents the tools the role needs, and `add-companion-skills.py`, `build-subagent-spec.py`, `audit-tool-restrictions.py`, and `validate_component_models.py` read it. Renaming the field to `tools:` would start enforcing it; that is an owner decision, so leave the field name alone.
+Claude Code reads `tools:` for subagents and ignores `allowed-tools:` (the skill field), so an agent's `allowed-tools` restricts nothing: every repo agent runs with all tools. The list documents the tools the role needs, and `add-companion-skills.py`, `build-subagent-spec.py`, and `audit-tool-restrictions.py` read it; `validate_component_models.py` deliberately reads only `tools:`. Renaming the field to `tools:` would start enforcing it; that is an owner decision, so leave the field name alone.
 
 | Agent Role | Listed Tools | Rationale |
 |------------|-----------------|-----------|
@@ -118,7 +118,7 @@ routing:
 ---
 ```
 
-**Why this matters**: Without `allowed-tools`, nobody reading the agent can see its intended tool scope, `add-companion-skills.py` fails on an agent with companion skills, and `validate_component_models.py` rejects a `model: haiku` pin because no list shows the agent cannot write. Claude Code grants the agent all tools either way.
+**Why this matters**: Without `allowed-tools`, nobody reading the agent can see its intended tool scope, `add-companion-skills.py` fails on an agent with companion skills, and `validate-references.py --check-skill-calls` fails an agent that calls the Skill tool. Claude Code grants the agent all tools either way, so `validate_component_models.py` rejects a `model: haiku` pin unless a read-only `tools:` list limits the agent.
 
 **Preferred action:**
 
@@ -211,7 +211,7 @@ List only `Read`, `Glob`, `Grep`, and read-only `Bash` for a reviewer. Add `Edit
 | Agent in INDEX.json but not routed | Missing `routing.triggers` | Add `routing.triggers` list with at least one trigger string |
 | Agent changed files during a review | `allowed-tools` is advisory, so nothing blocked the write | Put the read-only rule in the agent body; the list documents intent only |
 | Description truncated in INDEX.json | Unquoted colon in description | Wrap description in double quotes |
-| `validate_component_models.py` rejects an agent | `model` pin outside the 2026-11-01 policy | Use `opus` or `inherit`, or omit `model`; keep `haiku` for agents whose tool list cannot write |
+| `validate_component_models.py` rejects an agent | `model` pin outside the 2026-11-01 policy | Use `opus` or `inherit`, or omit `model`; keep `haiku` for agents whose `tools:` list cannot write (no Edit, Write, Bash, Agent, or Task) |
 
 ---
 
