@@ -130,7 +130,7 @@ Installs into `~/.claude/` and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, an
 | `--dry-run` | Print the plan; write nothing |
 | `--target <t>` | Only `claude`, `codex`, `factory`, `hermes`, `reasonix`, or `all` |
 | `--no-takeover` | Leave old unowned copies in place (default: move them to trash and replace) |
-| `--uninstall` / `--rollback` | Remove owned entries and, with no `--target`, rename install.sh's post-merge hook so git skips it / restore the newest trash and settings backup |
+| `--uninstall` / `--rollback` | Remove owned entries and, with no `--target` or `--target claude`, rename install.sh's post-merge hook so git skips it / undo the last install or uninstall run (its trash and settings backup) |
 
 Layout and safety rules: [docs/installer-layout.md](docs/installer-layout.md).
 

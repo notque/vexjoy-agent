@@ -37,6 +37,7 @@ class Options:
     show_diff: bool = False
     takeover: bool = False
     ts: str | None = None
+    run_id: str | None = None  # groups apply, prune and uninstall steps into one rollback point
 
 
 @dataclass
