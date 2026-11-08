@@ -46,11 +46,35 @@ prompt edits, re-rank policies) with the existing blind A/B harness. One harness
    `--rejoin` writes `scoreboard.json` with per-arm, per-bucket accuracy.
 7. **Gate.** `python3 scripts/routing-ab-test.py --gate --out-dir "$OUT"` prints
    the pre-registered gates, then the verdict. Exit 0 PROMOTE, 1 REJECT,
-   2 UNDERPOWERED. The gate is deterministic (expected-pair/`acceptable`
-   matching over raw.json), so it cannot be argued with after the fact.
+   2 UNDERPOWERED, 3 CEILING or FLOOR. The gate is deterministic
+   (expected-pair/`acceptable` matching over raw.json), so it cannot be argued
+   with after the fact. CEILING or FLOOR means both arms sit at 95% or above,
+   or 5% or below: the corpus cannot tell them apart, so report "the run judged
+   nothing", never "no difference", and harden the corpus.
 8. **PR.** Attach `scoreboard.json` + the `--gate` output to the router-change
    PR. The gate verdict decides; a REJECT means the change does not merge in its
    current form.
+
+## Pilot first: prove the corpus can discriminate
+
+Before a paid main run on a new or changed corpus, run steps 3-5 on a pilot of
+about 20% of cases with three arms: baseline, a deliberately degraded control
+(for routing, a manifest with descriptions stripped), and optionally a second
+baseline run as an A/A arm. Then:
+
+```sh
+python3 scripts/routing-ab-test.py --pilot-check --out-dir "$PILOT" \
+  --control-arm stripped [--aa-arm full2]
+```
+
+It prints its pre-registered checks, then the verdict: baseline accuracy within
+30-70%, at least 60% of cases split across arms, and the control at least 20
+points (and more than twice the A/A gap) below baseline. Exit 0 PASS, 1 FAIL
+(CEILING, FLOOR, NON-DISCRIMINATING, or CONTROL-DID-NOT-LOSE). On FAIL, harden
+or replace cases and pilot again; do not start the main run. A review or fix
+A/B outside this harness uses the same check through `--per-case FILE`, where
+FILE is `{"arms": {name: [true|false per case]}}`. Design rules for the corpus,
+arms, and graders: `skills/meta/toolkit/references/blind-ab-tests.md`.
 
 For force-route fast-path changes there is also a zero-model check:
 
@@ -120,6 +144,9 @@ PRE-REGISTERED GATES (fixed in code before any run; change only BEFORE a run):
                  of baseline.
 VERDICT: PROMOTE (exit 0) = all gates pass AND discordant pairs >= 6.
          UNDERPOWERED (exit 2) = all gates pass but discordant pairs < 6.
+         CEILING / FLOOR (exit 3) = all gates pass but both arms are >= 95.0%
+                 (CEILING) or <= 5.0% (FLOOR) accurate: the corpus cannot
+                 discriminate, so the run judges nothing. Harden the corpus.
          REJECT (exit 1) = any gate fails.
 ```
 
@@ -252,7 +279,8 @@ the Opus orchestrator session driving it.
 ## Known limits
 
 - ~100 cases is small: gates use a 3-point margin, an exact McNemar test, and an
-  explicit UNDERPOWERED verdict (discordant < 6) instead of pretending power.
+  explicit UNDERPOWERED verdict (discordant < 6) instead of pretending power,
+  and a CEILING/FLOOR verdict when both arms sit at a bound.
 - Gate correctness is exact-pair matching softened only by `acceptable`; the
   blind judge scoreboard remains the nuanced read. When they disagree, say so in
   the PR rather than picking the friendlier number.

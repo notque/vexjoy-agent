@@ -18,7 +18,7 @@ Send complete candidates and the context in which they will be used. Compare lik
 
 ## 4. Establish the baseline
 
-Run the original before editing. Store probabilities, question and payload versions, usage, and latency. Repeat the frozen request to measure decision flips and the judge’s noise floor; changes within that noise are not improvements.
+Run the original before editing. Store probabilities, question and payload versions, usage, and latency. Repeat the frozen request to measure decision flips and the judge’s noise floor; changes within that noise are not improvements. When the comparison runs agents over a corpus, first pass the difficulty pilot in `skills/meta/toolkit/references/blind-ab-tests.md`: a baseline at the ceiling or floor cannot show a difference.
 
 ## 5. Iterate controlled candidates
 

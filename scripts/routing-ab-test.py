@@ -57,7 +57,15 @@ stages and a human/agent runner bridges them:
   --gate         : after --score (and normally --rejoin), applies the
                    PRE-REGISTERED promote/reject gates to raw.json using
                    deterministic expected-pair matching. Prints the gates BEFORE
-                   the results. Exit 0 PROMOTE, 1 REJECT, 2 UNDERPOWERED.
+                   the results. Exit 0 PROMOTE, 1 REJECT, 2 UNDERPOWERED,
+                   3 CEILING or FLOOR (both arms >= 95% or <= 5%: the corpus
+                   cannot tell them apart, so the run judges nothing).
+  --pilot-check  : BEFORE a main run, checks that a pilot can discriminate:
+                   baseline accuracy in 30-70%, at least 60% of cases with a
+                   split result across arms, and a deliberately degraded
+                   --control-arm at least 20 points (and more than twice the
+                   optional --aa-arm noise) below baseline. Reads raw.json or a
+                   generic --per-case file. Exit 0 pass, 1 fail.
   --pre-route-map: runs the deterministic pre-router across the whole corpus and
                    writes pre-route-map.json — a fully reproducible (no model)
                    record of which queries Arm A short-circuits (high-confidence
@@ -88,6 +96,7 @@ Usage:
     python3 scripts/routing-ab-test.py --build-judge
     python3 scripts/routing-ab-test.py --rejoin
     python3 scripts/routing-ab-test.py --gate
+    python3 scripts/routing-ab-test.py --pilot-check --control-arm NAME [--aa-arm NAME] [--per-case FILE]
     python3 scripts/routing-ab-test.py --pre-route-map [--assert-buckets]
 """
 
@@ -126,6 +135,18 @@ FAST_PATH_FORBIDDEN_BUCKETS = {"false-positive-guard"}
 # Gate UNDERPOWERED threshold: McNemar needs at least this many discordant pairs.
 MIN_DISCORDANT_PAIRS = 6
 
+# Gate CEILING / FLOOR: when both arms sit at or beyond these accuracies, the
+# corpus cannot show a difference (fix-strategy-v1 scored 8/8 vs 8/8), so the
+# run is non-discriminating, never "no difference".
+CEILING_PCT = 95.0
+FLOOR_PCT = 5.0
+
+# --pilot-check thresholds: a pilot must show the corpus can discriminate
+# before a main run is paid for.
+PILOT_BASELINE_BAND = (30.0, 70.0)
+PILOT_MIN_DISCRIMINATING_PCT = 60.0
+PILOT_MIN_CONTROL_GAP = 20.0
+
 # Pre-registered gates. Printed verbatim BEFORE results by --gate and quoted in
 # docs/router-ab-runbook.md. Rule: gates change only BEFORE a run; changing them
 # after seeing results invalidates the run.
@@ -143,7 +164,23 @@ PRE-REGISTERED GATES (fixed in code before any run; change only BEFORE a run):
                  of baseline.
 VERDICT: PROMOTE (exit 0) = all gates pass AND discordant pairs >= 6.
          UNDERPOWERED (exit 2) = all gates pass but discordant pairs < 6.
+         CEILING / FLOOR (exit 3) = all gates pass but both arms are >= 95.0%
+                 (CEILING) or <= 5.0% (FLOOR) accurate: the corpus cannot
+                 discriminate, so the run judges nothing. Harden the corpus.
          REJECT (exit 1) = any gate fails."""
+
+PILOT_TEXT = """\
+PRE-REGISTERED PILOT CHECKS (run before the main run; change only BEFORE a pilot):
+  (p1) difficulty    : baseline accuracy within 30.0-70.0%. Above is CEILING,
+                       below is FLOOR.
+  (p2) discriminating: at least 60.0% of cases have a split result across the
+                       pilot arms (not the same result in every arm).
+  (p3) control       : the degraded control arm scores at least 20.0 points
+                       below baseline, and more than twice the A/A gap when an
+                       A/A arm (a second baseline run) is given.
+VERDICT: PASS (exit 0) = all checks pass. Otherwise FAIL (exit 1), named by the
+         first failing check: CEILING, FLOOR, NON-DISCRIMINATING, or
+         CONTROL-DID-NOT-LOSE."""
 
 # Haiku routing prompt template (REQUEST + MANIFEST filled in).
 # Git rule back-ported 2026-07-01 from production skills/meta/do/SKILL.md
@@ -855,6 +892,15 @@ def _arm_route(raw: dict, rec: dict, arm: str) -> dict:
     return rec[f"{arm}_route"]
 
 
+def non_discriminating(base_acc: float, chal_acc: float) -> str | None:
+    """CEILING or FLOOR when both accuracies sit at a bound, else None. Pure."""
+    if base_acc >= CEILING_PCT and chal_acc >= CEILING_PCT:
+        return "CEILING"
+    if base_acc <= FLOOR_PCT and chal_acc <= FLOOR_PCT:
+        return "FLOOR"
+    return None
+
+
 def gate_verdict(raw: dict, baseline: str, challenger: str) -> dict:
     """Apply the pre-registered gates to raw.json. Pure; no I/O."""
     records = raw["records"]
@@ -886,8 +932,12 @@ def gate_verdict(raw: dict, baseline: str, challenger: str) -> dict:
     gates = {"a_accuracy": gate_a, "b_harm": gate_b, "c_safety_buckets": gate_c, "d_stub_tier": gate_d}
     all_pass = all(gates.values())
     underpowered = stats["discordant"] < MIN_DISCORDANT_PAIRS
+    bound = non_discriminating(base_acc, chal_acc)
+    # REJECT stays first: a failed gate is evidence of harm even at a bound.
     if not all_pass:
         verdict, exit_code = "REJECT", 1
+    elif bound is not None:
+        verdict, exit_code = bound, 3
     elif underpowered:
         verdict, exit_code = "UNDERPOWERED", 2
     else:
@@ -906,13 +956,14 @@ def gate_verdict(raw: dict, baseline: str, challenger: str) -> dict:
         "failing_gates": [k for k, v in gates.items() if not v],
         "discordant_pairs": stats["discordant"],
         "min_discordant_pairs": MIN_DISCORDANT_PAIRS,
+        "non_discriminating": bound,
         "verdict": verdict,
         "exit_code": exit_code,
     }
 
 
 def gate(out_dir: Path | None = None, baseline: str | None = None, challenger: str | None = None) -> int:
-    """Print the pre-registered gates, then the verdict. Exit 0/1/2."""
+    """Print the pre-registered gates, then the verdict. Exit 0/1/2/3."""
     out = out_dir if out_dir is not None else RESULTS
     raw_path = out / "raw.json"
     if not raw_path.exists():
@@ -951,6 +1002,109 @@ def gate(out_dir: Path | None = None, baseline: str | None = None, challenger: s
     print(f"  gates: {json.dumps(result['gates'])}")
     print(f"VERDICT: {result['verdict']} (exit {result['exit_code']})")
     print(f"Gate verdict -> {out / 'gate-verdict.json'}")
+    return result["exit_code"]
+
+
+# --------------------------------------------------------------------------- #
+# Mode: pilot-check (pre-run difficulty check, deterministic)
+# --------------------------------------------------------------------------- #
+def pilot_verdict(per_case: dict[str, list[bool]], baseline: str, control: str, aa: str | None = None) -> dict:
+    """Apply the pre-registered pilot checks to per-arm, per-case pass lists. Pure.
+
+    per_case maps arm name -> one bool per case, in the same case order for
+    every arm (True = the case passed in that arm). For a lower-is-better
+    metric, encode the good outcome as True. Every listed arm counts toward
+    the discriminating share.
+    """
+    named = [arm for arm in (baseline, control, aa) if arm is not None]
+    for arm in named:
+        if arm not in per_case:
+            raise ValueError(f"arm {arm!r} not in pilot arms {sorted(per_case)}")
+    if len(set(named)) != len(named):
+        raise ValueError("baseline, control, and A/A arms must all differ")
+    lengths = {len(results) for results in per_case.values()}
+    if len(lengths) != 1 or 0 in lengths:
+        raise ValueError(f"every arm needs the same non-zero case count, got {sorted(lengths)}")
+    n = lengths.pop()
+
+    acc = {arm: _pct(sum(bool(x) for x in results), n) for arm, results in per_case.items()}
+    split = sum(1 for i in range(n) if len({bool(results[i]) for results in per_case.values()}) > 1)
+    split_pct = _pct(split, n)
+    aa_gap = round(abs(acc[baseline] - acc[aa]), 1) if aa is not None else None
+    control_gap = round(acc[baseline] - acc[control], 1)
+
+    low, high = PILOT_BASELINE_BAND
+    failing = []
+    if acc[baseline] > high:
+        failing.append("CEILING")
+    if acc[baseline] < low:
+        failing.append("FLOOR")
+    if split_pct < PILOT_MIN_DISCRIMINATING_PCT:
+        failing.append("NON-DISCRIMINATING")
+    control_lost = control_gap >= PILOT_MIN_CONTROL_GAP and (aa_gap is None or control_gap > 2 * aa_gap)
+    if not control_lost:
+        failing.append("CONTROL-DID-NOT-LOSE")
+
+    return {
+        "n": n,
+        "baseline": baseline,
+        "control": control,
+        "aa": aa,
+        "accuracy_pct": acc,
+        "discriminating_cases": split,
+        "discriminating_pct": split_pct,
+        "aa_gap_pts": aa_gap,
+        "control_gap_pts": control_gap,
+        "failing_checks": failing,
+        "verdict": failing[0] if failing else "PASS",
+        "exit_code": 1 if failing else 0,
+    }
+
+
+def _raw_per_case(raw: dict) -> dict[str, list[bool]]:
+    """Per-arm correctness lists from a manifest-arm or legacy raw.json."""
+    arms = raw.get("arms", ["A", "B"])
+    return {arm: [route_correct(rec, _arm_route(raw, rec, arm)) for rec in raw["records"]] for arm in arms}
+
+
+def pilot_check(
+    out_dir: Path | None = None,
+    control: str | None = None,
+    baseline: str | None = None,
+    aa: str | None = None,
+    per_case_path: Path | None = None,
+) -> int:
+    """Print the pilot checks, then the verdict. Exit 0 PASS, 1 FAIL or bad input."""
+    out = out_dir if out_dir is not None else RESULTS
+    if control is None:
+        print("ERROR: --pilot-check needs --control-arm (the deliberately degraded arm)", file=sys.stderr)
+        return 1
+    if per_case_path is not None:
+        per_case = json.loads(per_case_path.read_text(encoding="utf-8"))["arms"]
+    else:
+        raw_path = out / "raw.json"
+        if not raw_path.exists():
+            print("ERROR: run --score on the pilot first (raw.json missing), or pass --per-case", file=sys.stderr)
+            return 1
+        per_case = _raw_per_case(json.loads(raw_path.read_text(encoding="utf-8")))
+    baseline = baseline if baseline is not None else next(iter(per_case))
+    try:
+        result = pilot_verdict(per_case, baseline, control, aa)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    # Checks print BEFORE any result, by design.
+    print(PILOT_TEXT)
+    print()
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "pilot-verdict.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"=== PILOT (baseline={baseline}, control={control}, aa={aa}, n={result['n']}) ===")
+    print(f"  accuracy: {json.dumps(result['accuracy_pct'])}")
+    print(f"  discriminating cases: {result['discriminating_cases']}/{result['n']} ({result['discriminating_pct']}%)")
+    print(f"  control gap: {result['control_gap_pts']} pts; A/A gap (noise): {result['aa_gap_pts']}")
+    print(f"VERDICT: {result['verdict']} (exit {result['exit_code']}) failing={result['failing_checks']}")
+    print(f"Pilot verdict -> {out / 'pilot-verdict.json'}")
     return result["exit_code"]
 
 
@@ -1064,7 +1218,12 @@ def main() -> int:
     group.add_argument("--score", action="store_true", help="Score collected answers into raw.json.")
     group.add_argument("--build-judge", action="store_true", help="Build arm-stripped judge input.")
     group.add_argument("--rejoin", action="store_true", help="Rejoin judge output into scoreboard.")
-    group.add_argument("--gate", action="store_true", help="Apply pre-registered gates to raw.json (exit 0/1/2).")
+    group.add_argument("--gate", action="store_true", help="Apply pre-registered gates to raw.json (exit 0/1/2/3).")
+    group.add_argument(
+        "--pilot-check",
+        action="store_true",
+        help="Pre-run difficulty check on a pilot raw.json or --per-case file (exit 0 pass, 1 fail).",
+    )
     group.add_argument(
         "--pre-route-map",
         action="store_true",
@@ -1097,8 +1256,22 @@ def main() -> int:
     parser.add_argument(
         "--corpus", type=Path, default=None, help="Corpus path (default scripts/routing-ab-corpus.json)."
     )
-    parser.add_argument("--baseline-arm", default=None, help="--gate: baseline arm name (default: first arm).")
+    parser.add_argument(
+        "--baseline-arm", default=None, help="--gate/--pilot-check: baseline arm name (default: first arm)."
+    )
     parser.add_argument("--challenger-arm", default=None, help="--gate: challenger arm name (default: second arm).")
+    parser.add_argument(
+        "--control-arm", default=None, help="--pilot-check: the deliberately degraded arm that must lose."
+    )
+    parser.add_argument(
+        "--aa-arm", default=None, help="--pilot-check: optional second baseline run, measures run-to-run noise."
+    )
+    parser.add_argument(
+        "--per-case",
+        type=Path,
+        default=None,
+        help='--pilot-check: generic input {"arms": {name: [true|false per case]}} instead of raw.json.',
+    )
     parser.add_argument(
         "--assert-buckets",
         action="store_true",
@@ -1112,8 +1285,12 @@ def main() -> int:
         parser.error("--model-arm is only valid with --emit-prompts --manifest-arm")
     if args.assert_buckets and not args.pre_route_map:
         parser.error("--assert-buckets is only valid with --pre-route-map")
-    if (args.baseline_arm or args.challenger_arm) and not args.gate:
-        parser.error("--baseline-arm/--challenger-arm are only valid with --gate")
+    if args.challenger_arm and not args.gate:
+        parser.error("--challenger-arm is only valid with --gate")
+    if args.baseline_arm and not (args.gate or args.pilot_check):
+        parser.error("--baseline-arm is only valid with --gate or --pilot-check")
+    if (args.control_arm or args.aa_arm or args.per_case) and not args.pilot_check:
+        parser.error("--control-arm/--aa-arm/--per-case are only valid with --pilot-check")
 
     if args.emit_prompts:
         manifest_arms = parse_manifest_arms(args.manifest_arm) if args.manifest_arm else None
@@ -1129,6 +1306,14 @@ def main() -> int:
         return rejoin(out_dir=args.out_dir)
     if args.gate:
         return gate(out_dir=args.out_dir, baseline=args.baseline_arm, challenger=args.challenger_arm)
+    if args.pilot_check:
+        return pilot_check(
+            out_dir=args.out_dir,
+            control=args.control_arm,
+            baseline=args.baseline_arm,
+            aa=args.aa_arm,
+            per_case_path=args.per_case,
+        )
     if args.pre_route_map:
         return pre_route_map(out_dir=args.out_dir, assert_buckets=args.assert_buckets, corpus_path=args.corpus)
     return 1
