@@ -8,8 +8,8 @@ A test that every arm passes, or every arm fails, judges the corpus, not the arm
 
 - Run a pilot on about 20% of cases before the main run, with the baseline, a degraded control, and a second baseline run (the A/A arm).
 - Keep baseline accuracy or recall within 30-70%. Above 70%, harden the cases. Below 30%, check the grader before you blame the cases.
-- Require at least 60% of cases to split across the pilot arms, so that not every arm gets the same result. A few ceiling cases can stay as guards, but report them as non-discriminating.
-- Gate it: `python3 scripts/routing-ab-test.py --pilot-check --control-arm NAME --aa-arm NAME`, or pass `--per-case FILE` for a review A/B outside the routing harness. On FAIL, rework the cases. Do not start the main run.
+- Require at least 60% of cases to split across the non-control pilot arms (baseline and A/A), so that not every arm gets the same result. The degraded control never counts toward the split: a control built to lose would split every case the baseline passes. A few ceiling cases can stay as guards, but report them as non-discriminating.
+- Gate it: `python3 scripts/routing-ab-test.py --pilot-check --control-arm NAME --aa-arm NAME`, or pass `--per-case FILE` for a review A/B outside the routing harness. Name every arm in the pilot data; name another non-candidate arm with `--extra-arm NAME`. Leave the candidate arm out of the pilot data: the check rejects unnamed arms. Per-case values must be JSON `true`/`false`, not strings. On FAIL, rework the cases. Do not start the main run.
 - If the main run still ends with both arms at 95% or above (or 5% or below), `--gate` returns CEILING or FLOOR (exit 3). Report that the run judged nothing. Never report it as "no difference".
 - For a lower-is-better metric, such as false positives per review, record a case as passing when it shows the good outcome, and declare that direction before the pilot.
 

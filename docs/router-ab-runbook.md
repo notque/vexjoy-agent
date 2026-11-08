@@ -59,22 +59,25 @@ prompt edits, re-rank policies) with the existing blind A/B harness. One harness
 
 Before a paid main run on a new or changed corpus, run steps 3-5 on a pilot of
 about 20% of cases with three arms: baseline, a deliberately degraded control
-(for routing, a manifest with descriptions stripped), and optionally a second
-baseline run as an A/A arm. Then:
+(for routing, a manifest with descriptions stripped), and a second baseline run
+as an A/A arm. Leave the candidate arm out of the pilot. Then:
 
 ```sh
 python3 scripts/routing-ab-test.py --pilot-check --out-dir "$PILOT" \
-  --control-arm stripped [--aa-arm full2]
+  --control-arm stripped --aa-arm full2 [--extra-arm NAME]
 ```
 
 It prints its pre-registered checks, then the verdict: baseline accuracy within
-30-70%, at least 60% of cases split across arms, and the control at least 20
+30-70%, at least 60% of cases split across the non-control pilot arms (baseline
+and A/A; the control never counts), and the control at least 20
 points (and more than twice the A/A gap) below baseline. Exit 0 PASS, 1 FAIL
 (CEILING, FLOOR, NON-DISCRIMINATING, or CONTROL-DID-NOT-LOSE). On FAIL, harden
 or replace cases and pilot again; do not start the main run. A review or fix
 A/B outside this harness uses the same check through `--per-case FILE`, where
-FILE is `{"arms": {name: [true|false per case]}}`. Design rules for the corpus,
-arms, and graders: `skills/meta/toolkit/references/blind-ab-tests.md`.
+FILE is `{"arms": {name: [true|false per case]}}`. Every arm in the data must
+be named by `--baseline-arm`, `--control-arm`, `--aa-arm`, or `--extra-arm`.
+Design rules for the corpus, arms, and graders:
+`skills/meta/toolkit/references/blind-ab-tests.md`.
 
 For force-route fast-path changes there is also a zero-model check:
 

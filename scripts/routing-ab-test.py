@@ -62,10 +62,12 @@ stages and a human/agent runner bridges them:
                    cannot tell them apart, so the run judges nothing).
   --pilot-check  : BEFORE a main run, checks that a pilot can discriminate:
                    baseline accuracy in 30-70%, at least 60% of cases with a
-                   split result across arms, and a deliberately degraded
-                   --control-arm at least 20 points (and more than twice the
-                   optional --aa-arm noise) below baseline. Reads raw.json or a
-                   generic --per-case file. Exit 0 pass, 1 fail.
+                   split result across the non-control arms (baseline, the
+                   --aa-arm second baseline run, and any --extra-arm), and a
+                   deliberately degraded --control-arm at least 20 points (and
+                   more than twice the A/A noise) below baseline. Every arm in
+                   the data must be named; leave the candidate arm out. Reads
+                   raw.json or a generic --per-case file. Exit 0 pass, 1 fail.
   --pre-route-map: runs the deterministic pre-router across the whole corpus and
                    writes pre-route-map.json — a fully reproducible (no model)
                    record of which queries Arm A short-circuits (high-confidence
@@ -96,7 +98,7 @@ Usage:
     python3 scripts/routing-ab-test.py --build-judge
     python3 scripts/routing-ab-test.py --rejoin
     python3 scripts/routing-ab-test.py --gate
-    python3 scripts/routing-ab-test.py --pilot-check --control-arm NAME [--aa-arm NAME] [--per-case FILE]
+    python3 scripts/routing-ab-test.py --pilot-check --control-arm NAME --aa-arm NAME [--extra-arm NAME] [--per-case FILE]
     python3 scripts/routing-ab-test.py --pre-route-map [--assert-buckets]
 """
 
@@ -174,7 +176,10 @@ PRE-REGISTERED PILOT CHECKS (run before the main run; change only BEFORE a pilot
   (p1) difficulty    : baseline accuracy within 30.0-70.0%. Above is CEILING,
                        below is FLOOR.
   (p2) discriminating: at least 60.0% of cases have a split result across the
-                       pilot arms (not the same result in every arm).
+                       non-control pilot arms (baseline, A/A, and any named
+                       extra arm), not the same result in every one. The
+                       control never counts, and the candidate arm must not be
+                       in the pilot data.
   (p3) control       : the degraded control arm scores at least 20.0 points
                        below baseline, and more than twice the A/A gap when an
                        A/A arm (a second baseline run) is given.
@@ -1008,27 +1013,49 @@ def gate(out_dir: Path | None = None, baseline: str | None = None, challenger: s
 # --------------------------------------------------------------------------- #
 # Mode: pilot-check (pre-run difficulty check, deterministic)
 # --------------------------------------------------------------------------- #
-def pilot_verdict(per_case: dict[str, list[bool]], baseline: str, control: str, aa: str | None = None) -> dict:
+def pilot_verdict(
+    per_case: dict[str, list[bool]],
+    baseline: str,
+    control: str,
+    aa: str | None = None,
+    extra: tuple[str, ...] | list[str] = (),
+) -> dict:
     """Apply the pre-registered pilot checks to per-arm, per-case pass lists. Pure.
 
     per_case maps arm name -> one bool per case, in the same case order for
     every arm (True = the case passed in that arm). For a lower-is-better
-    metric, encode the good outcome as True. Every listed arm counts toward
-    the discriminating share.
+    metric, encode the good outcome as True. The discriminating share counts
+    only the non-control arms (baseline, aa, extra): a control built to lose
+    would otherwise split every case the baseline passes. Every arm in
+    per_case must be named, so a candidate arm cannot slip into the pilot.
     """
-    named = [arm for arm in (baseline, control, aa) if arm is not None]
+    if not isinstance(per_case, dict):
+        raise ValueError('pilot data must be {"arms": {name: [true|false per case]}}')
+    named = [arm for arm in (baseline, control, aa, *extra) if arm is not None]
     for arm in named:
         if arm not in per_case:
             raise ValueError(f"arm {arm!r} not in pilot arms {sorted(per_case)}")
     if len(set(named)) != len(named):
-        raise ValueError("baseline, control, and A/A arms must all differ")
+        raise ValueError("baseline, control, A/A, and extra arms must all differ")
+    unnamed = sorted(set(per_case) - set(named))
+    if unnamed:
+        raise ValueError(
+            f"pilot arms {unnamed} are not named: leave the candidate arm out of the pilot, "
+            "or name a non-candidate arm with --extra-arm"
+        )
+    split_arms = [arm for arm in (baseline, aa, *extra) if arm is not None]
+    if len(split_arms) < 2:
+        raise ValueError("p2 needs at least two non-control arms: pass --aa-arm (a second baseline run)")
+    for arm, results in per_case.items():
+        if not isinstance(results, list) or not all(isinstance(x, bool) for x in results):
+            raise ValueError(f"arm {arm!r} must be a list of JSON true/false values")
     lengths = {len(results) for results in per_case.values()}
     if len(lengths) != 1 or 0 in lengths:
         raise ValueError(f"every arm needs the same non-zero case count, got {sorted(lengths)}")
     n = lengths.pop()
 
-    acc = {arm: _pct(sum(bool(x) for x in results), n) for arm, results in per_case.items()}
-    split = sum(1 for i in range(n) if len({bool(results[i]) for results in per_case.values()}) > 1)
+    acc = {arm: _pct(sum(results), n) for arm, results in per_case.items()}
+    split = sum(1 for i in range(n) if len({per_case[arm][i] for arm in split_arms}) > 1)
     split_pct = _pct(split, n)
     aa_gap = round(abs(acc[baseline] - acc[aa]), 1) if aa is not None else None
     control_gap = round(acc[baseline] - acc[control], 1)
@@ -1050,6 +1077,8 @@ def pilot_verdict(per_case: dict[str, list[bool]], baseline: str, control: str, 
         "baseline": baseline,
         "control": control,
         "aa": aa,
+        "extra": list(extra),
+        "split_arms": split_arms,
         "accuracy_pct": acc,
         "discriminating_cases": split,
         "discriminating_pct": split_pct,
@@ -1073,23 +1102,28 @@ def pilot_check(
     baseline: str | None = None,
     aa: str | None = None,
     per_case_path: Path | None = None,
+    extra: list[str] | None = None,
 ) -> int:
     """Print the pilot checks, then the verdict. Exit 0 PASS, 1 FAIL or bad input."""
     out = out_dir if out_dir is not None else RESULTS
     if control is None:
         print("ERROR: --pilot-check needs --control-arm (the deliberately degraded arm)", file=sys.stderr)
         return 1
-    if per_case_path is not None:
-        per_case = json.loads(per_case_path.read_text(encoding="utf-8"))["arms"]
-    else:
-        raw_path = out / "raw.json"
-        if not raw_path.exists():
-            print("ERROR: run --score on the pilot first (raw.json missing), or pass --per-case", file=sys.stderr)
-            return 1
-        per_case = _raw_per_case(json.loads(raw_path.read_text(encoding="utf-8")))
-    baseline = baseline if baseline is not None else next(iter(per_case))
+    raw_path = out / "raw.json"
+    if per_case_path is None and not raw_path.exists():
+        print("ERROR: run --score on the pilot first (raw.json missing), or pass --per-case", file=sys.stderr)
+        return 1
+    src = per_case_path if per_case_path is not None else raw_path
     try:
-        result = pilot_verdict(per_case, baseline, control, aa)
+        data = json.loads(src.read_text(encoding="utf-8"))
+        per_case = data["arms"] if per_case_path is not None else _raw_per_case(data)
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, AttributeError) as exc:
+        print(f"ERROR: cannot read pilot data from {src}: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
+    try:
+        if baseline is None:
+            baseline = next(iter(per_case)) if isinstance(per_case, dict) and per_case else ""
+        result = pilot_verdict(per_case, baseline, control, aa, tuple(extra or ()))
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -1099,9 +1133,12 @@ def pilot_check(
     print()
     out.mkdir(parents=True, exist_ok=True)
     (out / "pilot-verdict.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"=== PILOT (baseline={baseline}, control={control}, aa={aa}, n={result['n']}) ===")
+    print(f"=== PILOT (baseline={baseline}, control={control}, aa={aa}, extra={result['extra']}, n={result['n']}) ===")
     print(f"  accuracy: {json.dumps(result['accuracy_pct'])}")
-    print(f"  discriminating cases: {result['discriminating_cases']}/{result['n']} ({result['discriminating_pct']}%)")
+    print(
+        f"  discriminating cases (across {result['split_arms']}): "
+        f"{result['discriminating_cases']}/{result['n']} ({result['discriminating_pct']}%)"
+    )
     print(f"  control gap: {result['control_gap_pts']} pts; A/A gap (noise): {result['aa_gap_pts']}")
     print(f"VERDICT: {result['verdict']} (exit {result['exit_code']}) failing={result['failing_checks']}")
     print(f"Pilot verdict -> {out / 'pilot-verdict.json'}")
@@ -1264,7 +1301,18 @@ def main() -> int:
         "--control-arm", default=None, help="--pilot-check: the deliberately degraded arm that must lose."
     )
     parser.add_argument(
-        "--aa-arm", default=None, help="--pilot-check: optional second baseline run, measures run-to-run noise."
+        "--aa-arm",
+        default=None,
+        help="--pilot-check: second baseline run; measures run-to-run noise and is a non-control arm for p2. "
+        "Required unless an --extra-arm is given.",
+    )
+    parser.add_argument(
+        "--extra-arm",
+        action="append",
+        default=None,
+        metavar="NAME",
+        help="Repeatable, --pilot-check: another non-candidate, non-control arm counted in the p2 split. "
+        "Every arm in the pilot data must be named.",
     )
     parser.add_argument(
         "--per-case",
@@ -1289,8 +1337,8 @@ def main() -> int:
         parser.error("--challenger-arm is only valid with --gate")
     if args.baseline_arm and not (args.gate or args.pilot_check):
         parser.error("--baseline-arm is only valid with --gate or --pilot-check")
-    if (args.control_arm or args.aa_arm or args.per_case) and not args.pilot_check:
-        parser.error("--control-arm/--aa-arm/--per-case are only valid with --pilot-check")
+    if (args.control_arm or args.aa_arm or args.extra_arm or args.per_case) and not args.pilot_check:
+        parser.error("--control-arm/--aa-arm/--extra-arm/--per-case are only valid with --pilot-check")
 
     if args.emit_prompts:
         manifest_arms = parse_manifest_arms(args.manifest_arm) if args.manifest_arm else None
@@ -1313,6 +1361,7 @@ def main() -> int:
             baseline=args.baseline_arm,
             aa=args.aa_arm,
             per_case_path=args.per_case,
+            extra=args.extra_arm,
         )
     if args.pre_route_map:
         return pre_route_map(out_dir=args.out_dir, assert_buckets=args.assert_buckets, corpus_path=args.corpus)
