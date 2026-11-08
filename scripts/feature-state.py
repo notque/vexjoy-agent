@@ -201,6 +201,8 @@ def agent_input_hash(prompt: str, inputs: Any = None, paths: Iterable[str | os.P
         "prompt": prompt,
         "inputs": inputs if inputs is not None else None,
     }
+    if isinstance(paths, (str, bytes, os.PathLike)):
+        raise TypeError("paths must be an iterable of paths, not a single path")
     path_list = list(paths) if paths is not None else []
     if path_list:
         contents: dict[str, str | None] = {}

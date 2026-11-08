@@ -159,6 +159,13 @@ def test_hash_paths_unchanged_content_still_hits(tmp_path: Path) -> None:
     assert h1 == h2
 
 
+@pytest.mark.parametrize("bare", ["Makefile", b"Makefile", Path("Makefile")])
+def test_hash_paths_rejects_a_single_bare_path(bare: object) -> None:
+    """A bare path would hash per character and never see edits, so it raises."""
+    with pytest.raises(TypeError):
+        feature_state.agent_input_hash("review", paths=bare)  # type: ignore[arg-type]
+
+
 def test_hash_paths_edited_content_misses(tmp_path: Path) -> None:
     """Editing a listed file after the pause changes the hash, so the cache misses."""
     f = tmp_path / "mod.py"
