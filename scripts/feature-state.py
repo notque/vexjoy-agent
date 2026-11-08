@@ -148,6 +148,9 @@ def save_state(feature_dir: Path, state: FeatureState) -> None:
 # On resume, the prose flow hashes each agent's dispatch input (prompt, inputs,
 # and the contents of every file the agent reads) and reuses the cached output
 # on a hit instead of re-dispatching — saving tokens. An edited file is a miss.
+# Callers must compute each stored key at dispatch, before the agent reads its
+# files: a key hashed at pause after a same-wave agent edited a listed file
+# covers the new bytes while the output judges the old ones, so it would hit.
 # Missing or absent agent_outputs is treated as an empty cache (backwards
 # compatible).
 
