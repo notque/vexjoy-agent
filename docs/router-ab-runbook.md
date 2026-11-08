@@ -85,13 +85,16 @@ noise, not a split. A case every arm passes (ceiling) or fails (floor) fails
 the check unless it is named with `--guard-case`: guards sit outside the
 analysis set, so they count toward neither accuracy nor the control gap, and
 the verdict lists them. Log each guard and its reason in the
-change log. Exit 0 PASS, 1 FAIL (CEILING, FLOOR, NON-DISCRIMINATING, or
-CONTROL-DID-NOT-LOSE). On FAIL, harden, replace, or guard the listed cases and
-pilot again; do not start the main run. A review or fix A/B outside this
+change log. Guards may be at most 20% of the pilot, and the analysis set
+keeps at least 8 cases. Exit 0 PASS, 1 FAIL (CEILING, FLOOR,
+NON-DISCRIMINATING, CONTROL-DID-NOT-LOSE, or TOO-MANY-GUARDS). On FAIL,
+harden or replace the listed cases, guarding only within that cap, and pilot
+again; do not start the main run. A review or fix A/B outside this
 harness uses the same check through `--per-case FILE`, where FILE is
 `{"arms": {name: [true|false per case]}, "case_ids": [optional names]}`. Every
 arm in the data must be named by `--baseline-arm`, `--control-arm`, `--aa-arm`,
 or `--extra-arm`.
+
 Design rules for the corpus, arms, and graders:
 `skills/meta/toolkit/references/blind-ab-tests.md`.
 

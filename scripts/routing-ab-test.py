@@ -62,7 +62,8 @@ stages and a human/agent runner bridges them:
                    arms >= 95% or <= 5%: the run sits at a bound and judges
                    nothing).
   --pilot-check  : BEFORE a main run, checks that a pilot can discriminate:
-                   baseline accuracy in 30-70%; every case not named by
+                   baseline accuracy on the analysis set in 30-70%; at most 20% of cases
+                   named by --guard-case; every case not named by
                    --guard-case discriminates (baseline and the --aa-arm second
                    baseline run agree on it, and the degraded --control-arm or
                    an --extra-arm reference arm gets the other result); and the
@@ -153,6 +154,10 @@ FLOOR_PCT = 5.0
 # must discriminate (that protocol's D2) unless named as a guard case.
 PILOT_BASELINE_BAND = (30.0, 70.0)
 PILOT_MIN_CONTROL_GAP = 30.0
+# Guards are reported outside the analysis set; cap them so a failed pilot
+# cannot be rescued by guarding most of the corpus.
+PILOT_MAX_GUARD_PCT = 20.0
+PILOT_MIN_ANALYSIS_CASES = 8
 
 # Pre-registered gates. Printed verbatim BEFORE results by --gate and quoted in
 # docs/router-ab-runbook.md. Rule: gates change only BEFORE a run; changing them
@@ -194,9 +199,11 @@ PRE-REGISTERED PILOT CHECKS (run before the main run; change only BEFORE a pilot
   (p3) control       : on the analysis set, the degraded control arm scores
                        at least 30.0 points below baseline, and more than
                        twice the A/A gap.
+  (p4) guards        : guard cases are at most 20.0% of the pilot, and the
+                       analysis set keeps at least 8 cases.
 VERDICT: PASS (exit 0) = all checks pass. Otherwise FAIL (exit 1), named by the
-         first failing check: CEILING, FLOOR, NON-DISCRIMINATING, or
-         CONTROL-DID-NOT-LOSE."""
+         first failing check: CEILING, FLOOR, NON-DISCRIMINATING,
+         CONTROL-DID-NOT-LOSE, or TOO-MANY-GUARDS."""
 
 # Haiku routing prompt template (REQUEST + MANIFEST filled in).
 # Git rule back-ported 2026-07-01 from production skills/meta/do/SKILL.md
@@ -1113,6 +1120,8 @@ def pilot_verdict(
     control_lost = control_gap >= PILOT_MIN_CONTROL_GAP and control_gap > 2 * aa_gap
     if not control_lost:
         failing.append("CONTROL-DID-NOT-LOSE")
+    if _pct(len(guard_set), n) > PILOT_MAX_GUARD_PCT or analysis_n < PILOT_MIN_ANALYSIS_CASES:
+        failing.append("TOO-MANY-GUARDS")
 
     return {
         "n": n,
@@ -1378,7 +1387,8 @@ def main() -> int:
         action="append",
         default=None,
         metavar="ID",
-        help="Repeatable, --pilot-check: a case kept as a reported guard outside the p2 analysis set "
+        help="Repeatable, --pilot-check: a case kept as a reported guard outside the analysis set (p1-p3; "
+        "at most 20%% of cases) "
         '(a raw.json record id, or a --per-case "case_ids" entry, default the 0-based index).',
     )
     parser.add_argument(

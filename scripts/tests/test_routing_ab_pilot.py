@@ -102,6 +102,19 @@ class TestDiscriminating:
         assert v["ceiling_cases"] == ["0"], "a case every arm passes is ceiling"
         assert "NON-DISCRIMINATING" in v["failing_checks"], "one ceiling case fails p2"
 
+    def test_guarding_most_of_the_corpus_fails(self, mod):
+        # Regression: 100 cases, 98 guarded, the 2 left would otherwise pass.
+        base = [i % 2 == 0 for i in range(100)]
+        data = {"base": base, "aa": list(base), "ctrl": [False] * 100, "ref": [True] * 100}
+        v = mod.pilot_verdict(data, "base", "ctrl", "aa", ("ref",), guards=tuple(str(i) for i in range(2, 100)))
+        assert v["verdict"] == "TOO-MANY-GUARDS", "guards cannot shrink the analysis set to a handful of cases"
+
+    def test_guards_within_the_cap_still_pass(self, mod):
+        base = [i % 2 == 0 for i in range(20)]
+        data = {"base": base, "aa": list(base), "ctrl": [False] * 20, "ref": [True] * 20}
+        v = mod.pilot_verdict(data, "base", "ctrl", "aa", ("ref",), guards=("0", "1", "2", "3"))
+        assert v["verdict"] == "PASS", "20% guards with 16 analysis cases is within the cap"
+
     def test_unknown_guard_case_raises(self, mod):
         with pytest.raises(ValueError, match="not case ids"):
             mod.pilot_verdict(PASSING, "base", "ctrl", "aa", ("ref",), guards=("q999",))
