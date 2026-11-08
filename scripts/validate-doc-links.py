@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Validate that every relative/absolute repo-rooted link in docs/ + root markdown resolves.
 
-Walks `docs/*.md` and root markdown (README.md, CONTRIBUTING.md, CLAUDE.md), extracts
-markdown links and inline backtick paths that look like repo paths, and verifies each
-target exists on disk.
+Walks `docs/*.md` and the root guides (README.md, CONTRIBUTING.md, CLAUDE.md, AGENTS.md,
+GEMINI.md, hooks/README.md, .local.example/README.md), extracts markdown links and
+inline backtick paths that look like repo paths, and verifies each target exists on disk.
 
 Exits 0 when every link resolves; exits 1 when any link is broken.
 
@@ -27,7 +27,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
-ROOT_MARKDOWN = ["README.md", "CONTRIBUTING.md", "CLAUDE.md"]
+# Markdown links resolve relative to the file; backtick paths resolve from the repo root.
+ROOT_MARKDOWN = [
+    "README.md",
+    "CONTRIBUTING.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    "hooks/README.md",
+    ".local.example/README.md",
+]
 
 # Paths that legitimately appear in docs as references but don't exist on disk:
 # - runtime-created directories (created by hooks at session time)
@@ -72,8 +81,8 @@ def resolve_target(source: Path, target: str, from_repo_root: bool = False) -> P
 
 
 def is_template(target: str) -> bool:
-    """Skip glob patterns and {placeholder} templates — they aren't real paths."""
-    return "*" in target or "{" in target or "..." in target
+    """Skip glob patterns and {placeholder} or <placeholder> templates — they aren't real paths."""
+    return "*" in target or "{" in target or "<" in target or "..." in target
 
 
 def check_link(source: Path, raw_target: str, from_repo_root: bool = False) -> tuple[bool, str]:
@@ -113,6 +122,9 @@ def main() -> int:
         for match in BACKTICK_PATH.finditer(text):
             target = match.group(1)
             ok, info = check_link(md, target, from_repo_root=True)
+            if not ok and md.parent != REPO_ROOT:
+                # A guide inside a subdirectory (hooks/README.md) may name paths relative to itself.
+                ok = check_link(md, target)[0]
             checked += 1
             if not ok:
                 broken.append({"source": str(rel), "target": target, "resolved": info})

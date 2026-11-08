@@ -88,8 +88,8 @@ Every `/do` dispatch is scored, never altered:
    rejection/rework/re-route (decay); **success** only on an explicit
    acceptance marker (boost); **neutral** otherwise (no-op). No complaint is
    NOT acceptance.
-5. **Weak-positive** (C6, ADR router-improvement-program): a would-be-neutral
-   entry upgrades to **weak_success** when the same `agent:skill` pair was
+5. **Weak-positive** (C6, local-only ADR router-improvement-program): a
+   would-be-neutral entry upgrades to **weak_success** when the same `agent:skill` pair was
    finalized non-failure earlier in the same session — a repeat dispatch with
    no intervening failure means the user kept re-using the route. Bounded:
    +0.02 per event, clamped so weak boosts never lift confidence past 0.65
@@ -107,8 +107,8 @@ Every `/do` dispatch is scored, never altered:
    marker that almost never appears).
 6. The orchestrator reports routing failures it observes directly via
    `learning-db.py route-failure` (ADR orchestrator-reported-route-failures,
-   local working document). `--routing-relevant yes` decays the pair;
-   idempotent per (session, marker).
+   a local-only working document; `adr/` is gitignored).
+   `--routing-relevant yes` decays the pair; idempotent per (session, marker).
 
 Force-route/security pairs are hard-exempt in the policy — checked first,
 always `keep`. Exemption is by skill name and accepts bare skill names or full

@@ -31,7 +31,7 @@ The installed configuration currently uses these events:
 | `Stop` | After a normal response cycle ends | Persist summaries and resolve pending state |
 | `StopFailure` | When a session ends because of an API error | Record failure metadata |
 
-`PreToolUse` hooks may block a tool call; advisory hooks allow it to continue. Other events have event-specific response contracts. Check the corresponding script and tests before changing exit behavior or output fields.
+`PreToolUse` hooks may block a tool call; advisory hooks allow it to continue. Other events have event-specific response contracts. No toolkit `Stop` or `SubagentStop` hook blocks today: `subagent-completion-guard` prints a PreToolUse-style deny, which `SubagentStop` ignores. [Gates in Every Repo](../docs/start-here.md#gates-in-every-repo) lists the hooks that do block and what each one blocks. Check the corresponding script and tests before changing exit behavior or output fields.
 
 ## Organization
 
@@ -41,7 +41,7 @@ Hook filenames describe their position and purpose:
 - `precompact-*` and `postcompact-*` run around context compression.
 - `session-*` handle session startup, context, or summaries.
 - `routing-*` record and resolve request-routing outcomes.
-- `*-gate` hooks enforce a condition; advisory scanners report without blocking.
+- `*-gate` hooks enforce a condition; advisory scanners report without blocking. `pretool-dispatch-spec-gate` is the exception: it only warns unless `DISPATCH_SPEC_GATE_MODE=deny` is set.
 - Files in [`lib/`](lib/) provide shared input handling, output formatting, telemetry, and database access.
 
 Some files remain as compatibility stubs after their behavior moved elsewhere. A stub should say so in its module documentation and should not be inferred to be active merely because the file exists. Registration in [`.claude/settings.json`](../.claude/settings.json) determines whether a hook runs.

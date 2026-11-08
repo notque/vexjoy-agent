@@ -101,13 +101,14 @@ Return findings in this exact format:
 4. MEDIUM findings (fix soon, can merge)
 5. LOW findings (nice to have)
 6. POSITIVE observations (what is done well — at most 3)
-7. VERDICT: APPROVE / REQUEST_CHANGES / BLOCK
+7. VERDICT: PASS / NEEDS_CHANGES / BLOCK
 ```
 
 Rules:
+- One vocabulary: the review's overall verdict uses only PASS / NEEDS_CHANGES / BLOCK (the vocabulary `scripts/validate-review-output.py` accepts). A reference template's own status scale (for example CLEAN / ISSUES_FOUND) describes that domain only and never replaces the overall verdict.
 - CRITICAL findings automatically produce a BLOCK verdict.
-- One or more HIGH findings produce REQUEST_CHANGES unless explicitly overridden with justification.
-- An APPROVE verdict with zero findings requires a justification paragraph explaining what was checked and why nothing was found.
+- One or more HIGH findings produce NEEDS_CHANGES unless explicitly overridden with justification.
+- A PASS verdict with zero findings requires a justification paragraph explaining what was checked and why nothing was found.
 - Do not pad the POSITIVE section to soften a negative verdict. If nothing stands out positively, say "None noted."
 
 ## Companion Pipelines

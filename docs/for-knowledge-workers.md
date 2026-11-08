@@ -50,15 +50,15 @@ Start with the question you need answered, not a list of calculations. The workf
 
 ## Reports, Decks, and Prototypes
 
-Use `/html` when the result should be something people can open and share:
+Use `/frontend` when the result should be something people can open and share. Its HTML artifact mode builds the file; say "HTML" in the request so it picks that mode:
 
 ```
-/html report on Q3 churn findings
-/html pitch deck for the new onboarding flow
-/do turn this document into an interactive prototype
+/frontend make an HTML report on Q3 churn findings
+/frontend HTML pitch deck for the new onboarding flow
+/do turn this document into an interactive HTML prototype
 ```
 
-The result is a self-contained HTML file that opens in a browser without hosting. It can take the form of a report, slide deck, prototype, visualization, or diagram. Use `/do` to develop the substance and `/html` to present it.
+The result is a self-contained HTML file that opens in a browser without hosting. It can take the form of a report, slide deck, prototype, visualization, or diagram. Use `/do` to develop the substance and `/frontend` to present it.
 
 ## Publishing and Site Maintenance
 

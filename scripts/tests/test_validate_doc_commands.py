@@ -95,3 +95,58 @@ def test_variable_paths_skipped(tmp_path: Path) -> None:
     repo = _setup_repo(tmp_path, content)
     result = _run(repo)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Installed paths map back to the repo; inline code and root guides are scanned
+# ---------------------------------------------------------------------------
+
+
+def test_installed_script_path_must_exist_in_repo(tmp_path: Path) -> None:
+    """~/.claude/scripts is the repo's scripts/ dir after install, so a missing script is drift."""
+    content = "# Guide\n\n```bash\npython3 ~/.claude/scripts/gone-doctor.py check\n```\n"
+    repo = _setup_repo(tmp_path, content)
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "~/.claude/scripts/gone-doctor.py" in result.stdout, result.stdout
+
+
+def test_installed_paths_that_exist_in_repo_pass(tmp_path: Path) -> None:
+    content = (
+        "# Guide\n\n```bash\npython3 ~/.claude/scripts/install-doctor.py check\n"
+        "python3 $HOME/.codex/hooks/sync-to-user-claude.py\n```\n"
+    )
+    repo = _setup_repo(tmp_path, content, scripts=["scripts/install-doctor.py", "hooks/sync-to-user-claude.py"])
+    result = _run(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_installed_hook_path_must_exist_in_repo(tmp_path: Path) -> None:
+    content = "Run `python3 ~/.claude/hooks/retired-hook.py` to resync.\n"
+    repo = _setup_repo(tmp_path, content)
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "~/.claude/hooks/retired-hook.py" in result.stdout, result.stdout
+
+
+def test_inline_code_invocation_is_checked(tmp_path: Path) -> None:
+    content = "Validate with `python3 scripts/removed-validator.py --all` before pushing.\n"
+    repo = _setup_repo(tmp_path, content)
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "scripts/removed-validator.py" in result.stdout, result.stdout
+
+
+def test_inline_path_outside_the_repo_is_skipped(tmp_path: Path) -> None:
+    content = "Use another worktree: `python3 ../other-wt/scripts/routing-manifest.py --tiered`.\n"
+    repo = _setup_repo(tmp_path, content)
+    result = _run(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_agents_md_invocations_are_checked(tmp_path: Path) -> None:
+    repo = _setup_repo(tmp_path, "# Guide\n")
+    (repo / "AGENTS.md").write_text("```bash\npython3 scripts/gone.py\n```\n", encoding="utf-8")
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "AGENTS.md: scripts/gone.py" in result.stdout, result.stdout

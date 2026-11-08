@@ -322,7 +322,6 @@ def update_task_status(plan: PlanInfo, task_num: int, completed: bool) -> Result
     task = plan.tasks[task_num - 1]  # Convert to 0-indexed
     current_status = task.completed
     new_marker = "[x]" if completed else "[ ]"
-    old_marker = "[x]" if current_status else "[ ]"
 
     if current_status == completed:
         action = "already complete" if completed else "already incomplete"
@@ -337,8 +336,9 @@ def update_task_status(plan: PlanInfo, task_num: int, completed: bool) -> Result
     line_idx = task.line_number - 1  # Convert to 0-indexed
 
     if line_idx < len(lines):
-        # Replace the marker
-        lines[line_idx] = lines[line_idx].replace(old_marker, new_marker, 1)
+        # Replace the task's own marker; parse_tasks reads [X] as done too, so
+        # match either case rather than only a lowercase [x].
+        lines[line_idx] = re.sub(r"^(\s*-\s+)\[[ xX]\]", lambda m: m.group(1) + new_marker, lines[line_idx], count=1)
 
         # Also update the Updated date
         for i, line in enumerate(lines):
