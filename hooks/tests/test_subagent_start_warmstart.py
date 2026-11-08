@@ -119,6 +119,44 @@ class TestSessionScoping:
         assert "/old/a.py" not in context
 
 
+class TestParentReadsOnly:
+    def test_subagent_read_is_not_listed_and_parent_read_is(self, tmp_path, monkeypatch):
+        """End to end: a sibling subagent's read never reaches the warmstart block."""
+        monkeypatch.chdir(tmp_path)
+        reads_hook = Path(__file__).parent.parent / "posttool-session-reads.py"
+        events = (
+            {"tool_name": "Read", "session_id": "sess-1", "tool_input": {"file_path": "/parent/seen.py"}},
+            {
+                "tool_name": "Read",
+                "session_id": "sess-1",
+                "agent_id": "agent-sibling",
+                "agent_type": "Explore",
+                "tool_input": {"file_path": "/sibling/key.md"},
+            },
+        )
+        for event in events:
+            subprocess.run(
+                [sys.executable, str(reads_hook)], input=json.dumps(event), capture_output=True, text=True, timeout=10
+            )
+        stdout, _, code = run_event(SUBAGENT_START_EVENT)
+        assert code == 0
+        context = json.loads(stdout)["hookSpecificOutput"]["additionalContext"]
+        assert "/parent/seen.py" in context
+        assert "/sibling/key.md" not in context
+        assert "Files seen (1)" in context
+
+    def test_load_recent_reads_skips_agent_tagged_entries(self, tmp_path):
+        now = datetime.now(timezone.utc).isoformat()
+        reads = tmp_path / "session-reads.txt"
+        reads.write_text(
+            json.dumps({"ts": now, "session": "sess-1", "path": "/main.py"})
+            + "\n"
+            + json.dumps({"ts": now, "session": "sess-1", "path": "/sub.py", "agent": "agent-1"})
+            + "\n"
+        )
+        assert warmstart_lib.load_recent_reads(reads, "sess-1") == ["/main.py"]
+
+
 class TestSharedBuilder:
     def test_gather_context_block_in_process(self, tmp_path, monkeypatch):
         """The on-disk gather builds the parent-context block from task_plan.md."""

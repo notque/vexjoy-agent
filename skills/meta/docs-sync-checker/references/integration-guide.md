@@ -1,154 +1,68 @@
 # Integration Guide
 
-This file covers CI/CD setup, pre-commit hooks, auto-fix mode, and workflow integration for docs-sync-checker.
+How the docs-sync-checker pipeline runs, its output, and which CI checks already cover the same ground.
 
-## CI/CD Integration
-
-### GitHub Actions (Strict Mode)
-
-```yaml
-name: Documentation Sync Check
-
-on: [push, pull_request]
-
-jobs:
-  docs-sync:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run docs-sync-checker
-        run: |
-          python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root .
-          python3 skills/meta/docs-sync-checker/scripts/parse_docs.py --repo-root .
-          python3 skills/meta/docs-sync-checker/scripts/generate_report.py --strict
-```
-
-Exit codes:
-- `0` = no issues found
-- `1` = issues found (fail build)
-
-Set `continue-on-error: false` so the check fails when docs drift is present.
-
-## Pre-Commit Hook
-
-Add to `.git/hooks/pre-commit`:
+## Pipeline
 
 ```bash
-#!/bin/bash
-echo "Running documentation sync check..."
-python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root .
-python3 skills/meta/docs-sync-checker/scripts/generate_report.py --strict
-
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "Documentation sync issues found!"
-  echo "Review the report above and update documentation files."
-  echo "To bypass (NOT recommended): git commit --no-verify"
-  exit 1
-fi
-
-echo "Documentation sync check passed"
+python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root . --output /tmp/scan.json
+python3 skills/meta/docs-sync-checker/scripts/parse_docs.py --repo-root . --scan-results /tmp/scan.json --output /tmp/issues.json
+python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/issues.json --scan-results /tmp/scan.json --output /tmp/sync-report.md
 ```
 
-## Auto-Fix Mode (Experimental)
+| Script | Exit 0 | Exit 1 | Exit 2 |
+|--------|--------|--------|--------|
+| `scan_tools.py` | Scan done | Repo root missing, or YAML and name errors | Unexpected error |
+| `parse_docs.py` | No issues | Missing or stale entries | Error, including a missing primary doc |
+| `generate_report.py` | Report written | `--strict` and issues found | Error |
+
+`hooks/posttool-docs-drift-alert.py` runs `scan_tools.py` after edits; keep its exit-code contract stable.
+
+## Filter by tool type
 
 ```bash
-python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/issues.json --auto-fix
+python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root . --types skills
+python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root . --types agents,commands
 ```
 
-**What auto-fix does**:
-- Adds missing entries to appropriate README tables
-- Uses YAML description field verbatim
-- Preserves existing table formatting
-- Creates backup files (*.backup) before modification
-
-**What auto-fix does NOT do**:
-- Remove stale entries (manual review required)
-- Improve description quality
-
-Always review changes before committing.
-
-## JSON Output
+## JSON output
 
 ```bash
 python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/issues.json --format json --output report.json
 ```
 
-Schema:
 ```json
 {
-  "summary": {
-    "total_tools": 25,
-    "missing_entries": 3,
-    "stale_entries": 2,
-    "sync_score": 0.88
-  },
-  "issues": {
-    "missing_entries": [],
-    "stale_entries": [],
-  },
-  "recommendations": []
+  "generated_at": "2026-01-01T00:00:00Z",
+  "summary": {"missing_entries": 0, "stale_entries": 0, "total_issues": 0},
+  "issues": {"missing_entries": [], "stale_entries": [], "incomplete_entries": []},
+  "report_version": "1.0.0",
+  "scan_summary": {}
 }
 ```
 
-## Filter by Tool Type
+Each issue carries `suggested_fix`: a generator command for `docs/skills.md` and `docs/routing-map.md`, or the exact row to add or remove in `docs/REFERENCE.md`.
 
-```bash
-# Skills only
-python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root . --types skills
+## CI coverage
 
-# Agents and commands
-python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root . --types agents,commands
-```
+CI (`.github/workflows/test.yml`) does not run this skill. It runs the authoritative checks directly:
 
-## Workflow Integration
+| Check | Catches |
+|-------|---------|
+| `python3 scripts/generate-skills-doc.py --check` | `docs/skills.md` out of date |
+| `python3 scripts/generate-routing-map.py --check` | `docs/routing-map.md` out of date |
+| `python3 scripts/validate-index-integrity.py` | Index entries pointing at missing files |
+| `python3 scripts/validate-doc-links.py` | Broken doc links |
+| `python3 scripts/validate-doc-counts.py` | Wrong count claims in docs |
+| `python3 scripts/validate-doc-commands.py` | Scripts named in docs that do not exist |
+| `python3 scripts/docs-catalog.py --check` | `docs/*.md` missing `summary` or `read_when` |
 
-### After Creating a Skill
+The commands-to-`docs/REFERENCE.md` comparison is the one check only this skill makes.
 
-```bash
-mkdir skills/new-skill
-# ... create SKILL.md with YAML frontmatter ...
-
-# Run sync checker BEFORE committing
-python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root .
-python3 skills/meta/docs-sync-checker/scripts/generate_report.py
-
-# Update documentation per report suggestions
-# Commit tool AND documentation together
-git add skills/new-skill docs/skills.md
-git commit -m "Add new-skill with documentation"
-```
-
-### After Removing a Tool
-
-```bash
-rm -rf skills/old-skill
-
-# Run sync checker to find stale entries
-python3 skills/meta/docs-sync-checker/scripts/generate_report.py
-
-# Remove entries from docs/skills.md, docs/REFERENCE.md
-# Commit deletion AND documentation cleanup together
-git add skills/ docs/skills.md docs/REFERENCE.md
-git commit -m "Remove old-skill and documentation references"
-```
-
-### Pull Request Checklist
+## Pull request checklist
 
 ```markdown
-## Documentation Checklist
-- [ ] Ran docs-sync-checker to verify documentation sync
-- [ ] Added/updated documentation for new/modified tools
-- [ ] Removed documentation for deleted tools
+- [ ] Ran docs-sync-checker; 0 missing, 0 stale
+- [ ] Regenerated docs/skills.md and docs/routing-map.md after component changes
+- [ ] Added or removed the docs/REFERENCE.md row for any new or deleted command
 ```
-
-## Sync Score Interpretation
-
-| Score | Rating | Action |
-|-------|--------|--------|
-| 95-100% | Excellent | Documentation up-to-date |
-| 85-94% | Good | Minor drift, fix soon |
-| 70-84% | Fair | Noticeable drift, action needed |
-| <70% | Poor | Significant drift, immediate action required |
-
-Target: Maintain >95% sync score at all times.

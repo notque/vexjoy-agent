@@ -8,6 +8,8 @@ Run with: python3 -m pytest hooks/tests/test_subagent_completion_guard.py -v
 import importlib.util
 import json
 import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -491,7 +493,7 @@ class TestFindWriteToolInTranscript:
             ]
         )
         result = find_write_tool_in_transcript(path)
-        assert result == "Write"
+        assert result == "Write(/a.txt)"
 
     def test_write_tool_at_content_block_index_1_detected(self):
         """Write tool at content[1] — the original bug would miss this."""
@@ -506,7 +508,7 @@ class TestFindWriteToolInTranscript:
             ]
         )
         result = find_write_tool_in_transcript(path)
-        assert result == "Write"
+        assert result == "Write(/b.txt)"
 
     def test_empty_content_list_no_crash(self):
         """content=[] must not raise IndexError."""
@@ -687,3 +689,267 @@ class TestCheckProtectedOrgWorkflow:
             result = check_protected_org_workflow("/repo", path)
 
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Real transcript shape (Claude Code nests tool_use under message.content)
+# ---------------------------------------------------------------------------
+#
+# Synthesized fixtures in the line shape Claude Code writes to a subagent
+# transcript. No real session data.
+
+
+def _user_text(text: str) -> dict:
+    return {"type": "user", "isSidechain": True, "uuid": "u-1", "message": {"role": "user", "content": text}}
+
+
+def _assistant_tool_use(name: str, tool_input: dict, tool_use_id: str, text: str = "") -> dict:
+    blocks = []
+    if text:
+        blocks.append({"type": "text", "text": text})
+    blocks.append({"type": "tool_use", "id": tool_use_id, "name": name, "input": tool_input})
+    return {
+        "type": "assistant",
+        "isSidechain": True,
+        "uuid": f"a-{tool_use_id}",
+        "message": {
+            "id": f"msg_{tool_use_id}",
+            "type": "message",
+            "role": "assistant",
+            "model": "claude-test",
+            "content": blocks,
+            "stop_reason": "tool_use",
+        },
+    }
+
+
+def _user_tool_result(tool_use_id: str, text: str, is_error: bool = False) -> dict:
+    return {
+        "type": "user",
+        "isSidechain": True,
+        "uuid": f"r-{tool_use_id}",
+        "message": {
+            "role": "user",
+            "content": [{"type": "tool_result", "tool_use_id": tool_use_id, "content": text, "is_error": is_error}],
+        },
+        "toolUseResult": {"type": "text"},
+    }
+
+
+def _assistant_text(text: str) -> dict:
+    return {
+        "type": "assistant",
+        "isSidechain": True,
+        "uuid": "a-final",
+        "message": {"role": "assistant", "content": [{"type": "text", "text": text}], "stop_reason": "end_turn"},
+    }
+
+
+def _old_find_write_tool_in_transcript(transcript_path: str) -> str | None:
+    """The pre-fix scanner (hook-version 1.0.3), kept for the regression test."""
+    for line in Path(transcript_path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        tool_name = entry.get("tool_name")
+        if not tool_name and isinstance(entry.get("content"), list):
+            for block in entry["content"]:
+                if (
+                    isinstance(block, dict)
+                    and block.get("type") == "tool_use"
+                    and block.get("name") in mod._WRITE_TOOLS
+                ):
+                    tool_name = block["name"]
+                    break
+        if tool_name in mod._WRITE_TOOLS:
+            return tool_name
+    return None
+
+
+def _reviewer_wrote_transcript() -> list[dict]:
+    """A reviewer that reads a file, edits it, then reports."""
+    return [
+        _user_text("Review /repo/src/app.py for correctness."),
+        _assistant_tool_use("Read", {"file_path": "/repo/src/app.py"}, "toolu_01", text="Reading the file."),
+        _user_tool_result("toolu_01", "1\tdef main():\n2\t    return 1\n"),
+        _assistant_tool_use(
+            "Edit",
+            {"file_path": "/repo/src/app.py", "old_string": "return 1", "new_string": "return 0"},
+            "toolu_02",
+            text="I will fix it.",
+        ),
+        _user_tool_result("toolu_02", "The file has been updated."),
+        _assistant_text("Fixed the return value."),
+    ]
+
+
+def _reviewer_readonly_transcript() -> list[dict]:
+    return [
+        _user_text("Review /repo/src/app.py for correctness."),
+        _assistant_tool_use("Read", {"file_path": "/repo/src/app.py"}, "toolu_01"),
+        _user_tool_result("toolu_01", "1\tdef main():\n"),
+        _assistant_tool_use("Grep", {"pattern": "main", "path": "/repo"}, "toolu_02"),
+        _user_tool_result("toolu_02", "src/app.py"),
+        _assistant_tool_use("Bash", {"command": "git log --oneline -3"}, "toolu_03"),
+        _user_tool_result("toolu_03", "abc123 init"),
+        _assistant_text("No issues found."),
+    ]
+
+
+class TestRealTranscriptShape:
+    """Tier 2 and Tier 3 scanners on the nested message.content shape."""
+
+    def test_regression_old_scanner_missed_nested_tool_use(self):
+        """The 1.0.3 scanner read only top-level fields and missed this Edit."""
+        path = _make_transcript(_reviewer_wrote_transcript())
+        assert _old_find_write_tool_in_transcript(path) is None
+        assert find_write_tool_in_transcript(path) == "Edit(/repo/src/app.py)"
+
+    def test_nested_write_detected(self):
+        path = _make_transcript(
+            [
+                _user_text("Review the plan."),
+                _assistant_tool_use("Write", {"file_path": "/repo/notes.md", "content": "x"}, "toolu_01"),
+                _user_tool_result("toolu_01", "File created successfully"),
+            ]
+        )
+        assert find_write_tool_in_transcript(path) == "Write(/repo/notes.md)"
+
+    def test_nested_notebookedit_reports_notebook_path(self):
+        path = _make_transcript(
+            [_assistant_tool_use("NotebookEdit", {"notebook_path": "/repo/a.ipynb", "new_source": "x"}, "toolu_01")]
+        )
+        assert find_write_tool_in_transcript(path) == "NotebookEdit(/repo/a.ipynb)"
+
+    def test_nested_write_after_text_block_detected(self):
+        """A tool_use after a text block in the same message still counts."""
+        path = _make_transcript(
+            [_assistant_tool_use("Write", {"file_path": "/repo/x.txt"}, "toolu_01", text="Writing now.")]
+        )
+        assert find_write_tool_in_transcript(path) == "Write(/repo/x.txt)"
+
+    def test_nested_readonly_transcript_clean(self):
+        path = _make_transcript(_reviewer_readonly_transcript())
+        assert find_write_tool_in_transcript(path) is None
+
+    def test_text_naming_a_write_tool_not_counted(self):
+        """Only tool_use blocks count, not prompt or result text that names a write tool."""
+        path = _make_transcript(
+            [
+                _user_text('Do not call {"type": "tool_use", "name": "Write"}.'),
+                _assistant_tool_use("Bash", {"command": "echo Write"}, "toolu_01"),
+                _user_tool_result("toolu_01", '{"type": "tool_use", "name": "Edit", "input": {}}'),
+            ]
+        )
+        assert find_write_tool_in_transcript(path) is None
+
+    def test_string_message_content_no_crash(self):
+        path = _make_transcript([_user_text("plain prompt"), {"type": "assistant", "message": {"content": "done"}}])
+        assert find_write_tool_in_transcript(path) is None
+
+    def test_malformed_lines_and_blocks_skipped(self):
+        path = _make_transcript(
+            [
+                ["not", "an", "object"],
+                {"type": "assistant", "message": {"content": ["text", None, {"type": "tool_use"}]}},
+                {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Edit", "input": "bad"}]}},
+            ]
+        )
+        assert find_write_tool_in_transcript(path) == "Edit"
+
+    def test_flat_shape_still_detected(self):
+        """The old flat shape stays supported as a fallback."""
+        path = _make_transcript([{"tool_name": "Edit", "tool_input": {"file_path": "/src.py"}}])
+        assert find_write_tool_in_transcript(path) == "Edit(/src.py)"
+
+    def test_mixed_shapes_in_one_transcript(self):
+        path = _make_transcript(
+            [
+                {"tool_name": "Read", "tool_input": {"file_path": "/a"}},
+                _assistant_tool_use("Read", {"file_path": "/b"}, "toolu_01"),
+                _assistant_tool_use("Edit", {"file_path": "/c"}, "toolu_02"),
+            ]
+        )
+        assert find_write_tool_in_transcript(path) == "Edit(/c)"
+
+    def test_reviewer_with_nested_edit_blocks(self):
+        path = _make_transcript(_reviewer_wrote_transcript())
+        result = check_readonly_violation("reviewer-code", path)
+        assert result is not None
+        assert "Edit(/repo/src/app.py)" in result
+
+    def test_nested_git_push_detected(self):
+        path = _make_transcript(
+            [
+                _assistant_tool_use("Bash", {"command": "git status"}, "toolu_01"),
+                _assistant_tool_use("Bash", {"command": "git push origin feature"}, "toolu_02"),
+            ]
+        )
+        assert find_gated_command_in_transcript(path) == "git push origin feature"
+
+    def test_nested_safe_bash_not_detected(self):
+        path = _make_transcript(_reviewer_readonly_transcript())
+        assert find_gated_command_in_transcript(path) is None
+
+
+# ---------------------------------------------------------------------------
+# main(): which transcript the guard scans
+# ---------------------------------------------------------------------------
+
+
+def _run_hook(event: dict, tmp_path: Path) -> subprocess.CompletedProcess:
+    env = {k: v for k, v in os.environ.items() if k not in ("PROTECTED_ORGS", mod._BYPASS_ENV)}
+    return subprocess.run(
+        [sys.executable, str(HOOK_PATH)],
+        input=json.dumps(event),
+        capture_output=True,
+        text=True,
+        cwd=str(tmp_path),
+        env=env,
+        timeout=10,
+    )
+
+
+def _stop_event(tmp_path: Path, agent_type: str, **paths: str) -> dict:
+    return {
+        "session_id": "test-session",
+        "hook_event_name": "SubagentStop",
+        "cwd": str(tmp_path),
+        "agent_id": "agent-test",
+        "agent_type": agent_type,
+        "stop_hook_active": False,
+        **paths,
+    }
+
+
+class TestMainTranscriptSelection:
+    def test_agent_transcript_with_nested_edit_denies(self, tmp_path):
+        agent = _make_transcript(_reviewer_wrote_transcript())
+        result = _run_hook(_stop_event(tmp_path, "reviewer-code", agent_transcript_path=agent), tmp_path)
+        assert result.returncode == 0
+        out = json.loads(result.stdout)
+        assert out["permissionDecision"] == "deny"
+        assert "Edit(/repo/src/app.py)" in out["permissionDecisionReason"]
+
+    def test_parent_transcript_writes_not_charged_to_reviewer(self, tmp_path):
+        """transcript_path is the parent session on SubagentStop; its writes are not the reviewer's."""
+        parent = _make_transcript(_reviewer_wrote_transcript())
+        agent = _make_transcript(_reviewer_readonly_transcript())
+        event = _stop_event(tmp_path, "reviewer-code", transcript_path=parent, agent_transcript_path=agent)
+        result = _run_hook(event, tmp_path)
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+
+    def test_missing_agent_transcript_skips_with_note(self, tmp_path):
+        parent = _make_transcript(_reviewer_wrote_transcript())
+        result = _run_hook(_stop_event(tmp_path, "reviewer-code", transcript_path=parent), tmp_path)
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+        assert "[readonly-guard] skipped for reviewer-code" in result.stderr
+
+    def test_non_reviewer_with_nested_edit_passes(self, tmp_path):
+        agent = _make_transcript(_reviewer_wrote_transcript())
+        result = _run_hook(_stop_event(tmp_path, "general-purpose", agent_transcript_path=agent), tmp_path)
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+        assert "[readonly-guard]" not in result.stderr

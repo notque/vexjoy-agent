@@ -118,6 +118,11 @@ Create the design document:
 ## Selected Approach
 [Which approach and why]
 
+## Alternatives Considered
+[One entry per Step 2 approach not selected, plus "do nothing" if weighed:]
+- **[Name]**: Rejected because [reason] (decided by: human / auto / Jev)
+- **[Name]**: Deferred because [reason] (decided by: human / auto / Jev)
+
 ## Components
 [What needs to be built/modified]
 
@@ -151,6 +156,7 @@ Validation checklist:
 - [ ] Problem statement is clear
 - [ ] Requirements are enumerable (not vague)
 - [ ] Approach is selected with rationale
+- [ ] Every Step 2 approach not selected is under Alternatives Considered with a reason, so later phases and reviewers don't re-propose it
 - [ ] Components are identified
 - [ ] Domain agents are identified
 - [ ] Open questions are listed (even if empty)

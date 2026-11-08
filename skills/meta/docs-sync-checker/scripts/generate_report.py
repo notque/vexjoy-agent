@@ -17,29 +17,12 @@ from typing import Any, Dict
 class ReportGenerator:
     """Generate sync reports from issues data."""
 
-    def __init__(self, strict: bool = False, auto_fix: bool = False):
+    def __init__(self, strict: bool = False):
         self.strict = strict
-        self.auto_fix = auto_fix
 
     def generate_suggested_fix_markdown(self, issue: Dict[str, Any]) -> str:
-        """
-        Generate suggested markdown to add/remove for an issue.
-        """
-        tool_type = issue["tool_type"]
-        tool_name = issue["tool_name"]
-        description = issue.get("yaml_description", "")
-
-        if tool_type == "skill":
-            # Skills README table row
-            return f"| {tool_name} | {description} | `skill: {tool_name}` | - |"
-        elif tool_type == "agent":
-            # Agents README table row (or list item)
-            return f"| {tool_name} | {description} |"
-        elif tool_type == "command":
-            # Commands README list item
-            return f"- `/{tool_name}` - {description}"
-
-        return ""
+        """Return the fix parse_docs.py attached to the issue."""
+        return issue.get("suggested_fix", "")
 
     def generate_markdown_report(self, issues_data: Dict[str, Any], scan_results: Dict[str, Any] = None) -> str:
         """
@@ -120,10 +103,7 @@ class ReportGenerator:
                 for location in issue["missing_from"]:
                     suggested_fix = self.generate_suggested_fix_markdown(issue)
                     if suggested_fix:
-                        lines.append(f"**Suggested Fix for {location}**:")
-                        lines.append("```markdown")
-                        lines.append(suggested_fix)
-                        lines.append("```")
+                        lines.append(f"**Suggested Fix for {location}**: {suggested_fix}")
                         lines.append("")
 
             lines.append("---")
@@ -148,8 +128,8 @@ class ReportGenerator:
                 lines.append(f"**Documented in**: {documented_in}")
                 lines.append("")
                 lines.append("**Suggested Fix**:")
-                lines.append(f'- Remove the entry for "{tool_name}" from {documented_in}')
-                lines.append(f'- Check README.md for references to "{tool_name}" and remove')
+                fix = issue.get("suggested_fix") or f"Remove the entry for {tool_name} from {documented_in}"
+                lines.append(f"- {fix}")
                 lines.append("")
 
             lines.append("---")
@@ -194,11 +174,13 @@ class ReportGenerator:
             lines.append("")
             lines.append("```bash")
             lines.append("# Review suggested fixes above")
-            lines.append("# Manually update documentation files")
+            lines.append("# Regenerate generated catalogs; edit docs/REFERENCE.md by hand")
             lines.append("# Re-run sync checker to verify")
-            lines.append("python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root .")
             lines.append(
-                "python3 skills/meta/docs-sync-checker/scripts/parse_docs.py --repo-root . --scan-results /tmp/scan.json"
+                "python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root . --output /tmp/scan.json"
+            )
+            lines.append(
+                "python3 skills/meta/docs-sync-checker/scripts/parse_docs.py --repo-root . --scan-results /tmp/scan.json --output /tmp/issues.json"
             )
             lines.append("python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/issues.json")
             lines.append("```")
@@ -234,7 +216,6 @@ def main():
         "--format", choices=["markdown", "json"], default="markdown", help="Output format (default: markdown)"
     )
     parser.add_argument("--strict", action="store_true", help="Exit with error code if issues found (for CI/CD)")
-    parser.add_argument("--auto-fix", action="store_true", help="Automatically fix missing entries (EXPERIMENTAL)")
 
     args = parser.parse_args()
 
@@ -257,7 +238,7 @@ def main():
                 scan_results = json.load(f)
 
         # Generate report
-        generator = ReportGenerator(strict=args.strict, auto_fix=args.auto_fix)
+        generator = ReportGenerator(strict=args.strict)
 
         if args.format == "markdown":
             report_content = generator.generate_markdown_report(issues_data, scan_results)
