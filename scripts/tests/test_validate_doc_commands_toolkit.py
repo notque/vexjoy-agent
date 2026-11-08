@@ -249,6 +249,43 @@ def test_unseen_option_value_on_open_parser_is_not_read_as_a_subcommand(tmp_path
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_inline_option_value_on_open_parser_does_not_hide_the_subcommand(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {"agents/a.md": _bash("python3 scripts/open-cli.py --shared=a.json walk")})
+    (repo / "scripts" / "open-cli.py").write_text(OPEN_CLI, encoding="utf-8")
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "unknown subcommand 'walk' (choices: run)" in result.stdout, result.stdout
+
+
+def test_unknown_option_with_placeholder_value_after_equals_exits_one(tmp_path: Path) -> None:
+    doc = _bash(
+        "python3 scripts/fixture-cli.py export --bogus=<file>",
+        "python3 scripts/fixture-cli.py --bogus=$DIR report",
+        "python3 scripts/fixture-cli.py --verbose=<x> walk",
+    )
+    repo = _repo(tmp_path, {"agents/a.md": doc})
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "agents/a.md:4: scripts/fixture-cli.py: unknown option --bogus" in result.stdout, result.stdout
+    assert "agents/a.md:5: scripts/fixture-cli.py: unknown option --bogus" in result.stdout, result.stdout
+    assert "unknown subcommand 'walk'" in result.stdout, result.stdout
+
+
+def test_placeholder_value_after_equals_on_known_option_passes(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {"agents/a.md": _bash("python3 scripts/fixture-cli.py export --out=<file>")})
+    result = _run(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_claude_skill_dir_does_not_fall_back_to_repo_scripts(tmp_path: Path) -> None:
+    doc = _bash("python3 ${CLAUDE_SKILL_DIR}/fixture-cli.py report", "python3 $SDIR/fixture-cli.py report")
+    repo = _repo(tmp_path, {"skills/cat/demo/SKILL.md": doc})
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "${CLAUDE_SKILL_DIR}/fixture-cli.py: script not found" in result.stdout, result.stdout
+    assert "$SDIR/fixture-cli.py" not in result.stdout, result.stdout
+
+
 def test_missing_toolkit_script_exits_one(tmp_path: Path) -> None:
     doc = _bash("python3 ${CLAUDE_SKILL_DIR}/scripts/gone.py", "python3 ~/.claude/scripts/also-gone.py run")
     repo = _repo(tmp_path, {"skills/cat/demo/SKILL.md": doc})

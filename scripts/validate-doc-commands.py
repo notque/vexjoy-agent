@@ -164,9 +164,10 @@ def check_sdir(skill_md: Path = DO_SKILL_MD, scripts_dir: Path = REPO_ROOT / "sc
 # fence or an inline code span against the script's real argparse interface:
 # the script must exist, the first positional must be a known subcommand when
 # the parser has subparsers, and every option must be one the parser accepts.
-# Scripts are parsed with ast and never executed. A script whose interface the
-# parse cannot see in full (no argparse, raw sys.argv, several root parsers,
-# parsers handed to imported helpers) is checked for existence only.
+# Scripts are parsed with ast and never executed. A script with no argparse,
+# raw sys.argv, or several root parsers is checked for existence only. A parser
+# handed to an imported helper still has its subcommands checked, but not its
+# options.
 # ---------------------------------------------------------------------------
 
 TOOLKIT_DIRS = ("skills", "agents", "commands")
@@ -174,7 +175,8 @@ TOOLKIT_ALLOWLIST = Path("scripts") / "doc-command-allowlist.txt"  # relative to
 SHELL_LANGS = frozenset({"", "bash", "sh", "shell", "zsh", "console"})
 FENCE_OPEN = re.compile(r"^\s*(`{3,}|~{3,})\s*([\w+-]*)")
 PYTHON_EXE = re.compile(r"^(?:\S*/)?python(?:3(?:\.\d+)?)?$")
-SKILL_DIR_VARS = ("${CLAUDE_SKILL_DIR}/", "$CLAUDE_SKILL_DIR/", "${SDIR}/", "$SDIR/")
+SDIR_VARS = ("${SDIR}/", "$SDIR/")
+SKILL_DIR_VARS = ("${CLAUDE_SKILL_DIR}/", "$CLAUDE_SKILL_DIR/", *SDIR_VARS)
 PLACEHOLDER_CHARS = frozenset("<>{}[]$*|…`")
 SHELL_PUNCT = frozenset("();<>|&")
 NO_VALUE_ACTIONS = frozenset({"store_true", "store_false", "store_const", "append_const", "count", "help", "version"})
@@ -536,10 +538,17 @@ def check_call(interface: ScriptInterface, args: list[str]) -> list[str]:
             break
         if token.startswith("-") and len(token) > 1 and not token[1].isdigit():
             options = spec.all_options()
-            if _is_placeholder(token) or not interface.flags_checkable or spec.open_through_parents():
+            name, inline, _ = token.partition("=")
+            if _is_placeholder(name) or not interface.flags_checkable or spec.open_through_parents():
                 # Only an exact match has a known value count here: an unseen option may share the prefix.
-                exact = token.split("=", 1)[0]
-                count = options.get(exact) if not _is_placeholder(token) and exact in options else VARIADIC
+                # A value given after `=` is the whole value, so nothing after the token is consumed.
+                exact = name
+                if inline:
+                    count = 0
+                elif not _is_placeholder(name) and exact in options:
+                    count = options[exact]
+                else:
+                    count = VARIADIC
             else:
                 matched, problem = _match_option(token, options, spec.allow_abbrev)
                 if matched is None:
@@ -726,7 +735,10 @@ class _Resolver:
                 tail = target[len(prefix) :]
                 owners = [d for d in dirs if (d / "SKILL.md").is_file()]
                 candidates = [owners[0] / tail] if owners else []
-                candidates.append(self.root / "scripts" / tail)
+                if prefix in SDIR_VARS:
+                    candidates.append(self.root / "scripts" / tail)  # $SDIR is the /do scripts dir
+                if not candidates:
+                    return None  # CLAUDE_SKILL_DIR outside a skill: the dir is unknown
                 return next((c for c in candidates if c.is_file()), candidates[0])
         if target.startswith(("/", "~", "../", "$")):
             return None

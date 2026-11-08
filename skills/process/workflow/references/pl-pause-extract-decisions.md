@@ -24,12 +24,12 @@ Keep only entries that describe process changes, tooling contracts, or architect
 
 Get the next safe ADR number once, then increment for subsequent candidates. `adr-query.py` has no number command, so take the highest numbered file in `adr/` plus one:
 ```bash
-last=$(ls adr/ 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1); echo $(( 10#${last:-0} + 1 ))
+last=$(ls adr/ 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1); [ -n "$last" ] && echo $(( 10#$last + 1 )) || echo manual
 ```
 
 Run it once for the first candidate. For additional candidates, increment the number manually (e.g., if first returns 132, use 133 for the second) because the command reads files on disk and the first skeleton is not written yet.
 
-If `adr/` is missing or has no numbered files, use placeholder numbers and note that the user should assign them before merging.
+If the command prints `manual` (`adr/` is missing or has no numbered files), use placeholder numbers and note that the user should assign them before merging.
 
 Draft to `adr/{number}-{slug}.md`:
 
