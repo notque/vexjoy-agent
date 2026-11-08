@@ -118,7 +118,7 @@ The installer registers its hooks in `~/.claude/settings.json`, so they run in e
 | `pretool-plan-gate` | Write and Edit under the project root's `agents/` or `skills/` until a `task_plan.md` modified in the last 24 hours exists there | `PLAN_GATE_BYPASS` |
 | `pretool-adr-creation-gate` | Writing a new `agents/<name>.md`, `skills/<name>/SKILL.md`, `pipelines/<name>/SKILL.md`, or top-level hook file when no ADR for it exists in `~/.vexjoy-agent/<repo>/adrs/` or the repo's `adr/` | `ADR_CREATION_GATE_BYPASS` |
 | `pretool-worktree-edit-guard` | An agent working in a worktree editing the main checkout | `WORKTREE_EDIT_GUARD_BYPASS` |
-| `pretool-private-name-leak-gate` | Commits, pushes, and PR text that name a private component; it does nothing without `~/private-skills` | `PRIVATE_NAME_GATE_BYPASS` |
+| `pretool-private-name-leak-gate` | Commits, pushes, and PR text that name a private component; it does nothing without `~/private-skills` or when every target repo is a private GitHub repo | `PRIVATE_NAME_GATE_BYPASS` |
 | `pipeline-phase-gate` | Writes that advance a pipeline phase before the phase's artifact exists | `PIPELINE_PHASE_GATE_BYPASS` |
 | `pretool-synthesis-gate` | Writes during an ADR session that has no synthesis yet | `SYNTHESIS_GATE_BYPASS` |
 

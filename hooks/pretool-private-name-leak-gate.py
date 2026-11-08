@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.3.2
+# hook-version: 1.4.0
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
@@ -59,6 +59,13 @@ Allow-through conditions:
 - Effective cwd is inside ~/private-skills itself (self-scan would
   always block that repo's own commits)
 - No private name found in any scanned text
+- Every remote the text can reach is a private GitHub repo, checked only
+  after a match, through `gh api repos/OWNER/REPO` (owner, 2026-11-08:
+  private name checks don't count for private repos). `git push` checks
+  the remote it pushes to; `git commit` and `gh pr` check every remote (or
+  the `--repo` value). No remote, a non-GitHub URL, more than
+  _MAX_VISIBILITY_LOOKUPS repos, or a gh error or timeout counts as public
+  and the gate still blocks.
 - PRIVATE_NAME_GATE_BYPASS=1 as an env var OR as an inline command prefix
   (`PRIVATE_NAME_GATE_BYPASS=1 git push ...`). The hook runs in the
   harness process, so an inline prefix never reaches os.environ — it is
@@ -576,6 +583,168 @@ def _collect_scan_targets(command: str, cwd: str | None) -> list[tuple[str, str]
     return targets
 
 
+# Private-repo exemption. Looked up only after a term matched, so clean
+# commands never call gh. Any doubt counts as public.
+_MAX_VISIBILITY_LOOKUPS = 4
+_GH_TIMEOUT = 4
+_SCP_RE = re.compile(r"^(?:[^@/]+@)?([^:/]+):(?!//)(.+)$")
+_URL_RE = re.compile(r"^[a-z][a-z0-9+.-]*://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+)$", re.IGNORECASE)
+# git push options that take a separate value.
+_PUSH_VALUE_OPTS = {"-o", "--push-option", "--receive-pack", "--exec"}
+
+
+def _parse_slug(url: str) -> tuple[str, str, str] | None:
+    """(host, owner, repo) for a GitHub-style remote URL, or None."""
+    url = url.strip()
+    m = _URL_RE.match(url) or _SCP_RE.match(url)
+    if not m:
+        return None
+    parts = m.group(2).strip("/").removesuffix(".git").split("/")
+    if len(parts) != 2 or not all(parts):
+        return None
+    return m.group(1).lower(), parts[0], parts[1]
+
+
+def _parse_repo_flag(value: str) -> tuple[str, str, str] | None:
+    """`gh --repo` value: OWNER/REPO, HOST/OWNER/REPO, or a URL."""
+    if "://" in value or "@" in value:
+        return _parse_slug(value)
+    parts = value.strip("/").removesuffix(".git").split("/")
+    if len(parts) == 2 and all(parts):
+        return "github.com", parts[0], parts[1]
+    if len(parts) == 3 and all(parts):
+        return parts[0].lower(), parts[1], parts[2]
+    return None
+
+
+def _remote_names(cwd: str | None) -> list[str]:
+    return [n for n in _run_git(["remote"], cwd).split() if n]
+
+
+def _remote_push_urls(remote: str, cwd: str | None) -> list[str]:
+    """URLs `git push <remote>` contacts, after insteadOf/pushInsteadOf rewrites."""
+    return [u for u in _run_git(["remote", "get-url", "--push", "--all", remote], cwd).splitlines() if u.strip()]
+
+
+def _all_remote_urls(cwd: str | None) -> list[str] | None:
+    """Push URLs of every remote, or None when the repo has no remote."""
+    names = _remote_names(cwd)
+    if not names:
+        return None
+    urls: list[str] = []
+    for name in names:
+        found = _remote_push_urls(name, cwd)
+        if not found:
+            return None
+        urls += found
+    return urls
+
+
+def _push_target(segment: str) -> tuple[str | None, bool]:
+    """(remote-or-url, parsed) for one `git push` segment.
+
+    parsed is False when the command shape is not understood; the caller then
+    checks every remote. A None remote with parsed True means the default
+    push remote.
+    """
+    try:
+        tokens = shlex.split(segment)
+    except ValueError:
+        return None, False
+    try:
+        start = next(i for i, t in enumerate(tokens) if t == "push" and "git" in tokens[:i]) + 1
+    except StopIteration:
+        return None, False
+    skip = False
+    for token in tokens[start:]:
+        if skip:
+            skip = False
+            continue
+        if token in _PUSH_VALUE_OPTS or token == "--repo":
+            if token == "--repo":
+                return None, False
+            skip = True
+            continue
+        if token.startswith("--repo="):
+            return token[len("--repo=") :], True
+        if token.startswith("-"):
+            continue
+        return token, True
+    return None, True
+
+
+def _default_push_remote(cwd: str | None) -> str | None:
+    """Remote name of @{push}, or None when the branch has none."""
+    ref = _run_git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{push}"], cwd).strip()
+    if not ref:
+        return None
+    names = sorted(_remote_names(cwd), key=len, reverse=True)
+    return next((n for n in names if ref.startswith(n + "/")), None)
+
+
+def _target_slugs(command: str, cwd: str | None) -> set[tuple[str, str, str]] | None:
+    """Every GitHub repo the gated text can reach, or None when any target is unknown."""
+    slugs: set[tuple[str, str, str]] = set()
+    urls: list[str] = []
+    segments = [s for s in re.split(r"&&|\|\||;|\n", command) if _CMD_RE.search(s)]
+    if not segments:
+        return None
+    for segment in segments:
+        if _GIT_PUSH_RE.search(segment) and not (_GIT_COMMIT_RE.search(segment) or _GH_PR_RE.search(segment)):
+            target, parsed = _push_target(segment)
+            if not parsed:
+                found = _all_remote_urls(cwd)
+            else:
+                remote = target or _default_push_remote(cwd)
+                if remote is None:
+                    found = _all_remote_urls(cwd)
+                elif remote in _remote_names(cwd):
+                    found = _remote_push_urls(remote, cwd) or None
+                else:
+                    found = [remote]
+        elif _GH_PR_RE.search(segment) and not _GIT_COMMIT_RE.search(segment):
+            repo_flags = _file_args(segment, {"-R", "--repo"})
+            if repo_flags:
+                for value in repo_flags:
+                    slug = _parse_repo_flag(value)
+                    if slug is None:
+                        return None
+                    slugs.add(slug)
+                continue
+            found = _all_remote_urls(cwd)
+        else:
+            found = _all_remote_urls(cwd)
+        if not found:
+            return None
+        urls += found
+    for url in urls:
+        slug = _parse_slug(url)
+        if slug is None:
+            return None
+        slugs.add(slug)
+    return slugs or None
+
+
+def _gh_is_private(host: str, owner: str, repo: str) -> bool:
+    """True only when gh answers that the repo is private."""
+    args = ["gh", "api", f"repos/{owner}/{repo}", "--jq", ".private"]
+    if host != "github.com":
+        args[2:2] = ["--hostname", host]
+    try:
+        proc = subprocess.run(args, capture_output=True, text=True, timeout=_GH_TIMEOUT, check=False)
+    except (subprocess.TimeoutExpired, OSError, subprocess.SubprocessError):
+        return False
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
+
+
+def _targets_all_private(command: str, cwd: str | None) -> bool:
+    """True when every repo the command's text can reach is a private GitHub repo."""
+    slugs = _target_slugs(command, cwd)
+    if not slugs or len(slugs) > _MAX_VISIBILITY_LOOKUPS:
+        return False
+    return all(_gh_is_private(*slug) for slug in sorted(slugs))
+
+
 def main() -> None:
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
@@ -630,6 +799,13 @@ def main() -> None:
             continue
         match = pattern.search(text)
         if match:
+            if _targets_all_private(command, cwd):
+                # Repo names can be private terms too; never echo them.
+                print(
+                    "[private-name-leak-gate] Allowing: every target remote is a private GitHub repo",
+                    file=sys.stderr,
+                )
+                sys.exit(0)
             redacted = _redact(match.group(0))
             print(
                 f"[private-name-leak-gate] BLOCKED: private term ({redacted}) found in {location}.",
