@@ -13,6 +13,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# YAML block scalar indicators: `|`, `>`, with optional chomping/indent markers.
+_BLOCK_SCALAR = re.compile(r"^[|>][+-]?[0-9]?$")
+
 
 class ToolScanner:
     """Discover all tools in repository."""
@@ -236,12 +239,25 @@ class ToolScanner:
 
             # Frontmatter `description:` is authoritative when present.
             if lines and lines[0].strip() == "---":
-                for line in lines[1:]:
+                for i, line in enumerate(lines[1:], start=1):
                     if line.strip() == "---":
                         break
                     match = re.match(r"^description:\s*(.+)$", line.strip())
-                    if match:
-                        return match.group(1).strip().strip("\"'")
+                    if not match:
+                        continue
+                    value = match.group(1).strip()
+                    if not _BLOCK_SCALAR.match(value):
+                        return value.strip("\"'")
+                    # Block scalar (`|`, `>`, `|-`, ...): join the indented lines that follow.
+                    body = []
+                    for cont in lines[i + 1 :]:
+                        if cont.strip() and not cont[:1].isspace():
+                            break
+                        if cont.strip():
+                            body.append(cont.strip())
+                    if body:
+                        return " ".join(body)[:200]
+                    break  # empty block: fall back to the first paragraph
 
             # Look for first paragraph after title (# Title)
             found_title = False

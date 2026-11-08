@@ -245,7 +245,7 @@ Solution:
 4. Run with --debug flag for verbose discovery output
 
 ### Error: "Entry count is zero for a type"
-Cause: The table moved out of the parsed section (`## AGENTS` in docs/routing-map.md, `## Slash Commands` in docs/REFERENCE.md) or the first-cell format changed
+Cause: The table moved out of the parsed section (`## AGENTS` in docs/routing-map.md, `## Slash Commands` in docs/REFERENCE.md) or the first-cell format changed. `parse_docs.py` exits 2 with this message rather than report every entry missing
 Solution:
 1. Check the section heading and the first-cell format in `references/documentation-structure.md`
 2. Update `_SECTIONS` or `_NAME_CELL` in `scripts/parse_docs.py` to match, and run `scripts/validate.py`

@@ -143,6 +143,25 @@ def validate_primary_docs(repo_root: Path = REPO_ROOT) -> list[ValidationResult]
     return results
 
 
+def validate_primary_docs_parse(repo_root: Path = REPO_ROOT) -> list[ValidationResult]:
+    """Every primary doc parses to more than 0 entries for its type at the repo root.
+
+    A renamed section heading or changed first-cell format otherwise yields an
+    empty documented set and a flood of false "missing" issues.
+    """
+    parse_docs = _parse_docs_module()
+    parser = parse_docs.DocumentationParser(repo_root)
+    results: list[ValidationResult] = []
+    for tool_type, rel in parse_docs.PRIMARY_DOCS.items():
+        try:
+            count = len(parser.parse_primary(tool_type))
+        except (OSError, ValueError) as exc:
+            results.append((f"primary doc parses: {rel}", False, str(exc)))
+        else:
+            results.append((f"primary doc parses: {rel}", count > 0, f"{count} {tool_type} entries"))
+    return results
+
+
 def validate_missing_target_fails() -> list[ValidationResult]:
     """parse_docs.py exits 2 when a primary doc is missing, instead of reporting it empty."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -166,6 +185,7 @@ def run_all_validations() -> bool:
         ("Script syntax", validate_script_syntax),
         ("Scanner contract", validate_scanner_contract),
         ("Primary docs", validate_primary_docs),
+        ("Primary docs parse", validate_primary_docs_parse),
         ("Missing target", validate_missing_target_fails),
     ]
     results = [result for _, check in validations for result in check()]

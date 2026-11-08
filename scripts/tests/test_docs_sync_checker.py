@@ -82,6 +82,10 @@ def fixture_repo(tmp_path: Path) -> Path:
     _write(tmp_path / "agents" / "base-instructions.md", "# Shared prompt, no frontmatter\n")
     _write(tmp_path / "commands" / "go.md", "---\ndescription: Go command\n---\n# /go\n")
     _write(tmp_path / "commands" / "new.md", "---\ndescription: New command\n---\n# /new\n")
+    _write(
+        tmp_path / "commands" / "block.md",
+        "---\nname: block\ndescription: |\n  Block scalar\n  description.\nversion: 1.0.0\n---\n# /block\n",
+    )
 
     _write(
         tmp_path / "docs" / "skills.md",
@@ -113,7 +117,7 @@ def test_seeded_drift_is_found_by_name(fixture_repo: Path) -> None:
     issues = _issues(fixture_repo)
     missing = {(i["tool_type"], i["tool_name"]) for i in issues["missing_entries"]}
     stale = {(i["tool_type"], i["tool_name"]) for i in issues["stale_entries"]}
-    assert missing == {("skill", "unlisted"), ("command", "new")}
+    assert missing == {("skill", "unlisted"), ("command", "new"), ("command", "block")}
     assert stale == {("agent", "ghost-engineer")}
 
 
@@ -123,6 +127,32 @@ def test_fixes_point_at_generator_or_reference_row(fixture_repo: Path) -> None:
     assert "scripts/generate-skills-doc.py" in fixes["unlisted"]
     assert "scripts/generate-routing-map.py" in fixes["ghost-engineer"]
     assert "| `/new` | New command |" in fixes["new"]
+    assert "| `/block` | Block scalar description. |" in fixes["block"]
+
+
+@pytest.mark.parametrize(
+    ("doc", "old", "new"),
+    [
+        ("docs/routing-map.md", "## AGENTS (2)", "## Agents (2)"),
+        ("docs/REFERENCE.md", "## Slash Commands", "## Commands"),
+        ("docs/skills.md", "| `listed` |", "| listed |"),
+    ],
+)
+def test_zero_entries_for_a_type_exits_2(fixture_repo: Path, doc: str, old: str, new: str) -> None:
+    """A moved section or changed first cell is an error, not an empty documented set."""
+    path = fixture_repo / doc
+    path.write_text(path.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "parse_docs.py"), "--repo-root", str(fixture_repo)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "Entry count is zero for a type" in proc.stderr
+    assert doc in proc.stderr
+    failed = [name for name, passed, _ in validate.validate_primary_docs_parse(fixture_repo) if not passed]
+    assert failed == [f"primary doc parses: {doc}"]
 
 
 def test_head_pipeline_reports_no_false_layout_issues(tmp_path: Path) -> None:
