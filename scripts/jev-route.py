@@ -583,10 +583,6 @@ def finalize(prepared: dict, decision: dict, entries: list[dict]) -> dict:
         skill, forced_applied = forced["skill"], True
     if forced.get("pipeline") and forced["pipeline"] in pipeline_names:
         pipeline, forced_applied = forced["pipeline"], True
-    forced_agent = forced.get("agent") if forced.get("agent") in agent_names else None
-    if forced_agent:
-        agent = forced_agent
-
     skill_source = "pre-route" if forced.get("skill") and skill == forced["skill"] else "session"
     if skill is None and FALLBACK_SKILL in skill_names:
         skill, skill_source = FALLBACK_SKILL, "fallback"
@@ -602,7 +598,9 @@ def finalize(prepared: dict, decision: dict, entries: list[dict]) -> dict:
         "domain_scores": prepared.get("domain_scores"),
     }
     route["attach"] = _attachments(route, skill_names)
-    route["agent_source"] = "pre-route" if forced_agent and agent == forced_agent else "session"
+    # The force route fixes the skill and pipeline only; the agent stays the
+    # session's pick (/do Phase 2 Step 1(a)).
+    route["agent_source"] = "session"
     if agent in (None, "general-purpose"):
         default = _default_agent(route)
         if default:

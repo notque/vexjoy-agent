@@ -110,6 +110,7 @@
       "description": "Unified 4-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
       "triggers": [
         "comprehensive review",
+        "full code review",
         "review everything",
         "review and fix",
         "thorough review",
@@ -121,14 +122,12 @@
         "3-wave review",
         "4-wave review",
         "adversarial review",
-        "full code review",
         "review all packages"
       ],
       "category": "review",
       "user_invocable": false,
       "version": "4.0.0",
       "pairs_with": [
-        "review",
         "review"
       ],
       "model": "opus",
@@ -313,8 +312,7 @@
         "GM Mode"
       ],
       "pairs_with": [
-        "game-dev",
-        "workflow",
+        "frontend",
         "workflow"
       ]
     },
@@ -565,7 +563,6 @@
         "INTEGRATE"
       ],
       "pairs_with": [
-        "toolkit",
         "toolkit"
       ]
     },
@@ -711,7 +708,6 @@
       "version": "1.0.0",
       "pairs_with": [
         "comprehensive-review",
-        "toolkit",
         "toolkit"
       ],
       "model": "opus",
@@ -777,9 +773,8 @@
         "Translation"
       ],
       "pairs_with": [
-        "writing",
-        "writing",
-        "joy-check"
+        "joy-check",
+        "content"
       ]
     },
     "workflow-orchestrator": {
