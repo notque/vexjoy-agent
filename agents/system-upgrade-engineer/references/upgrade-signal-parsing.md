@@ -22,7 +22,7 @@ component type* is affected.
 |-------------|-------------|--------------------|--------------------|
 | Claude Code release note | `feat:` / `fix:` / `BREAKING:` prefix | Hooks (new events), agents (new capabilities), routing tables | BREAKING = Critical; new tool = Important; fix = Minor |
 | User goal change | "from now on", "whenever X", "always Y" | Hooks (behavioral automation), agents (routing triggers) | User-stated = Critical |
-| Retro graduation | `learning.db` candidates with `status=candidate` | Agent failure modes, skill instructions | Recurrence count drives priority |
+| Retro graduation | `learning.db` rows with `graduated_to IS NULL` | Agent failure modes, skill instructions | Recurrence count drives priority |
 
 ---
 
@@ -84,11 +84,16 @@ If no existing hook covers the trigger, `create-new` is the right action.
 Query learning.db for graduated patterns and map to component updates.
 
 ```bash
-# Find retro candidates with recurrence > 2
-python3 scripts/learning-db.py list --status candidate --min-count 3
+# learning-db.py has no list subcommand: read the learnings table directly, read-only.
+# Retro candidates: not yet graduated, seen 3+ times
+sqlite3 -readonly ~/.claude/learning/learning.db \
+  "SELECT topic, key, category, observation_count FROM learnings
+   WHERE graduated_to IS NULL AND observation_count >= 3 ORDER BY observation_count DESC"
 
-# Find patterns associated with specific component type
-python3 scripts/learning-db.py list --component-type agent --status candidate
+# Candidates that mention agents
+sqlite3 -readonly ~/.claude/learning/learning.db \
+  "SELECT topic, key, observation_count FROM learnings
+   WHERE graduated_to IS NULL AND (topic LIKE '%agent%' OR tags LIKE '%agent%')"
 ```
 
 Map recurrence count to tier:
@@ -157,11 +162,10 @@ Do instead: Separate into sections by signal type. Label each row with its sourc
 ## Detection Commands Reference
 
 ```bash
-# Find retro candidates with recurrence > 2
-python3 scripts/learning-db.py list --status candidate --min-count 3
-
-# Check learning.db for agent-specific patterns
-python3 scripts/learning-db.py list --component-type agent --status candidate
+# Retro candidates: not yet graduated, seen 3+ times (read-only; learning-db.py has no list subcommand)
+sqlite3 -readonly ~/.claude/learning/learning.db \
+  "SELECT topic, key, category, observation_count FROM learnings
+   WHERE graduated_to IS NULL AND observation_count >= 3 ORDER BY observation_count DESC"
 
 # Verify Change Manifest has data rows
 grep -A 5 "Change Manifest" task_plan.md | grep -c "^|"

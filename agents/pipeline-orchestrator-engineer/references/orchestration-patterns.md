@@ -132,7 +132,7 @@ Single skill/agent with one clear purpose?
 | Hook import fails | Syntax error or wrong path | `python3 -m py_compile hooks/X.py` |
 | `toolkit: no triggers` | Missing `routing.triggers` in frontmatter | Add triggers to frontmatter |
 | Orphaned component | Wrong output path | Check actual vs expected path; rename |
-| `validate-chain: unknown step type` | Step not in step-menu.md | `python3 scripts/artifact-utils.py list-steps` |
+| `validate-chain: unknown step type` | Step not in step-menu.md | Pick a step from `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md` |
 
 ---
 

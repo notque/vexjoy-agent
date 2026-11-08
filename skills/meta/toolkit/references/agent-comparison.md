@@ -198,7 +198,7 @@ Use the report template from `references/report-template.md`. Include:
 **Step 2: Run comparison analysis**
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/compare.py benchmark/{task-name}/
+python3 ${CLAUDE_SKILL_DIR}/scripts/agent-comparison/compare.py benchmark/{task-name}/
 ```
 
 **Step 3: Analyze token economics**

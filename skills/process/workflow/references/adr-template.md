@@ -121,7 +121,7 @@ be modified. Make the table complete.]
 in settings.json, or a startup crash will deadlock the session):
 
 1. Create the hook file in the repo
-2. Run `python3 scripts/sync-to-user-claude.py` to sync to `~/.claude/hooks/`
+2. Run `python3 hooks/sync-to-user-claude.py` to sync to `~/.claude/hooks/`
 3. Verify the hook exits 0 with expected output (see Testing Commands below)
 4. Only after verification passes, register in `.claude/settings.json`
 

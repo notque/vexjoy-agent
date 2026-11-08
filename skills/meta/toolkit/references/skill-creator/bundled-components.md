@@ -59,7 +59,7 @@ Generate 20 eval queries -- 10 that should trigger, 10 that should not. The shou
 
 Run the optimization loop:
 ```bash
-python3 scripts/optimize_description.py \
+python3 ~/.claude/skills/toolkit/scripts/skill-creator/optimize_description.py \
   --skill-path path/to/skill \
   --eval-set evals/trigger-eval.json \
   --max-iterations 5

@@ -34,7 +34,7 @@ Identify:
 Before building any DAG, scan skills/*/SKILL.md for available skills:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/discover_skills.py ./skills
+python3 ${CLAUDE_SKILL_DIR}/scripts/skill-composer/discover_skills.py ./skills
 ```
 
 Review the discovered skills. Categorize by type (workflow, testing, quality, documentation, code-analysis, debugging) with dependency metadata.
@@ -60,7 +60,7 @@ Cross-reference selections against `references/compatibility-matrix.md` to confi
 Construct the execution DAG as a JSON structure with nodes (skills) and edges (dependencies) based on the task analysis:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/build_dag.py skill-index.json task-description.json
+python3 ${CLAUDE_SKILL_DIR}/scripts/skill-composer/build_dag.py skill-index.json task-description.json
 ```
 
 **Step 2: Validate the DAG**

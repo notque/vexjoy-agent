@@ -32,7 +32,7 @@ Populate five fields — `completed_tasks` (specific: "Implemented scoring modul
 
 **Goal**: Take the decisions this session made, filter for the ones that warrant ADRs, and draft ADR skeletons for each candidate. This phase runs before WRITE so that ADR data is available for inclusion in both handoff files — passing extracted data downstream is cheaper than appending to files after the fact.
 
-Steps (collect this session's decisions from the Phase 2 `decisions` field, filter with the decision-vs-tip heuristic table, get next ADR number via `adr-query.py next-number`, draft ADR skeletons to `adr/{N}-{slug}.md`, pass `drafted_adrs` list to Phase 4): `pause-extract-decisions.md`. The ADR skeleton template and filter heuristic live in that same reference.
+Steps (collect this session's decisions from the Phase 2 `decisions` field, filter with the decision-vs-tip heuristic table, get next ADR number from the highest numbered file in `adr/`, draft ADR skeletons to `adr/{N}-{slug}.md`, pass `drafted_adrs` list to Phase 4): `pause-extract-decisions.md`. The ADR skeleton template and filter heuristic live in that same reference.
 
 **GATE**: Session decisions collected. Candidates filtered using the decision-vs-tip heuristic. ADR skeleton files written to disk for any candidates found. `drafted_adrs` data available for Phase 4.
 
@@ -40,7 +40,7 @@ Steps (collect this session's decisions from the Phase 2 `decisions` field, filt
 
 **Goal**: Write both handoff files to the project root. This reference only creates files and leaves existing code and git state untouched because it must be safe to invoke repeatedly without side effects.
 
-**Step 1: Write HANDOFF.json** to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps. Include `drafted_adrs` from Phase 3 — omit the field entirely (not null, not `[]`) if no ADRs were drafted, so the resume intent can detect absence reliably. When pausing mid-way through a parallel agent wave, also persist already-returned agents under `agent_outputs` (keyed by `agent_input_hash`) so the resume intent can reuse them instead of re-dispatching; omit the field when no wave was in progress. Full JSON template and cache helper guidance: `pause-write-templates.md`.
+**Step 1: Write HANDOFF.json** to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps. Include `drafted_adrs` from Phase 3 — omit the field entirely (not null, not `[]`) if no ADRs were drafted, so the resume intent can detect absence reliably. When pausing mid-way through a parallel agent wave, also persist already-returned agents under `agent_outputs` (keyed by the `agent_input_hash` captured when each agent was dispatched, not recomputed at pause, because a file edited mid-wave would make a pause-time key match a stale output) so the resume intent can reuse them instead of re-dispatching; omit the field when no wave was in progress. Full JSON template and cache helper guidance: `pause-write-templates.md`.
 
 **Step 2: Write .continue-here.md** to `{project_root}/.continue-here.md` because humans need prose-form state before committing to the resume intent. Include the "ADRs Drafted from Session Learnings" section only if `drafted_adrs` is non-empty. Full markdown template: `pause-write-templates.md`.
 

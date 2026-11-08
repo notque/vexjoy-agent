@@ -82,8 +82,8 @@ Automatically filter vendor/, testdata/, and generated code (files with "Code ge
 **Step 1: Execute the cartographer**
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/cartographer_omni.py /path/to/go/repo
-# Or for quick overview: python3 ${CLAUDE_SKILL_DIR}/scripts/cartographer.py /path/to/go/repo
+python3 ~/.claude/skills/assessment/scripts/cartographer_omni.py /path/to/go/repo
+# Or for quick overview: python3 ~/.claude/skills/assessment/scripts/cartographer.py /path/to/go/repo
 ```
 
 Always run the cartographer scripts for measurement; reserve LLM interpretation for Phase 3. When an LLM sees `return err` it may report "not wrapping errors properly" even if that IS the local standard. The scripts produce deterministic, reproducible counts; the LLM's role begins at interpretation in Phase 3.

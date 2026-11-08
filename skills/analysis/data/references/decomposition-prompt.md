@@ -86,7 +86,7 @@ Process up to ${DECOMP_MAX_TARGETS} targets from the targets list. For each targ
 
 9. **Run structural check** (if the validation script exists):
    ```bash
-   python3 scripts/validate-references.py --skill {name}
+   python3 scripts/validate-references.py --check-size   # skills have no per-skill mode
    ```
    Or for agents: `python3 scripts/validate-references.py --agent {name}`
 

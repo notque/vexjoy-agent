@@ -45,7 +45,7 @@ yt-dlp --skip-download --write-auto-subs --sub-langs en --sub-format vtt \
 Then clean the VTT into paragraphs:
 
 ```bash
-python3 skills/research/video-transcript/scripts/vtt_to_paragraph.py <work-dir>/<id>.en.vtt
+python3 ~/.claude/skills/video-editing/scripts/vtt_to_paragraph.py <work-dir>/<id>.en.vtt
 ```
 
 Default output is plain paragraph text with `[Music]`-style cues stripped and the rolling duplicates of auto-captions deduplicated. Use `--timestamps` for `[mm:ss]` markers, `--keep-brackets` to keep cue tags, `-o FILE` to write to a file.

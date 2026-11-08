@@ -146,7 +146,7 @@ python3 ~/.claude/scripts/github-api-fetcher.py pr-reviews \
 
 **Step 4**: Run the rules compiler for structured output:
 ```bash
-python3 ~/.claude/scripts/rules-compiler.py \
+python3 ~/.claude/scripts/rules-compiler.py compile \
   --input-dir /tmp/github-rules-{username} \
   --output /tmp/github-rules-{username}/compiled-rules.json
 ```
@@ -221,10 +221,9 @@ python3 ~/.claude/scripts/rules-compiler.py \
 
 **Step 4**: Run the rules compiler in validation mode:
 ```bash
-python3 ~/.claude/scripts/rules-compiler.py \
+python3 ~/.claude/scripts/rules-compiler.py validate \
   --input-dir /tmp/github-rules-{username} \
-  --output /tmp/github-rules-{username}/validated-rules.json \
-  --validate
+  --output /tmp/github-rules-{username}/validated-rules.json
 ```
 
 **Gate**: All rules pass actionability check. No unresolved contradictions. Rules properly scoped. Proceed to Phase 7.
