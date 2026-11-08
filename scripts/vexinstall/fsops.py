@@ -131,9 +131,59 @@ def atomic_write_bytes(dest: Path, data: bytes, guard: Guard, mode: int = 0o644)
         raise
 
 
+def _json_bytes(obj: object) -> bytes:
+    return (json.dumps(obj, indent=2, sort_keys=False) + "\n").encode()
+
+
 def atomic_write_json(dest: Path, obj: object, guard: Guard, mode: int = 0o644) -> None:
     """Pretty JSON through :func:`atomic_write_bytes`."""
-    atomic_write_bytes(dest, (json.dumps(obj, indent=2, sort_keys=False) + "\n").encode(), guard, mode)
+    atomic_write_bytes(dest, _json_bytes(obj), guard, mode)
+
+
+def _read_regular(path: Path) -> tuple[bytes, int] | None:
+    """(bytes, permission bits) of the regular file at *path*; None for a link, a missing or unreadable file."""
+    if os.path.islink(path):
+        return None
+    try:
+        fd = os.open(path, os.O_RDONLY | _NOFOLLOW)
+    except OSError:
+        return None
+    with os.fdopen(fd, "rb") as fh:
+        st = os.fstat(fh.fileno())
+        if not stat.S_ISREG(st.st_mode):
+            return None
+        return fh.read(), stat.S_IMODE(st.st_mode)
+
+
+def write_json_if_changed(
+    dest: Path, obj: dict, guard: Guard, mode: int = 0o644, *, stamps: tuple[str, ...] = ()
+) -> bool:
+    """:func:`atomic_write_json` unless *dest* already holds these bytes and *mode*; True when it wrote.
+
+    *stamps* name run timestamps (an index's ``generated``, the ledger's ``updated_at``). The value
+    already in *dest* stands in for them in the comparison, so a run that would move only a stamp
+    leaves the file and its old stamp alone. An unchanged file gets a fresh mtime instead, as a
+    rewrite gave it, because readers take the mtime as the freshness signal.
+    """
+    current = _read_regular(dest)
+    if current is not None and current[1] == mode:
+        want = obj
+        if stamps:
+            try:
+                prev = json.loads(current[0])
+            except ValueError:
+                prev = None
+            if isinstance(prev, dict):
+                want = {**obj, **{k: prev[k] for k in stamps if k in obj and k in prev}}
+        if _json_bytes(want) == current[0]:
+            guard.check(dest)
+            try:
+                os.utime(dest)
+                return False
+            except OSError:
+                pass  # a file we may replace but not touch (another owner): rewrite it as before
+    atomic_write_json(dest, obj, guard, mode)
+    return True
 
 
 def atomic_symlink(dest: Path, target: Path, guard: Guard) -> None:
@@ -280,8 +330,8 @@ class Trash:
     def _forget(self) -> None:
         """Rewrite the manifest after a move failed or was undone.
 
-        A session left with no items is removed, so ``./install.sh --rollback``, which takes
-        the newest session, still finds the last one that holds something.
+        A session left with no items is removed, so no empty session lingers in trash for
+        ``restore-trash`` to list, and the rollback point of the run names none.
         """
         if self.items:
             self._save(self.items)

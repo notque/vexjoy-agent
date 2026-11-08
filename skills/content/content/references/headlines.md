@@ -69,7 +69,7 @@ Load `references/headline-moves.md` for the move catalog: **curiosity gap, speci
 | Social post | Platform length; standalone (no body to lean on) | Add the stake or number the title implies; end with pull, not summary |
 | Email subject line | ~30–50 chars; first words decide the open | Front-load the charge; cut articles and qualifiers first |
 
-Per-platform length and format specs stay with content-engine (`skills/content/content-engine/references/platform-specs.md`); when both apply, the platform spec wins on length.
+Per-platform length and format specs stay with content-engine (`skills/content/content/references/content-engine/platform-specs.md`); when both apply, the platform spec wins on length.
 
 Present output as:
 

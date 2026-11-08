@@ -51,11 +51,11 @@ Agent(
   {relationships}
 
   ### Template Reference
-  Follow skills/meta/toolkit/references/agent-template.md for agents. Standard frontmatter + operator context for skills.
+  Follow skills/meta/toolkit/references/skill-creator/agent-template.md for agents. Standard frontmatter + operator context for skills.
 
   ### Architecture Rules
-  See skills/workflow/references/architecture-rules.md.
-  Critical: Rule 12 (parallel research), Rule 18 (ADR hash), ADR-063 (tool restrictions).
+  See skills/process/workflow/references/pipeline-scaffolder/references/architecture-rules.md.
+  Critical: Rule 12 (parallel research), Rule 18 (ADR hash), role-matched allowed-tools (advisory; Claude Code ignores it for agents).
   """
 )
 ```
@@ -103,7 +103,7 @@ Single skill/agent with one clear purpose?
 
   NO / broad domain →
     Domain: Full 7-phase flow with subdomain decomposition,
-    validate-chain, ADR hash gate, test-runner, process.
+    validate-chain, ADR hash gate, test-runner, retro.
 ```
 
 ---
@@ -140,7 +140,7 @@ Single skill/agent with one clear purpose?
 
 ```bash
 # Verify components created after Phase 3
-for f in agents/{name}.md skills/{name}/SKILL.md hooks/{name}*.py; do
+for f in agents/{name}.md skills/*/{name}/SKILL.md hooks/{name}*.py; do
   [[ -f "$f" ]] && echo "OK: $f" || echo "MISSING: $f"
 done
 
@@ -158,7 +158,7 @@ ls -la .adr-session.json 2>/dev/null || echo "ADR session not registered"
 ## Phase 4 — Integration Verification Checklist
 
 - All agents in `agents/INDEX.json`
-- Routing entries match triggers in `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`
+- Each new component's frontmatter triggers appear in the regenerated `skills/INDEX.json` or `agents/INDEX.json` (`python3 scripts/check-routing-drift.py` checks skills)
 - All hooks syntactically valid Python
 - All skills follow frontmatter + operator context pattern
 - No orphaned components
@@ -169,7 +169,7 @@ ls -la .adr-session.json 2>/dev/null || echo "ADR session not registered"
 
 | Creator | Components | Template |
 |---------|-----------|----------|
-| `toolkit` | Agent manifests + skill SKILL.md + references | `skills/meta/toolkit/references/agent-template.md` / standard skill format |
+| `toolkit` | Agent manifests + skill SKILL.md + references | `skills/meta/toolkit/references/skill-creator/agent-template.md` / standard skill format |
 | `hook-development-engineer` | Python hooks | `hooks/lib/hook_utils.py` conventions |
 | Direct (orchestrator) | Python scripts | `scripts/` conventions |
 
@@ -189,7 +189,7 @@ PROPOSED | ACCEPTED | IMPLEMENTED | DEPRECATED
 [Why needed, what triggered creation]
 
 ## Decision
-[Pipeline frontend: components, flow, triggers]
+[Pipeline design: components, flow, triggers]
 
 ## Component Manifest
 [Agents, skills, hooks, scripts — updated during discovery]
@@ -239,6 +239,6 @@ The agent will be available immediately after restart.
 ## See Also
 
 - `preferred-patterns.md` — pipeline creation mistakes
-- `skills/workflow/references/step-menu.md` — valid steps and type signatures
-- `skills/workflow/references/architecture-rules.md` — architecture rules
+- `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md` — valid steps and type signatures
+- `skills/process/workflow/references/pipeline-scaffolder/references/architecture-rules.md` — architecture rules
 - `scripts/artifact-utils.py` — discovery, chain validation

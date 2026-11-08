@@ -21,7 +21,7 @@ Tests:
 
 Run with pytest:
 
-    pytest skills/game/game-sprite-pipeline/scripts/test_rc4_mass_centroid_default.py -v
+    pytest skills/game/game-dev/scripts/test_rc4_mass_centroid_default.py -v
 """
 
 from __future__ import annotations

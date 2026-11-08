@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.1
 """Run a VexJoy Claude hook against the Antigravity CLI (agy) hooks.json protocol.
 
 Translates Antigravity's camelCase hook stdin payloads (`conversationId`,
@@ -13,6 +14,12 @@ per-event JSON output schema:
   - PreToolUse: `{"decision": "allow"|"deny"|"ask"|"force_ask", "reason": "...", "overwrite": {...}}`
   - PostToolUse: `{}` (advisory outputs are queued per conversationId and drained on PreInvocation)
   - Stop: `{"decision": "continue"|"allow", "reason": "..."}`
+
+stdin is read with the --timeout bound; a pipe left open past it gets the
+--failure-policy answer. The deferred queue is read and rewritten under a
+bounded lock with per-writer temp files. Its last-resort directory is a
+per-user, owner-only (0700) one under the system temp dir; when that path is a
+symlink, another user's, or open to others, nothing is queued there.
 """
 
 from __future__ import annotations
@@ -42,10 +49,20 @@ import copy
 import json
 import os
 import re
+import signal
+import stat
 import subprocess
 import tempfile
+import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+
+try:
+    import fcntl
+except ImportError:  # Windows
+    fcntl = None
+    import msvcrt
 
 AGY_EVENTS = (
     "SessionStart",
@@ -72,7 +89,38 @@ class AdapterError(RuntimeError):
     """A conversion or child-hook result cannot be represented safely."""
 
 
-def _deferred_dir() -> Path:
+# Queue read-modify-writes and drains hold an exclusive lock on this file in the
+# queue directory. Hooks can run in parallel; unlocked, two writers each kept
+# only their own message and a drain could delete one queued after its read.
+# The wait is capped: past it the operation runs unlocked rather than stall.
+_QUEUE_LOCK_NAME = "deferred.lock"
+_LOCK_WAIT_SECONDS = 1.0
+_LOCK_POLL_SECONDS = 0.01
+
+
+def _private_fallback_dir() -> Path | None:
+    """The per-user queue directory under the system temp dir, made 0700.
+
+    Returns None when the path is a symlink or not a directory, belongs to
+    another user, or is open to group or other: advisories are then dropped
+    rather than written where someone else can read or redirect them.
+    """
+    getuid = getattr(os, "getuid", None)
+    name = "vexjoy-agy-deferred" + (f"-{getuid()}" if getuid is not None else "")
+    path = Path(tempfile.gettempdir()) / name
+    try:
+        path.mkdir(mode=0o700, exist_ok=True)
+        info = os.lstat(path)
+    except OSError:
+        return None
+    if not stat.S_ISDIR(info.st_mode):
+        return None
+    if getuid is not None and (info.st_uid != getuid() or info.st_mode & 0o077):
+        return None
+    return path
+
+
+def _deferred_dir() -> Path | None:
     env_dir = os.environ.get("VEXJOY_AGY_DEFERRED_DIR")
     if env_dir:
         return Path(env_dir)
@@ -84,12 +132,68 @@ def _deferred_dir() -> Path:
         gemini_dir.mkdir(parents=True, exist_ok=True)
         return gemini_dir
     except OSError:
-        return Path(tempfile.gettempdir()) / "vexjoy-agy-deferred"
+        return _private_fallback_dir()
 
 
-def _deferred_path(conversation_id: str) -> Path:
+def _deferred_path(conversation_id: str) -> Path | None:
+    directory = _deferred_dir()
+    if directory is None:
+        return None
     safe_id = _SAFE_ID_RE.sub("_", conversation_id.strip() or "default")[:80]
-    return _deferred_dir() / f"deferred-{safe_id}.json"
+    return directory / f"deferred-{safe_id}.json"
+
+
+def _try_lock(fd: int) -> bool:
+    """One non-blocking exclusive-lock attempt; True when the lock is held."""
+    try:
+        if fcntl is not None:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            os.lseek(fd, 0, os.SEEK_SET)
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+    except BlockingIOError:
+        return False
+    except OSError:
+        if fcntl is not None:
+            raise  # locking unsupported here: the caller goes ahead unlocked
+        return False  # msvcrt reports contention as a plain OSError
+    return True
+
+
+@contextmanager
+def _queue_lock(directory: Path):
+    """Hold the queue lock for one operation, waiting at most _LOCK_WAIT_SECONDS.
+    On timeout, or where locking is unavailable, the body runs unlocked.
+    Closing the descriptor releases the lock."""
+    fd = None
+    try:
+        flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(str(directory / _QUEUE_LOCK_NAME), flags, 0o600)
+        deadline = time.monotonic() + _LOCK_WAIT_SECONDS
+        while not _try_lock(fd) and time.monotonic() < deadline:
+            time.sleep(_LOCK_POLL_SECONDS)
+    except OSError:
+        pass
+    try:
+        yield
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def _write_queue(path: Path, items: list[str]) -> None:
+    """Replace *path* atomically through a temp file only this writer uses."""
+    fd, tmp_name = tempfile.mkstemp(prefix=".deferred-", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(items, ensure_ascii=False))
+        os.replace(tmp_name, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
 
 
 def queue_deferred_context(conversation_id: str, text: str) -> None:
@@ -98,26 +202,27 @@ def queue_deferred_context(conversation_id: str, text: str) -> None:
     if not cleaned:
         return
     path = _deferred_path(conversation_id)
+    if path is None:
+        return
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return
+    with _queue_lock(path.parent):
         existing: list[str] = []
-        if path.is_file():
-            loaded = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(loaded, list):
-                existing = [str(item) for item in loaded if str(item).strip()]
+        try:
+            if path.is_file():
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(loaded, list):
+                    existing = [str(item) for item in loaded if str(item).strip()]
+        except (OSError, json.JSONDecodeError):
+            # Corrupt or unreadable: replace it with [cleaned] so the advisory
+            # is not silently dropped.
+            existing = []
         if cleaned not in existing:
             existing.append(cleaned)
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(path)
-    except (OSError, json.JSONDecodeError):
-        # Corrupt or unreadable file — delete it and retry with [cleaned] so
-        # the advisory is not silently dropped.
         try:
-            path.unlink(missing_ok=True)
-            tmp = path.with_suffix(".tmp")
-            tmp.write_text(json.dumps([cleaned], ensure_ascii=False), encoding="utf-8")
-            tmp.replace(path)
+            _write_queue(path, existing)
         except OSError:
             pass
 
@@ -125,18 +230,20 @@ def queue_deferred_context(conversation_id: str, text: str) -> None:
 def drain_deferred_context(conversation_id: str) -> list[str]:
     """Read and clear queued PostToolUse advisory messages for *conversation_id*."""
     path = _deferred_path(conversation_id)
-    if not path.is_file():
+    if path is None or not path.is_file():
         return []
-    try:
-        loaded = json.loads(path.read_text(encoding="utf-8"))
-        path.unlink(missing_ok=True)
-        if isinstance(loaded, list):
-            return [str(item).strip() for item in loaded if str(item).strip()]
-    except (OSError, json.JSONDecodeError):
+    with _queue_lock(path.parent):
         try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
             path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        except (OSError, json.JSONDecodeError):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            return []
+    if isinstance(loaded, list):
+        return [str(item).strip() for item in loaded if str(item).strip()]
     return []
 
 
@@ -616,6 +723,34 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+class _StdinTimeout(Exception):
+    """Raised by the SIGALRM handler when stdin stays open past the bound."""
+
+
+def read_input(timeout: float) -> str | None:
+    """Read all of stdin, or return None when it is not closed within *timeout*
+    seconds. Without SIGALRM (Windows, or off the main thread), or with a
+    non-positive timeout, this is the plain read it always was."""
+    if timeout <= 0 or not hasattr(signal, "setitimer"):
+        return sys.stdin.read()
+
+    def _expired(_signum: int, _frame: object) -> None:
+        raise _StdinTimeout
+
+    try:
+        previous = signal.signal(signal.SIGALRM, _expired)
+    except ValueError:
+        return sys.stdin.read()
+    signal.setitimer(signal.ITIMER_REAL, timeout)
+    try:
+        return sys.stdin.read()
+    except _StdinTimeout:
+        return None
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
 _BYPASS_ENV = "AGY_HOOK_ADAPTER_BYPASS"
 
 
@@ -624,7 +759,11 @@ def main() -> int:
         return 0
     args = _parser().parse_args()
     try:
-        output = run_adapter(args, sys.stdin.read())
+        raw_input = read_input(args.timeout)
+        if raw_input is None:
+            output = failure_output(args.event, args.failure_policy, f"stdin was not closed within {args.timeout:g}s")
+        else:
+            output = run_adapter(args, raw_input)
     except Exception as exc:
         output = failure_output(args.event, args.failure_policy, f"unexpected adapter error: {exc}")
     print(json.dumps(output, ensure_ascii=False))

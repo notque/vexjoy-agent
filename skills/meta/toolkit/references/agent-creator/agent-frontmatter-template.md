@@ -67,7 +67,7 @@ allowed-tools:
 # Required for skills, optional for agents. Default: false.
 # false = router-dispatched (user never types the name)
 # true = user types it directly as a slash-command entry point
-user_invocable: false
+user-invocable: false
 ---
 ```
 
@@ -86,7 +86,7 @@ user_invocable: false
 | `routing.complexity` | yes | enum | Low, Medium, High (case-sensitive) |
 | `routing.category` | yes | string | meta, engineering, review, operations, content |
 | `allowed-tools` | yes (agents) | list | tool names from the ADR-063 role table |
-| `user_invocable` | no | boolean | true, false (default: false) |
+| `user-invocable` | no | boolean | true, false (default: false) |
 
 ---
 

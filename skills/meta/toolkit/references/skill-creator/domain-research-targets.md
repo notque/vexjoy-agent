@@ -54,7 +54,7 @@ patterns have accumulated.
 the skill's last update date. Look for reviewer comments that establish new patterns
 not yet in the skill's references.
 
-**Primary source**: sapcc/keppel PR review history (via `skills/meta/skill-creator/scripts/` pr-workflow (miner))
+**Primary source**: sapcc/keppel PR review history (via the pr-workflow skill's miner, `skills/process/pr-workflow/scripts/miner.py`)
 
 **Extract**: reviewer comment → pattern name → before/after example, same format as
 existing sapcc references

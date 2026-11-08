@@ -30,6 +30,10 @@ spec.loader.exec_module(scan)
 
 RULES = scan._build_rules()
 
+# Secret-shaped fixtures are assembled from parts at runtime so this file holds none.
+AWS_EXAMPLE_KEY = "AKIA" + "IOSFODNN7EXAMPLE"
+PEM_HEADER = "-----BEGIN " + "RSA PRIVATE" + " KEY-----"
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -69,17 +73,17 @@ def _run_cli(files: list[str], cwd: str | None = None) -> tuple[int, dict]:
 
 class TestExistingRules:
     def test_hardcoded_password(self):
-        assert "hardcoded-secret" in _rules_hit('password = "hunter2"', "a.py")
+        assert "hardcoded-secret" in _rules_hit('password = "hunter2"', "a.py")  # nosec - rule fixture
 
     def test_aws_key(self):
-        assert "hardcoded-secret" in _rules_hit("key = AKIAIOSFODNN7EXAMPLE", "a.py")
+        assert "hardcoded-secret" in _rules_hit("key = " + AWS_EXAMPLE_KEY, "a.py")
 
     def test_password_redacted(self):
-        f = _findings('password = "hunter2"', "a.py")
-        assert any("[REDACTED]" in x["match"] for x in f)
+        f = _findings('password = "hunter2"', "a.py")  # nosec - rule fixture
+        assert [x["match"] for x in f] == ["<redacted:password>"]
 
     def test_sql_injection_fstring(self):
-        assert "sql-injection" in _rules_hit('q = f"SELECT * FROM t WHERE id = {uid}"', "a.py")
+        assert "sql-injection" in _rules_hit('q = f"SELECT * FROM t WHERE id = {uid}"', "a.py")  # nosec - rule fixture
 
     def test_public_ip_flagged(self):
         assert "hardcoded-ip" in _rules_hit("host = 8.8.8.8", "a.py")
@@ -99,20 +103,20 @@ class TestSecretsInDocs:
     doc-secret gap without reintroducing the markdown false positives)."""
 
     def test_aws_key_in_markdown_fires(self):
-        f = _findings("Example key: AKIAIOSFODNN7EXAMPLE in our README.", "README.md")
+        f = _findings("Example key: " + AWS_EXAMPLE_KEY + " in our README.", "README.md")
         assert any(x["rule"] == "hardcoded-secret" and x["severity"] == "CRITICAL" for x in f)
 
     def test_aws_key_in_json_fires(self):
-        f = _findings('{"aws_key": "AKIAIOSFODNN7EXAMPLE"}', "config.json")
+        f = _findings('{"aws_key": "' + AWS_EXAMPLE_KEY + '"}', "config.json")
         assert any(x["rule"] == "hardcoded-secret" and x["severity"] == "CRITICAL" for x in f)
 
     def test_pem_header_in_markdown_fires(self):
-        f = _findings("-----BEGIN RSA PRIVATE KEY-----", "docs.md")
+        f = _findings(PEM_HEADER, "docs.md")
         assert any(x["rule"] == "hardcoded-secret" and x["severity"] == "CRITICAL" for x in f)
 
     def test_loose_password_in_markdown_still_skipped(self):
         # Loose assignment rule stays doc-skipped — false-positives in prose.
-        assert "hardcoded-secret" not in _rules_hit('password = "x"', "a.md")
+        assert "hardcoded-secret" not in _rules_hit('password = "x"', "a.md")  # nosec - rule fixture
 
     def test_eval_in_markdown_still_skipped(self):
         # Regression guard: code-execution rules must stay doc-skipped (the
@@ -120,8 +124,8 @@ class TestSecretsInDocs:
         assert "dangerous-eval" not in _rules_hit("eval(x)", "a.md")
 
     def test_aws_key_redacted_in_docs(self):
-        f = _findings("key AKIAIOSFODNN7EXAMPLE here", "README.md")
-        assert any("AKIA[REDACTED]" in x["match"] for x in f)
+        f = _findings("key " + AWS_EXAMPLE_KEY + " here", "README.md")
+        assert [x["match"] for x in f] == ["<redacted:aws-access-key-id:MPLE>"]
 
 
 class TestEvalExec:
@@ -162,16 +166,16 @@ class TestShellInjection:
         assert "shell-injection" not in _rules_hit("db.exec(query)", "a.py")
 
     def test_os_system(self):
-        assert "shell-injection" in _rules_hit("os.system(cmd)", "a.py")
+        assert "shell-injection" in _rules_hit("os.system(cmd)", "a.py")  # nosec - rule fixture
 
     def test_subprocess_shell_true(self):
-        assert "shell-injection" in _rules_hit("subprocess.run(cmd, shell=True)", "a.py")
+        assert "shell-injection" in _rules_hit("subprocess.run(cmd, shell=True)", "a.py")  # nosec - rule fixture
 
     def test_subprocess_shell_false_not_flagged(self):
         assert "shell-injection" not in _rules_hit("subprocess.run(['ls', d])", "a.py")
 
     def test_go_exec_shell(self):
-        assert "shell-injection" in _rules_hit('exec.Command("sh", "-c", c)', "a.go")
+        assert "shell-injection" in _rules_hit('exec.Command("sh", "-c", c)', "a.go")  # nosec - rule fixture
 
     def test_go_exec_direct_not_flagged(self):
         # Direct binary invocation (no shell) is safe
@@ -180,54 +184,54 @@ class TestShellInjection:
 
 class TestDeserialization:
     def test_pickle_loads(self):
-        assert "unsafe-deserialization" in _rules_hit("pickle.loads(b)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("pickle.loads(b)", "a.py")  # nosec - rule fixture
 
     def test_pickle_dump_not_flagged(self):
         # dump is not a deserialization sink
         assert "unsafe-deserialization" not in _rules_hit("pickle.dump(obj, f)", "a.py")
 
     def test_pickle_unpickler(self):
-        assert "unsafe-deserialization" in _rules_hit("pickle.Unpickler(f).load()", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("pickle.Unpickler(f).load()", "a.py")  # nosec - rule fixture
 
     def test_cloudpickle(self):
-        assert "unsafe-deserialization" in _rules_hit("cloudpickle.loads(b)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("cloudpickle.loads(b)", "a.py")  # nosec - rule fixture
 
     def test_dill(self):
-        assert "unsafe-deserialization" in _rules_hit("dill.load(f)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("dill.load(f)", "a.py")  # nosec - rule fixture
 
     def test_marshal(self):
-        assert "unsafe-deserialization" in _rules_hit("marshal.loads(b)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("marshal.loads(b)", "a.py")  # nosec - rule fixture
 
     def test_shelve(self):
-        assert "unsafe-deserialization" in _rules_hit("shelve.open(p)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("shelve.open(p)", "a.py")  # nosec - rule fixture
 
     def test_joblib(self):
-        assert "unsafe-deserialization" in _rules_hit("joblib.load(p)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("joblib.load(p)", "a.py")  # nosec - rule fixture
 
     def test_read_pickle(self):
-        assert "unsafe-deserialization" in _rules_hit("pandas.read_pickle(p)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("pandas.read_pickle(p)", "a.py")  # nosec - rule fixture
 
     def test_numpy_allow_pickle(self):
-        assert "unsafe-deserialization" in _rules_hit("np.load(p, allow_pickle=True)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("np.load(p, allow_pickle=True)", "a.py")  # nosec - rule fixture
 
     def test_numpy_default_not_flagged(self):
         # allow_pickle defaults to False — not a sink
         assert "unsafe-deserialization" not in _rules_hit("np.load(p)", "a.py")
 
     def test_torch_load_unsafe(self):
-        assert "unsafe-deserialization" in _rules_hit("torch.load(p)", "a.py")
+        assert "unsafe-deserialization" in _rules_hit("torch.load(p)", "a.py")  # nosec - rule fixture
 
     def test_torch_load_weights_only_excluded(self):
         # weights_only=True within 200 chars suppresses (documented exclusion)
         assert "unsafe-deserialization" not in _rules_hit("torch.load(p, weights_only=True)", "a.py")
 
     def test_pickle_not_flagged_in_js(self):
-        assert "unsafe-deserialization" not in _rules_hit("pickle.loads(b)", "a.js")
+        assert "unsafe-deserialization" not in _rules_hit("pickle.loads(b)", "a.js")  # nosec - rule fixture
 
 
 class TestYaml:
     def test_yaml_load_unsafe(self):
-        assert "unsafe-yaml" in _rules_hit("yaml.load(s)", "a.py")
+        assert "unsafe-yaml" in _rules_hit("yaml.load(s)", "a.py")  # nosec - rule fixture
 
     def test_yaml_safe_loader_excluded(self):
         # Loader=SafeLoader suppresses (documented exclusion)
@@ -237,7 +241,7 @@ class TestYaml:
         assert "unsafe-yaml" not in _rules_hit("yaml.safe_load(s)", "a.py")
 
     def test_yaml_unsafe_load(self):
-        assert "unsafe-yaml" in _rules_hit("yaml.unsafe_load(s)", "a.py")
+        assert "unsafe-yaml" in _rules_hit("yaml.unsafe_load(s)", "a.py")  # nosec - rule fixture
 
 
 class TestXssSinks:
@@ -284,10 +288,10 @@ class TestCrypto:
         assert "weak-crypto" not in _rules_hit("crypto.createCipheriv('aes-256-gcm', k, iv)", "a.js")
 
     def test_aes_ecb_python(self):
-        assert "weak-crypto" in _rules_hit("c = AES.new(k, AES.MODE_ECB)", "a.py")
+        assert "weak-crypto" in _rules_hit("c = AES.new(k, AES.MODE_ECB)", "a.py")  # nosec - rule fixture
 
     def test_aes_ecb_string(self):
-        assert "weak-crypto" in _rules_hit('algo = "aes-256-ecb"', "a.js")
+        assert "weak-crypto" in _rules_hit('algo = "aes-256-ecb"', "a.js")  # nosec - rule fixture
 
     def test_aes_gcm_not_flagged(self):
         assert "weak-crypto" not in _rules_hit("c = AES.new(k, AES.MODE_GCM)", "a.py")
@@ -295,22 +299,22 @@ class TestCrypto:
 
 class TestTlsDisabled:
     def test_verify_false(self):
-        assert "tls-disabled" in _rules_hit("requests.get(u, verify=False)", "a.py")
+        assert "tls-disabled" in _rules_hit("requests.get(u, verify=False)", "a.py")  # nosec - rule fixture
 
     def test_reject_unauthorized_false(self):
-        assert "tls-disabled" in _rules_hit("{ rejectUnauthorized: false }", "a.js")
+        assert "tls-disabled" in _rules_hit("{ rejectUnauthorized: false }", "a.js")  # nosec - rule fixture
 
     def test_insecure_skip_verify(self):
-        assert "tls-disabled" in _rules_hit("tls.Config{InsecureSkipVerify: true}", "a.go")
+        assert "tls-disabled" in _rules_hit("tls.Config{InsecureSkipVerify: true}", "a.go")  # nosec - rule fixture
 
     def test_node_tls_reject_env(self):
-        assert "tls-disabled" in _rules_hit("NODE_TLS_REJECT_UNAUTHORIZED=0", "a.js")
+        assert "tls-disabled" in _rules_hit("NODE_TLS_REJECT_UNAUTHORIZED=0", "a.js")  # nosec - rule fixture
 
     def test_unverified_context(self):
-        assert "tls-disabled" in _rules_hit("ctx = ssl._create_unverified_context()", "a.py")
+        assert "tls-disabled" in _rules_hit("ctx = ssl._create_unverified_context()", "a.py")  # nosec - rule fixture
 
     def test_check_hostname_false(self):
-        assert "tls-disabled" in _rules_hit("ctx.check_hostname = False", "a.py")
+        assert "tls-disabled" in _rules_hit("ctx.check_hostname = False", "a.py")  # nosec - rule fixture
 
     def test_verify_true_not_flagged(self):
         assert "tls-disabled" not in _rules_hit("requests.get(u, verify=True)", "a.py")
@@ -361,7 +365,7 @@ class TestDocSecretsCLI:
 
     def test_aws_key_in_md_via_cli(self, tmp_path):
         f = tmp_path / "README.md"
-        f.write_text("Example: AKIAIOSFODNN7EXAMPLE\n")
+        f.write_text("Example: " + AWS_EXAMPLE_KEY + "\n")
         code, report = _run_cli([str(f)])
         assert code == 1
         assert report["summary"]["critical"] >= 1
@@ -369,14 +373,14 @@ class TestDocSecretsCLI:
 
     def test_pem_in_json_via_cli(self, tmp_path):
         f = tmp_path / "keys.json"
-        f.write_text('{"pem": "-----BEGIN RSA PRIVATE KEY-----"}\n')
+        f.write_text('{"pem": "' + PEM_HEADER + '"}\n')
         code, report = _run_cli([str(f)])
         assert code == 1
         assert "hardcoded-secret" in {x["rule"] for x in report["findings"]}
 
     def test_eval_and_password_in_md_clean_via_cli(self, tmp_path):
         f = tmp_path / "guide.md"
-        f.write_text('Call eval(x) when password = "x" is set.\n')
+        f.write_text('Call eval(x) when password = "x" is set.\n')  # nosec - rule fixture
         code, report = _run_cli([str(f)])
         assert code == 0
         assert report["summary"]["total"] == 0
@@ -385,7 +389,7 @@ class TestDocSecretsCLI:
 class TestExitCodes:
     def test_high_finding_exit_1(self, tmp_path):
         f = tmp_path / "a.py"
-        f.write_text("os.system(cmd)\n")
+        f.write_text("os.system(cmd)\n")  # nosec - rule fixture
         code, report = _run_cli([str(f)])
         assert code == 1
         assert report["summary"]["high"] >= 1
@@ -539,36 +543,36 @@ class TestSqlInjectionConsolidation:
     f-string, and `+=` building forms so coverage is a strict superset."""
 
     def test_sql_concat_string_then_plus(self):
-        # "SELECT ... WHERE id=" + uid
-        assert "sql-injection" in _rules_hit('q = "SELECT * FROM users WHERE id=" + uid', "a.py")
+        # "SELECT ... WHERE id=" + uid  # nosec - rule fixture
+        assert "sql-injection" in _rules_hit('q = "SELECT * FROM users WHERE id=" + uid', "a.py")  # nosec - rule fixture
 
     def test_sql_concat_plus_then_string(self):
-        # base + "SELECT name FROM t"
+        # base + "SELECT name FROM t"  # nosec - rule fixture
         assert "sql-injection" in _rules_hit('q = base + "SELECT name FROM t"', "a.py")
 
     def test_sql_go_sprintf(self):
-        assert "sql-injection" in _rules_hit('q := fmt.Sprintf("SELECT * FROM t WHERE id=%d", uid)', "a.go")
+        assert "sql-injection" in _rules_hit('q := fmt.Sprintf("SELECT * FROM t WHERE id=%d", uid)', "a.go")  # nosec - rule fixture
 
     def test_sql_java_string_format(self):
-        assert "sql-injection" in _rules_hit('String q = String.format("SELECT id FROM t WHERE x=%s", v);', "a.java")
+        assert "sql-injection" in _rules_hit('String q = String.format("SELECT id FROM t WHERE x=%s", v);', "a.java")  # nosec - rule fixture
 
     def test_sql_php_sprintf(self):
-        assert "sql-injection" in _rules_hit('$q = sprintf("DELETE FROM t WHERE id=%d", $uid);', "a.php")
+        assert "sql-injection" in _rules_hit('$q = sprintf("DELETE FROM t WHERE id=%d", $uid);', "a.php")  # nosec - rule fixture
 
     def test_sql_fstring_extended_keyword_where(self):
         # f-string with WHERE/FROM/JOIN/SET/VALUES (no SELECT/INSERT/...).
-        assert "sql-injection" in _rules_hit('q = f"col WHERE id={uid}"', "a.py")
+        assert "sql-injection" in _rules_hit('q = f"col WHERE id={uid}"', "a.py")  # nosec - rule fixture
 
     def test_sql_fstring_extended_keyword_from_join(self):
-        assert "sql-injection" in _rules_hit('q = f"x FROM t JOIN y ON {cond}"', "a.py")
+        assert "sql-injection" in _rules_hit('q = f"x FROM t JOIN y ON {cond}"', "a.py")  # nosec - rule fixture
 
     def test_sql_plus_equals_build(self):
-        assert "sql-injection" in _rules_hit('q += "SELECT col FROM t"', "a.py")
+        assert "sql-injection" in _rules_hit('q += "SELECT col FROM t"', "a.py")  # nosec - rule fixture
 
     def test_sql_concat_is_high_severity(self):
         # SQL injection is HIGH in the canonical engine — keep the commit gate
         # blocking it (the inline scanner was advisory; the engine is the SoT).
-        f = _findings('q = "SELECT * FROM t WHERE id=" + uid', "a.py")
+        f = _findings('q = "SELECT * FROM t WHERE id=" + uid', "a.py")  # nosec - rule fixture
         assert any(x["rule"] == "sql-injection" and x["severity"] == "HIGH" for x in f)
 
     # Documented exclusions — parameterized SQL and non-SQL concat must NOT fire.
@@ -580,7 +584,7 @@ class TestSqlInjectionConsolidation:
 
     def test_sql_rules_skip_docs(self):
         # SQL rules are code rules — prose in markdown must stay quiet.
-        assert "sql-injection" not in _rules_hit('q = "SELECT * FROM t" + uid', "a.md")
+        assert "sql-injection" not in _rules_hit('q = "SELECT * FROM t" + uid', "a.md")  # nosec - rule fixture
 
 
 class TestPathTraversalConsolidation:
@@ -620,21 +624,21 @@ class TestParityCoverage:
             ("el.outerHTML = u", "a.js", "xss-sink"),
             ("el.insertAdjacentHTML('x', h)", "a.js", "xss-sink"),
             ('<script src="//cdn/x.js"></script>', "a.html", "missing-sri"),
-            ("pickle.loads(b)", "a.py", "unsafe-deserialization"),
-            ("os.system(c)", "a.py", "shell-injection"),
-            ("subprocess.run(c, shell=True)", "a.py", "shell-injection"),
-            ('exec.Command("sh", "-c", c)', "a.go", "shell-injection"),
-            ("yaml.load(s)", "a.py", "unsafe-yaml"),
+            ("pickle.loads(b)", "a.py", "unsafe-deserialization"),  # nosec - rule fixture
+            ("os.system(c)", "a.py", "shell-injection"),  # nosec - rule fixture
+            ("subprocess.run(c, shell=True)", "a.py", "shell-injection"),  # nosec - rule fixture
+            ('exec.Command("sh", "-c", c)', "a.go", "shell-injection"),  # nosec - rule fixture
+            ("yaml.load(s)", "a.py", "unsafe-yaml"),  # nosec - rule fixture
             ("crypto.createCipher('aes', k)", "a.js", "weak-crypto"),
-            ("AES.MODE_ECB", "a.py", "weak-crypto"),
-            ("requests.get(u, verify=False)", "a.py", "tls-disabled"),
-            ("marshal.loads(b)", "a.py", "unsafe-deserialization"),
-            ("shelve.open(p)", "a.py", "unsafe-deserialization"),
+            ("AES.MODE_ECB", "a.py", "weak-crypto"),  # nosec - rule fixture
+            ("requests.get(u, verify=False)", "a.py", "tls-disabled"),  # nosec - rule fixture
+            ("marshal.loads(b)", "a.py", "unsafe-deserialization"),  # nosec - rule fixture
+            ("shelve.open(p)", "a.py", "unsafe-deserialization"),  # nosec - rule fixture
             ("ET.parse(p)", "a.py", "xxe-unsafe-xml"),
-            ("dill.load(f)", "a.py", "unsafe-deserialization"),
-            ("torch.load(p)", "a.py", "unsafe-deserialization"),
-            ("yaml.unsafe_load(s)", "a.py", "unsafe-yaml"),
-            ("joblib.load(p)", "a.py", "unsafe-deserialization"),
+            ("dill.load(f)", "a.py", "unsafe-deserialization"),  # nosec - rule fixture
+            ("torch.load(p)", "a.py", "unsafe-deserialization"),  # nosec - rule fixture
+            ("yaml.unsafe_load(s)", "a.py", "unsafe-yaml"),  # nosec - rule fixture
+            ("joblib.load(p)", "a.py", "unsafe-deserialization"),  # nosec - rule fixture
         ],
     )
     def test_each_anthropic_pattern_detected(self, snippet, filename, expected_rule):

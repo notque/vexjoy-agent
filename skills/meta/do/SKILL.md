@@ -107,7 +107,7 @@ SECTION-INTEGRITY RULE (HARD CONSTRAINT — never violate):
 - Every name in `agents` must also be an AGENTS: name, and distinct from `agent`.
 
 FORCE-ROUTE RULE: manifest entries marked FORCE — in SKILLS: or in PIPELINES: — are selected when their domain clearly matches the user's intent. FORCE matching is semantic, not keyword-based — match what the user means, not individual words:
-- "push my changes" → pr-workflow ✓ (git push) | "push back on this frontend" → NOT pr-workflow (means resist)
+- "push my changes" → pr-workflow ✓ (git push) | "push back on this design" → NOT pr-workflow (means resist)
 - "configure my fish shell" → deploy ✓ (the Fish shell) | "fish for bugs" → NOT deploy (means search)
 - "quick fix to the login page" → quick ✓ (small edit) | "quick overview of the architecture" → NOT quick (means explore)
 A FORCE pipeline (6 of the 26) binds the `pipeline` slot exactly as a FORCE skill binds `skill`. `pre-route.py` reads FORCE pipelines and applies their semantic guard policy; the semantic route still owns intent and must apply the same MEANS-not-words test above.
@@ -143,7 +143,7 @@ SPECIFICITY RULES:
 | Pipeline | which phase structure holds the work | `pipeline` |
 | Stack | which extra rigor rides along | Phase 3 `stack` |
 
-One surface filled is the FLOOR, not the ceiling — and 29.2% of dispatches sit at or below it (`evidence_route_decisions` 2026-08-15; a fallback agent or fallback skill counts as unfilled). Combine upward: Simple = agent+skill. Medium = agent+skill+stack. Complex = 2+ agents (`agent` plus `agents`), 2+ skills (`skill` plus Phase 3 `stack`), and a pipeline unless one phase truly covers the work — which is how Phase 1's "2+/2+" row is satisfied with one `skill` string.
+One surface filled is the FLOOR, not the ceiling — and 6.6% of dispatches sit at or below it (20/303, `evidence_route_decisions` 2026-09-21 to 2026-11-07, query in `references/routing-telemetry.md`; a fallback agent or fallback skill counts as unfilled). Combine upward: Simple = agent+skill. Medium = agent+skill+stack. Complex = 2+ agents (`agent` plus `agents`), 2+ skills (`skill` plus Phase 3 `stack`), and a pipeline unless one phase truly covers the work — which is how Phase 1's "2+/2+" row is satisfied with one `skill` string.
 
 Composition rules:
 - A pipeline names the phases; the agent and skill still fill their slots and run inside those phases. Picking a pipeline replaces neither.
@@ -157,7 +157,7 @@ Use the `agent` and `skill` fields directly. Low confidence → verify against t
 
 **Skill-greediness gate (HARD — non-negotiable for Simple+).** Null skill → pick: review→review, debug→workflow (systematic-debugging), refactor→workflow (systematic-refactoring), audit→review (whole-repo→review), explain→assessment, compare→assessment (agent A/Bs→toolkit), plan→workflow, loop→workflow. Fallback: `workflow`.
 
-**Agent-greediness gate (HARD — non-negotiable for Simple+).** `general-purpose` is the last resort, not the default. Measured share of dispatches: 42.5% (128/301, `evidence_route_decisions` 2026-08-15). Target band: unmeasured -- see the `learning-db.py` route health report for the current band and its provenance. A null `agent` works this table before `general-purpose` is permitted:
+**Agent-greediness gate (HARD — non-negotiable for Simple+).** `general-purpose` is the last resort, not the default. Measured share of dispatches: 6.9% (21/303, `evidence_route_decisions` 2026-09-21 to 2026-11-07, query in `references/routing-telemetry.md`), down from 42.5% (128/301) on 2026-08-15. Target band: unmeasured -- see the `learning-db.py` route health report for the current band and its provenance. A null `agent` works this table before `general-purpose` is permitted:
 
 | Domain signal in the request | Agent |
 |---|---|
@@ -175,7 +175,7 @@ Use the `agent` and `skill` fields directly. Low confidence → verify against t
 | This toolkit: skills, agents, routing tables, ADRs, INDEX files | toolkit-governance-engineer |
 | Harness or toolkit upgrade sweep | system-upgrade-engineer |
 | Tests, coverage, E2E | testing-automation-engineer |
-| Web performance; frontend system and accessibility | performance-optimization-engineer, ui-design-engineer |
+| Web performance; design system and accessibility | performance-optimization-engineer, ui-design-engineer |
 | React Native, Expo | react-native-engineer |
 | API docs and runbooks; explainers and articles | technical-documentation-engineer, technical-journalist-writer |
 | Review: quality / system + security / ADR + business logic / perspectives | reviewer-code, reviewer-system, reviewer-domain, reviewer-perspectives |
@@ -184,7 +184,7 @@ Use the `agent` and `skill` fields directly. Low confidence → verify against t
 
 No row fits → read the manifest's AGENTS: section again and match on description before falling back.
 
-**Pairing rule (the measured defect).** 72% of those 128 (92) carried a named domain skill, fallbacks excluded: the router read the domain and had no slot to say so. A specific domain skill therefore obliges a matching domain agent — or a stated reason no agent covers it.
+**Pairing rule (the measured defect).** 76% of those 21 (16) carried a named domain skill, fallbacks excluded (72% of 128 on 2026-08-15): the router read the domain and had no slot to say so. A specific domain skill therefore obliges a matching domain agent — or a stated reason no agent covers it.
 
 **Fallback reason.** Every `general-purpose` pick carries a written reason, one line, in both places the dispatch records it: the Step 3 banner's `-> Agent:` why field, and `task_spec.constraints` handed to `build-dispatch.py`. Shape: `general-purpose: <why no listed agent covers this domain>`. A pick with no reason is a routing bug — return to the table.
 
@@ -214,9 +214,9 @@ rm -f "$REQUEST_FILE"
 → `PRE_ROUTE_RESULT`.
 
 - **(a) Safety-critical force-route override — the one case that beats Step 0.** `"confidence": "high"` with a `force_route` match for `pr-workflow` or a security skill overrides a disagreeing semantic pick: genuine push, commit, create-PR, and merge work, and security work, must hit the quality gates (lint, tests, CI). Record `match_type`. The agent stays the Step 0 pick, or the Agent-greediness table result when Step 0 returned null.
-- **(b) Every other result keeps the Step 0 decision.** Phrase and unigram guards inside `pre-route.py` already suppress idiom false positives ("fish out", metaphorical commit/merge), so a guarded or non-matching result leaves the semantic pick standing. Matching only force-routes is by frontend — the semantic route owns the long tail.
+- **(b) Every other result keeps the Step 0 decision.** Phrase and unigram guards inside `pre-route.py` already suppress idiom false positives ("fish out", metaphorical commit/merge), so a guarded or non-matching result leaves the semantic pick standing. Matching only force-routes is by design — the semantic route owns the long tail.
 
-**Step 2: Apply skill override** — "review"→review, "debug"→workflow (systematic-debugging pipeline), "refactor"→workflow (systematic-refactoring pipeline), "TDD"→testing. Full table in INDEX.
+**Step 2: Apply skill override** — "review"→review, "debug"→workflow (systematic-debugging pipeline), "refactor"→workflow (systematic-refactoring pipeline), "TDD"→testing. The full list is the Skill-greediness gate in Step 0b.
 
 **Step 3: Routing banner** (first visible output)
 

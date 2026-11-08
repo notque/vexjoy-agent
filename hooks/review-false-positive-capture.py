@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.0.3
 """
 UserPromptSubmit Hook: Capture review false-positive signals.
 
@@ -152,7 +152,7 @@ def main():
             empty_output(EVENT_NAME).print_and_exit()
 
         cwd = hook_input.get("cwd") or str(Path.cwd())
-        session_id = hook_input.get("session_id") or get_session_id()
+        session_id = get_session_id(hook_input)
         window = prompt[:500]
 
         for pattern in FP_PATTERNS:

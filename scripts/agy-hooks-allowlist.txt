@@ -39,7 +39,7 @@ PreInvocation:pipeline-context-detector.py failure=open
 PreInvocation:jev-route-injector-userprompt.py failure=open
 PreInvocation:gemini-turn-gate-userprompt.py failure=open
 
-# PreToolUse run_command -> Bash enforcement (7)
+# PreToolUse run_command -> Bash enforcement (8)
 PreToolUse:pretool-routing-gate.py matcher=run_command failure=closed
 PreToolUse:pretool-branch-safety.py matcher=run_command failure=closed
 PreToolUse:ci-merge-gate.py matcher=run_command failure=closed
@@ -47,6 +47,7 @@ PreToolUse:pretool-review-before-push-gate.py matcher=run_command failure=closed
 PreToolUse:pretool-ruff-format-gate.py matcher=run_command failure=closed
 PreToolUse:pretool-private-name-leak-gate.py matcher=run_command failure=closed
 PreToolUse:security-review-hook.py matcher=run_command failure=closed
+PreToolUse:pretool-unified-gate.py matcher=run_command failure=closed
 
 # PreToolUse edit_file|write_file -> Edit|Write enforcement (10)
 PreToolUse:pretool-routing-gate.py matcher=edit_file|write_file failure=closed

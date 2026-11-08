@@ -8,7 +8,7 @@ Covers:
     - Phase 8: per-frame timing in sprite_assemble
 
 Run:
-    python3 -m pytest skills/game/game-sprite-pipeline/scripts/test_phases_4_5_7_8.py -x -q
+    python3 -m pytest skills/game/game-dev/scripts/test_phases_4_5_7_8.py -x -q
 """
 
 from __future__ import annotations

@@ -330,10 +330,10 @@ or the response itself is a structured plan with numbered steps or phases.
 
 ```bash
 # File artifact
-python3 scripts/grill-jev.py --file task_plan.md --mode plan
+python3 "$SDIR/grill-jev.py" --file task_plan.md --mode plan
 
 # Inline plan (write to temp file first, then grill)
-python3 scripts/grill-jev.py --file /tmp/plan_output.md --mode plan
+python3 "$SDIR/grill-jev.py" --file /tmp/plan_output.md --mode plan
 ```
 
 Print the findings report. If high-signal findings exist (exit code 1):

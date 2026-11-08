@@ -1,6 +1,6 @@
 # Source Quality Assessment
 
-> **Scope**: Reliable vs unreliable sources, speculation/content detection, epistemic labels.
+> **Scope**: Reliable vs unreliable sources, speculation/marketing detection, epistemic labels.
 > **Version range**: all versions
 > **Generated**: 2026-04-13
 
@@ -15,7 +15,7 @@
 | 3 | Established publications with bylines | Medium | InfoQ, The New Stack, ACM |
 | 4 | StackOverflow high-vote answers | Medium-Low | Verify against Tier 1 |
 | 5 | Forums, Reddit, HackerNews | Low | Use only to identify questions |
-| 6 | Aggregator listicles, vendor content | Discard | "Top 10 X for Y" |
+| 6 | Aggregator listicles, vendor marketing | Discard | "Top 10 X for Y" |
 
 ---
 
@@ -92,7 +92,7 @@ FACT: K8s 1.28 ~23% pod startup reduction [source: kubernetes.io/blog/...]
 |---------|------------|-----|
 | "Can't verify claim" | Aggregator source | Re-research with primary source |
 | "Conflicting data" | Different version contexts | Add version qualifier |
-| Wrong number in report | Snippet misquoted | web_fetch full source |
+| Wrong number in report | Snippet misquoted | WebFetch full source |
 | "Experts say" without name | Aggregator language | Remove or label SPECULATION |
 | "Is this current?" | No date on source | Find dated version or add "verify" |
 

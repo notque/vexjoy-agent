@@ -444,3 +444,15 @@ def test_uninstall_removes_only_owned_external_hook_entries(world: Env) -> None:
     mtimes = {p: p.stat().st_mtime_ns for p in (factory, reasonix, codex, agy)}
     _ok(world.run("uninstall"))
     assert {p: p.stat().st_mtime_ns for p in mtimes} == mtimes, "a clean config is not rewritten"
+
+
+def test_uninstall_dry_run_names_runtime_configs_and_writes_nothing(world: Env) -> None:
+    _add_runtime_adapters(world)
+    world.root("factory").mkdir()
+    _ok(world.run("apply", "--target", "all", "--mode", "copy"))
+    factory = world.root("factory") / "settings.json"
+    before = (factory.read_bytes(), world.ledger())
+    res = world.run("uninstall", "--dry-run")
+    _ok(res)
+    assert any(f"would remove owned hook entries from {factory}" in line for line in res.out), res.out
+    assert (factory.read_bytes(), world.ledger()) == before

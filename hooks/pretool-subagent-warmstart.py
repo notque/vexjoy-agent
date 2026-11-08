@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.1.1
+# hook-version: 2.1.2
 """
 PreToolUse Hook: Subagent Warm Start (superseded)
 
@@ -62,7 +62,7 @@ def main() -> None:
             return
 
         event = json.loads(event_data)
-        session_id = event.get("session_id") or get_session_id()
+        session_id = get_session_id(event)
         context_output(EVENT_NAME, gather_context_block(session_id)).print_and_exit()
 
     except Exception as e:

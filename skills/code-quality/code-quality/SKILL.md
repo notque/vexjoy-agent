@@ -123,7 +123,7 @@ Run all checks even after one fails. Do not skip tests to get a pass.
 Auto-detect languages and run configured checks. Read repository instructions first.
 
 ```bash
-python3 ~/.claude/skills/code-quality/universal-quality-gate/scripts/run_quality_gate.py
+python3 ~/.claude/skills/code-quality/scripts/run_quality_gate.py
 ```
 
 Options: `--staged` (pre-commit), `--lang python` (single language), `--fix` (apply fixes), `-v` (verbose).

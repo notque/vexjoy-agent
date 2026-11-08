@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.0.3
 """
 SubagentStart Hook: Subagent Warm Start
 
@@ -80,7 +80,7 @@ def main() -> None:
         if not isinstance(event, dict):
             empty_output(EVENT_NAME).print_and_exit()
 
-        session_id = event.get("session_id") or get_session_id()
+        session_id = get_session_id(event)
         agent_type = str(event.get("agent_type") or "subagent").strip() or "subagent"
 
         context_output(EVENT_NAME, gather_context_block(session_id, agent_type)).print_and_exit()

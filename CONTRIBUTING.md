@@ -19,7 +19,7 @@ Keep contributions specific, testable, and concise.
 | Component | Location | Format | Purpose |
 |-----------|----------|--------|---------|
 | Agent | `agents/{name}.md` | YAML frontmatter + markdown | Domain expertise |
-| Skill | `skills/{name}/SKILL.md` | YAML frontmatter + phased instructions | Workflow methodology |
+| Skill | `skills/{category}/{name}/SKILL.md` | YAML frontmatter + phased instructions | Workflow methodology |
 | Hook | `hooks/{name}.py` | Python, JSON in/out | Event-driven automation |
 | Script | `scripts/{name}.py` | Python CLI | Deterministic operations |
 
@@ -59,7 +59,7 @@ The full cycle, in order:
 3. **Review** using the risk-selected lane in `pr-workflow`
 4. **Fix** confirmed findings and rerun affected checks
 5. **Edit** the agent or skill file yourself when a finding should change behavior
-6. **Commit** (conventional format, no AI attribution)
+6. **Commit** (one lowercase past-tense sentence; see Conventions)
 7. **Push** to remote
 8. **PR** via `gh pr create`
 9. **CI** passes
@@ -73,7 +73,7 @@ Before submitting:
 
 - `ruff check . --config pyproject.toml` passes
 - `ruff format --check . --config pyproject.toml` passes
-- `python3 scripts/validate-references.py` passes (if adding references)
+- `python3 scripts/validate-references.py --agent <name>` passes for each agent whose references you added; CI also runs it with `--check-do-framing`, `--check-placeholders`, `--check-size`, and `--check-skill-calls`
 - New components appear in INDEX after running generators
 - No secrets in committed files
 
@@ -89,7 +89,7 @@ pytest -m performance -n 0                    # timing budgets; run serially
 pytest hooks/tests/test_foo.py -n 0 -v        # one file, serial (skips worker startup)
 ```
 
-`pyproject.toml` sets `-n auto --dist loadfile` by default, so pytest-xdist must be installed. `--dist loadfile` keeps each file on one worker.
+`pyproject.toml` sets an xdist worker count (`-n`) and `--dist loadfile` by default, so pytest-xdist must be installed. `--dist loadfile` keeps each file on one worker.
 
 The default marker filter in `pyproject.toml` skips `slow and integration` (install end-to-end, live Chromium) and `performance` (wall-clock budgets). CI runs the fast tier on every PR and the full tier on push to main and nightly. Mark a new test `performance` if it asserts a timing budget, and `slow` plus `integration` if it drives a real external tool.
 
@@ -101,9 +101,9 @@ Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verifi
 
 ## Conventions
 
-**Conventional commits.** `type(scope): description`. Types: feat, fix, refactor, docs, test, chore.
+**Commit messages.** One lowercase past-tense sentence saying what changed and why, with no type prefix and no trailing period: `moved the hook timeouts to seconds so a stuck hook stops holding the session`. The full rule is in [AGENTS.md](AGENTS.md) (Writing style).
 
-**No AI attribution.** No "Generated with Claude Code" or co-author lines. Ever.
+**Attribution.** No "Generated with Claude Code" or `Co-Authored-By` lines; the repo's `.claude/settings.json` sets `attribution` to empty strings. Trailer lines such as `Claude-Session: <url>` are allowed after a blank line.
 
 **Branch safety.** Create feature branches for all work. The pretool hook enforces this.
 
@@ -113,4 +113,6 @@ Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verifi
 
 **50ms hook budget.** Hooks fire on every tool call. Keep them fast. `scripts/benchmark-hooks.py` validates this.
 
-**Wabi-sabi in docs.** Write like a human. Contractions fine. Fragments fine. Banned words: "delve", "leverage", "comprehensive", "robust", "streamline", "empower". `scripts/scan-ai-patterns.py` catches violations.
+**Wabi-sabi in docs.** Write like a human. Contractions fine. Fragments fine. Banned words include "delve", "robust", "streamline", and "empower"; the full list is `scripts/data/banned-patterns.json`, and `scripts/scan-ai-patterns.py` catches violations.
+
+**ADRs are local-only.** `adr/` is gitignored, so an ADR named in code or docs (`ADR-103`, an `adr/` path) is not in a clone. Cite it by name as local-only; never link to it.

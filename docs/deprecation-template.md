@@ -23,8 +23,20 @@ component.
 - **Reason:** <one line — model improved, redundant with X, never routed>
 - **Replacement:** <skill/agent name, or "none — capability dropped">
 - **Evidence:** stale-skill-scan score N (age Xd, routes Y) on YYYY-MM-DD
-- **Action taken:** removed file + INDEX entry | marked redundant | merged into X
+- **Action taken:** removed file + INDEX entry | `promoted_to: X` | marked redundant | merged into X
 ```
+
+## Retiring with `promoted_to`
+
+Most retired skills are folded into an umbrella skill rather than deleted. Add
+`promoted_to: <successor>` to the retired skill's frontmatter:
+
+- `scripts/generate-skill-index.py` leaves it out of `skills/INDEX.json`, so it
+  drops out of routing and the skill counts.
+- The installer stops installing it.
+- `scripts/validate-promoted-successors.py` (run in CI) fails when the
+  successor does not exist or the retired skill still declares
+  `user-invocable: true`.
 
 ## Quarterly run
 

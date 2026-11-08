@@ -158,7 +158,7 @@ CRITICAL (must fix):
 
 IMPORTANT (should fix):
   3. agents/hook-development-engineer.md — Document Notification event type [inject-pattern, ~15min]
-  4. skills/engineering/go-patterns/SKILL.md — Apply the new pattern from the release notes [inject-pattern, ~10min]
+  4. skills/programming/programming/SKILL.md — Apply the new pattern from the release notes [inject-pattern, ~10min]
 
 MINOR (nice to have):
   5. agents/skill-creator.md — Add new frontmatter field docs [upgrade, ~5min]
@@ -215,7 +215,7 @@ For each dispatched agent, provide:
 
 **Step 1**: Review the diff for lost domain rules, broken references, and changed contracts. Run the relevant existing tests and required repository checks. Reuse passing results for unchanged inputs.
 
-Call the Skill tool with `verification-before-completion`. It owns verification requirements. Use `agent-evaluation` when the user requests scoring or a concrete uncertainty needs it; model scoring is not a default release gate.
+Call the Skill tool with `testing` and run its Verification mode. It owns verification requirements. Use the toolkit skill's Agent Evaluation mode when the user requests scoring or a concrete uncertainty needs it; model scoring is not a default release gate.
 
 ```
 VALIDATION REPORT

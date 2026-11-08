@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from .common import SCHEMA_VERSION, utc_iso, utc_ts
-from .fsops import Guard, atomic_write_json, retry_rename
+from .fsops import Guard, retry_rename, write_json_if_changed
 
 STATUS_OK = "ok"
 STATUS_STALE = "stale-source"
@@ -113,9 +113,9 @@ def parse(data: object) -> Ledger:
 
 
 def save(path: Path, ledger: Ledger, guard: Guard) -> None:
-    """Atomic write (temp + os.replace)."""
+    """Atomic write (temp + os.replace), skipped when only ``updated_at`` would change."""
     ledger.updated_at = utc_iso()
-    atomic_write_json(path, ledger.to_json(), guard, mode=0o600)
+    write_json_if_changed(path, ledger.to_json(), guard, mode=0o600, stamps=("updated_at",))
 
 
 def quarantine(path: Path, guard: Guard) -> Path | None:

@@ -92,7 +92,7 @@ Run each test prompt manually with and without the change, then use a grader age
 ```bash
 # Write to project-local evolution-reports directory (gitignored)
 # Path: evolution-reports/evolution-report-{YYYY-MM-DD}.md
-# Template: skills/meta/toolkit-evolution/references/evolution-report-template.md
+# Template: skills/meta/toolkit/references/toolkit-evolution/evolution-report-template.md
 mkdir -p evolution-reports
 ```
 

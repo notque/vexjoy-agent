@@ -74,9 +74,12 @@ def case_split(case: dict) -> str:
 
 
 def route_one(request: str, timeout: float) -> dict:
-    """prepare -> session-model pick -> finalize (scripts/d_route_model.py)."""
+    """prepare -> session-model pick -> finalize (scripts/d_route_model.py).
+
+    ``timeout`` is the Jev timeout the prepare step (`jev-route.py --timeout`) runs with.
+    """
     try:
-        return d_route_model.pick_route(request)
+        return d_route_model.pick_route(request, prepared=d_route_model.prepare(request, timeout=timeout))
     except Exception as exc:
         return {"skill": None, "source": f"error: {exc}"}
 

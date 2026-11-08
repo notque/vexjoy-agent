@@ -24,7 +24,7 @@ import tempfile
 import termios
 import time
 from collections import Counter, defaultdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -760,11 +760,11 @@ def build_fixture(
     )
     return {
         "fixture_schema": 2,
-        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
+        "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "codex_version": version,
         "documentation": {
             "hook_reference": "https://learn.chatgpt.com/docs/hooks",
-            "checked_on": datetime.now(UTC).date().isoformat(),
+            "checked_on": datetime.now(timezone.utc).date().isoformat(),
         },
         "probe": {
             "kind": "live_multi_attempt_disposable_codex_home",

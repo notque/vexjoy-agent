@@ -182,7 +182,7 @@ yt-dlp --skip-download --write-subs --sub-langs en --sub-format vtt -o '<work-di
 # Path 2: auto-generated (fallback when path 1 writes no file)
 yt-dlp --skip-download --write-auto-subs --sub-langs en --sub-format vtt -o '<work-dir>/%(id)s' '<URL>'
 # Clean VTT to paragraphs
-python3 skills/research/video-transcript/scripts/vtt_to_paragraph.py <work-dir>/<id>.en.vtt
+python3 ${CLAUDE_SKILL_DIR}/scripts/vtt_to_paragraph.py <work-dir>/<id>.en.vtt
 ```
 
 Options: `--timestamps` for `[mm:ss]` markers, `--keep-brackets` for cue tags, `-o FILE` for file output. Other languages: change `--sub-langs`. List available: `yt-dlp --list-subs '<URL>'`.

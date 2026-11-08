@@ -18,6 +18,8 @@
 (() => {
   const MAX_ELEMENTS = 250;
   const MAX_TEXT = 6000;
+  // Exact origin compare: a prefix test would count https://a.com.evil.net as https://a.com.
+  const sameOrigin = (href, origin) => { try { return new URL(href).origin === origin; } catch { return false; } };
 
   const reg = (window.__jevBrowser ||= {
     nodes: new Map(),
@@ -219,7 +221,7 @@
     if (!onscreen) entry.offscreen = true;
     const t = (el.type || "").toLowerCase();
     if (el.tagName === "A" && el.href) {
-      if (!el.href.startsWith(location.origin)) {
+      if (!sameOrigin(el.href, location.origin)) {
         // The agent refuses a click whose host it may not visit; no host fails closed.
         entry.external = true;
         try { entry.host = new URL(el.href).hostname.slice(0, 253); } catch {}

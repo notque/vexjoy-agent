@@ -6,7 +6,8 @@ gitignored.
 
 ## Quick start
 
-`./install.sh` does not create `.local/`. Copy the templates you want by hand.
+`./install.sh` creates `.local/` only when `--configure` writes
+`.local/profile.yaml`. Copy the templates you want by hand.
 
 To copy only one template, create its destination first. For example:
 
@@ -33,11 +34,12 @@ Read .local/skills/vault-helper/references/examples.md
 Use the tracked version when you want the public example:
 
 ```text
-Read skills/vault-helper/references/examples.md
+Read .local.example/skills/vault-helper/references/examples.md
 ```
 
 The install profile is the exception: `./install.sh` automatically reads
-`.local/profile.yaml` when it exists.
+`.local/profile.yaml` when it exists (or the file `VEXJOY_INSTALL_PROFILE`
+names).
 
 ## Install profile
 
@@ -57,13 +59,16 @@ $EDITOR .local/profile.yaml
 ./install.sh
 ```
 
-Without `.local/profile.yaml`, the installer includes the full toolkit. The
-picker uses `questionary` when available and falls back to a numbered prompt;
-it adds no required dependency.
+Without `.local/profile.yaml`, the installer includes the full toolkit. It
+also installs the full toolkit when PyYAML is missing (with no warning) or the
+profile is not valid YAML (with only a warning on stderr). The picker uses
+`questionary` when available and falls back to a numbered prompt; it adds no
+required dependency.
 
-Profile filtering applies to top-level skills, agents, and hooks. Nested
-category skills remain in the Claude tree, while the Codex mirror filters its
-top-level skills, agents, and hooks.
+Profile entries name skills by install name (the skill's directory name, such
+as `debugging`), agents by file stem, and hooks by filename (`foo.py`). Skills
+install flat, so the filter applies to every skill, and the same filter applies
+to every runtime the installer writes.
 
 ## Included templates
 

@@ -190,8 +190,8 @@ on('GAME_OVER', () => playSFX('gameover'));
 
 **Scripts** (run from project root):
 ```bash
-python3 skills/game/game-pipeline/scripts/imgdiff.py baseline.png current.png
-python3 skills/game/game-pipeline/scripts/with_server.py "npx playwright test"
+python3 skills/game/game-dev/scripts/imgdiff.py baseline.png current.png
+python3 skills/game/game-dev/scripts/with_server.py "npx playwright test"
 ```
 
 **Test seam** — inject into game bootstrap:
@@ -204,7 +204,7 @@ if (TEST_MODE) window.__TEST__ = { seed: SEED, state: null };
 **Visual regression workflow**:
 1. Take baseline: `npx playwright screenshot --save-as baseline.png`
 2. Make change
-3. Diff: `python3 skills/game/game-pipeline/scripts/imgdiff.py baseline.png current.png`
+3. Diff: `python3 skills/game/game-dev/scripts/imgdiff.py baseline.png current.png`
 4. RMS > 5.0 means investigate the diff image
 
 **Gate**: At least 1 Playwright test passes. Visual baseline captured. Canvas test seam exists.
@@ -251,7 +251,7 @@ grep -r 'src="/' dist/ && echo "WARN: absolute paths" || echo "OK"
 
 ### Error: imgdiff.py FAIL With Unexpected Diff
 **Cause**: Font rendering or anti-aliasing differences between platforms
-**Fix**: `python3 skills/game/game-pipeline/scripts/imgdiff.py a.png b.png --tolerance 10.0`. If still failing, retake baseline on the same platform.
+**Fix**: `python3 skills/game/game-dev/scripts/imgdiff.py a.png b.png --tolerance 10.0`. If still failing, retake baseline on the same platform.
 
 ### Error: Capacitor iOS Build Fails
 **Cause**: Absolute paths in `dist/`, missing `webDir` config, or CocoaPods conflict

@@ -445,3 +445,35 @@ class TestFallbackTriggers:
         skill_dir = _make_skill_dir(tmp_path, "code-cleanup")
         entry = gsi.build_entry({"name": "code-cleanup"}, skill_dir, "")
         assert entry["triggers"] == ["code-cleanup", "code", "cleanup"]
+
+
+# ---------------------------------------------------------------- agent short description
+
+
+@pytest.mark.parametrize(
+    ("description", "expected"),
+    [
+        (
+            "MCP server development for local documentation access in TypeScript/Node.js and Go. Second sentence.",
+            "MCP server development for local documentation access in TypeScript/Node.js and Go",
+        ),
+        (
+            "React portfolio/gallery sites for creatives: React 18+, Next.js App Router, image optimization.",
+            "React portfolio/gallery sites for creatives: React 18+, Next.js App Router, image optimization",
+        ),
+        (
+            "PHP development: features, debugging, code quality, security, modern PHP 8.x patterns.",
+            "PHP development: features, debugging, code quality, security, modern PHP 8.x patterns",
+        ),
+        ("Civilization VII 1.2 UI mods. More detail.", "Civilization VII 1.2 UI mods"),
+        ("Go development. Second sentence.", "Go development"),
+    ],
+)
+def test_agent_short_description_does_not_split_on_identifier_dots(description: str, expected: str) -> None:
+    # Splitting at the first "." cut "Node.js and Go" to "Node" and "PHP 8.x" to "PHP 8".
+    assert gai.extract_short_description(description) == expected
+
+
+def test_agent_short_description_keeps_the_use_this_agent_clause() -> None:
+    desc = "Use this agent when you need NodeJS API work: REST, auth, webhooks. Examples follow."
+    assert gai.extract_short_description(desc) == "Use this agent when you need NodeJS API work: REST, auth, webhooks"

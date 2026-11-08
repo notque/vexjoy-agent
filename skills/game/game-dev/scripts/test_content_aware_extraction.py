@@ -21,10 +21,10 @@ This test locks in the regression: any future change that breaks the
 content-aware extractor will fail this test.
 
 Run with pytest:
-    pytest skills/game/game-sprite-pipeline/scripts/test_content_aware_extraction.py -v
+    pytest skills/game/game-dev/scripts/test_content_aware_extraction.py -v
 
 Or as a standalone script:
-    python3 skills/game/game-sprite-pipeline/scripts/test_content_aware_extraction.py
+    python3 skills/game/game-dev/scripts/test_content_aware_extraction.py
 """
 
 from __future__ import annotations

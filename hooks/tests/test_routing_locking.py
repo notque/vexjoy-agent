@@ -284,7 +284,8 @@ def test_uninstall_dry_run_renames_no_hook(tmp_path):
     assert sorted(p.name for p in hooks.iterdir()) == ["post-merge"]
     assert (hooks / "post-merge").read_text(encoding="utf-8") == _LEGACY_HOOK
     assert "Would rename post-merge hook to" in r.stdout, r.stdout
-    assert f"{_ENGINE_UNINSTALL} --dry-run" in r.stdout, r.stdout
+    engine = [line for line in r.stdout.splitlines() if line.startswith(_ENGINE_UNINSTALL)]
+    assert len(engine) == 1 and " --dry-run" in engine[0], r.stdout
 
 
 @needs_bash

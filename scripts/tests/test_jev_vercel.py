@@ -109,3 +109,92 @@ def test_gateway_retries_each_documented_transient_status(
     result = jev_vercel.evaluate({}, {}, timeout=1, sleeper=lambda _: None)
     assert run.call_count == 2
     assert result["_meta"]["retry"]["attempts"] == 2
+
+
+class _Clock:
+    """A virtual monotonic clock: a timed-out attempt and every back-off advance it."""
+
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += seconds
+
+
+def test_gateway_retries_stay_inside_the_caller_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    bridge = tmp_path / "gateway.mjs"
+    bridge.write_text("// bridge")
+    clock = _Clock()
+    attempts: list[float] = []
+
+    def run(*_args, **kwargs):
+        attempts.append(kwargs["timeout"])
+        clock.now += kwargs["timeout"]  # every attempt times out
+        raise subprocess.TimeoutExpired(cmd="node", timeout=kwargs["timeout"])
+
+    monkeypatch.setattr(jev_vercel, "_BRIDGE", bridge)
+    monkeypatch.setattr(jev_vercel.subprocess, "run", run)
+    monkeypatch.setattr(jev_vercel.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(jev_vercel, "_jitter", lambda: 1.0)
+    started = clock.now
+    with pytest.raises(jev_vercel.JevGatewayError, match="timeout of 90s reached"):
+        jev_vercel.evaluate({"s": 1}, {"q": {"type": "noul"}}, timeout=90, sleeper=clock.sleep)
+    assert clock.now - started <= 90.0  # was 4 x 90 s plus back-off
+    assert len(attempts) == 1
+
+
+def test_gateway_retry_gets_only_the_time_left(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    bridge = tmp_path / "gateway.mjs"
+    bridge.write_text("// bridge")
+    clock = _Clock()
+    attempts: list[float] = []
+    busy = subprocess.CompletedProcess([], 1, "", 'Jev Vercel gateway error: {"message":"busy","status":503}\n')
+
+    def run(*_args, **kwargs):
+        attempts.append(kwargs["timeout"])
+        clock.now += 3.0
+        return busy if len(attempts) == 1 else subprocess.CompletedProcess([], 0, '{"answers":{}}', "")
+
+    monkeypatch.setattr(jev_vercel, "_BRIDGE", bridge)
+    monkeypatch.setattr(jev_vercel.subprocess, "run", run)
+    monkeypatch.setattr(jev_vercel.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(jev_vercel, "_jitter", lambda: 1.0)
+    jev_vercel.evaluate({"s": 2}, {}, timeout=10, sleeper=clock.sleep)
+    assert attempts == [10, pytest.approx(10 - 3.0 - 0.5)]
+
+
+def test_gateway_shares_the_direct_path_cache(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import jev_router_common
+
+    bridge = tmp_path / "gateway.mjs"
+    bridge.write_text("// bridge")
+    monkeypatch.setenv("JEV_CACHE_TTL_S", "120")
+    run = Mock(return_value=subprocess.CompletedProcess([], 0, '{"answers":{"q":{"noul":0.8}}}', ""))
+    monkeypatch.setattr(jev_vercel, "_BRIDGE", bridge)
+    monkeypatch.setattr(jev_vercel.subprocess, "run", run)
+    state, questions = {"s": "cache"}, {"q": {"type": "noul"}}
+    first = jev_vercel.evaluate(state, questions, timeout=5)
+    second = jev_vercel.evaluate(state, questions, timeout=5)
+    assert run.call_count == 1
+    assert first["answers"] == second["answers"] == {"q": {"noul": 0.8}}
+    assert second["_meta"]["cached"] is True
+    # The key is the direct path's: a direct call with the same request is served from it too.
+    direct = {"state": state, "model": jev_router_common.JEV_MODEL, "questions": questions}
+    monkeypatch.setattr(jev_router_common, "_open_url", Mock(side_effect=AssertionError("network")))
+    data, _ = jev_router_common.call_jev(direct, "k", 5)
+    assert data["answers"] == {"q": {"noul": 0.8}}
+
+
+def test_gateway_does_not_cache_an_invalid_answer(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    bridge = tmp_path / "gateway.mjs"
+    bridge.write_text("// bridge")
+    monkeypatch.setenv("JEV_CACHE_TTL_S", "120")
+    run = Mock(return_value=subprocess.CompletedProcess([], 0, '{"answers":{"q":{"noul":7}}}', ""))
+    monkeypatch.setattr(jev_vercel, "_BRIDGE", bridge)
+    monkeypatch.setattr(jev_vercel.subprocess, "run", run)
+    for _ in range(2):
+        jev_vercel.evaluate({"s": "bad"}, {"q": {"type": "noul"}}, timeout=5)
+    assert run.call_count == 2

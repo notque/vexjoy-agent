@@ -310,4 +310,4 @@ curl -s "https://api.stackexchange.com/2.3/questions?tagged={technology}&site=st
 
 - `competitive-mapping.md` — landscape mapping and competitor activity tracking
 - `market-positioning.md` — positioning response to confirmed market trends
-- `skills/strategic-decision/references/risk-assessment.md` — scenario planning for trend uncertainty
+- `skills/business/business-ops/references/risk-assessment.md` — scenario planning for trend uncertainty

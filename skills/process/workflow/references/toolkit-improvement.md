@@ -545,4 +545,4 @@ Exit cleanly. The comparison report can inform future manual decisions.
 
 - `references/agent-roster.md` — Evaluation agent personas, focus areas, file targets,
   and dispatch prompts organized by wave
-- `../adr-template.md` — Standard ADR format (`skills/workflow/references/adr-template.md`)
+- `../adr-template.md` — Standard ADR format (`skills/process/workflow/references/adr-template.md`)

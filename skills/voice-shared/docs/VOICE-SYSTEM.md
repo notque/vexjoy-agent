@@ -65,7 +65,7 @@ python3 scripts/voice-validator.py check-rhythm --content draft.md --profile you
 python3 scripts/voice-analyzer.py compare --profile1 voice1.json --profile2 voice2.json
 ```
 
-### Voice Calibrator (`skills/workflow/references/voice-calibrator.md`)
+### Voice Calibrator (`skills/voice-shared/workflow-refs/voice-calibrator.md`)
 
 Advanced calibration reference. Key insight: getting the **rules** right isn't enough — you need **100+ real samples categorized by pattern** for authorship matching.
 
