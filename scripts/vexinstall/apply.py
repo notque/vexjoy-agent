@@ -20,6 +20,7 @@ from .common import (
     DATA_DIRS,
     SETTINGS_BACKUPS_KEEP,
     SUPPORT_DIRS,
+    TARGET_NAMES,
     TRASH_RETENTION_DAYS,
     ExitCode,
     GuardError,
@@ -430,6 +431,16 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             return Result(code=0, out=[f"[sync] skipped: {refusal} (pass --adopt-source to re-point)"])
         return Result(code=int(ExitCode.SOURCE_REFUSED), err=[f"[apply] refused: {refusal}; pass --adopt-source"])
     targets = resolve_targets(opts.target, ctx.home)
+    if sync:
+        gone = [t for t in targets if t in ledger.uninstalled]
+        if gone:
+            targets = [t for t in targets if t not in gone]
+            res.err.append(
+                f"[sync] warning: skipped uninstalled target(s) {', '.join(gone)}; "
+                f"run apply --target <name> (or ./install.sh) to install again"
+            )
+        if not targets:
+            return res
     if opts.index_only:
         # A target with no owned entries has never been applied: writing its
         # index would publish an empty catalog that shadows the repo fallback.
@@ -458,6 +469,12 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             return Result(code=int(ExitCode.ERROR), err=[f"[apply] {python_err}"])
         if python_err:
             res.err.append(f"[sync] warning: {python_err}")
+
+    if not sync:
+        # An install undoes an uninstall: sync may update these targets again.
+        cleared = list(ledger.uninstalled) if opts.target == "all" else [t for t in targets if t in ledger.uninstalled]
+        for t in cleared:
+            del ledger.uninstalled[t]
 
     ts = utc_ts()
     trash = Trash(root=sdir / "trash", ts=ts, guard=guard)
@@ -593,7 +610,12 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
 
 
 def run_uninstall(opts: Options) -> Result:
-    """Move every ledger entry of the chosen targets to trash; remove owned settings entries."""
+    """Move every ledger entry of the chosen targets to trash; remove owned hook registrations.
+
+    Owned entries leave ~/.claude/settings.json, account profiles, and the runtime configs
+    apply writes through ``external``. The targets are recorded in the ledger so ``sync``
+    leaves them alone until an ``apply`` for that target.
+    """
     try:
         ctx = load_context(opts)
     except OverlayConfigError as exc:
@@ -604,7 +626,14 @@ def run_uninstall(opts: Options) -> Result:
         return Result(code=int(ExitCode.GUARD), err=[f"[uninstall] ABORT {guard_msg}"])
     owned = [e for e in ctx.ledger.entries.values() if e.target in targets]
     if opts.dry_run:
-        return Result(out=[f"would remove {e.dest}" for e in owned] + [f"{len(owned)} entries"])
+        out = [f"would remove {e.dest}" for e in owned] + [f"{len(owned)} entries"]
+        for t in targets:
+            for f in external.removal(t, ADAPTERS[t].root_path(ctx.home), ctx.home, ctx.source_root):
+                if f.error:
+                    out.append(f"external {f.path}: {f.error}")
+                elif f.content is not None:
+                    out.append(f"would remove owned hook entries from {f.path}")
+        return Result(out=out)
     guard = guard_for(ctx)
     sdir = state_dir(ctx.home)
     try:
@@ -625,6 +654,12 @@ def run_uninstall(opts: Options) -> Result:
                 )
 
             try:
+                # sync skips recorded targets until an apply installs them again. An "all" uninstall
+                # records every target, so a runtime dir created later is not picked up either.
+                # Recorded first, so an uninstall that dies partway still keeps sync from undoing it.
+                stamp = utc_iso()
+                for t in TARGET_NAMES if opts.target == "all" else targets:
+                    ctx.ledger.uninstalled[t] = stamp
                 for e in sorted(owned, key=lambda x: x.dest, reverse=True):
                     dest = Path(e.dest)
                     if (
@@ -649,6 +684,10 @@ def run_uninstall(opts: Options) -> Result:
                     if interp.read_pin(link).kind in ("link", "script"):
                         trash.move(link, ctx.home, "uninstall")
                         removed.append(str(link))
+                ext: list[external.ExternalFile] = []
+                for t in targets:
+                    ext.extend(external.removal(t, ADAPTERS[t].root_path(ctx.home), ctx.home, ctx.source_root))
+                external_report = external.write(ext, sdir / "backups", guard)
                 ledger_mod.save(ledger_mod.ledger_path(sdir), ctx.ledger, guard)
                 report = {
                     "ts": ts,
@@ -657,6 +696,8 @@ def run_uninstall(opts: Options) -> Result:
                     "skipped_user_edited": skipped,
                     "settings": settings_report,
                     "accounts": accounts_report,
+                    "external": external_report,
+                    "uninstalled": sorted(ctx.ledger.uninstalled),
                     "trash": str(trash.dir) if trash.items else None,
                 }
                 write_report(sdir / "reports", ts, report, guard)
@@ -670,7 +711,10 @@ def run_uninstall(opts: Options) -> Result:
         return Result(code=int(exc.exit_code), err=[str(exc)])
     out = [f"[uninstall] removed {len(removed)}, skipped {len(skipped)} user-edited; trash {ts}"]
     out.extend(f"  skipped (user-edited): {s}" for s in skipped)
-    return Result(out=out, data=report)
+    out.extend(f"  hook registrations removed: {p}" for p in external_report["written"])
+    out.append(f"  sync skips {', '.join(sorted(ctx.ledger.uninstalled))} until an apply for that target")
+    err = [f"[uninstall] warning: external {e}" for e in external_report["errors"]]
+    return Result(out=out, err=err, data=report)
 
 
 def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
