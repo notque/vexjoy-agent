@@ -34,9 +34,11 @@ from .common import (
 )
 from .context import Options, Result, guard_for, load_context, state_dir
 from .fsops import (
+    CarryLog,
     Guard,
     Trash,
     atomic_symlink,
+    carry_node_modules,
     copy_entry,
     discard_staged,
     is_busy,
@@ -169,13 +171,15 @@ def _install(a: Action, guard: Guard) -> None:
         copy_entry(src, dest, guard, a.files)
 
 
-def _replace(a: Action, trash: Trash, home: Path, guard: Guard) -> None:
+def _replace(a: Action, trash: Trash, home: Path, guard: Guard, carry: CarryLog) -> None:
     """Move the entry at ``a.dest`` to trash and install *a* there.
 
     The new copy or link is staged before the old entry moves. A live dir such as
     ~/.claude/hooks is then missing only between two renames, and stays in place when
     Windows keeps it busy or refuses the link. When the staged entry cannot be placed, the
-    old entry comes back out of trash.
+    old entry comes back out of trash. Once a new copy is in place, the node_modules dirs
+    of the old copy move into it (``carry_node_modules``): the engine never copies them,
+    and the Jev gateway needs the ones ``./install.sh`` installed.
     """
     dest = Path(a.dest)
     reason = a.reason if a.takeover else f"replaced ({a.reason})"
@@ -194,6 +198,8 @@ def _replace(a: Action, trash: Trash, home: Path, guard: Guard) -> None:
         finally:
             discard_staged(staged)
         raise
+    if trashed is not None and a.mode == "copy":
+        carry_node_modules(trashed, dest, guard, carry)
 
 
 _NOT_DONE = {"remove": "not removed", "add": "not installed"}
@@ -235,12 +241,20 @@ def _record(ledger: Ledger, a: Action, now: str) -> None:
 
 
 def execute_target(
-    tp: TargetPlan, ctx: Context, trash: Trash, guard: Guard, ledger: Ledger, skip: set[str], failed: list[str]
+    tp: TargetPlan,
+    ctx: Context,
+    trash: Trash,
+    guard: Guard,
+    ledger: Ledger,
+    skip: set[str],
+    failed: list[str],
+    carry: CarryLog,
 ) -> None:
     """Carry out one target's plan. Ops are atomic per file; ledger updated in memory.
 
     An entry whose op fails with an OSError (a dir Windows keeps busy, a full disk) stays as
     it was and keeps its ledger record. Its line goes to *failed*, and the other entries run.
+    Replaced copies log the node_modules dirs they carried over to *carry*.
 
     A removal inside a dir this run installs whole is not moved first: placing that dir moves
     the old one to trash with the entry inside, and ``_forget_inside`` drops the record. Moving
@@ -277,7 +291,7 @@ def execute_target(
             if a.op == "replace" and a.mode == "symlink" and os.path.islink(dest) and not a.takeover:
                 atomic_symlink(dest, Path(str(a.source)), guard)
             elif a.op == "replace":
-                _replace(a, trash, home, guard)
+                _replace(a, trash, home, guard, carry)
             elif a.op == "add":
                 _install(a, guard)
         except OSError as exc:
@@ -460,6 +474,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     pin_error: str | None = None
     failed: list[str] = []
     held_back: list[str] = []
+    carry = CarryLog()
 
     def record_point() -> None:
         rollback_mod.record(
@@ -475,7 +490,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
         try:
             for t in targets:
                 before = len(failed)
-                execute_target(plan.targets[t], ctx, trash, guard, ledger, skip, failed)
+                execute_target(plan.targets[t], ctx, trash, guard, ledger, skip, failed, carry)
                 if len(failed) > before:
                     held_back.append(t)
             if python is not None:
@@ -531,6 +546,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     report["trash"] = str(trash.dir) if trash.items else None
     report["failed"] = failed
     report["held_back"] = held_back
+    report["node_modules"] = {"carried": carry.carried, "warnings": carry.warnings}
     if guard_hit is not None:
         report["guard"] = guard_hit.path
     try:
@@ -566,6 +582,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             res.err.append(f"{tag} Windows installs need copy mode: run ./install.sh --copy")
         if not sync:
             res.code = int(ExitCode.ERROR)
+    res.err.extend(f"[{label}] warning: {line}" for line in carry.warnings)
     res.out.extend(accounts_mod.report_lines(report.get("accounts", [])))
     for a in report.get("accounts", []):
         if a.get("error"):
@@ -754,9 +771,14 @@ def run_prune(opts: Options) -> Result:
 
 
 def _restore_session(
-    ctx: Context, sdir: Path, ledger: Ledger, ts: str, displaced: Trash, reason: str
+    ctx: Context, sdir: Path, ledger: Ledger, ts: str, displaced: Trash, reason: str, carry: CarryLog
 ) -> tuple[list[str], list[str]]:
-    """Put trash session *ts* back. An engine-owned occupant moves to *displaced* and leaves *ledger*."""
+    """Put trash session *ts* back. An engine-owned occupant moves to *displaced* and leaves *ledger*.
+
+    The occupant's node_modules dirs then move into the entry restored in its place: the
+    replace that trashed that entry moved its node_modules into the occupant.
+    """
+    moved: dict[str, Path] = {}
 
     def clear(path: Path) -> bool:
         p = str(path)
@@ -766,12 +788,16 @@ def _restore_session(
             owned_here = bool(children) and all(os.path.join(p, c) in ledger.entries for c in children)
         if not owned_here:
             return False
-        displaced.move(path, ctx.home, reason)
+        moved[p] = displaced.move(path, ctx.home, reason)
         for d in [d for d in ledger.entries if d == p or d.startswith(p + os.sep)]:
             ledger.entries.pop(d)
         return True
 
-    return restore_trash(sdir / "trash", ts, displaced.guard, clear)
+    restored, skipped = restore_trash(sdir / "trash", ts, displaced.guard, clear)
+    for orig in restored:
+        if orig in moved:
+            carry_node_modules(moved[orig], Path(orig), displaced.guard, carry)
+    return restored, skipped
 
 
 def run_restore_trash(opts: Options) -> Result:
@@ -793,7 +819,8 @@ def run_restore_trash(opts: Options) -> Result:
             ledger = led or Ledger()
             displaced = Trash(root=sdir / "trash", ts=utc_ts(), guard=guard)
             reason = f"displaced by restore-trash {opts.ts}"
-            restored, skipped = _restore_session(ctx, sdir, ledger, opts.ts, displaced, reason)
+            carry = CarryLog()
+            restored, skipped = _restore_session(ctx, sdir, ledger, opts.ts, displaced, reason, carry)
             ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
     except FileNotFoundError:
         return Result(code=int(ExitCode.USAGE), err=[f"no trash session {opts.ts}"])
@@ -803,7 +830,13 @@ def run_restore_trash(opts: Options) -> Result:
     if displaced.items:
         out.append(f"  displaced {len(displaced.items)} engine entries to trash {displaced.ts}")
     out.extend(f"  skipped: {s}" for s in skipped)
-    return Result(out=out, data={"restored": restored, "skipped": skipped, "displaced_ts": displaced.ts})
+    data = {
+        "restored": restored,
+        "skipped": skipped,
+        "displaced_ts": displaced.ts,
+        "node_modules": {"carried": carry.carried, "warnings": carry.warnings},
+    }
+    return Result(out=out, err=[f"[restore-trash] warning: {w}" for w in carry.warnings], data=data)
 
 
 def run_restore_settings(opts: Options) -> Result:
@@ -875,7 +908,14 @@ def run_rollback(opts: Options) -> Result:
     guard = guard_for(ctx)
     out: list[str] = []
     err: list[str] = []
-    data: dict = {"restored": [], "skipped": [], "missing": [], "failed": []}
+    carry = CarryLog()
+    data: dict = {
+        "restored": [],
+        "skipped": [],
+        "missing": [],
+        "failed": [],
+        "node_modules": {"carried": carry.carried, "warnings": carry.warnings},
+    }
     try:
         with engine_lock(sdir / "lock", guard, blocking=True, timeout=APPLY_LOCK_TIMEOUT_S):
             point, why = _rollback_point(sdir)
@@ -894,7 +934,7 @@ def run_rollback(opts: Options) -> Result:
                         err.append(f"[rollback] trash session {ts} is gone (trash is kept {TRASH_RETENTION_DAYS} days)")
                         continue
                     try:
-                        restored, skipped = _restore_session(ctx, sdir, ledger, ts, displaced, reason)
+                        restored, skipped = _restore_session(ctx, sdir, ledger, ts, displaced, reason, carry)
                     except (OSError, ValueError, LookupError, TypeError, AttributeError) as exc:
                         data["failed"].append(ts)
                         err.append(
@@ -930,4 +970,6 @@ def run_rollback(opts: Options) -> Result:
         return Result(code=int(ExitCode.GUARD), err=[f"[rollback] ABORT {exc}"])
     except LockTimeoutError as exc:
         return Result(code=int(exc.exit_code), err=[str(exc)])
-    return Result(code=int(ExitCode.ERROR) if err else 0, out=out, err=err, data=data)
+    code = int(ExitCode.ERROR) if err else 0  # a node_modules left in trash only warns
+    err.extend(f"[rollback] warning: {w}" for w in carry.warnings)
+    return Result(code=code, out=out, err=err, data=data)
