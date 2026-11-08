@@ -511,6 +511,11 @@ def _match_option(token: str, options: dict[str, object], allow_abbrev: bool) ->
     return None, f"unknown option {name}"
 
 
+def _has_attached_value(token: str, matched: str) -> bool:
+    """True for a short option with its value or more flags joined on, such as -n5 or -vx."""
+    return not token.startswith("--") and len(token.split("=", 1)[0]) > len(matched)
+
+
 def _subcommands_with(spec: ParserSpec, option: str) -> list[str]:
     """Names of the subcommands of `spec` that accept `option`, for a finding hint."""
     return sorted(name for name, sub in (spec.subcommands or {}).items() if option in sub.all_options())
@@ -530,21 +535,24 @@ def check_call(interface: ScriptInterface, args: list[str]) -> list[str]:
         if token == "--" or token in {"-h", "--help"}:
             break
         if token.startswith("-") and len(token) > 1 and not token[1].isdigit():
-            if _is_placeholder(token) or not interface.flags_checkable or spec.open_through_parents():
-                positional_known = positional_known and not _is_placeholder(token)
-                continue
             options = spec.all_options()
-            matched, problem = _match_option(token, options, spec.allow_abbrev)
-            if matched is None:
-                owners = _subcommands_with(spec, token.split("=", 1)[0])
-                if owners:
-                    problem += f" before a subcommand (accepted by: {', '.join(owners)})"
-                problems.append(problem)
-                continue
-            count = options.get(matched, 0)
-            if count is VARIADIC:
-                positional_known = False
-            elif "=" not in token and len(token) == len(matched) and isinstance(count, int):
+            if _is_placeholder(token) or not interface.flags_checkable or spec.open_through_parents():
+                # Only an exact match has a known value count here: an unseen option may share the prefix.
+                exact = token.split("=", 1)[0]
+                count = options.get(exact) if not _is_placeholder(token) and exact in options else VARIADIC
+            else:
+                matched, problem = _match_option(token, options, spec.allow_abbrev)
+                if matched is None:
+                    owners = _subcommands_with(spec, token.split("=", 1)[0])
+                    if owners:
+                        problem += f" before a subcommand (accepted by: {', '.join(owners)})"
+                    problems.append(problem)
+                    continue
+                count = options.get(matched, 0)
+                exact = matched
+            if not isinstance(count, int):
+                positional_known = False  # how many words the option takes is unknown
+            elif "=" not in token and not _has_attached_value(token, exact):
                 i += count
             continue
         if not spec.has_subparsers:

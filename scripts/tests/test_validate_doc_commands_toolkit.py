@@ -198,6 +198,57 @@ def test_ambiguous_abbreviation_exits_one(tmp_path: Path) -> None:
     assert "ambiguous option --co" in result.stdout, result.stdout
 
 
+ROOT_VALUE_CLI = """\
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--config")
+parser.add_argument("-n", type=int)
+sub = parser.add_subparsers(dest="cmd")
+sub.add_parser("run")
+parser.parse_args()
+"""
+
+OPEN_CLI = """\
+import argparse
+from common_cli import add_shared
+
+parser = argparse.ArgumentParser()
+add_shared(parser)
+sub = parser.add_subparsers(dest="cmd")
+sub.add_parser("run")
+parser.parse_args()
+"""
+
+
+def test_abbreviated_root_option_consumes_its_value(tmp_path: Path) -> None:
+    doc = _bash(
+        "python3 scripts/root-value.py --conf a.json run",
+        "python3 scripts/root-value.py --config a.json run",
+        "python3 scripts/root-value.py -n 5 run",
+        "python3 scripts/root-value.py -n5 run",
+    )
+    repo = _repo(tmp_path, {"agents/a.md": doc})
+    (repo / "scripts" / "root-value.py").write_text(ROOT_VALUE_CLI, encoding="utf-8")
+    result = _run(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_unknown_subcommand_after_abbreviated_option_value_exits_one(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {"agents/a.md": _bash("python3 scripts/root-value.py --conf a.json walk")})
+    (repo / "scripts" / "root-value.py").write_text(ROOT_VALUE_CLI, encoding="utf-8")
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "unknown subcommand 'walk' (choices: run)" in result.stdout, result.stdout
+
+
+def test_unseen_option_value_on_open_parser_is_not_read_as_a_subcommand(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, {"agents/a.md": _bash("python3 scripts/open-cli.py --shared a.json run")})
+    (repo / "scripts" / "open-cli.py").write_text(OPEN_CLI, encoding="utf-8")
+    result = _run(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_missing_toolkit_script_exits_one(tmp_path: Path) -> None:
     doc = _bash("python3 ${CLAUDE_SKILL_DIR}/scripts/gone.py", "python3 ~/.claude/scripts/also-gone.py run")
     repo = _repo(tmp_path, {"skills/cat/demo/SKILL.md": doc})
