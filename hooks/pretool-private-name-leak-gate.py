@@ -63,9 +63,16 @@ Allow-through conditions:
   after a match, through `gh api repos/OWNER/REPO` (owner, 2026-11-08:
   private name checks don't count for private repos). `git push` checks
   the remote it pushes to; `git commit` and `gh pr` check every remote (or
-  the `--repo` value). No remote, a non-GitHub URL, more than
-  _MAX_VISIBILITY_LOOKUPS repos, or a gh error or timeout counts as public
-  and the gate still blocks.
+  the `--repo` value or PR URL). gh must answer visibility "private";
+  "internal" does not count. Anything the parser does not fully
+  understand counts as public and the gate still blocks: no remote, a
+  non-GitHub URL, more than _MAX_VISIBILITY_LOOKUPS repos, a gh error or
+  timeout (one 5 s budget), subshells, `$(...)`, backticks, a `cd`,
+  `pushd` or `env` before a gated command, a git global option other
+  than `-C <same dir>`, or any GIT_*/GH_* prefix or redirecting env var.
+  Limit: an exempted commit's file contents are not re-scanned if that
+  history is later pushed to a public remote (push scans only commit
+  messages). Run scripts/private-term-audit.py before publishing a repo.
 - PRIVATE_NAME_GATE_BYPASS=1 as an env var OR as an inline command prefix
   (`PRIVATE_NAME_GATE_BYPASS=1 git push ...`). The hook runs in the
   harness process, so an inline prefix never reaches os.environ — it is
@@ -98,7 +105,9 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
@@ -116,9 +125,12 @@ _USER_INDEX = Path.home() / ".claude" / "skills" / "INDEX.json"
 
 # Gated command shapes. `gh pr merge` is matched broadly; a merge without
 # --body carries no new text and passes the scan anyway.
-_CMD_RE = re.compile(r"\bgit\s+commit\b|\bgit\s+push\b|\bgh\s+pr\s+(?:create|edit|comment|merge)\b")
-_GIT_COMMIT_RE = re.compile(r"\bgit\s+commit\b")
-_GIT_PUSH_RE = re.compile(r"\bgit\s+push\b")
+# git global options may sit between `git` and the verb (`git -C dir push`,
+# `git -c k=v commit`, `git --no-pager push`).
+_GIT_OPTS = r"\bgit(?:\s+(?:-[Cc]\s+(?:\"[^\"]*\"|'[^']*'|\S+)|--?[A-Za-z][\w-]*(?:=\S+)?))*\s+"
+_CMD_RE = re.compile(_GIT_OPTS + r"(?:commit|push)\b|\bgh\s+pr\s+(?:create|edit|comment|merge)\b")
+_GIT_COMMIT_RE = re.compile(_GIT_OPTS + r"commit\b")
+_GIT_PUSH_RE = re.compile(_GIT_OPTS + r"push\b")
 _GH_PR_RE = re.compile(r"\bgh\s+pr\s+(?:create|edit|comment|merge)\b")
 
 # Structural basenames that name file roles, not private components.
@@ -584,13 +596,23 @@ def _collect_scan_targets(command: str, cwd: str | None) -> list[tuple[str, str]
 
 
 # Private-repo exemption. Looked up only after a term matched, so clean
-# commands never call gh. Any doubt counts as public.
+# commands never call gh. Any doubt counts as public: a command shape this
+# parser does not fully understand blocks exactly as before.
 _MAX_VISIBILITY_LOOKUPS = 4
-_GH_TIMEOUT = 4
+# One budget for the whole exemption, well inside the 10 s hook timeout:
+# a killed hook does not block.
+_EXEMPTION_BUDGET = 5.0
 _SCP_RE = re.compile(r"^(?:[^@/]+@)?([^:/]+):(?!//)(.+)$")
 _URL_RE = re.compile(r"^[a-z][a-z0-9+.-]*://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+)$", re.IGNORECASE)
+_PR_URL_RE = re.compile(r"^https?://([^/]+)/([^/]+)/([^/]+)/pull/\d+", re.IGNORECASE)
+# Raw text that can hide a second command or change where one runs.
+_OPAQUE_RE = re.compile(r"\$\(|`|<\(|>\(|\r")
+_SEPARATORS = {"&&", "||", ";", "|", "&", "|&"}
+_REDIRECT_RE = re.compile(r"[<>]+&?|&>>?")
 # git push options that take a separate value.
 _PUSH_VALUE_OPTS = {"-o", "--push-option", "--receive-pack", "--exec"}
+# Environment that redirects git or gh to another repo or config.
+_REDIRECT_ENV_RE = re.compile(r"^(GIT_|GH_|GITHUB_)")
 
 
 def _parse_slug(url: str) -> tuple[str, str, str] | None:
@@ -617,132 +639,308 @@ def _parse_repo_flag(value: str) -> tuple[str, str, str] | None:
     return None
 
 
-def _remote_names(cwd: str | None) -> list[str]:
-    return [n for n in _run_git(["remote"], cwd).split() if n]
+class _Unknown(Exception):
+    """The command shape is not understood; treat the target as public."""
 
 
-def _remote_push_urls(remote: str, cwd: str | None) -> list[str]:
+_HEREDOC_RE = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
+
+
+def _strip_heredoc_bodies(command: str) -> str:
+    """Drop heredoc body lines; they are input text, not commands.
+
+    An unquoted heredoc still expands `$(...)` and backticks, which the raw
+    _OPAQUE_RE check catches before this runs.
+    """
+    out: list[str] = []
+    pending: list[tuple[bool, str]] = []
+    for line in command.split("\n"):
+        if pending:
+            strip_tabs, delim = pending[0]
+            if (line.lstrip("\t") if strip_tabs else line) == delim:
+                pending.pop(0)
+            continue
+        out.append(line)
+        pending = [(m.group(1) == "-", m.group(3)) for m in _HEREDOC_RE.finditer(line)]
+    if pending:
+        raise _Unknown
+    return "\n".join(out)
+
+
+def _segments(command: str) -> list[list[str]]:
+    """Shell-split command segments, or _Unknown for anything opaque.
+
+    Splits on every list and pipe operator so each gated command is checked
+    on its own. Subshells, substitutions and unknown operators are _Unknown.
+    """
+    if _OPAQUE_RE.search(command):
+        raise _Unknown
+    command = _strip_heredoc_bodies(command)
+    lexer = shlex.shlex(command.replace("\n", " ; "), posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    segments: list[list[str]] = [[]]
+    try:
+        tokens = list(lexer)
+    except ValueError as exc:
+        raise _Unknown from exc
+    skip_target = False
+    for token in tokens:
+        if skip_target:
+            skip_target = False
+            continue
+        if token in _SEPARATORS:
+            segments.append([])
+        elif _REDIRECT_RE.fullmatch(token):
+            if segments[-1] and segments[-1][-1].isdigit():
+                segments[-1].pop()
+            skip_target = True
+        elif token and set(token) <= set("()<>&|;"):
+            raise _Unknown
+        else:
+            segments[-1].append(token)
+    return [seg for seg in segments if seg]
+
+
+def _git_out(args: list[str], cwd: str | None, deadline: float) -> str:
+    """git output within the exemption budget; _Unknown on failure."""
+    budget = deadline - time.monotonic()
+    if budget <= 0.2:
+        raise _Unknown
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=budget,
+            cwd=cwd or None,
+            env=_clean_env(),
+        )
+    except (subprocess.SubprocessError, OSError) as exc:
+        raise _Unknown from exc
+    if result.returncode != 0:
+        raise _Unknown
+    return result.stdout
+
+
+def _clean_env() -> dict[str, str]:
+    """Hook environment without variables that redirect git or gh."""
+    return {k: v for k, v in os.environ.items() if not _REDIRECT_ENV_RE.match(k)}
+
+
+def _remote_names(cwd: str | None, deadline: float) -> list[str]:
+    return _git_out(["remote"], cwd, deadline).split()
+
+
+def _remote_urls(remote: str, cwd: str | None, deadline: float) -> list[str]:
     """URLs `git push <remote>` contacts, after insteadOf/pushInsteadOf rewrites."""
-    return [u for u in _run_git(["remote", "get-url", "--push", "--all", remote], cwd).splitlines() if u.strip()]
-
-
-def _all_remote_urls(cwd: str | None) -> list[str] | None:
-    """Push URLs of every remote, or None when the repo has no remote."""
-    names = _remote_names(cwd)
-    if not names:
-        return None
-    urls: list[str] = []
-    for name in names:
-        found = _remote_push_urls(name, cwd)
-        if not found:
-            return None
-        urls += found
+    urls = [u for u in _git_out(["remote", "get-url", "--push", "--all", remote], cwd, deadline).splitlines() if u]
+    if not urls:
+        raise _Unknown
     return urls
 
 
-def _push_target(segment: str) -> tuple[str | None, bool]:
-    """(remote-or-url, parsed) for one `git push` segment.
+def _all_remote_urls(cwd: str | None, deadline: float) -> list[str]:
+    names = _remote_names(cwd, deadline)
+    if not names:
+        raise _Unknown
+    return [u for name in names for u in _remote_urls(name, cwd, deadline)]
 
-    parsed is False when the command shape is not understood; the caller then
-    checks every remote. A None remote with parsed True means the default
-    push remote.
-    """
+
+def _same_dir(path: str, cwd: str | None) -> bool:
+    if not cwd:
+        return False
+    if path == cwd:
+        return True
+    base = Path(cwd)
     try:
-        tokens = shlex.split(segment)
-    except ValueError:
-        return None, False
-    try:
-        start = next(i for i, t in enumerate(tokens) if t == "push" and "git" in tokens[:i]) + 1
-    except StopIteration:
-        return None, False
-    skip = False
-    for token in tokens[start:]:
-        if skip:
-            skip = False
+        return (base / path).resolve() == base.resolve()
+    except OSError:
+        return False
+
+
+def _git_push_urls(args: list[str], cwd: str | None, deadline: float) -> list[str]:
+    """URLs a `git push <args>` contacts; positional repository beats --repo, as in git."""
+    positional: str | None = None
+    repo_opt: str | None = None
+    i = 0
+    while i < len(args):
+        token = args[i]
+        if token in _PUSH_VALUE_OPTS:
+            i += 2
             continue
-        if token in _PUSH_VALUE_OPTS or token == "--repo":
-            if token == "--repo":
-                return None, False
-            skip = True
+        if token == "--repo":
+            if i + 1 >= len(args):
+                raise _Unknown
+            repo_opt = args[i + 1]
+            i += 2
             continue
         if token.startswith("--repo="):
-            return token[len("--repo=") :], True
-        if token.startswith("-"):
+            repo_opt = token[len("--repo=") :]
+        elif token == "--":
+            positional = args[i + 1] if i + 1 < len(args) else None
+            break
+        elif not token.startswith("-"):
+            positional = token
+            break
+        i += 1
+    target = positional or repo_opt
+    names = _remote_names(cwd, deadline)
+    if target is None:
+        ref = _git_out(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{push}"], cwd, deadline).strip()
+        target = next((n for n in sorted(names, key=len, reverse=True) if ref.startswith(n + "/")), None)
+        if target is None:
+            raise _Unknown
+    if target in names:
+        return _remote_urls(target, cwd, deadline)
+    # A raw URL; ls-remote --get-url applies the same insteadOf rewrites git push does.
+    return [_git_out(["ls-remote", "--get-url", target], cwd, deadline).strip() or target]
+
+
+def _segment_slugs(seg: list[str], cwd: str | None, deadline: float) -> set[tuple[str, str, str]]:
+    """GitHub repos one gated segment can reach; _Unknown on any doubt."""
+    words = list(seg)
+    while words and _ENV_ASSIGN_RE.match(words[0]):
+        if words[0].startswith(f"{_BYPASS_ENV}="):
+            words.pop(0)
             continue
-        return token, True
-    return None, True
-
-
-def _default_push_remote(cwd: str | None) -> str | None:
-    """Remote name of @{push}, or None when the branch has none."""
-    ref = _run_git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{push}"], cwd).strip()
-    if not ref:
-        return None
-    names = sorted(_remote_names(cwd), key=len, reverse=True)
-    return next((n for n in names if ref.startswith(n + "/")), None)
-
-
-def _target_slugs(command: str, cwd: str | None) -> set[tuple[str, str, str]] | None:
-    """Every GitHub repo the gated text can reach, or None when any target is unknown."""
-    slugs: set[tuple[str, str, str]] = set()
-    urls: list[str] = []
-    segments = [s for s in re.split(r"&&|\|\||;|\n", command) if _CMD_RE.search(s)]
-    if not segments:
-        return None
-    for segment in segments:
-        if _GIT_PUSH_RE.search(segment) and not (_GIT_COMMIT_RE.search(segment) or _GH_PR_RE.search(segment)):
-            target, parsed = _push_target(segment)
-            if not parsed:
-                found = _all_remote_urls(cwd)
+        raise _Unknown
+    if not words:
+        raise _Unknown
+    if words[0] == "git":
+        rest = words[1:]
+        while rest and rest[0].startswith("-"):
+            if rest[0] == "-C" and len(rest) > 1 and _same_dir(rest[1], cwd):
+                rest = rest[2:]
+            elif rest[0] in ("--no-pager", "-P"):
+                rest = rest[1:]
             else:
-                remote = target or _default_push_remote(cwd)
-                if remote is None:
-                    found = _all_remote_urls(cwd)
-                elif remote in _remote_names(cwd):
-                    found = _remote_push_urls(remote, cwd) or None
-                else:
-                    found = [remote]
-        elif _GH_PR_RE.search(segment) and not _GIT_COMMIT_RE.search(segment):
-            repo_flags = _file_args(segment, {"-R", "--repo"})
-            if repo_flags:
-                for value in repo_flags:
-                    slug = _parse_repo_flag(value)
-                    if slug is None:
-                        return None
-                    slugs.add(slug)
-                continue
-            found = _all_remote_urls(cwd)
+                raise _Unknown
+        if not rest:
+            raise _Unknown
+        if rest[0] == "commit":
+            urls = _all_remote_urls(cwd, deadline)
+        elif rest[0] == "push":
+            urls = _git_push_urls(rest[1:], cwd, deadline)
         else:
-            found = _all_remote_urls(cwd)
-        if not found:
-            return None
-        urls += found
+            raise _Unknown
+    elif words[0] == "gh":
+        if len(words) < 3 or words[1] != "pr" or words[2] not in ("create", "edit", "comment", "merge"):
+            raise _Unknown
+        slugs: set[tuple[str, str, str]] = set()
+        args = words[3:]
+        for i, token in enumerate(args):
+            value = None
+            if token in ("-R", "--repo"):
+                if i + 1 >= len(args):
+                    raise _Unknown
+                value = args[i + 1]
+            elif token.startswith("--repo="):
+                value = token[len("--repo=") :]
+            elif token.startswith("-R") and len(token) > 2:
+                value = token[2:].removeprefix("=")
+            elif m := _PR_URL_RE.match(token):
+                slugs.add((m.group(1).lower(), m.group(2), m.group(3)))
+            if value is not None:
+                slug = _parse_repo_flag(value)
+                if slug is None:
+                    raise _Unknown
+                slugs.add(slug)
+        if slugs:
+            return slugs
+        urls = _all_remote_urls(cwd, deadline)
+    else:
+        raise _Unknown
+    slugs = set()
     for url in urls:
         slug = _parse_slug(url)
         if slug is None:
-            return None
+            raise _Unknown
         slugs.add(slug)
-    return slugs or None
+    return slugs
 
 
-def _gh_is_private(host: str, owner: str, repo: str) -> bool:
-    """True only when gh answers that the repo is private."""
-    args = ["gh", "api", f"repos/{owner}/{repo}", "--jq", ".private"]
-    if host != "github.com":
-        args[2:2] = ["--hostname", host]
+def _target_slugs(command: str, cwd: str | None, deadline: float) -> set[tuple[str, str, str]]:
+    """Every GitHub repo the gated text can reach; _Unknown on any doubt.
+
+    Only a leading `cd <cwd> &&` may change directory, and every gated
+    segment must run in that directory.
+    """
+    if any(k.startswith(("GIT_DIR", "GIT_WORK_TREE", "GIT_CONFIG", "GH_REPO", "GH_HOST")) for k in os.environ):
+        raise _Unknown
+    slugs: set[tuple[str, str, str]] = set()
+    gated = 0
+    for index, seg in enumerate(_segments(command)):
+        joined = " ".join(seg)
+        if seg[0] in (
+            "cd",
+            "pushd",
+            "popd",
+            "env",
+            "exec",
+            "eval",
+            "sudo",
+            "sh",
+            "bash",
+            "zsh",
+            "xargs",
+            "command",
+            "builtin",
+            "nice",
+            "nohup",
+            "timeout",
+            "time",
+        ):
+            if seg[0] == "cd" and index == 0 and len(seg) == 2 and _same_dir(seg[1], cwd):
+                continue
+            if _CMD_RE.search(joined) or seg[0] in ("cd", "pushd", "popd"):
+                raise _Unknown
+            continue
+        if not _CMD_RE.search(joined):
+            continue
+        gated += 1
+        slugs |= _segment_slugs(seg, cwd, deadline)
+    if not gated or not slugs:
+        raise _Unknown
+    return slugs
+
+
+def _gh_visibility(slug: tuple[str, str, str], deadline: float) -> str:
+    host, owner, repo = slug
+    budget = deadline - time.monotonic()
+    if budget <= 0.2:
+        return ""
     try:
-        proc = subprocess.run(args, capture_output=True, text=True, timeout=_GH_TIMEOUT, check=False)
-    except (subprocess.TimeoutExpired, OSError, subprocess.SubprocessError):
-        return False
-    return proc.returncode == 0 and proc.stdout.strip() == "true"
+        proc = subprocess.run(
+            ["gh", "api", "--hostname", host, f"repos/{owner}/{repo}", "--jq", ".visibility"],
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=budget,
+            check=False,
+            env=_clean_env(),
+        )
+    except (subprocess.SubprocessError, OSError):
+        return ""
+    return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
 def _targets_all_private(command: str, cwd: str | None) -> bool:
-    """True when every repo the command's text can reach is a private GitHub repo."""
-    slugs = _target_slugs(command, cwd)
-    if not slugs or len(slugs) > _MAX_VISIBILITY_LOOKUPS:
+    """True only when every repo the command can reach reports visibility "private".
+
+    "internal" (visible across an enterprise) counts as not private. Any
+    error, timeout, or crash returns False, so the gate blocks.
+    """
+    deadline = time.monotonic() + _EXEMPTION_BUDGET
+    try:
+        slugs = _target_slugs(command, cwd, deadline)
+        if len(slugs) > _MAX_VISIBILITY_LOOKUPS:
+            return False
+        with ThreadPoolExecutor(max_workers=len(slugs)) as pool:
+            answers = list(pool.map(lambda s: _gh_visibility(s, deadline), sorted(slugs)))
+        return all(a == "private" for a in answers)
+    except Exception:
         return False
-    return all(_gh_is_private(*slug) for slug in sorted(slugs))
 
 
 def main() -> None:

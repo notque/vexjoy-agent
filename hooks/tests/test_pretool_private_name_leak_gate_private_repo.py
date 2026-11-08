@@ -3,7 +3,7 @@
 
 The owner (2026-11-08): private name checks don't count for private repos.
 The gate allows a matched term only when every repo the text can reach is a
-private GitHub repo, as reported by `gh api repos/OWNER/REPO --jq .private`.
+private GitHub repo, as reported by `gh api --hostname HOST repos/OWNER/REPO --jq .visibility`.
 A fake `gh` on PATH answers from a JSON map and logs each call, so no test
 touches the network. All names are synthetic.
 
@@ -63,8 +63,13 @@ class World:
     def gh_calls(self) -> list[str]:
         return self.log.read_text().splitlines() if self.log.exists() else []
 
-    def denied(self, command: str) -> bool:
-        env = {k: v for k, v in os.environ.items() if k not in ("PRIVATE_NAME_GATE_BYPASS", "CLAUDE_PROJECT_DIR")}
+    def denied(self, command: str, **extra_env: str) -> bool:
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("PRIVATE_NAME_GATE_BYPASS", "CLAUDE_PROJECT_DIR") and not k.startswith(("GIT_", "GH_"))
+        }
+        env.update(extra_env)
         env.update(
             HOME=str(self.home),
             PATH=f"{self.bindir}{os.pathsep}{env.get('PATH', '')}",
@@ -96,14 +101,14 @@ def world(tmp_path: Path) -> World:
 
 def test_private_origin_allows_commit(world):
     world.remote("origin", "git@github.com:someone/closed.git")
-    world.answers = {"someone/closed": "true"}
+    world.answers = {"someone/closed": "private"}
     assert not world.denied(LEAK)
-    assert world.gh_calls() == ["api repos/someone/closed --jq .private"]
+    assert world.gh_calls() == ["api --hostname github.com repos/someone/closed --jq .visibility"]
 
 
 def test_public_origin_still_blocks(world):
     world.remote("origin", "https://github.com/someone/open.git")
-    world.answers = {"someone/open": "false"}
+    world.answers = {"someone/open": "public"}
     assert world.denied(LEAK)
 
 
@@ -126,34 +131,34 @@ def test_non_github_remote_blocks(world, tmp_path):
 def test_commit_needs_every_remote_private(world):
     world.remote("origin", "git@github.com:someone/closed.git")
     world.remote("upstream", "https://github.com/someone/open")
-    world.answers = {"someone/closed": "true", "someone/open": "false"}
+    world.answers = {"someone/closed": "private", "someone/open": "public"}
     assert world.denied(LEAK)
 
 
 def test_push_checks_only_the_named_remote(world):
     world.remote("origin", "git@github.com:someone/closed.git")
     world.remote("upstream", "https://github.com/someone/open")
-    world.answers = {"someone/closed": "true", "someone/open": "false"}
+    world.answers = {"someone/closed": "private", "someone/open": "public"}
     assert not world.denied(f"git push origin main # {PRIVATE_NAME}")
     assert world.denied(f"git push upstream main # {PRIVATE_NAME}")
 
 
 def test_push_to_unknown_name_blocks(world):
     world.remote("origin", "git@github.com:someone/closed.git")
-    world.answers = {"someone/closed": "true"}
+    world.answers = {"someone/closed": "private"}
     assert world.denied(f"git push elsewhere main # {PRIVATE_NAME}")
 
 
 def test_commit_and_push_chain_checks_all_remotes(world):
     world.remote("origin", "git@github.com:someone/closed.git")
     world.remote("upstream", "https://github.com/someone/open")
-    world.answers = {"someone/closed": "true", "someone/open": "false"}
+    world.answers = {"someone/closed": "private", "someone/open": "public"}
     assert world.denied(f"{LEAK} && git push origin main")
 
 
 def test_gh_pr_repo_flag_decides(world):
     world.remote("origin", "https://github.com/someone/open")
-    world.answers = {"someone/open": "false", "someone/closed": "true"}
+    world.answers = {"someone/open": "public", "someone/closed": "private"}
     assert not world.denied(f'gh pr comment 1 -R someone/closed --body "{PRIVATE_NAME}"')
     assert world.denied(f'gh pr comment 1 --repo someone/open --body "{PRIVATE_NAME}"')
     assert world.denied(f'gh pr comment 1 --body "{PRIVATE_NAME}"')
@@ -161,13 +166,96 @@ def test_gh_pr_repo_flag_decides(world):
 
 def test_enterprise_host_passes_hostname(world):
     world.remote("origin", "git@ghe.example.com:team/closed.git")
-    world.answers = {"team/closed": "true"}
+    world.answers = {"team/closed": "private"}
     assert not world.denied(LEAK)
-    assert world.gh_calls() == ["api --hostname ghe.example.com repos/team/closed --jq .private"]
+    assert world.gh_calls() == ["api --hostname ghe.example.com repos/team/closed --jq .visibility"]
 
 
 def test_clean_command_never_calls_gh(world):
     world.remote("origin", "git@github.com:someone/closed.git")
-    world.answers = {"someone/closed": "true"}
+    world.answers = {"someone/closed": "private"}
     assert not world.denied('git commit -m "nothing private here"')
     assert world.gh_calls() == []
+
+
+@pytest.fixture
+def mixed(world, tmp_path):
+    """origin is private, pub is public, and /other is a second repo."""
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.remote("pub", "https://github.com/someone/open")
+    world.answers = {"someone/closed": "private", "someone/open": "public"}
+    other = tmp_path / "other"
+    (other / "agents").mkdir(parents=True)
+    (other / "skills").mkdir()
+    _git(other, "init", "-q", "-b", "main")
+    _git(other, "remote", "add", "origin", "https://github.com/someone/open")
+    world.other = other
+    return world
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"git push origin & git push pub main # {PRIVATE_NAME}",
+        f"git push origin main | git push pub main # {PRIVATE_NAME}",
+        f"git push origin main $(git push pub main) # {PRIVATE_NAME}",
+        f"git push origin main `git push pub main` # {PRIVATE_NAME}",
+        f"git push origin main\rgit push pub main # {PRIVATE_NAME}",
+        f"git push origin main\ngit push pub main # {PRIVATE_NAME}",
+        f"git push --repo=origin pub main # {PRIVATE_NAME}",
+        f"git -c remote.origin.pushurl=https://github.com/someone/open.git push origin main # {PRIVATE_NAME}",
+        f"GIT_CONFIG_COUNT=1 git push origin main # {PRIVATE_NAME}",
+        f"git --git-dir=/elsewhere/.git push origin main # {PRIVATE_NAME}",
+        f"git -C /elsewhere push origin main # {PRIVATE_NAME}",
+        f"git commit -m x && (cd /elsewhere && git push) # {PRIVATE_NAME}",
+        f"pushd /elsewhere && git push # {PRIVATE_NAME}",
+        f"env -C /elsewhere git push # {PRIVATE_NAME}",
+        f'gh pr comment https://github.com/someone/open/pull/1 --body "{PRIVATE_NAME}"',
+        f'gh pr comment 1 -Rsomeone/open --body "{PRIVATE_NAME}"',
+        f'GH_REPO=someone/open gh pr create --body "{PRIVATE_NAME}"',
+        f'gh pr comment 1 --body "{PRIVATE_NAME}"',
+    ],
+)
+def test_reviewed_bypass_shapes_still_block(mixed, command):
+    assert mixed.denied(command.replace("/elsewhere", str(mixed.other)))
+
+
+def test_env_redirect_in_hook_environment_blocks(world):
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private"}
+    assert world.denied(f"git push origin main # {PRIVATE_NAME}", GH_REPO="someone/open")
+
+
+def test_internal_visibility_is_not_private(world):
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "internal"}
+    assert world.denied(LEAK)
+
+
+def test_pr_url_to_private_repo_allows(mixed):
+    assert not mixed.denied(f'gh pr comment https://github.com/someone/closed/pull/1 --body "{PRIVATE_NAME}"')
+
+
+def test_common_private_shapes_allow(world):
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private"}
+    heredoc = f"git commit -F - <<'EOF'\ndon't drop {PRIVATE_NAME} (yet)\nEOF"
+    assert not world.denied(heredoc)
+    assert not world.denied(f"cd {world.repo} && git push origin main 2>&1 | tail -3 # {PRIVATE_NAME}")
+    assert not world.denied(f"git -C {world.repo} commit -m '{PRIVATE_NAME} (a)' && git push origin HEAD")
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"git -C {{repo}} commit -m '{PRIVATE_NAME}'",
+        f"git -C {{repo}} push origin main # {PRIVATE_NAME}",
+        f"git -c core.pager=cat commit -m '{PRIVATE_NAME}'",
+        f"git --no-pager commit -m '{PRIVATE_NAME}'",
+    ],
+)
+def test_git_global_options_are_still_gated(world, command):
+    """Before 1.4.0 the gate missed `git <global options> commit|push` entirely."""
+    world.remote("origin", "https://github.com/someone/open")
+    world.answers = {"someone/open": "public"}
+    assert world.denied(command.replace("{repo}", str(world.repo)))
