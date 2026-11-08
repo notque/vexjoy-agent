@@ -127,7 +127,7 @@ _USER_INDEX = Path.home() / ".claude" / "skills" / "INDEX.json"
 # --body carries no new text and passes the scan anyway.
 # git global options may sit between `git` and the verb (`git -C dir push`,
 # `git -c k=v commit`, `git --no-pager push`).
-_GIT_OPTS = r"\bgit(?:\s+(?:-[Cc]\s+(?:\"[^\"]*\"|'[^']*'|\S+)|--?[A-Za-z][\w-]*(?:=\S+)?))*\s+"
+_GIT_OPTS = r"\bgit(?:\s+(?:-[Cc]\s+(?:\"[^\"]*\"|'[^']*'|\S+)|--?(?![Cc]\s)[A-Za-z][\w-]*(?:=\S+)?))*\s+"
 _CMD_RE = re.compile(_GIT_OPTS + r"(?:commit|push)\b|\bgh\s+pr\s+(?:create|edit|comment|merge)\b")
 _GIT_COMMIT_RE = re.compile(_GIT_OPTS + r"commit\b")
 _GIT_PUSH_RE = re.compile(_GIT_OPTS + r"push\b")
@@ -643,14 +643,22 @@ class _Unknown(Exception):
     """The command shape is not understood; treat the target as public."""
 
 
-_HEREDOC_RE = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
+def _line_tokens(line: str) -> list[str]:
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    try:
+        return list(lexer)
+    except ValueError as exc:
+        # An unclosed quote spans lines; too opaque to judge.
+        raise _Unknown from exc
 
 
 def _strip_heredoc_bodies(command: str) -> str:
     """Drop heredoc body lines; they are input text, not commands.
 
-    An unquoted heredoc still expands `$(...)` and backticks, which the raw
-    _OPAQUE_RE check catches before this runs.
+    Heredoc operators are found in shell tokens, so a quoted `<<EOF` inside a
+    message does not hide the lines after it. An unquoted heredoc still
+    expands `$(...)` and backticks, which _OPAQUE_RE catches first.
     """
     out: list[str] = []
     pending: list[tuple[bool, str]] = []
@@ -661,7 +669,14 @@ def _strip_heredoc_bodies(command: str) -> str:
                 pending.pop(0)
             continue
         out.append(line)
-        pending = [(m.group(1) == "-", m.group(3)) for m in _HEREDOC_RE.finditer(line)]
+        tokens = _line_tokens(line)
+        for i, token in enumerate(tokens):
+            if token == "<<" and i + 1 < len(tokens):
+                delim = tokens[i + 1]
+                strip_tabs = delim.startswith("-")
+                pending.append((strip_tabs, delim[1:] if strip_tabs else delim))
+            elif token.startswith("<<"):
+                raise _Unknown
     if pending:
         raise _Unknown
     return "\n".join(out)
@@ -683,21 +698,24 @@ def _segments(command: str) -> list[list[str]]:
         tokens = list(lexer)
     except ValueError as exc:
         raise _Unknown from exc
-    skip_target = False
-    for token in tokens:
-        if skip_target:
-            skip_target = False
-            continue
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
         if token in _SEPARATORS:
             segments.append([])
         elif _REDIRECT_RE.fullmatch(token):
             if segments[-1] and segments[-1][-1].isdigit():
                 segments[-1].pop()
-            skip_target = True
+            target = tokens[i + 1] if i + 1 < len(tokens) else ""
+            # A write to a real file could rewrite repo config.
+            if ">" in token and not token.endswith("&") and target != "/dev/null":
+                raise _Unknown
+            i += 1
         elif token and set(token) <= set("()<>&|;"):
             raise _Unknown
         else:
             segments[-1].append(token)
+        i += 1
     return [seg for seg in segments if seg]
 
 
@@ -766,6 +784,8 @@ def _git_push_urls(args: list[str], cwd: str | None, deadline: float) -> list[st
     i = 0
     while i < len(args):
         token = args[i]
+        if re.fullmatch(r"-[A-Za-z]{2,}", token):
+            raise _Unknown
         if token in _PUSH_VALUE_OPTS:
             i += 2
             continue
@@ -871,38 +891,30 @@ def _target_slugs(command: str, cwd: str | None, deadline: float) -> set[tuple[s
     slugs: set[tuple[str, str, str]] = set()
     gated = 0
     for index, seg in enumerate(_segments(command)):
-        joined = " ".join(seg)
-        if seg[0] in (
-            "cd",
-            "pushd",
-            "popd",
-            "env",
-            "exec",
-            "eval",
-            "sudo",
-            "sh",
-            "bash",
-            "zsh",
-            "xargs",
-            "command",
-            "builtin",
-            "nice",
-            "nohup",
-            "timeout",
-            "time",
-        ):
-            if seg[0] == "cd" and index == 0 and len(seg) == 2 and _same_dir(seg[1], cwd):
-                continue
-            if _CMD_RE.search(joined) or seg[0] in ("cd", "pushd", "popd"):
-                raise _Unknown
+        if _CMD_RE.search(" ".join(seg)):
+            gated += 1
+            slugs |= _segment_slugs(seg, cwd, deadline)
+        elif index == 0 and seg[0] == "cd" and len(seg) == 2 and _same_dir(seg[1], cwd):
             continue
-        if not _CMD_RE.search(joined):
-            continue
-        gated += 1
-        slugs |= _segment_slugs(seg, cwd, deadline)
+        elif not _harmless(seg):
+            # Anything else could change the directory, config, branch, or
+            # environment the gated command runs with.
+            raise _Unknown
     if not gated or not slugs:
         raise _Unknown
     return slugs
+
+
+# Segments allowed beside a gated command: they read or print, and cannot
+# change where a commit or push lands.
+_HARMLESS_COMMANDS = frozenset({"echo", "printf", "true", "tail", "head", "grep", "wc", "sort", "uniq", "cat"})
+_HARMLESS_GIT = frozenset({"add", "status", "diff", "log", "show"})
+
+
+def _harmless(seg: list[str]) -> bool:
+    if seg[0] in _HARMLESS_COMMANDS:
+        return True
+    return len(seg) > 1 and seg[0] == "git" and seg[1] in _HARMLESS_GIT
 
 
 def _gh_visibility(slug: tuple[str, str, str], deadline: float) -> str:

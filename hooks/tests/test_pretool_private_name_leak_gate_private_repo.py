@@ -214,6 +214,16 @@ def mixed(world, tmp_path):
         f'gh pr comment 1 -Rsomeone/open --body "{PRIVATE_NAME}"',
         f'GH_REPO=someone/open gh pr create --body "{PRIVATE_NAME}"',
         f'gh pr comment 1 --body "{PRIVATE_NAME}"',
+        f"{{ cd /elsewhere; git push; }} # {PRIVATE_NAME}",
+        f"if true; then cd /elsewhere; fi; git push # {PRIVATE_NAME}",
+        f"git config remote.origin.pushurl https://github.com/someone/open.git && git push origin main # {PRIVATE_NAME}",
+        f"git remote set-url origin https://github.com/someone/open.git && git push # {PRIVATE_NAME}",
+        f"git checkout -q feat && git push # {PRIVATE_NAME}",
+        f'export GH_REPO=someone/open; gh pr comment 1 --body "{PRIVATE_NAME}"',
+        f'git commit -m "x <<EOF"\ncd /elsewhere && git commit -am "{PRIVATE_NAME}" && git push\nEOF',
+        f"git push -uo origin https://github.com/someone/open.git main # {PRIVATE_NAME}",
+        f"echo x > .git/config && git push origin main # {PRIVATE_NAME}",
+        "git" + " -C -x" * 30 + f"; git commit -m '{PRIVATE_NAME}'",
     ],
 )
 def test_reviewed_bypass_shapes_still_block(mixed, command):
