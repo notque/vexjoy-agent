@@ -178,8 +178,9 @@ VERDICT: PROMOTE (exit 0) = all gates pass AND discordant pairs >= 6.
 
 PILOT_TEXT = """\
 PRE-REGISTERED PILOT CHECKS (run before the main run; change only BEFORE a pilot):
-  (p1) difficulty    : baseline accuracy within 30.0-70.0%. Above is CEILING,
-                       below is FLOOR.
+  (p1) difficulty    : baseline accuracy on the analysis set (guard cases
+                       left out) within 30.0-70.0%. Above is CEILING, below
+                       is FLOOR.
   (p2) discriminating: every case not named as a guard discriminates: baseline
                        and A/A (a second baseline run) agree on it, and the
                        control or a named extra (reference) arm gets the other
@@ -187,8 +188,12 @@ PRE-REGISTERED PILOT CHECKS (run before the main run; change only BEFORE a pilot
                        case every arm passes is ceiling, every arm fails is
                        floor. Guard cases sit outside the analysis set and are
                        reported. The candidate arm must not be in the data.
-  (p3) control       : the degraded control arm scores at least 30.0 points
-                       below baseline, and more than twice the A/A gap.
+                       Cases the baseline fails discriminate only when a
+                       reference arm passes them, so name one with
+                       --extra-arm.
+  (p3) control       : on the analysis set, the degraded control arm scores
+                       at least 30.0 points below baseline, and more than
+                       twice the A/A gap.
 VERDICT: PASS (exit 0) = all checks pass. Otherwise FAIL (exit 1), named by the
          first failing check: CEILING, FLOOR, NON-DISCRIMINATING, or
          CONTROL-DID-NOT-LOSE."""
@@ -1037,7 +1042,8 @@ def pilot_verdict(
     metric, encode the good outcome as True. A case discriminates when
     baseline and aa agree on it (a flip between them is run-to-run noise) and
     the control or an extra arm gets the other result. Every case not in
-    guards must discriminate. case_ids names the cases (default: 0-based
+    guards must discriminate. The band (p1) and control gaps (p3) are scored
+    on the non-guard analysis set only. case_ids names the cases (default: 0-based
     index as a string); guards must be among them. Every arm in per_case must
     be named, so a candidate arm cannot slip into the pilot.
     """
@@ -1089,15 +1095,18 @@ def pilot_verdict(
     split_pct = _pct(split, analysis_n) if analysis_n else 0.0
     non_disc = classes["noise"] + classes["ceiling"] + classes["floor"]
 
-    acc = {arm: _pct(sum(results), n) for arm, results in per_case.items()}
+    # p1 and p3 score the analysis set only: guards padding the corpus must not
+    # pull a ceiling baseline into the band or widen the control gap.
+    analysis_idx = [i for i, cid in enumerate(ids) if cid not in guard_set]
+    acc = {arm: _pct(sum(results[i] for i in analysis_idx), analysis_n) for arm, results in per_case.items()}
     aa_gap = round(abs(acc[baseline] - acc[aa]), 1)
     control_gap = round(acc[baseline] - acc[control], 1)
 
     low, high = PILOT_BASELINE_BAND
     failing = []
-    if acc[baseline] > high:
+    if analysis_n and acc[baseline] > high:
         failing.append("CEILING")
-    if acc[baseline] < low:
+    if analysis_n and acc[baseline] < low:
         failing.append("FLOOR")
     if analysis_n == 0 or non_disc:
         failing.append("NON-DISCRIMINATING")
@@ -1112,6 +1121,7 @@ def pilot_verdict(
         "aa": aa,
         "extra": list(extra),
         "accuracy_pct": acc,
+        "accuracy_all_cases_pct": {arm: _pct(sum(results), n) for arm, results in per_case.items()},
         "analysis_cases": analysis_n,
         "guard_cases": [cid for cid in ids if cid in guard_set],
         "discriminating_cases": split,
@@ -1176,7 +1186,8 @@ def pilot_check(
     out.mkdir(parents=True, exist_ok=True)
     (out / "pilot-verdict.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"=== PILOT (baseline={baseline}, control={control}, aa={aa}, extra={result['extra']}, n={result['n']}) ===")
-    print(f"  accuracy: {json.dumps(result['accuracy_pct'])}")
+    print(f"  accuracy (analysis set): {json.dumps(result['accuracy_pct'])}")
+    print(f"  accuracy (all cases, guards included): {json.dumps(result['accuracy_all_cases_pct'])}")
     print(
         f"  discriminating cases: {result['discriminating_cases']}/{result['analysis_cases']} "
         f"({result['discriminating_pct']}%) of the analysis set; guards (reported, outside it): "

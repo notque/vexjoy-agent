@@ -61,24 +61,30 @@ prompt edits, re-rank policies) with the existing blind A/B harness. One harness
 ## Pilot first: prove the corpus can discriminate
 
 Before a paid main run on a new or changed corpus, run steps 3-5 on a pilot of
-about 20% of cases with at least three arms: baseline, a deliberately degraded
-control (for routing, a manifest with descriptions stripped), and a second
-baseline run as an A/A arm. Add a reference arm of different quality (for
-example the baseline manifest under a stronger `--model-arm`) when cases the
-baseline fails must count. Leave the candidate arm out of the pilot. Then:
+about 20% of cases with four arms: baseline, a deliberately degraded control
+(for routing, a manifest with descriptions stripped), a second baseline run as
+an A/A arm, and a reference arm of different quality (for example the baseline
+manifest under a stronger `--model-arm`), named with `--extra-arm`. The
+reference arm is required in practice: a case the baseline fails discriminates
+only when another arm passes it, and the degraded control rarely does. Without
+one, a pilot passes only if the control is the exact inverse of the baseline;
+a stable 60%/60%/0% baseline/A/A/control pilot is NON-DISCRIMINATING, and
+guarding every baseline failure leaves the baseline at 100% (CEILING). Leave
+the candidate arm out of the pilot. Then:
 
 ```sh
 python3 scripts/routing-ab-test.py --pilot-check --out-dir "$PILOT" \
-  --control-arm stripped --aa-arm full2 [--extra-arm NAME] [--guard-case ID]
+  --control-arm stripped --aa-arm full2 --extra-arm strong [--guard-case ID]
 ```
 
-It prints its pre-registered checks, then the verdict: baseline accuracy within
-30-70%; every case discriminates, meaning baseline and A/A agree on it and the
+It prints its pre-registered checks, then the verdict: baseline accuracy on the
+analysis set within 30-70%; every case discriminates, meaning baseline and A/A agree on it and the
 control or a reference arm gets the other result; and the control at least 30
-points (and more than twice the A/A gap) below baseline. A baseline/A/A flip is
+points (and more than twice the A/A gap) below baseline on the analysis set. A baseline/A/A flip is
 noise, not a split. A case every arm passes (ceiling) or fails (floor) fails
 the check unless it is named with `--guard-case`: guards sit outside the
-analysis set, and the verdict lists them. Log each guard and its reason in the
+analysis set, so they count toward neither accuracy nor the control gap, and
+the verdict lists them. Log each guard and its reason in the
 change log. Exit 0 PASS, 1 FAIL (CEILING, FLOOR, NON-DISCRIMINATING, or
 CONTROL-DID-NOT-LOSE). On FAIL, harden, replace, or guard the listed cases and
 pilot again; do not start the main run. A review or fix A/B outside this

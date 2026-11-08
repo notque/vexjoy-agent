@@ -75,7 +75,26 @@ class TestDiscriminating:
     def test_guarded_floor_cases_leave_the_analysis_set(self, mod):
         v = mod.pilot_verdict(arms("1111110000"), "base", "ctrl", "aa", guards=("6", "7", "8", "9"))
         assert (v["analysis_cases"], v["guard_cases"]) == (6, ["6", "7", "8", "9"]), "guards are reported"
-        assert v["verdict"] == "PASS", "every case left in the analysis set discriminates"
+        assert v["discriminating_cases"] == 6, "every case left in the analysis set discriminates"
+        assert v["accuracy_pct"]["base"] == 100.0, "p1 scores the analysis set, not the guards"
+        assert v["verdict"] == "CEILING", "guarding every baseline failure leaves a ceiling analysis set"
+
+    def test_guarded_floors_cannot_pad_p1_into_the_band(self, mod):
+        # Regression: base/A/A pass 10 of 20, control fails all 20, the 10 failures are guarded.
+        # p1 read 50% over all 20 cases and PASSED with a 100% baseline on the analysis set.
+        half = [True] * 10 + [False] * 10
+        data = {"base": half, "aa": list(half), "ctrl": [False] * 20}
+        v = mod.pilot_verdict(data, "base", "ctrl", "aa", guards=tuple(str(i) for i in range(10, 20)))
+        assert v["accuracy_all_cases_pct"]["base"] == 50.0, "setup: 50% over every case"
+        assert (v["accuracy_pct"]["base"], v["control_gap_pts"]) == (100.0, 100.0), "p1/p3 on the analysis set"
+        assert v["verdict"] == "CEILING", "guards must not rescue p1"
+
+    def test_guard_padding_with_ref_arm_keeps_the_band(self, mod):
+        data = {**arms("1111100000"), "ref": flags("1111111111")}
+        data = {arm: [*vals, False, False] for arm, vals in data.items()}
+        v = mod.pilot_verdict(data, "base", "ctrl", "aa", ("ref",), guards=("10", "11"))
+        assert v["accuracy_pct"]["base"] == 50.0, "guards leave the analysis-set accuracy unchanged"
+        assert v["verdict"] == "PASS", "a reference arm splits the baseline failures"
 
     def test_ceiling_case_fails_p2(self, mod):
         data = {**arms("1111100000", ctrl="1000000000"), "ref": flags("1111111111")}
@@ -180,9 +199,10 @@ class TestPilotCli:
         (tmp_path / "raw.json").write_text(json.dumps(raw3(rows)), encoding="utf-8")
         assert mod.pilot_check(out_dir=tmp_path, control="ctrl", aa="aa") == 1, "q005-q009 are floor cases"
         guards = [f"q{i:03d}" for i in range(5, 10)]
-        assert mod.pilot_check(out_dir=tmp_path, control="ctrl", aa="aa", guards=guards) == 0, "guarded floor"
+        assert mod.pilot_check(out_dir=tmp_path, control="ctrl", aa="aa", guards=guards) == 1, "ceiling"
         verdict = json.loads((tmp_path / "pilot-verdict.json").read_text())
         assert verdict["guard_cases"] == guards, "the verdict reports each guard"
+        assert verdict["verdict"] == "CEILING", "guarding every baseline failure leaves baseline at 100%"
 
     def test_candidate_arm_in_raw_json_fails(self, mod, tmp_path):
         rows = [(HIT, MISS, MISS, HIT)] * 6 + [(MISS, HIT, MISS, HIT)] * 4
@@ -204,7 +224,15 @@ class TestPilotCli:
         argv = ["x", "--pilot-check", "--control-arm", "ctrl", "--aa-arm", "aa"]
         guards = [arg for cid in ids[5:] for arg in ("--guard-case", cid)]
         monkeypatch.setattr("sys.argv", [*argv, *guards, "--per-case", str(src), "--out-dir", str(tmp_path)])
-        assert mod.main() == 0, "guarded floor cases leave a fully discriminating analysis set"
+        assert mod.main() == 1, "guarding every baseline failure leaves a ceiling analysis set"
+        assert json.loads((tmp_path / "pilot-verdict.json").read_text())["verdict"] == "CEILING"
+
+    def test_main_passes_with_a_reference_arm(self, mod, tmp_path, monkeypatch):
+        src = tmp_path / "pilot.json"
+        src.write_text(json.dumps({"arms": PASSING}), encoding="utf-8")
+        argv = ["x", "--pilot-check", "--control-arm", "ctrl", "--aa-arm", "aa", "--extra-arm", "ref"]
+        monkeypatch.setattr("sys.argv", [*argv, "--per-case", str(src), "--out-dir", str(tmp_path)])
+        assert mod.main() == 0, "a reference arm splits the cases the baseline fails"
 
     @pytest.mark.parametrize("flag", ["--control-arm", "--extra-arm", "--guard-case"])
     def test_pilot_flags_rejected_outside_pilot_mode(self, mod, monkeypatch, flag):
