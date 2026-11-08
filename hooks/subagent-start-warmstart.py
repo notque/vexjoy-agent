@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.3
+# hook-version: 1.0.4
 """
 SubagentStart Hook: Subagent Warm Start
 

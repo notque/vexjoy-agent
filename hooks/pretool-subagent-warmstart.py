@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.1.2
+# hook-version: 2.1.3
 """
 PreToolUse Hook: Subagent Warm Start (superseded)
 
