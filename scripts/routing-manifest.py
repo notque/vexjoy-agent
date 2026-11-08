@@ -228,9 +228,11 @@ def select_triggers(entry: dict, reserved: set[str], cap: int | None = None) -> 
     - A phrase equal to a component name in the OTHER section. The /do section
       validator decides `route.agent in agents` by tokenizing the text between
       the AGENTS: and SKILLS: headers, so a skill name printed inside an agent
-      line would validate that skill as an agent. Five real cases exist today
-      (agent programming-general-engineer carries trigger "programming", which is also a
-      skill). Dropping them keeps SECTION-INTEGRITY true by construction.
+      line would validate that skill as an agent (agent kotlin-general-engineer
+      carried trigger "kotlin", once also a skill). Dropping them keeps trigger
+      text out of that check. It does not make the check exact: an agent's
+      [pairs_with] brackets and descriptions also print skill names inside the
+      AGENTS section.
     - A phrase already present verbatim in the description, which spends bytes
       to repeat a token the router can already read on the same line.
     """
@@ -447,6 +449,24 @@ def format_compact_mode(entries: list[dict], request_text: str = "") -> str:
     return "\n\n".join(sections)
 
 
+def _drop_gated_pairs(gated: list[dict], everything: list[dict]) -> list[dict]:
+    """Remove the names the private gate dropped from every surviving entry's pairs_with.
+
+    Without this an agent line's [pairs_with] brackets still printed a private
+    skill the gate had hidden, so the name reached the router anyway.
+    """
+    removed = {e["name"] for e in everything} - {e["name"] for e in gated}
+    if not removed:
+        return gated
+    out = []
+    for e in gated:
+        pairs = e.get("pairs_with") or []
+        if any(p in removed for p in pairs):
+            e = {**e, "pairs_with": [p for p in pairs if p not in removed]}
+        out.append(e)
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate routing manifest for the /do router.")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
@@ -483,7 +503,7 @@ def main() -> int:
             except OSError:
                 request = ""  # unreadable request: no domain named, so no private entry
         if request is not None:
-            entries = _gate_private_entries(entries, request)
+            entries = _drop_gated_pairs(_gate_private_entries(entries, request), entries)
 
         if args.json:
             print(json.dumps(entries, indent=2))

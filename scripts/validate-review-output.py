@@ -100,8 +100,56 @@ POSITIVE_HEADINGS = (
     "positives",
 )
 
-# File:line pattern — matches paths like handler.go:42, internal/api/routes.go:123
-FILE_LINE_RE = re.compile(r"`?([^\s`]+:\d+)`?")
+# One verdict vocabulary for every reviewer agent and review skill (the
+# Reviewer Schema in skills/shared-patterns/output-schemas.md):
+#   BLOCK          any blocking / critical finding
+#   NEEDS_CHANGES  should-fix / high findings, nothing blocking
+#   PASS           only optional findings, or none
+VERDICTS = ("PASS", "NEEDS_CHANGES", "BLOCK")
+
+# Older verdict words and the verdict that replaces each, so a review written
+# in an old format fails with a message that says what to write instead.
+LEGACY_VERDICTS: dict[str, str] = {
+    "APPROVE": "PASS",
+    "REQUEST-CHANGES": "NEEDS_CHANGES or BLOCK",
+    "REQUEST_CHANGES": "NEEDS_CHANGES or BLOCK",
+    "NEEDS-DISCUSSION": "NEEDS_CHANGES",
+    "FIX": "NEEDS_CHANGES",
+}
+
+# Finding buckets that force a verdict, per review type: a finding in a
+# "block" bucket needs BLOCK, and one in a "change" bucket rules out PASS.
+VERDICT_BUCKETS: dict[str, dict[str, tuple[str, ...]]] = {
+    "systematic": {"block": ("blocking",), "change": ("should_fix",)},
+    "parallel": {"block": ("critical",), "change": ("high",)},
+}
+
+# File:line pattern — matches paths like handler.go:42, internal/api/routes.go:123.
+# The path needs a directory (absolute paths included), a file extension, or a
+# well-known extensionless file name (Makefile, Dockerfile), so 02:00,
+# localhost:8080 and 127.0.0.1:8000 are not taken as locations, and a token
+# right after ':' or '/' (a URL like http://host:80) never starts a match.
+_BARE_FILE_NAMES = (
+    "Makefile|GNUmakefile|Dockerfile|Containerfile|Jenkinsfile|Vagrantfile|Gemfile|Rakefile"
+    "|Podfile|Brewfile|Procfile|Justfile|Tiltfile|Earthfile|CODEOWNERS|BUILD|WORKSPACE"
+)
+FILE_LINE_RE = re.compile(
+    r"`?(?<![\w./:\-])("
+    r"/?(?:[\w.\-]+/)+[\w.\-]+:\d+"
+    r"|[\w.\-]*\.[A-Za-z]\w*:\d+"
+    rf"|(?:{_BARE_FILE_NAMES}):\d+"
+    r")`?"
+)
+
+# Plain label lines that open a severity section, e.g. "BLOCKING:" or
+# "**SHOULD FIX:**", optionally followed by inline text ("BLOCKING: none").
+LABEL_LINE_RE = re.compile(r"^\**([A-Za-z][A-Za-z \-]*?)\**:\**\s*(.*)$")
+
+# Unindented label lines that end a severity section in the label-line format.
+SECTION_END_LABELS = ("verdict", "rationale", "risk level", "review summary", "test status")
+
+# Inline text after a severity label that means the section is empty.
+EMPTY_SECTION_RE = re.compile(r"^\(?(?:none|n/a|-|0)\)?\.?$", re.IGNORECASE)
 
 SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "skills" / "shared-patterns" / "schemas"
 
@@ -123,23 +171,25 @@ def _extract_verdict(lines: list[str]) -> str | None:
     """Extract verdict from review output lines.
 
     Looks for patterns like:
-      ## Verdict: APPROVE
-      ## VERDICT: REQUEST-CHANGES
-      Verdict: BLOCK
-      **VERDICT** - rationale
+      ## Verdict: PASS
+      ## 1. VERDICT: NEEDS_CHANGES       (reviewer agents)
+      ## 1. COMPOSITE VERDICT: BLOCK      (reviewer-perspectives)
+      7. VERDICT: BLOCK                   (reviewer-code, reviewer-system)
+      Verdict: BLOCK / VERDICT: BLOCK
+      **Verdict**: PASS
       **BLOCK** - rationale (parallel review)
       ## Verdict\\n<prose paragraph> (sapcc-review/sapcc-audit style)
     """
     for i, line in enumerate(lines):
         stripped = line.strip()
 
-        # "## Verdict: VALUE" or "## VERDICT: VALUE" (with inline value)
-        match = re.match(r"^#{1,3}\s+[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:?\s+(.+)$", stripped)
+        # "## Verdict: VALUE", "## 1. VERDICT: VALUE", "## COMPOSITE VERDICT: VALUE"
+        match = re.match(r"^#{1,3}\s+(?:\d+\.\s+)?(?:composite\s+)?verdict:?\s+(.+)$", stripped, re.IGNORECASE)
         if match:
             return _clean_verdict(match.group(1))
 
         # "## Verdict" heading with NO inline value — read next non-empty line
-        match = re.match(r"^#{1,3}\s+[Vv][Ee][Rr][Dd][Ii][Cc][Tt]\s*$", stripped)
+        match = re.match(r"^#{1,3}\s+(?:\d+\.\s+)?verdict\s*$", stripped, re.IGNORECASE)
         if match:
             for j in range(i + 1, min(i + 10, len(lines))):
                 next_line = lines[j].strip()
@@ -150,16 +200,16 @@ def _extract_verdict(lines: list[str]) -> str | None:
                     break
                 return _clean_verdict_prose(next_line)
 
-        # "Verdict: VALUE" (plain line)
-        match = re.match(r"^[Vv]erdict:\s*(.+)$", stripped)
+        # "Verdict: VALUE", "VERDICT: VALUE", "7. VERDICT: VALUE", "**Verdict**: VALUE"
+        match = re.match(r"^(?:\d+\.\s+)?\**verdict\**:\**\s*(.+)$", stripped, re.IGNORECASE)
         if match:
             return _clean_verdict(match.group(1))
 
         # "**VERDICT** - rationale" (parallel review style)
-        match = re.match(r"^\*\*([A-Z-]+)\*\*\s*[-—]", stripped)
+        match = re.match(r"^\*\*([A-Z_-]+)\*\*\s*[-—]", stripped)
         if match:
             candidate = match.group(1).strip()
-            if candidate in ("BLOCK", "FIX", "APPROVE", "REQUEST-CHANGES", "NEEDS-DISCUSSION"):
+            if candidate in VERDICTS or candidate in LEGACY_VERDICTS:
                 return candidate
 
     return None
@@ -170,7 +220,7 @@ def _clean_verdict(raw: str) -> str:
     # Remove markdown bold
     raw = raw.replace("**", "").strip()
     # Take first token if there's a dash or parenthesis after the verdict
-    match = re.match(r"^([A-Z][-A-Z]*)", raw)
+    match = re.match(r"^([A-Z][-_A-Z]*[A-Z]|[A-Z])", raw)
     if match:
         return match.group(1)
     return raw.strip()
@@ -188,7 +238,7 @@ def _clean_verdict_prose(raw: str) -> str:
     """
     raw = raw.replace("**", "").strip()
     # If it starts with an all-caps keyword, extract that
-    match = re.match(r"^(APPROVE|BLOCK|FIX|REQUEST-CHANGES|NEEDS-DISCUSSION)\b", raw)
+    match = re.match(r"^(" + "|".join(re.escape(v) for v in (*VERDICTS, *LEGACY_VERDICTS)) + r")\b", raw)
     if match:
         return match.group(1)
     # Otherwise return the full first sentence (up to period, em-dash, or end)
@@ -367,6 +417,18 @@ def _extract_findings_section(
 
     for line in lines:
         heading = _heading_level(line)
+        label = None if heading else _severity_label(line, severity_map)
+        if label is not None:
+            # "BLOCKING:" label line (the review skill's Phase 4 template).
+            _flush_block()
+            current_severity, inline = label
+            current_block = [inline] if inline else []
+            continue
+        if current_severity is not None and not heading and _ends_label_section(line):
+            _flush_block()
+            current_severity = None
+            current_block = []
+            continue
         if heading:
             level, text = heading
             text_lower = text.lower().strip()
@@ -409,6 +471,32 @@ def _extract_findings_section(
     # Flush the last block
     _flush_block()
     return findings
+
+
+def _severity_label(line: str, severity_map: dict[str, str]) -> tuple[str, str] | None:
+    """Return (bucket, inline text) for a severity label line like "BLOCKING:".
+
+    Inline text that means "none" is dropped, so "BLOCKING: none" opens an
+    empty section.
+    """
+    match = LABEL_LINE_RE.match(line.strip())
+    if not match:
+        return None
+    key = _normalize_heading(match.group(1))
+    if key not in severity_map:
+        return None
+    inline = match.group(2).strip()
+    if EMPTY_SECTION_RE.match(inline):
+        inline = ""
+    return severity_map[key], inline
+
+
+def _ends_label_section(line: str) -> bool:
+    """True for an unindented "Verdict:" / "Rationale:" style line."""
+    if not line or line[0].isspace():
+        return False
+    match = LABEL_LINE_RE.match(line.strip())
+    return bool(match) and _normalize_heading(match.group(1)) in SECTION_END_LABELS
 
 
 def _normalize_heading(text: str) -> str:
@@ -817,6 +905,40 @@ def _valid_bucket_names(review_type: str) -> str:
     return ", ".join(v.replace("_", " ").title() for v in seen)
 
 
+def _bucket_count(data: dict[str, Any], bucket: str) -> int:
+    """Findings in a bucket: the parsed list, or the severity matrix if larger."""
+    findings = data.get("findings")
+    items = findings.get(bucket) if isinstance(findings, dict) else None
+    count = len(items) if isinstance(items, list) else 0
+    matrix = data.get("severity_matrix")
+    if isinstance(matrix, dict) and isinstance(matrix.get(bucket), int):
+        count = max(count, matrix[bucket])
+    return count
+
+
+def _verdict_consistency_errors(data: dict[str, Any], review_type: str) -> list[str]:
+    """Flag a verdict that contradicts the review's own findings.
+
+    A blocking finding needs BLOCK, and a should-fix finding rules out PASS, so
+    a review cannot pass while it lists findings that must be fixed.
+    """
+    rules = VERDICT_BUCKETS.get(review_type)
+    verdict = data.get("verdict")
+    if not rules or verdict not in VERDICTS:
+        return []
+    errors: list[str] = []
+    for bucket in rules["block"]:
+        count = _bucket_count(data, bucket)
+        if count and verdict != "BLOCK":
+            errors.append(f"VERDICT: {verdict} with {count} {bucket} finding(s); a {bucket} finding needs BLOCK")
+    if verdict == "PASS":
+        for bucket in rules["change"]:
+            count = _bucket_count(data, bucket)
+            if count:
+                errors.append(f"VERDICT: PASS with {count} {bucket} finding(s); use NEEDS_CHANGES or BLOCK")
+    return errors
+
+
 def validate_structure(data: dict[str, Any], review_type: str) -> list[str]:
     """Validate parsed review data against its JSON Schema.
 
@@ -840,6 +962,7 @@ def validate_structure(data: dict[str, Any], review_type: str) -> list[str]:
 
     schema = load_schema(review_type)
     validator = jsonschema.Draft202012Validator(schema)
+    errors.extend(_verdict_consistency_errors(data, review_type))
 
     for error in sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path)):
         path = ".".join(str(p) for p in error.absolute_path) if error.absolute_path else "(root)"
@@ -851,8 +974,11 @@ def validate_structure(data: dict[str, Any], review_type: str) -> list[str]:
             errors.append(f"MISSING: {field_name} — required field not found in review output")
 
         elif error.validator == "enum":
+            hint = ""
+            if path == "verdict" and error.instance in LEGACY_VERDICTS:
+                hint = f"; use {LEGACY_VERDICTS[error.instance]} instead"
             errors.append(
-                f"VALUE: {path} — {json.dumps(error.instance)} is not one of {json.dumps(error.validator_value)}"
+                f"VALUE: {path} — {json.dumps(error.instance)} is not one of {json.dumps(error.validator_value)}{hint}"
             )
 
         elif error.validator == "pattern":

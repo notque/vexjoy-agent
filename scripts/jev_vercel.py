@@ -7,7 +7,6 @@ failure behavior and receipt format.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import random
@@ -184,8 +183,9 @@ def _evaluate_one_unlogged(
 ) -> dict[str, Any]:
     """Send one request through the bridge with bounded retries.
 
-    Each attempt gets the caller's process timeout. Only 429, 503, 529, and a
-    subprocess timeout are retried. Authentication, billing, malformed payload,
+    ``timeout`` bounds the whole call, retries and back-off included: each
+    attempt gets what is left of it, and a retry whose back-off would pass it is
+    not made. Only 429, 503, 529, and a subprocess timeout are retried. Authentication, billing, malformed payload,
     schema, and response errors are one-shot so retries cannot hide configuration
     defects or multiply a permanently invalid request.
     """
@@ -194,6 +194,7 @@ def _evaluate_one_unlogged(
         print(f"[jev-redact] {n_redacted} value(s) redacted before Vercel send", file=__import__("sys").stderr)
     payload = json.dumps(safe_payload, separators=(",", ":"))
     receipts: list[dict[str, Any]] = []
+    deadline = time.monotonic() + timeout
     for attempt in range(1, max_attempts + 1):
         started = time.monotonic()
         try:
@@ -202,7 +203,7 @@ def _evaluate_one_unlogged(
                 input=payload,
                 text=True,
                 capture_output=True,
-                timeout=timeout,
+                timeout=max(0.001, deadline - started),
                 check=False,
                 env=_bridge_env(),
             )
@@ -295,6 +296,13 @@ def _evaluate_one_unlogged(
                 telemetry=_telemetry(attempts=attempt, receipts=receipts, final_error=message),
             )
         delay = _retry_delay(attempt, receipt)
+        if time.monotonic() + delay >= deadline:
+            # Another attempt cannot finish inside the caller's timeout.
+            message = f"{receipt['error']} (no retry: timeout of {timeout:g}s reached)"
+            raise JevGatewayError(
+                message,
+                telemetry=_telemetry(attempts=attempt, receipts=receipts, final_error=message),
+            )
         receipt["retry_delay_seconds"] = delay
         sleeper(delay)
 
@@ -311,18 +319,37 @@ def _evaluate_one(
 ) -> dict[str, Any]:
     """Send one request and record it in ``jev_calls`` so jev-cost-report sees Vercel calls.
 
+    Uses the direct path's answer cache (``jev_router_common``), keyed the same
+    way, so a repeat of a recent request is not billed again on either path.
+    Only a validated answer is stored. Every sent request counts toward the run
+    budget (``jev_router_common.note_run_tokens``).
+
     Best effort: telemetry never raises or changes the result. Token counts come
     from the response's ``usage`` when present, otherwise the local estimate.
     """
+    import jev_router_common
+
     started = time.monotonic()
-    payload_hash = hashlib.sha256(
-        json.dumps({"state": state, "questions": questions}, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()[:16]
+    safe_payload, _ = jev_redact.redact_payload(
+        {"state": state, "model": jev_router_common.JEV_MODEL, "questions": questions}
+    )
+    payload_hash = jev_router_common._payload_hash(safe_payload)
+    cached = jev_router_common._cache_lookup(payload_hash)
+    if cached is not None:
+        result = {"answers": cached, "_meta": {"cached": True}}
+        _log_call(state, questions, started, payload_hash, ok=True, data=result, error=None, cached=True)
+        return result
     try:
+        jev_router_common.note_run_tokens(jev_limits.request_tokens(state, questions)["total"])
         result = _evaluate_one_unlogged(state, questions, timeout=timeout, max_attempts=max_attempts, sleeper=sleeper)
+    except jev_router_common.RunBudgetExceeded as exc:
+        _log_call(state, questions, started, payload_hash, ok=False, data=None, error=str(exc))
+        raise JevGatewayError(str(exc)) from exc
     except JevGatewayError as exc:
         _log_call(state, questions, started, payload_hash, ok=False, data=None, error=str(exc))
         raise
+    if jev_router_common.validate_jev_response(result)[0]:
+        jev_router_common._cache_store(payload_hash, result["answers"], result.get("model"))
     _log_call(state, questions, started, payload_hash, ok=True, data=result, error=None)
     return result
 
@@ -336,12 +363,15 @@ def _log_call(
     ok: bool,
     data: dict[str, Any] | None,
     error: str | None,
+    cached: bool = False,
 ) -> None:
     try:
         import jev_router_common
 
         usage = (data or {}).get("usage") if isinstance(data, dict) else None
-        if not isinstance(usage, dict) or not isinstance(usage.get("input_tokens"), int):
+        if cached:
+            data = {**(data or {}), "usage": {"input_tokens": 0}}  # a cache hit bills nothing
+        elif not isinstance(usage, dict) or not isinstance(usage.get("input_tokens"), int):
             data = {**(data or {}), "usage": {"input_tokens": jev_limits.request_tokens(state, questions)["total"]}}
         jev_router_common._count_call(
             ok=ok,
@@ -351,6 +381,8 @@ def _log_call(
             n_redacted=0,
             error=error,
             payload_hash=payload_hash,
+            answers_json=jev_router_common._answers_json(data) if cached else None,
+            cached=cached,
             script_name=f"vercel:{jev_router_common._caller_script()}",
         )
     except Exception:

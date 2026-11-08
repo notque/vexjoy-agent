@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
-"""Validate count claims in docs against filesystem ground truth.
+"""Validate count claims in docs against the toolkit's active components.
 
 Greps docs/ + root markdown for "N agents", "N skills", "N hooks", "N scripts",
-"N pipelines", "N hook events", "N banned patterns", "N AI patterns", and
-verifies each count against the actual filesystem.
+"N pipelines", "N hook events", "N hook registrations", "N banned patterns",
+"N AI patterns", and verifies each count against what the toolkit ships:
+
+- agents: ``agents/*.md`` files whose frontmatter has a ``name`` (so
+  ``agents/base-instructions.md`` is not an agent);
+- skills: ``SKILL.md`` files with a ``name`` and no ``promoted_to`` (a promoted
+  husk leaves skills/INDEX.json and routing, so it leaves the count too);
+- hooks: hook files registered in ``.claude/settings.json``, each counted once;
+- hook registrations: (event, hook file) pairs in ``.claude/settings.json``.
+
+Lines that mention Codex are also checked for "N of the M hook registrations"
+and "K are unsupported" against ``scripts/codex-hooks-allowlist.txt``.
 
 Also emits a hook-event registration table from `.claude/settings.json` for
 spot-checking the docs/for-ai-wizards.md hook table (B2 auto-regen helper).
@@ -26,9 +36,18 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
-ROOT_MARKDOWN = ["README.md", "CONTRIBUTING.md", "CLAUDE.md"]
+ROOT_MARKDOWN = [
+    "README.md",
+    "CONTRIBUTING.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    "hooks/README.md",
+    ".local.example/README.md",
+]
 SETTINGS = REPO_ROOT / ".claude" / "settings.json"
 BANNED_PATTERNS = REPO_ROOT / "scripts" / "data" / "banned-patterns.json"
+CODEX_ALLOWLIST = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
 FOUR_LAYERS = ("agents", "skills", "hooks", "scripts")
 FOUR_LAYERS_HEADING = re.compile(r"^\s*##\s+Four Layers\s*$", re.IGNORECASE)
 NEXT_SECTION = re.compile(r"^\s*##\s+")
@@ -40,28 +59,41 @@ FOUR_LAYERS_ROW = re.compile(
 
 def configure_repo_root(repo_root: Path) -> None:
     """Point data discovery at an explicit repository without executing it."""
-    global REPO_ROOT, DOCS_DIR, SETTINGS, BANNED_PATTERNS
+    global REPO_ROOT, DOCS_DIR, SETTINGS, BANNED_PATTERNS, CODEX_ALLOWLIST
     REPO_ROOT = repo_root.resolve()
     DOCS_DIR = REPO_ROOT / "docs"
     SETTINGS = REPO_ROOT / ".claude" / "settings.json"
     BANNED_PATTERNS = REPO_ROOT / "scripts" / "data" / "banned-patterns.json"
+    CODEX_ALLOWLIST = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
 
 
+# Longer nouns first: "hook events" and "hook registrations" must not match as "hook".
 CLAIM = re.compile(
     r"\b(\d{1,4})\+?\s+"
-    r"(agents?|skills?|hooks?|scripts?|pipelines?|hook events?|"
+    r"(hook registrations?|hook events?|agents?|skills?|hooks?|scripts?|pipelines?|"
     r"banned patterns?|AI patterns?|workflow skills?)\b",
     re.IGNORECASE,
 )
 
+# "Codex runs 61 of the 74 hook registrations; 13 are unsupported." Checked only on
+# lines that mention Codex, against scripts/codex-hooks-allowlist.txt.
+CODEX_LINE = re.compile(r"\bCodex\b", re.IGNORECASE)
+CODEX_SUPPORT = re.compile(r"\b(\d{1,4}) of (?:the )?(\d{1,4}) hook registrations\b", re.IGNORECASE)
+CODEX_UNSUPPORTED = re.compile(r"\b(\d{1,4}) (?:are |is )?unsupported\b", re.IGNORECASE)
+
+# A registered toolkit hook: the hooks/<file>.py operand of a settings.json command.
+HOOK_FILE = re.compile(r"(?:^|/)hooks/([A-Za-z0-9_-]+\.py)(?:['\" ]|$)")
+FRONTMATTER_KEY = re.compile(r"^([A-Za-z_][\w-]*):(.*)$")
+
 # Phrases that mark a count as scoped/local rather than a global toolkit claim.
 # When any of these qualifiers appear within ~40 chars of the match, skip it —
 # "12 agents (Wave 1)" or "Phase 1 hooks" or "collective of 7 agents" are
-# describing a subset, not the toolkit total.
+# describing a subset, not the toolkit total. A bare "test" is not a qualifier:
+# "the test suite covers 71 hook registrations" is a toolkit-wide claim.
 SCOPED_QUALIFIERS = re.compile(
     r"\b(?:wave|phase|collective|cluster|cohort|group|subset|"
     r"of these|of the|out of|in this|in the [a-z]+ (?:test|study|experiment|review|wave)|"
-    r"experiment|test|study|fabricated|consultation|consensus|"
+    r"experiment|study|fabricated|consultation|consensus|"
     r"per[-\s]package|cascading|adversarial|deep[-\s]dive|"
     r"reviewer|consultations?)\b",
     re.IGNORECASE,
@@ -91,20 +123,102 @@ def count_dir_children(root: Path) -> int:
     return sum(1 for p in root.iterdir() if p.is_dir())
 
 
+def frontmatter(path: Path) -> dict[str, str]:
+    """Top-level ``key: value`` lines of a leading ``---`` frontmatter block ({} if none)."""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return {}
+    if not lines or lines[0].strip() != "---":
+        return {}
+    keys: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return keys
+        match = FRONTMATTER_KEY.match(line)
+        if match:
+            keys[match.group(1)] = match.group(2).strip().strip("'\"")
+    return {}
+
+
+def count_active_agents(agents_dir: Path) -> int:
+    """Agent files that declare a ``name`` (the field routing and the index use)."""
+    if not agents_dir.is_dir():
+        return 0
+    return sum(1 for path in agents_dir.glob("*.md") if frontmatter(path).get("name"))
+
+
+def count_active_skills(skills_dir: Path) -> int:
+    """SKILL.md files with a ``name`` and no ``promoted_to`` (what skills/INDEX.json carries)."""
+    if not skills_dir.is_dir():
+        return 0
+    count = 0
+    for skill_md in skills_dir.rglob("SKILL.md"):
+        keys = frontmatter(skill_md)
+        if keys.get("name") and not keys.get("promoted_to"):
+            count += 1
+    return count
+
+
+def load_settings_hooks() -> dict:
+    """The ``hooks`` mapping of .claude/settings.json, or {} when missing or unreadable."""
+    if not SETTINGS.is_file():
+        return {}
+    try:
+        data = json.loads(SETTINGS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    hooks = data.get("hooks", {}) if isinstance(data, dict) else {}
+    return hooks if isinstance(hooks, dict) else {}
+
+
+def hook_registrations(hooks: dict) -> set[tuple[str, str]]:
+    """(event, hook file) pairs registered in settings; non-toolkit commands are skipped."""
+    pairs: set[tuple[str, str]] = set()
+    for event, groups in hooks.items():
+        if not isinstance(groups, list):
+            continue
+        for group in groups:
+            entries = group.get("hooks", []) if isinstance(group, dict) else []
+            for entry in entries if isinstance(entries, list) else []:
+                command = entry.get("command", "") if isinstance(entry, dict) else ""
+                match = HOOK_FILE.search(str(command))
+                if match:
+                    pairs.add((str(event), match.group(1)))
+    return pairs
+
+
+def allowlist_pairs(path: Path) -> set[tuple[str, str]]:
+    """(event, hook file) pairs named by an ``EVENT:filename [k=v ...]`` allowlist."""
+    pairs: set[tuple[str, str]] = set()
+    if not path.is_file():
+        return pairs
+    for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        event, rest = line.split(":", 1)
+        fields = rest.split()
+        if event.strip() and fields:
+            pairs.add((event.strip(), fields[0]))
+    return pairs
+
+
 def ground_truth() -> dict[str, int]:
     truth: dict[str, int] = {}
-    truth["agents"] = count_files(REPO_ROOT / "agents", "*.md")
+    truth["agents"] = count_active_agents(REPO_ROOT / "agents")
     truth["scripts"] = count_files(REPO_ROOT / "scripts", "*.py")
-    truth["hooks"] = count_files(REPO_ROOT / "hooks", "*.py")
 
-    # skills: top-level dirs under skills/ + nested SKILL.md count
+    hooks = load_settings_hooks()
+    registrations = hook_registrations(hooks)
+    truth["hooks"] = len({name for _, name in registrations})
+    truth["hook registrations"] = len(registrations)
+    codex = allowlist_pairs(CODEX_ALLOWLIST) & registrations
+    truth["codex hook registrations"] = len(codex)
+    truth["codex unsupported hook registrations"] = len(registrations - codex)
+
     skills_dir = REPO_ROOT / "skills"
-    skill_count = 0
-    if skills_dir.is_dir():
-        for skill_md in skills_dir.rglob("SKILL.md"):
-            skill_count += 1
-        # Plus voice-* and other simple-named skill dirs without SKILL.md (rare)
-    truth["skills"] = skill_count
+    truth["skills"] = count_active_skills(skills_dir)
 
     # workflow skills (pipelines)
     pipelines_dir = skills_dir / "process" / "workflow" / "references"
@@ -112,11 +226,7 @@ def ground_truth() -> dict[str, int]:
 
     # hook events
     if SETTINGS.is_file():
-        try:
-            data = json.loads(SETTINGS.read_text())
-            truth["hook events"] = len(data.get("hooks", {}))
-        except Exception:
-            truth["hook events"] = 0
+        truth["hook events"] = len(hooks)
 
     # banned patterns
     if BANNED_PATTERNS.is_file():
@@ -248,6 +358,8 @@ def normalize(thing: str) -> str:
     t = thing.lower().rstrip("s")
     if t == "hook event":
         return "hook events"
+    if t == "hook registration":
+        return "hook registrations"
     if t == "ai pattern":
         return "AI patterns"
     if t == "banned pattern":
@@ -255,6 +367,30 @@ def normalize(thing: str) -> str:
     if t == "workflow skill":
         return "skills"
     return t + "s"
+
+
+def check_codex_claims(line: str, truth: dict[str, int], tolerance: int = 0) -> tuple[int, list[tuple[str, object]]]:
+    """Check "N of the M hook registrations" and "K are unsupported" on a line that names Codex.
+
+    Returns (claims checked, [(claim text, actual value)] for each drift).
+    """
+    if not CODEX_LINE.search(line):
+        return 0, []
+    supported = truth.get("codex hook registrations", 0)
+    total = truth.get("hook registrations", 0)
+    unsupported = truth.get("codex unsupported hook registrations", 0)
+    checked = 0
+    drifts: list[tuple[str, object]] = []
+    for match in CODEX_SUPPORT.finditer(line):
+        checked += 1
+        claimed_supported, claimed_total = int(match.group(1)), int(match.group(2))
+        if abs(claimed_supported - supported) > tolerance or abs(claimed_total - total) > tolerance:
+            drifts.append((match.group(0), f"{supported} of {total}"))
+    for match in CODEX_UNSUPPORTED.finditer(line):
+        checked += 1
+        if abs(int(match.group(1)) - unsupported) > tolerance:
+            drifts.append((match.group(0), unsupported))
+    return checked, drifts
 
 
 def emit_hook_table() -> str:
@@ -345,6 +481,9 @@ def main() -> int:
                                 "actual": actual,
                             }
                         )
+            codex_checked, codex_drifts = check_codex_claims(line, truth, args.tolerance)
+            checked += codex_checked
+            drifts.extend({"source": str(rel), "line": line_no, "claim": c, "actual": a} for c, a in codex_drifts)
 
     if args.json:
         print(json.dumps({"truth": truth, "checked": checked, "drifts": drifts}, indent=2))

@@ -14,13 +14,11 @@ routing:
     - system health
     - update system
     - new claude version
-    - apply process
+    - apply retro
   not_for: "editing one skill, routing entry, or ADR (use toolkit-governance-engineer); regenerating routing INDEX files (use toolkit skill); writing a new Python hook implementation (use hook-development-engineer); explaining which agent or workflow to run (use workflow-help skill). This agent adapts agents, skills, and hooks across the fleet when Claude Code ships a release."
   pairs_with:
     - toolkit
-    - toolkit
     - assessment
-    - toolkit
     - pr-workflow
   complexity: Complex
   category: meta
@@ -80,9 +78,7 @@ This agent operates as an orchestrator for top-down system upgrades.
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 | `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 | `pr-workflow` | Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining. | Call the Skill tool with `pr-workflow`. |
 
 **Rule**: Use the exact action in each applicable row.
@@ -95,7 +91,7 @@ This agent operates as an orchestrator for top-down system upgrades.
 ## Capabilities & Limitations
 
 ### What This Agent CAN Do
-- Parse three trigger types: claude-release, goal-change, process-driven
+- Parse three trigger types: claude-release, goal-change, retro-driven
 - Audit hooks, agents, skills, and routing tables for affected components
 - Classify changes as deprecate / upgrade / create-new / inject-pattern
 - Dispatch parallel domain specialists for independent change groups
@@ -115,7 +111,7 @@ When asked to perform unavailable actions, explain the limitation and suggest th
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Parsing release notes, extracting signals, building Change Manifest, process graduation signals | `upgrade-signal-parsing.md` | Routes to the matching deep reference |
+| Parsing release notes, extracting signals, building Change Manifest, retro graduation signals | `upgrade-signal-parsing.md` | Routes to the matching deep reference |
 | Auditing agents, skills, hooks, routing tables for stale patterns or affected components | `component-audit-checklists.md` | Routes to the matching deep reference |
 | Diagnosing orchestration failures, plan gate issues, inline edits, regression handling | `upgrade-failure-modes.md` | Routes to the matching deep reference |
 
@@ -185,11 +181,13 @@ Solution: Manual copy to `~/.claude/`. Report the broken sync path.
 
 ## Blocker Criteria
 
-STOP and ask the user when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
+
+Rows marked **(owner)** guard production, destructive, credential, public-exposure, or persistence actions; stop and get explicit owner confirmation before acting on those.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
-| Plan exceeds authorized scope | Scope risk | "These additional changes are outside the request. Include them?" |
+| Plan exceeds authorized scope **(owner)** | Scope risk | "These additional changes are outside the request. Include them?" |
 | Regression needs an unapproved tradeoff | Correctness risk | "Resolving this changes the requested behavior. Which outcome should we preserve?" |
 | Change signal unclear | Wrong plan risk | "What specifically changed in [release/goal]? Give me the concrete feature." |
 | Existing component covers the gap | Duplication risk | Reuse or extend it within scope; ask only if this changes the requested outcome. |
@@ -200,11 +198,11 @@ Load these reference files when the task type matches:
 
 | Task Type | Reference File |
 |-----------|---------------|
-| Parsing release notes, extracting signals, building Change Manifest, process graduation signals | [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) |
+| Parsing release notes, extracting signals, building Change Manifest, retro graduation signals | [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) |
 | Auditing agents, skills, hooks, routing tables for stale patterns or affected components | [references/component-audit-checklists.md](references/component-audit-checklists.md) |
 | Diagnosing orchestration failures, plan gate issues, inline edits, regression handling | [references/upgrade-failure-modes.md](references/upgrade-failure-modes.md) |
 
-- **Upgrade Signal Parsing**: [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) — Change Manifest construction, signal-type classification, process-driven signal queries
+- **Upgrade Signal Parsing**: [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) — Change Manifest construction, signal-type classification, retro-driven signal queries
 - **Component Audit Checklists**: [references/component-audit-checklists.md](references/component-audit-checklists.md) — Per-component-type audit fields, detection commands, stale-pattern signals
 - **Upgrade Failure Modes**: [references/upgrade-failure-modes.md](references/upgrade-failure-modes.md) — Phase gate bypasses, inline edits, regression rationalization, parallel dispatch patterns
 

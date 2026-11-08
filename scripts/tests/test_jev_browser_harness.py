@@ -569,6 +569,107 @@ def test_scrub_masks_text_and_values():
     assert agent._scrub(snap, set()) is snap
 
 
+def test_scrub_masks_url_title_and_cut_off_values():
+    """A page that reflects a typed secret into its URL or title, or a value capped at 80 chars, leaks nothing."""
+    typed = "probe" + "Tok_" + "Zq7Xw3Pn" * 12  # synthetic, 105 characters
+    snap = {
+        "url": f"http://127.0.0.1:1/?api_key={typed}&next=1",
+        "title": f"Key {typed[:40]} saved",
+        "text": f"saved {typed[:30]}",
+        "elements": [
+            {"index": "2", "label": f"API key {typed[:20]}", "value": typed[:80]},
+            {"index": "3", "label": "Save", "value": ""},
+        ],
+    }
+    out = agent._scrub(snap, {typed})
+    dumped = json.dumps(out)
+    assert typed[: agent.SECRET_FRAGMENT_MIN] not in dumped
+    assert out["url"] == "http://127.0.0.1:1/?api_key=(secret)&next=1"
+    assert out["title"] == "Key (secret) saved"
+    assert out["elements"][0]["value"] == "(secret)"
+    assert out["elements"][1] == snap["elements"][1]
+    # A short value is masked whole; an unrelated short overlap is left alone.
+    assert agent._scrub({"text": "pw hunter2 hun", "elements": []}, {"hunter2"})["text"] == "pw (secret) hun"
+
+
+def test_scrub_masks_a_url_encoded_secret():
+    """A GET form percent-encodes the secret in the query string; the encoded form is masked too."""
+    from urllib.parse import quote, quote_plus
+
+    typed = "pw " + "a/b+c=d&e" + "Q" * 8  # synthetic; space, slash, plus, equals and ampersand
+    snap = {
+        "url": f"http://127.0.0.1:1/?k={quote_plus(typed)}&p={quote(typed, safe='')}",
+        "text": f"echo {quote_plus(typed)[:14]}",
+        "elements": [],
+    }
+    out = agent._scrub(snap, {typed})
+    assert out["url"] == "http://127.0.0.1:1/?k=(secret)&p=(secret)"
+    assert out["text"] == "echo (secret)"
+
+
+def test_snapshot_offsite_check_compares_exact_origins():
+    """https://a.com.evil.net must not count as on-site for https://a.com (was a prefix match)."""
+    import shutil
+    import subprocess
+
+    src = (SCRIPTS / "lib" / "jev_browser" / "snapshot.js").read_text()
+    assert "startsWith(location.origin)" not in src
+    match = re.search(r"^\s*const sameOrigin = .*;$", src, re.M)
+    assert match, "snapshot.js should define sameOrigin"
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not installed")
+    cases = [
+        ["https://a.com/page", "https://a.com", True],
+        ["https://a.com.evil.net/x", "https://a.com", False],
+        ["https://a.com:8443/x", "https://a.com", False],
+        ["http://a.com/x", "https://a.com", False],
+        ["javascript:void(0)", "https://a.com", False],
+        ["not a url", "https://a.com", False],
+    ]
+    script = match.group(0) + f"\nconsole.log(JSON.stringify({json.dumps(cases)}.map(([h, o]) => sameOrigin(h, o))));"
+    out = subprocess.run([node, "-e", script], capture_output=True, text=True, timeout=30, check=True)
+    assert json.loads(out.stdout) == [c[2] for c in cases]
+
+
+def test_driver_terminate_sends_sigterm_before_sigkill():
+    """SIGTERM lets the Node driver's exit handler stop Chromium and delete its temp profile."""
+
+    class Proc:
+        def __init__(self, exits_on_term: bool) -> None:
+            self.calls: list[str] = []
+            self.exits_on_term = exits_on_term
+            self.done = False
+
+        def poll(self):
+            return 0 if self.done else None
+
+        def terminate(self) -> None:
+            self.calls.append("term")
+            self.done = self.exits_on_term
+
+        def kill(self) -> None:
+            self.calls.append("kill")
+            self.done = True
+
+        def wait(self, timeout=None):
+            if not self.done:
+                raise agent.subprocess.TimeoutExpired("node", timeout)
+            return 0
+
+    for exits, expected in ((True, ["term"]), (False, ["term", "kill"])):
+        d = agent.Driver.__new__(agent.Driver)
+        d.proc = Proc(exits)
+        d._terminate()
+        assert d.proc.calls == expected
+    done = Proc(True)
+    done.done = True
+    d = agent.Driver.__new__(agent.Driver)
+    d.proc = done
+    d._terminate()
+    assert done.calls == []
+
+
 def test_jev_error_retries_as_wait_then_blocks():
     drv = FakeDriver()
     err = {

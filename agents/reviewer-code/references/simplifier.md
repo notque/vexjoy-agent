@@ -95,12 +95,12 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 
 - No tests exist for target code
 - Complex business logic encoding
-- Multiple valid simplification approaches (ask user)
+- Multiple valid simplification approaches (pick one, record why in the finding, and ask Jev only when genuinely unsure)
 - Simplification changes public API
 
 ## Abstraction Boundary Patterns
 
-Patterns where unnecessary complexity can be removed while preserving behavior. See `skills/engineering/programming/references/preferred-patterns/code-examples.md` AP-8 for full before/after examples.
+Patterns where unnecessary complexity can be removed while preserving behavior. See `skills/programming/programming/references/go/preferred-patterns/code-examples.md` AP-8 for full before/after examples.
 
 ### Detection Signals
 

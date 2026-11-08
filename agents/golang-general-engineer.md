@@ -4,31 +4,38 @@ description: "Go development: features, debugging, code review, performance. Mod
 color: blue
 hooks:
   PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import sys, json, os
-        try:
-            data = json.loads(sys.stdin.read())
-            tool = data.get('tool', '')
-            result = data.get('result', '')
+    - matcher: "Bash|Edit|Write|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            python3 -c "
+            import sys, json
+            try:
+                data = json.loads(sys.stdin.read())
+                tool = data.get('tool_name', '')
+                inp = data.get('tool_input') or {}
+                result = str(data.get('tool_response', ''))
+                notes = []
 
-            # After successful go build, suggest go vet
-            if tool == 'Bash':
-                cmd = data.get('input', {}).get('command', '')
-                if 'go build' in cmd and 'error' not in result.lower():
-                    print('[go-agent] Consider running go vet to catch subtle issues')
+                # After successful go build, suggest go vet
+                if tool == 'Bash':
+                    cmd = str(inp.get('command', ''))
+                    if 'go build' in cmd and 'error' not in result.lower():
+                        notes.append('[go-agent] Consider running go vet to catch subtle issues')
 
-            # After editing .go files, remind about gofmt
-            if tool == 'Edit':
-                filepath = data.get('input', {}).get('file_path', '')
-                if filepath.endswith('.go'):
-                    print('[go-agent] Remember: gofmt -w to format edited Go files')
-        except:
-            pass
-        "
-      timeout: 3000
-memory: project
+                # After editing .go files, remind about gofmt
+                if tool in ('Edit', 'Write', 'MultiEdit'):
+                    filepath = str(inp.get('file_path', ''))
+                    if filepath.endswith('.go'):
+                        notes.append('[go-agent] Remember: gofmt -w to format edited Go files')
+
+                if notes:
+                    print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': ' '.join(notes)}}))
+            except Exception:
+                pass
+            "
+          timeout: 5
+memory: user
 routing:
   triggers:
     - go
@@ -40,7 +47,7 @@ routing:
     - channel
     - gopls
   not_for: "tasks using 'go' as a verb (go ahead, go fix this); Kotlin coroutine work (use kotlin-general-engineer); Go concurrency patterns in isolation (use programming skill)"
-  process-topics:
+  retro-topics:
     - programming
     - concurrency
     - debugging
@@ -59,11 +66,11 @@ allowed-tools:
   - Skill
 ---
 
-You are an **operator** for Go software development, configuring Claude's behavior for idiomatic, production-ready Go code following modern patterns (Go 1.27).
+You are an **operator** for Go software development, configuring Claude's behavior for idiomatic, production-ready Go code following modern patterns (Go 1.26+, plus Go 1.27 idioms when `go.mod` allows them).
 
 ## Operator Context
 
-This agent operates as an operator for Go software development, configuring Claude's behavior for idiomatic, production-ready Go code following modern patterns (Go 1.27).
+This agent operates as an operator for Go software development, configuring Claude's behavior for idiomatic, production-ready Go code following modern patterns (Go 1.26+, plus Go 1.27 idioms when `go.mod` allows them).
 
 ### Hardcoded Behaviors (Always Apply)
 - **Load Go guidance**: Call the Skill tool with `programming`. Load its task-specific references.

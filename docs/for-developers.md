@@ -37,8 +37,6 @@ scripts/             Deterministic CLI tools. Python scripts for mechanical oper
 
 commands/            Slash command definitions
 
-templates/           Scaffolding templates for new components
-
 adr/                 Architecture Decision Records (gitignored, local working documents)
 ```
 
@@ -117,7 +115,7 @@ The full cycle:
 3. **Review** using the risk-selected lane in `pr-workflow`
 4. **Fix** confirmed findings and rerun affected checks
 5. **Edit** the agent or skill file yourself when a finding should change behavior
-6. **Commit** in conventional format
+6. **Commit** with one lowercase past-tense sentence (see Key Conventions)
 7. **Push** to remote with tracking
 8. **PR** creation via `gh pr create`
 9. **CI** must pass
@@ -130,7 +128,7 @@ The `pr-workflow` skill automates steps 3 through 9.
 Framework: pytest.
 
 ```bash
-pytest -v                            # all tests
+pytest -v                            # fast tier; the default markers skip slow, integration, and performance tests
 pytest hooks/tests/ -v               # hook tests
 pytest scripts/tests/ -v             # script tests
 pytest hooks/tests/test_routing_decision_recorder.py -v   # single file
@@ -148,15 +146,15 @@ Fixtures: `scripts/tests/fixtures/` for script test data. Hook tests inline thei
 
 ## Key Conventions
 
-**Conventional commits.** Use `type(scope): description`; types are feat, fix, refactor, docs, test, and chore. Focus on what and why.
+**Commit messages.** One lowercase past-tense sentence saying what changed and why, with no type prefix and no trailing period. The full rule is in [AGENTS.md](../AGENTS.md) (Writing style).
 
-**No AI attribution.** Omit "Generated with Claude Code" and co-author lines from all commits.
+**Attribution.** No "Generated with Claude Code" or `Co-Authored-By` lines; the repo's `.claude/settings.json` sets `attribution` to empty strings. Trailer lines such as `Claude-Session: <url>` are allowed after a blank line.
 
 **Branch safety.** Create feature branches for all work. The `pretool-branch-safety.py` hook enforces this by blocking commits to protected branches.
 
 **Review before push.** In any repo that is not a non-fork `github.com/notque` repo, `pretool-review-before-push-gate.py` blocks `git push`, `git subtree push`, `gh pr create`, and `gh pr edit --base` until `/pr-review` has recorded the commit with `scripts/review-record.py mark`. Each fix commit needs its own review. Title, body, and label edits and `gh pr ready` pass. Not caught: git aliases (`git p`), nested `$( $(...) )` substitutions, and PR creation through `gh api`. Commands it cannot judge (an unresolvable `cd` or `GIT_DIR` target, `git $SUB push`) are denied. It fails closed on purpose: a notque repo that also has a mirror or colleague remote, or an origin that uses an ssh host alias, counts as not mine and needs a review.
 
-**Wabi-sabi in docs.** Sentence fragments where they're clear. Varied length. No "delve", "leverage", "comprehensive", "robust", "streamline", "empower." The `scripts/scan-ai-patterns.py` script catches these.
+**Wabi-sabi in docs.** Sentence fragments where they're clear. Varied length. No "delve", "robust", "streamline", or "empower"; the full list is `scripts/data/banned-patterns.json`. The `scripts/scan-ai-patterns.py` script catches these.
 
 **INDEX.json is generated.** Run the generation scripts. They parse frontmatter and build the index. Hand-edits get overwritten.
 
@@ -175,7 +173,11 @@ python3 scripts/manage-accounts.py list
 python3 scripts/manage-accounts.py check
 ```
 
-The `add` command registers the account, creates the config dir, links its `skills/`, `agents/`, and `commands/` to `~/.claude` (where `./install.sh` installs everything once), and writes shell aliases that launch `claude --dangerously-skip-permissions --system-prompt="."`. Run `manage-accounts.py link` to repair older accounts. After `add`, log in once per account:
+The `add` command registers the account, creates the config dir, links its `skills/`, `agents/`, and `commands/` to `~/.claude` (where `./install.sh` installs everything once), and writes shell aliases that launch `claude --dangerously-skip-permissions --chrome --system-prompt="."`. Run `manage-accounts.py link` to repair older accounts.
+
+Know what those flags do before you use the aliases. `--dangerously-skip-permissions` runs every tool call without a permission prompt, so you no longer approve file edits, shell commands, or network calls; only blocking hooks (and a sandbox, if you configured one) can stop one. `--chrome` connects the session to your Chrome browser. `--system-prompt="."` replaces Claude Code's built-in system prompt (see the README's Token-saving mode).
+
+After `add`, log in once per account:
 
 ```bash
 CLAUDE_CONFIG_DIR=~/.claude-accounts/work claude

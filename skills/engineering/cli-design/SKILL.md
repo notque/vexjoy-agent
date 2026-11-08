@@ -1,7 +1,7 @@
 ---
 name: cli-design
 description: "Design a CLI interface: args, flags, help, output, errors, exit codes, config."
-user_invocable: false  # default -- router-dispatched, not user-typed
+user-invocable: false  # default -- router-dispatched, not user-typed
 allowed-tools:
   - Read
   - Write

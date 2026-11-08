@@ -394,11 +394,11 @@ Measured: 14 of 14 outputs in both arms failed a strict `ruff check`. The codes 
 
 ## 14. Pre-handoff checklist
 
-With a shell, run these from the project root and fix every finding before you report done. Show the real output.
+With a shell, run these from the project root and fix every finding before you report done. Show the real output. Pass ruff the files you created or changed, so it never rewrites code outside the request; it reads the project's own ruff config.
 
 ```bash
-ruff check --fix . && ruff format .
-ruff check . && ruff format --check .
+ruff check --fix <changed files> && ruff format <changed files>
+ruff check <changed files> && ruff format --check <changed files>
 mypy --strict <package>          # or: mypy . with [tool.mypy] strict = true
 python -m pytest -q
 python -m pip wheel --no-deps -w /tmp/wheel-check .   # proves the build backend exists

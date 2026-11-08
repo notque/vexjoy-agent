@@ -11,45 +11,80 @@ SCRIPT = Path(__file__).resolve().parent.parent / "validate-doc-counts.py"
 VALIDATOR = SCRIPT
 
 
+def hook_command(name: str) -> str:
+    """The launcher form every registered toolkit hook uses."""
+    return f'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/{name}"'
+
+
+def write_settings(root: Path, registrations: list[tuple[str, str]]) -> None:
+    """Write .claude/settings.json registering each (event, hook file) pair."""
+    hooks: dict[str, list[dict]] = {}
+    for event, name in registrations:
+        hooks.setdefault(event, []).append({"hooks": [{"type": "command", "command": hook_command(name)}]})
+    (root / ".claude").mkdir(parents=True, exist_ok=True)
+    (root / ".claude" / "settings.json").write_text(json.dumps({"hooks": hooks}), encoding="utf-8")
+
+
 def make_repo(tmp_path: Path, table_counts: tuple[int, int, int, int]) -> Path:
+    """A repo with 2 active agents, 3 active skills, 1 registered hook and 4 scripts."""
     root = tmp_path / "repo"
-    for directory, count, suffix in (
-        ("agents", 2, ".md"),
-        ("hooks", 1, ".py"),
-        ("scripts", 4, ".py"),
-    ):
-        target = root / directory
-        target.mkdir(parents=True)
-        for index in range(count):
-            (target / f"item-{index}{suffix}").write_text("", encoding="utf-8")
+    agents = root / "agents"
+    agents.mkdir(parents=True)
+    for index in range(2):
+        (agents / f"agent-{index}.md").write_text(
+            f"---\nname: agent-{index}\ndescription: agent {index}\n---\n\nBody.\n", encoding="utf-8"
+        )
+
+    hooks = root / "hooks"
+    hooks.mkdir()
+    (hooks / "item-0.py").write_text("", encoding="utf-8")
+    write_settings(root, [("PreToolUse", "item-0.py")])
+
+    scripts = root / "scripts"
+    scripts.mkdir()
+    for index in range(4):
+        (scripts / f"item-{index}.py").write_text("", encoding="utf-8")
 
     skill_root = root / "skills" / "example"
     for index in range(3):
         skill_dir = skill_root / f"skill-{index}"
         skill_dir.mkdir(parents=True)
-        (skill_dir / "SKILL.md").write_text("", encoding="utf-8")
+        (skill_dir / "SKILL.md").write_text(
+            f"---\nname: skill-{index}\ndescription: skill {index}\n---\n", encoding="utf-8"
+        )
 
-    agents, skills, hooks, scripts = table_counts
+    agents_count, skills_count, hooks_count, scripts_count = table_counts
     (root / "README.md").write_text(
         "## Four Layers\n\n"
         "| Layer | Count | Does |\n"
         "|---|---|---|\n"
-        f"| Agents | {agents} | agent layer |\n"
-        f"| Skills | {skills} | skill layer |\n"
-        f"| Hooks | {hooks} | hook layer |\n"
-        f"| Scripts | {scripts} | script layer |\n",
+        f"| Agents | {agents_count} | agent layer |\n"
+        f"| Skills | {skills_count} | skill layer |\n"
+        f"| Hooks | {hooks_count} | hook layer |\n"
+        f"| Scripts | {scripts_count} | script layer |\n",
         encoding="utf-8",
     )
     return root
 
 
-def run_validator(repo: Path) -> subprocess.CompletedProcess[str]:
+def write_doc(repo: Path, text: str) -> None:
+    docs = repo / "docs"
+    docs.mkdir(exist_ok=True)
+    (docs / "claims.md").write_text(text, encoding="utf-8")
+
+
+def run_validator(repo: Path, *extra: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(VALIDATOR), "--repo-root", str(repo)],
+        [sys.executable, str(VALIDATOR), "--repo-root", str(repo), *extra],
         capture_output=True,
         text=True,
         check=False,
     )
+
+
+def truth_of(repo: Path) -> dict:
+    result = run_validator(repo, "--json")
+    return json.loads(result.stdout)["truth"]
 
 
 def test_repo_root_option_counts_target_as_data(tmp_path: Path) -> None:
@@ -57,9 +92,10 @@ def test_repo_root_option_counts_target_as_data(tmp_path: Path) -> None:
     (tmp_path / "scripts").mkdir()
     (tmp_path / "hooks").mkdir()
     (tmp_path / "skills").mkdir()
-    (tmp_path / "agents" / "one.md").write_text("# Agent\n", encoding="utf-8")
+    (tmp_path / "agents" / "one.md").write_text("---\nname: one\n---\n# Agent\n", encoding="utf-8")
     (tmp_path / "scripts" / "one.py").write_text("# data\n", encoding="utf-8")
     (tmp_path / "hooks" / "one.py").write_text("# data\n", encoding="utf-8")
+    write_settings(tmp_path, [("Stop", "one.py")])
 
     result = subprocess.run(
         [sys.executable, str(SCRIPT), "--json", "--repo-root", str(tmp_path)],
@@ -78,7 +114,7 @@ def test_repo_root_option_counts_target_as_data(tmp_path: Path) -> None:
 def test_four_layers_table_matches_filesystem(tmp_path: Path) -> None:
     result = run_validator(make_repo(tmp_path, (2, 3, 1, 4)))
 
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stdout + result.stderr
     assert "All count claims agree with filesystem." in result.stdout
 
 
@@ -103,3 +139,139 @@ def test_generated_markdown_count_phrases_are_ignored(tmp_path: Path) -> None:
     result = run_validator(repo)
 
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Ground truth counts active components, not files
+# ---------------------------------------------------------------------------
+
+
+def test_agent_file_without_name_is_not_an_agent(tmp_path: Path) -> None:
+    """agents/base-instructions.md has no frontmatter name, so it is not counted."""
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    (repo / "agents" / "base-instructions.md").write_text("# Shared instructions\n", encoding="utf-8")
+
+    assert truth_of(repo)["agents"] == 2
+    assert run_validator(repo).returncode == 0
+
+
+def test_promoted_skill_is_not_counted(tmp_path: Path) -> None:
+    """A promoted_to husk leaves the index and routing, so it leaves the count too."""
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    husk = repo / "skills" / "example" / "old-skill"
+    husk.mkdir()
+    (husk / "SKILL.md").write_text("---\nname: old-skill\npromoted_to: skill-0\n---\n", encoding="utf-8")
+
+    assert truth_of(repo)["skills"] == 3
+    assert run_validator(repo).returncode == 0
+
+
+def test_hooks_count_registered_files_and_registrations(tmp_path: Path) -> None:
+    """Unregistered hook files and hooks/__init__.py are not hooks; one file on two events is."""
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    (repo / "hooks" / "__init__.py").write_text("", encoding="utf-8")
+    (repo / "hooks" / "unregistered.py").write_text("", encoding="utf-8")
+    write_settings(repo, [("PreToolUse", "item-0.py"), ("PostToolUse", "item-0.py")])
+
+    truth = truth_of(repo)
+
+    assert truth["hooks"] == 1
+    assert truth["hook registrations"] == 2
+    assert truth["hook events"] == 2
+
+
+def test_four_layers_hook_row_counting_files_fails(tmp_path: Path) -> None:
+    """A Hooks row that counts every hooks/*.py file is drift once a file is unregistered."""
+    repo = make_repo(tmp_path, (2, 3, 2, 4))
+    (repo / "hooks" / "unregistered.py").write_text("", encoding="utf-8")
+
+    result = run_validator(repo)
+
+    assert result.returncode == 1
+    assert "Four Layers / Hooks: expected=1 (filesystem), actual=2 (README)" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# Claim shapes
+# ---------------------------------------------------------------------------
+
+
+def test_hook_registration_claims_are_checked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    write_settings(repo, [("PreToolUse", "item-0.py"), ("PostToolUse", "item-0.py")])
+    write_doc(repo, "Settings hold 2 hook registrations.\n")
+    assert run_validator(repo).returncode == 0
+
+    write_doc(repo, "Settings hold 5 hook registrations.\n")
+    result = run_validator(repo)
+
+    assert result.returncode == 1
+    assert "'5 hook registrations'  actual=2" in result.stdout
+
+
+def test_hook_event_claims_count_events_not_hooks(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    write_settings(repo, [("PreToolUse", "item-0.py"), ("PostToolUse", "item-0.py")])
+    write_doc(repo, "Hooks run on 2 hook events.\n")
+    assert run_validator(repo).returncode == 0
+
+    write_doc(repo, "Hooks run on 7 hook events.\n")
+    result = run_validator(repo)
+
+    assert result.returncode == 1
+    assert "'7 hook events'  actual=2" in result.stdout
+
+
+def test_claim_next_to_the_word_test_is_still_checked(tmp_path: Path) -> None:
+    """A stale count beside "test" used to be skipped as a scoped claim."""
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    write_doc(repo, "The test suite covers 9 agents.\n")
+
+    result = run_validator(repo)
+
+    assert result.returncode == 1
+    assert "'9 agents'  actual=2" in result.stdout
+
+
+def write_codex_allowlist(repo: Path, entries: list[str]) -> None:
+    (repo / "scripts" / "codex-hooks-allowlist.txt").write_text(
+        "# Codex allowlist fixture\n" + "".join(f"{entry}\n" for entry in entries), encoding="utf-8"
+    )
+
+
+def test_codex_support_claims_match_the_allowlist(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, (2, 3, 2, 4))
+    (repo / "hooks" / "item-1.py").write_text("", encoding="utf-8")
+    write_settings(repo, [("PreToolUse", "item-0.py"), ("Stop", "item-1.py"), ("PostToolUse", "item-0.py")])
+    # Two entries for one registration (two matchers) still cover one registration.
+    write_codex_allowlist(
+        repo,
+        [
+            "PreToolUse:item-0.py matcher=Bash class=native mode=native failure=closed",
+            "PreToolUse:item-0.py matcher=Edit|Write class=adapted mode=patch failure=closed",
+            "Stop:item-1.py class=adapted mode=stop failure=open",
+        ],
+    )
+
+    truth = truth_of(repo)
+    assert truth["codex hook registrations"] == 2
+    assert truth["codex unsupported hook registrations"] == 1
+
+    write_doc(repo, "Codex runs 2 of the 3 hook registrations; 1 is unsupported.\n")
+    result = run_validator(repo)
+    assert result.returncode == 0, result.stdout
+
+
+def test_stale_codex_support_claims_fail(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, (2, 3, 2, 4))
+    (repo / "hooks" / "item-1.py").write_text("", encoding="utf-8")
+    write_settings(repo, [("PreToolUse", "item-0.py"), ("Stop", "item-1.py")])
+    write_codex_allowlist(repo, ["PreToolUse:item-0.py matcher=Bash class=native mode=native failure=closed"])
+    write_doc(repo, "Codex v0.144.1+ supports 60 of the 71 hook registrations: 11 are unsupported.\n")
+
+    result = run_validator(repo)
+
+    assert result.returncode == 1
+    assert "Drifts: 2" in result.stdout
+    assert "'60 of the 71 hook registrations'  actual=1 of 2" in result.stdout
+    assert "'11 are unsupported'  actual=1" in result.stdout

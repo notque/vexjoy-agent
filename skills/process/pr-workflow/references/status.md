@@ -215,4 +215,4 @@ Solution:
 
 - PR creation and push: Call the Skill tool with `pr-workflow`. Use its Sync intent.
 - Fixing review comments: Call the Skill tool with `pr-workflow`. Use its Fix intent.
-- Code review: Call the Skill tool with `systematic-code-review`.
+- Code review: Call the Skill tool with `review`.

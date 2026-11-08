@@ -65,7 +65,7 @@ routing:
 
 # Domain-Specific Skills
 
-Five domains: SAP Commerce Go review, SAP Commerce compliance audit, OpenSearch
+Five domains: SAP Converged Cloud (sapcc) Go review, sapcc compliance audit, OpenSearch
 SIEM detection engineering, WordPress live validation, and enterprise search.
 Classify the request into one domain, then follow its section.
 
@@ -131,8 +131,9 @@ quick wins, findings by severity, positives, systemic recommendations.
 
 Create worktree `sapcc-review-fixes`. Apply quick wins first. After each group:
 `go build ./... && go vet ./... && make check 2>/dev/null || go test ./...`.
-If fix breaks tests, revert and note. Commit as
-`fix: apply sapcc-review findings (N fixes across M files)`.
+If fix breaks tests, revert and note. Commit only when the user asked for commits, as one
+lowercase sentence in the AGENTS.md writing style, for example
+`applied 12 sapcc-review fixes across 5 files to close the quick-win findings`.
 
 ---
 

@@ -248,8 +248,8 @@ Let's walk through a real analysis:
 
 ### Step 1: Run Cartographer
 ```bash
-# TODO: scripts/cartographer.py not yet implemented
-# Use manual grep/find pattern counting as described in SKILL.md
+python3 ~/.claude/skills/assessment/scripts/cartographer.py ~/repos/your-project \
+  --output analysis_data/project_stats.json
 ```
 
 ### Step 2: Review Statistics

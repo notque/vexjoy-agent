@@ -64,7 +64,7 @@ diff review directly. This is the common case.
 
 Run a two-layer security review over the current git changes: a deterministic
 regex scan for known vulnerability classes, then an LLM-depth Security review of
-the diff. Report a single BLOCK / FIX / APPROVE verdict.
+the diff. Report a single BLOCK / NEEDS_CHANGES / PASS verdict.
 
 **The LLM-depth review runs inside the current Claude session** — the same
 subscription that loaded this skill. There is no separate model call, no
@@ -164,8 +164,8 @@ CRITICAL finding.
 | Condition | Verdict |
 |-----------|---------|
 | Any CRITICAL finding | **BLOCK** |
-| HIGH findings, no CRITICAL | **FIX** (resolve before commit) |
-| Only MEDIUM/LOW findings | **APPROVE** (with suggestions) |
+| HIGH findings, no CRITICAL | **NEEDS_CHANGES** (resolve before commit) |
+| Only MEDIUM/LOW findings | **PASS** (with suggestions) |
 
 **Step 2: Output the structured report**:
 
@@ -190,7 +190,7 @@ CRITICAL finding.
 1. [source] description — file:line
 
 ### VERDICT
-**BLOCK / FIX / APPROVE** — [1-2 sentence rationale]
+**BLOCK / NEEDS_CHANGES / PASS** — [1-2 sentence rationale]
 ```
 
 **Gate**: Structured report delivered with an explicit verdict. Review complete.
@@ -258,6 +258,6 @@ the deterministic layer did not run.
 
 - Detection rules: `scripts/security-review-scan.py` (single source of truth)
 - Review taxonomy (40 classes + severity + FP filters + language guidance): `references/coverage.md`
-- Security reviewer role: `skills/review/parallel-code-review/SKILL.md` (Reviewer 1)
+- Security reviewer role: `skills/review/review/SKILL.md` (Parallel mode, Reviewer 1)
 - Auto-run hook: `hooks/security-review-hook.py`
 - Design contract: `adr/local-security-review.md`

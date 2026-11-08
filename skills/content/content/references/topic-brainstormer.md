@@ -13,9 +13,9 @@ Core principle: **Assess-Decide-Generate with Domain Intelligence**. Gather sign
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| filtering topics against blog identity: the three-question test | `content-filter.md` | Loads detailed guidance from `content-filter.md`. |
-| scoring topics on impact, vex level, resolution | `priority-scoring.md` | Loads detailed guidance from `priority-scoring.md`. |
-| mining topics: problems, gaps, technology expansion | `topic-sources.md` | Loads detailed guidance from `topic-sources.md`. |
+| filtering topics against blog identity: the three-question test | `topic-brainstormer/content-filter.md` | Loads detailed guidance from `topic-brainstormer/content-filter.md`. |
+| scoring topics on impact, vex level, resolution | `topic-brainstormer/priority-scoring.md` | Loads detailed guidance from `topic-brainstormer/priority-scoring.md`. |
+| mining topics: problems, gaps, technology expansion | `topic-brainstormer/topic-sources.md` | Loads detailed guidance from `topic-brainstormer/topic-sources.md`. |
 | generating angles on one topic or story: six lenses, distinctness, "so what?" gate | `angle-lenses.md` | Loads detailed guidance from `angle-lenses.md`. |
 
 ## Instructions

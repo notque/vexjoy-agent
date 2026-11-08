@@ -10,8 +10,8 @@
 
 | Pattern | Use When | Avoid When |
 |---------|----------|------------|
-| `web_search` then `web_fetch` | Full page content needed | Snippets suffice for factual lookups |
-| Parallel `web_search` | Multiple independent angles | Queries depend on each other |
+| `WebSearch` then `WebFetch` | Full page content needed | Snippets suffice for factual lookups |
+| Parallel `WebSearch` | Multiple independent angles | Queries depend on each other |
 | Budget front-loading | Complex technical deep-dive | Simple 2-3 call lookups |
 | Bayesian narrowing | Broad/noisy first results | Already targeted queries |
 
@@ -32,12 +32,12 @@ Starting without budget leads to under-researching or hitting 20-call limit mid-
 
 ---
 
-### web_search → web_fetch Core Loop
+### WebSearch → WebFetch Core Loop
 
 ```
-1. web_search("query under 5 words")
+1. WebSearch("query under 5 words")
    → Scan for primary/authoritative sources
-2. web_fetch(url) for top 1-2 hits
+2. WebFetch(url) for top 1-2 hits
    → Extract data points, not just headlines
 3. Repeat with different query if gaps remain
 ```
@@ -49,8 +49,8 @@ Snippets are 1-3 sentences, may omit caveats. Full page content prevents misquot
 ### Parallel Tool Invocation
 
 ```
-Turn 1: web_search("topic A") + web_search("topic B") + web_search("topic C")
-Turn 2: web_fetch(url_A) + web_fetch(url_B)
+Turn 1: WebSearch("topic A") + WebSearch("topic B") + WebSearch("topic C")
+Turn 2: WebFetch(url_A) + WebFetch(url_B)
 ```
 
 Sequential calls with no dependency waste wall-clock time.
@@ -77,7 +77,7 @@ STOP if:
 
 **Preferred action**: Add specificity, synonyms, version/date qualifier.
 ```
-Turn 7: web_search("k8s CrashLoopBackOff OOMKilled 2024")
+Turn 7: WebSearch("k8s CrashLoopBackOff OOMKilled 2024")
 ```
 
 ---
@@ -86,7 +86,7 @@ Turn 7: web_search("k8s CrashLoopBackOff OOMKilled 2024")
 
 **Signal**: Claim sourced from snippet alone. Snippets may be truncated or from cached versions.
 
-**Preferred action**: web_fetch the source page for any precise date, version, number, or specification.
+**Preferred action**: WebFetch the source page for any precise date, version, number, or specification.
 
 ---
 
@@ -116,7 +116,7 @@ Use: "kubernetes resource limits production 2024"
 | No new entries after 3 queries | Diminishing returns | Broaden scope or declare complete |
 | Same 2-3 articles in all results | Query too narrow | Broaden, try synonyms, check official docs |
 | Budget exhausted, no synthesis | No budget calculation | Calculate budget first, stop at 15 |
-| "No citations" from coordinator | Snippets as sources | web_fetch every primary source |
+| "No citations" from coordinator | Snippets as sources | WebFetch every primary source |
 | Conflicting facts | Different dates/definitions | Note conflict; include both with dates |
 
 ---
@@ -124,7 +124,7 @@ Use: "kubernetes resource limits production 2024"
 ## OODA Cycle Structure
 
 ```
-OBSERVE: 2-4 parallel web_search calls. Scan for relevance and quality.
+OBSERVE: 2-4 parallel WebSearch calls. Scan for relevance and quality.
 ORIENT: Classify results (primary/aggregator/speculation/outdated). Update running list.
 DECIDE: Gaps + budget > 5 → continue. Gaps + budget <= 5 → note gap, stop. No gaps → complete.
 ACT: Execute, return to OBSERVE.
@@ -135,8 +135,8 @@ ACT: Execute, return to OBSERVE.
 ## Detection Commands Reference
 
 ```bash
-grep "web_search" agent_log.txt | sort | uniq -d
-grep -A3 "web_search" agent_log.txt | grep -v "web_fetch"
+grep "WebSearch" agent_log.txt | sort | uniq -d
+grep -A3 "WebSearch" agent_log.txt | grep -v "WebFetch"
 grep -c '"tool_name"' session_log.json
 ```
 

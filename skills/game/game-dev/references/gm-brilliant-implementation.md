@@ -289,7 +289,7 @@ input, output, and spec hashes still match.
 - [CPU Systems Harmony](references/cpu-systems-harmony.md)
 - [Quality gates](references/quality-gates.md)
 - [Anti-rationalization core](../../shared-patterns/anti-rationalization-core.md)
-- `skills/game/game-design/SKILL.md`
-- `skills/process/feature-lifecycle/SKILL.md`
-- `skills/workflow/SKILL.md`
+- `skills/game/game-dev/SKILL.md`
+- `skills/process/workflow/references/fl-pipeline.md`
+- `skills/process/workflow/SKILL.md`
 - `agents/project-coordinator-engineer.md`

@@ -210,6 +210,16 @@ def test_safety_force_route_overrides_the_picked_skill_and_pipeline() -> None:
     assert route["attach"] == ["programming"]
 
 
+def test_safety_force_route_keeps_the_picked_agent() -> None:
+    # A force route fixes the skill and pipeline only (/d Step 2, /do Phase 2
+    # Step 1(a)). Replacing the session's Go engineer with pre-route's
+    # reviewer-system broke that contract.
+    prepared = _prepare(_force("security", agent="reviewer-system"))
+    route = jev_route.finalize(prepared, {"agent": "golang-general-engineer", "skill": "review"}, ENTRIES)
+    assert (route["agent"], route["agent_source"]) == ("golang-general-engineer", "session")
+    assert (route["skill"], route["source"]) == ("security", "pre-route-force")
+
+
 def test_safety_force_route_survives_a_failed_pick() -> None:
     prepared = _prepare(_force("security"))
     route = jev_route.finalize(prepared, {}, ENTRIES)

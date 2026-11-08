@@ -29,8 +29,9 @@ truth for every one of them ("LLMs orchestrate, programs execute"):
      12000 chars, sensitive paths skipped. context_mode=summary omits file
      excerpts; none omits gathered context. Neither bypasses path validation.
      Fixed repo state => fixed bytes.
-  7. The four MANDATORY verbatim injections: reference loading,
-     completeness, Dense-Complete Writing, base instructions.
+  7. The six MANDATORY verbatim injections: reference loading,
+     completeness, Dense-Complete Writing, Google developer-docs style,
+     base instructions, route-fit.
   8. Optional worktree rules and LOCAL-ONLY block, on flags.
 
 Main-thread execution (`"execution": "main"` or `"agent": "main"`): the marker
@@ -294,6 +295,9 @@ def _resolved_source(kind: str, tracked: Path, local_name: str | None) -> tuple[
 # validate-do-references.py's set: the Agent tool accepts these names, so
 # coercing them would MANUFACTURE fallbacks instead of catching them.
 BUILTIN_AGENTS = frozenset({"general-purpose", "claude", "explore", "plan", "statusline-setup"})
+# Router entry points: indexed skills whose job is to route a request
+# (scripts/jev-route.py ROUTER_ENTRY_POINT_SKILLS). Never a Skill-tool call.
+ROUTER_ENTRY_POINT_SKILLS = frozenset({"d", "do"})
 # Reason slug charset — same shape as alts=/stack= items, so the token can never
 # grow a space and split the marker line into two tokens.
 _FALLBACK_REASON_RE = re.compile(r"^[a-z0-9][a-z0-9:_-]*$")
@@ -302,7 +306,7 @@ _FALLBACK_REASON_MAX = 80
 # Complexities where a skill is mandatory. do/SKILL.md already states this as
 # the "Skill-greediness gate (HARD — non-negotiable for Simple+)"; 23 of the 128
 # recorded fallbacks violated it because nothing enforced it. Trivial dispatches
-# stay exempt (they carry no skill by frontend).
+# stay exempt (they carry no skill by design).
 _SKILL_REQUIRED_COMPLEXITY = frozenset({"simple", "medium", "complex"})
 
 # Complexity -> thinking directive. Trivial never dispatches; medium is
@@ -597,8 +601,8 @@ def load_known_stack_patterns(patterns_dir: Path = SHARED_PATTERNS_DIR) -> froze
 
 
 @lru_cache(maxsize=1)
-def _trigger_to_skill_map() -> dict[str, str]:
-    """Map every trigger phrase and category name → canonical skill name.
+def _trigger_claims() -> dict[str, tuple[str, ...]]:
+    """Map every trigger phrase and category name → the skills that claim it, in index order.
 
     Used by _canonical_skill_for_trigger to coerce router mistakes where the
     LLM outputs a trigger phrase or manifest category label instead of the
@@ -606,26 +610,40 @@ def _trigger_to_skill_map() -> dict[str, str]:
     skill="code-review" when that is review's category).  Returns an empty
     dict on read failure (callers then fall through to the original InputError).
     """
-    mapping: dict[str, str] = {}
+    claims: dict[str, list[str]] = {}
     try:
         path, _ = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
         raw = json.loads(path.read_text(encoding="utf-8"))
         for skill_name, data in (raw.get("skills") or {}).items():
             name_lc = skill_name.strip().lower()
-            for t in data.get("triggers") or []:
-                mapping.setdefault(str(t).strip().lower(), name_lc)
+            aliases = [str(t).strip().lower() for t in data.get("triggers") or []]
             cat = (data.get("category") or "").strip().lower()
             if cat:
-                mapping.setdefault(cat, name_lc)
+                aliases.append(cat)
+            for alias in aliases:
+                owners = claims.setdefault(alias, [])
+                if name_lc not in owners:
+                    owners.append(name_lc)
     except (OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
         print(f"[build-dispatch] warning: could not load trigger map: {exc}", file=sys.stderr)
-    return mapping
+    return {alias: tuple(owners) for alias, owners in claims.items()}
 
 
 def _canonical_skill_for_trigger(name: str, known_skills: frozenset[str]) -> str | None:
-    """Return the canonical skill name when *name* is a trigger phrase or category alias."""
-    canon = _trigger_to_skill_map().get(name.lower())
-    return canon if canon and canon in known_skills else None
+    """Return the skill a trigger phrase or category alias names, or None when no known skill claims it.
+
+    Coerces only an alias exactly one known skill claims. An alias several
+    skills share raises: coercing it to the first claimant turned "language"
+    into a private modding skill and "infrastructure" into the browser driver,
+    and the marker then recorded that pick as the route.
+    """
+    owners = [skill for skill in _trigger_claims().get(name.lower(), ()) if skill in known_skills]
+    if len(owners) > 1:
+        raise InputError(
+            f"skill call {name!r} is a trigger or category that {len(owners)} skills share "
+            f"({', '.join(sorted(owners))}); name the skill itself"
+        )
+    return owners[0] if owners else None
 
 
 def ordered_skill_calls(decision: dict) -> list[str]:
@@ -651,6 +669,11 @@ def ordered_skill_calls(decision: dict) -> list[str]:
         if name in seen:
             continue
         seen.add(name)
+        if name in ROUTER_ENTRY_POINT_SKILLS:
+            raise InputError(
+                f"skill call {name!r} names a router entry point; a Skill call to it re-enters the router "
+                f"on the same request, so name the skill that does the work"
+            )
         if name in known_skills:
             ordered.append(name)
             continue

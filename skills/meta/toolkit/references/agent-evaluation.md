@@ -177,9 +177,9 @@ Use the report template from `references/report-templates.md`. The report MUST i
 ## Examples
 
 ### Example 1: Single Skill Evaluation
-User says: "Evaluate the test-driven-development skill"
+User says: "Evaluate the testing skill"
 Actions:
-1. Confirm `skills/testing/test-driven-development/` exists (IDENTIFY)
+1. Confirm `skills/process/testing/` exists (IDENTIFY)
 2. Run `score-component.py` and record all eight checks (STRUCTURAL)
 3. Inspect content for useful, accurate, proportionate guidance (CONTENT)
 4. Syntax-check any scripts, find placeholders (CODE)
@@ -196,9 +196,9 @@ Actions:
 Result: Per-item scores plus distribution, top performers, and improvement areas
 
 ### Example 3: Structural Compliance Check
-User says: "Check the structural health of systematic-refactoring"
+User says: "Check the structural health of the workflow skill"
 Actions:
-1. Confirm `skills/systematic-refactoring/` exists (IDENTIFY)
+1. Confirm `skills/process/workflow/` exists (IDENTIFY)
 2. Run the deterministic 90-point precheck (STRUCTURAL)
 3. Inspect guidance and examples for accuracy and usefulness (CONTENT)
 4. Run code checks where scripts or examples exist (CODE)

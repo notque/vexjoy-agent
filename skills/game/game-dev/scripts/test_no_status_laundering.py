@@ -18,7 +18,7 @@ These tests exercise:
 
 Run with pytest:
 
-    pytest skills/game/game-sprite-pipeline/scripts/test_no_status_laundering.py -v
+    pytest skills/game/game-dev/scripts/test_no_status_laundering.py -v
 """
 
 from __future__ import annotations

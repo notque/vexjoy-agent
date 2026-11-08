@@ -43,4 +43,4 @@ Verify the behavior you claim. A passing command proves only what it checked. Sa
 
 Past results do not prove present capability, and agreement between models is evidence, not ground truth. Run an experiment only when it informs a decision. Low use invites review but does not prove low value. Decisions live in code and tests, not in committed evaluation write-ups. Merge overlapping mechanisms and remove what no longer earns its complexity.
 
-Operational sources: [repository instructions](../CLAUDE.md), [`/do`](../skills/meta/do/SKILL.md), and [building with Jev](../skills/meta/building-with-jev/SKILL.md).
+Operational sources: [repository instructions](../AGENTS.md), [`/do`](../skills/meta/do/SKILL.md), and [building with Jev](../skills/meta/building-with-jev/SKILL.md).

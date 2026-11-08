@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """
 SubagentStop Hook: State Tracker
 
@@ -41,7 +41,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+from hook_utils import append_hook_debug_log, hook_error
 from stdin_timeout import read_stdin
 
 _EVENT_NAME = "SubagentStop"
@@ -51,11 +51,8 @@ _DEBUG_LOG = Path("/tmp/claude_hook_debug.log")
 
 
 def _debug(msg: str) -> None:
-    try:
-        with open(_DEBUG_LOG, "a") as f:
-            f.write(f"[subagent-state-tracker] {time.time():.3f} {msg}\n")
-    except Exception:
-        pass
+    """Append to the shared debug log (0600) only when CLAUDE_HOOKS_DEBUG is set."""
+    append_hook_debug_log(_DEBUG_LOG, f"[subagent-state-tracker] {time.time():.3f} {msg}")
 
 
 def _ensure_state_dir() -> None:

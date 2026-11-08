@@ -52,9 +52,11 @@ Use each procedure where it applies; do not load every owner at dispatch or repe
 | Check evidence and completion claims | `skills/process/testing/SKILL.md` |
 | Review scope and reuse | `skills/process/pr-workflow/references/pr-risk-policy.md` |
 | Commit, PR, CI, and merge | `skills/process/pr-workflow/SKILL.md` |
-| Context transfer | `skills/process/workflow/references/pl-context-boundary.md` and `skills/process/process/references/process.md` |
+| Context transfer | `skills/process/workflow/references/pl-context-boundary.md` and `skills/process/process/SKILL.md` (Handoff mode) |
 
 Keep domain exceptions with their domain. Follow higher-priority instructions and existing user authorization when defaults conflict; do not add another approval round.
+
+For an open question in a Blocker Criteria table: when you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure; stop for the owner only on actions that need their authority (production deploys, credentials or auth for real people, destructive data work, public exposure, persistence, money, or anything a higher-priority instruction such as a CLAUDE.md reserves for the owner).
 
 Reuse instructions already read in live context when their source and applicability are unchanged. Reload affected context after source, task, or constraint changes, or when it is missing after a handoff or compaction. Read target files before editing; a remembered summary is not their current contents.
 

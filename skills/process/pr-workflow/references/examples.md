@@ -146,7 +146,7 @@ After mining, feed to agent:
 
 ```bash
 # Step 1: Mine the data
-python3 skills/pr-miner/scripts/miner.py your-org/your-repo your-project_mined.json --limit 100
+python3 skills/process/pr-workflow/scripts/miner.py your-org/your-repo your-project_mined.json --limit 100
 
 # Step 2: Run Code Archaeologist agent
 # (Claude will read your-project_mined.json and generate tribal-rules.md)

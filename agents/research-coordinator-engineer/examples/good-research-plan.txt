@@ -291,7 +291,7 @@ Dense report covering:
 - Comprehensive analysis (~2000-2500 words)
 - High information density
 - Actionable decision framework
-- No citations (as required)
+- Every factual claim cites its source and passage (as required)
 
 ## Phase 4: Execution Plan
 
@@ -338,7 +338,7 @@ Dense report covering:
 6. Synthesize decision framework using all findings
 7. Structure final report logically
 8. Write with high information density
-9. No citations included
+9. Cite the source and passage for every factual claim
 
 **Quality Verification Before Delivery**:
 - All original questions answered? ✓
@@ -347,7 +347,7 @@ Dense report covering:
 - Adoption trends backed by data? ✓
 - Decision framework actionable? ✓
 - Format matches user needs? ✓
-- No citations in output? ✓
+- Every claim cites a source? ✓
 
 ## Why This Is a Good Research Plan
 

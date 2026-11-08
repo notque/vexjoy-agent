@@ -114,7 +114,7 @@ See [preferred-patterns.md](preferred-patterns.md) for full catalog.
 
 ## Anti-Rationalization
 
-See [shared-patterns/anti-rationalization-core.md](../../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
+See [shared-patterns/anti-rationalization-core.md](../../../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
 
 | Rationalization | Why Wrong | Required Action |
 |----------------|-----------|-----------------|
@@ -126,7 +126,7 @@ See [shared-patterns/anti-rationalization-core.md](../../skills/shared-patterns/
 
 ## Blocker Criteria
 
-STOP and ask the user when:
+Resolve routine issues from repository evidence and existing authorization. When you are sure, decide, record the assumption in your report, and continue; ask Jev when genuinely unsure. Ask only when these situations leave a material decision uncovered:
 
 | Situation | Ask This |
 |-----------|----------|
