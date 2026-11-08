@@ -202,7 +202,7 @@ Reddit moderation via PRAW. Three modes:
 1. **FETCH** -- `python3 scripts/reddit-moderate/reddit-mod.py queue --json --limit 25 | python3 scripts/reddit-moderate/reddit-mod.py classify`. Loads subreddit context from `reddit-data/{subreddit}/`.
 2. **CLASSIFY** -- Fill `classification`, `confidence`, and `reasoning` for each item using the assembled prompt.
 3. **PRESENT** -- Group by confidence tier (high/medium/low). Show: title, author, report reason, classification, action, reasoning.
-4. **ACT** -- Execute confirmed actions: `python3 scripts/reddit-moderate/reddit-mod.py action --item-id ID --action approve|remove|spam`.
+4. **ACT** -- Execute confirmed actions: `python3 scripts/reddit-moderate/reddit-mod.py approve --id ID`, or `python3 scripts/reddit-moderate/reddit-mod.py remove --id ID --reason REASON` (add `--spam` for spam).
 
 ---
 

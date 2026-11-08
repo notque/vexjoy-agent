@@ -11,7 +11,7 @@ Real-world examples of skill compositions with complete execution flows.
 
 ### Skill Discovery Output
 ```bash
-$ python3 ~/.claude/scripts/discover_skills.py \
+$ python3 ~/.claude/skills/toolkit/scripts/skill-composer/discover_skills.py \
     --skills-dir ./skills \
     --output /tmp/skill-index.json
 ```
@@ -49,7 +49,7 @@ Skills with dependencies: 4
 
 ### DAG Building Output
 ```bash
-$ python3 ~/.claude/scripts/build_dag.py \
+$ python3 ~/.claude/skills/toolkit/scripts/skill-composer/build_dag.py \
     --task "Add rate limiting middleware with comprehensive tests" \
     --skill-index /tmp/skill-index.json \
     --output /tmp/execution-dag.json
@@ -92,7 +92,7 @@ Summary:
 
 ### Validation Output
 ```bash
-$ python3 ~/.claude/scripts/validate.py \
+$ python3 ~/.claude/skills/toolkit/scripts/skill-composer/validate.py \
     --dag /tmp/execution-dag.json \
     --skill-index /tmp/skill-index.json
 ```

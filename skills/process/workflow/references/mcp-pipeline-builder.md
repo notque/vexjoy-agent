@@ -275,7 +275,7 @@ Pass `--project` to write to `.claude/settings.json` in the current directory (p
 Run the registration script:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/register_mcp.py \
+python3 ${CLAUDE_SKILL_DIR}/references/mcp-pipeline-builder/scripts/register_mcp.py \
   --name {server-slug} \
   --command node \
   --args {absolute-path-to-dist/index.js} \
@@ -286,7 +286,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/register_mcp.py \
 
 For Python servers:
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/register_mcp.py \
+python3 ${CLAUDE_SKILL_DIR}/references/mcp-pipeline-builder/scripts/register_mcp.py \
   --name {server-slug} \
   --command python3 \
   --args {absolute-path-to-src/main.py} \

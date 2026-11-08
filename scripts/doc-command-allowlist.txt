@@ -1,0 +1,10 @@
+# Allowlist for `validate-doc-commands.py --scope toolkit`: script calls in skills/, agents/ and
+# commands/ markdown that the checker cannot verify against this repo.
+# Format: doc-glob :: script-as-written-glob :: reason   (fnmatch globs; `*` also crosses `/`)
+# An entry that no longer covers any finding is reported as stale, so remove it once the call is fixed.
+agents/hook-development-engineer/references/preferred-patterns.md :: *hooks/my-hook.py :: placeholder name in a how-to-write-a-hook example
+skills/meta/toolkit/references/skill-creator/skill-template.md :: scripts/validate.py :: example wording for a new skill's own script, not a toolkit script
+skills/game/game-trailer/* :: scripts/promo/* :: runs in the game repo checkout, where scripts/promo/ lives; not part of this repo
+skills/content/content/SKILL.md :: ~/.claude/scripts/bluesky_reader.py :: script deleted in the skills consolidation (#993); the Bluesky section needs an owner call to drop or replace it
+skills/* :: *scripts/voice-analyzer.py :: removed from the public tree in 4e9076ef; about 40 voice-doc lines still call it and need an owner call on the replacement (voice-stylometry.py has a different interface)
+skills/* :: *scripts/voice-validator.py :: removed from the public tree in 4e9076ef, same as voice-analyzer.py

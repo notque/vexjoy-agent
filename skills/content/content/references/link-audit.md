@@ -15,7 +15,7 @@ Read and follow the repository CLAUDE.md before starting any audit.
 Scan all markdown files in `content/` because even small sites with 10 posts can have orphan pages, and partial scans miss graph-level issues. Locate the Hugo content directory and enumerate all markdown files:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/link_scanner.py ~/your-blog/content/
+python3 ${CLAUDE_SKILL_DIR}/scripts/publish/link_scanner.py ~/your-blog/content/
 # Options: --check-external, --min-inbound 3, --json
 ```
 

@@ -461,7 +461,7 @@ Evaluation has three tiers, applied in order:
 
 **Tier 3: Human review (optional)** -- generate the comparison viewer:
 ```bash
-python3 scripts/eval_compare.py path/to/workspace
+python3 ~/.claude/skills/toolkit/scripts/skill-creator/eval_compare.py path/to/workspace
 open path/to/workspace/compare_report.html
 ```
 
