@@ -21,13 +21,24 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from vexinstall import adapters, common, fsops, gitutil, profile, sources
+from vexinstall import adapters, common, fsops, gitutil, plan, profile, sources
 from vexinstall import settings as settings_mod
 from vexinstall.adapters import ADAPTERS
 from vexinstall.cli import build_parser, dispatch, to_options
 from vexinstall.context import Result
 
-__all__ = ["ADAPTERS", "SUPPORT", "TARGETS", "adapters", "common", "fsops", "profile", "settings_mod", "sources"]
+__all__ = [
+    "ADAPTERS",
+    "SUPPORT",
+    "TARGETS",
+    "adapters",
+    "common",
+    "fsops",
+    "plan",
+    "profile",
+    "settings_mod",
+    "sources",
+]
 
 TARGETS = ("claude", "codex", "factory", "hermes", "reasonix", "antigravity", "cline")
 PUBLIC_SKILLS = {

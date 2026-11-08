@@ -8,8 +8,11 @@ Hermetic: temp HOME, fixture repo, temp profile file.
 
 from __future__ import annotations
 
+import functools
 import json
 import os
+import tempfile
+import types
 from pathlib import Path
 
 import pytest
@@ -21,7 +24,10 @@ from scripts.tests.vexinstall_support import (
     Env,
     adapters,
     bulk_world,
+    commit_all,
     expected_skill_names,
+    fsops,
+    plan,
     profile,
     world,
 )
@@ -38,10 +44,31 @@ MODES = ("symlink", "copy")
 DISABLED_SKILLS = ("beta", "private-one", "voice-v1")
 DISABLED_AGENT = "b-eng"
 DISABLED_HOOK = "h1.py"  # in both fixture allowlists (codex, reasonix)
+ENABLED_HOOKS = {"h2.py", "h3.py", "lib"}  # ~/.claude/hooks while DISABLED_HOOK is disabled
+WHOLE_HOOKS = {"h1.py", "h2.py", "h3.py", "lib", "tests"}  # the whole-dir copy of repo hooks/
+NEW_H2 = "# hook h2.py v2\n"
 
 
 def _ok(res) -> None:
     assert res.code == 0, f"exit {res.code}\nout={res.out}\nerr={res.err}"
+
+
+@functools.cache
+def _can_symlink() -> bool:
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            os.symlink(tmp, os.path.join(tmp, "probe"))
+        except (OSError, NotImplementedError):
+            return False
+    return True
+
+
+@pytest.fixture(params=MODES)
+def mode(request: pytest.FixtureRequest) -> str:
+    """Install mode; symlink mode skips on a host that refuses links (Windows without Developer Mode)."""
+    if request.param == "symlink" and not _can_symlink():
+        pytest.skip("host cannot create symlinks")
+    return request.param
 
 
 def _entries(path: Path) -> set[str]:
@@ -96,16 +123,20 @@ def test_fresh_apply_skips_disabled_items(world: Env, profile_file: Path, target
 
 
 @pytest.mark.parametrize("target", ["claude", "reasonix"])
-def test_profile_added_then_cleared_round_trips(world: Env, profile_file: Path, target: str) -> None:
-    _ok(world.run("apply", "--target", target))
+def test_profile_added_then_cleared_round_trips(world: Env, profile_file: Path, target: str, mode: str) -> None:
+    _ok(world.run("apply", "--target", target, "--mode", mode))
     before = _entries(world.skills(target))
     _write_profile(profile_file)
-    plan = world.run("plan", "--target", target, "--json")
-    _ok(plan)
-    actions = plan.data["targets"][target]["actions"]
+    res = world.run("plan", "--target", target, "--json")
+    _ok(res)
+    actions = res.data["targets"][target]["actions"]
     removed = {Path(a["dest"]).name for a in actions if a["op"] == "remove"}
     assert set(DISABLED_SKILLS) <= removed
-    assert all(a["reason"] == "disabled by install profile" for a in actions if a["op"] == "remove")
+    hooks = world.root(target) / "hooks"
+    for a in actions:
+        if a["op"] == "remove" and a["reason"] != plan.PROFILE_REASON:
+            # A whole-dir hooks copy turned per-entry drops what that layout skips (hooks/tests).
+            assert (a["reason"], Path(a["dest"]).parent) == (plan.LEFTOVER_REASON, hooks), a
     _ok(world.run("apply", "--target", target))
     _assert_filtered(world, target)
 
@@ -113,10 +144,202 @@ def test_profile_added_then_cleared_round_trips(world: Env, profile_file: Path, 
     _ok(world.run("apply", "--target", target))
     assert _entries(world.skills(target)) == before
     if ADAPTERS[target].hooks == "whole":
-        assert os.path.islink(world.root(target) / "hooks"), "cleared hook profile restores the whole-dir link"
+        assert os.path.islink(hooks) == (mode == "symlink"), "cleared hook profile restores the whole-dir entry"
+        assert _entries(hooks) == WHOLE_HOOKS
     again = world.run("apply", "--target", target)
     _ok(again)
     assert again.out[0].startswith(f"[apply] {target}: +0 ~0 -0,"), again.out[0]
+
+
+# ---------------------------------------------------------------- whole-dir hooks <-> per-entry hooks
+
+
+def _hook_profile(path: Path) -> Path:
+    """A profile that disables only DISABLED_HOOK, which turns claude hooks per-entry."""
+    return _write_profile(path, skills=(), agents=())
+
+
+def _hook_actions(env: Env) -> list[dict]:
+    hooks = env.root("claude") / "hooks"
+    res = env.run("plan", "--target", "claude", "--json")
+    _ok(res)
+    return [a for a in res.data["targets"]["claude"]["actions"] if Path(a["dest"]).is_relative_to(hooks)]
+
+
+def _hook_records(env: Env) -> set[str]:
+    hooks = env.root("claude") / "hooks"
+    return {d for d in env.ledger_dests("claude") if Path(d).is_relative_to(hooks)}
+
+
+def _trashed(env: Env) -> set[str]:
+    """Original path of every entry this world moved to trash."""
+    trash = env.home / ".claude" / "vexjoy" / "trash"
+    return {
+        item["original"]
+        for manifest in trash.glob("*/manifest.json")
+        for item in json.loads(manifest.read_text(encoding="utf-8"))["items"]
+    }
+
+
+def _ids(hooks: Path) -> dict[str, int]:
+    return {name: os.stat(hooks / name).st_ino for name in ("h2.py", "h3.py", "lib/util.py")}
+
+
+def _assert_clean_rerun(env: Env) -> None:
+    again = env.run("sync", "--target", "claude")
+    _ok(again)
+    assert again.out[0].startswith("[sync] claude: +0 ~0 -0,"), again.out[0]
+
+
+def test_a_hook_profile_keeps_every_enabled_hook_installed(world: Env, profile_file: Path, mode: str) -> None:
+    """Before, copy mode planned a remove for the whole-dir hooks record beside an adopt for each
+    of its files. Removals run first, so the sync trashed ~/.claude/hooks, the SessionStart sync
+    hook that could repair it included, and still exited 0."""
+    _ok(world.run("apply", "--target", "claude", "--mode", mode))
+    hooks = world.root("claude") / "hooks"
+    before = _ids(hooks) if mode == "copy" else {}
+    _hook_profile(profile_file)
+    actions = _hook_actions(world)
+    assert not [a for a in actions if a["dest"] == str(hooks) and a["op"] == "remove"], actions
+    forget = next(a for a in actions if a["dest"] == str(hooks) and a["op"] == "forget")
+    assert forget["reason"] == plan.SPLIT_REASON
+
+    _ok(world.run("sync", "--target", "claude"))
+    assert hooks.is_dir() and not hooks.is_symlink()
+    assert _entries(hooks) == ENABLED_HOOKS and _entries(hooks / "lib") == {"util.py", "more.py"}
+    assert _hook_records(world) == {str(hooks / n) for n in ("h2.py", "h3.py", "lib/util.py", "lib/more.py")}
+    if mode == "copy":
+        # The enabled files never moved; only what the per-entry layout skips went to trash.
+        assert _ids(hooks) == before
+        assert _trashed(world) == {str(hooks / DISABLED_HOOK), str(hooks / "tests")}
+    else:
+        assert (hooks / "h2.py").is_symlink() and _trashed(world) == {str(hooks)}
+    _assert_clean_rerun(world)
+
+
+def test_clearing_the_hook_profile_folds_the_hooks_back_into_one_entry(
+    world: Env, profile_file: Path, mode: str
+) -> None:
+    _hook_profile(profile_file)
+    _ok(world.run("apply", "--target", "claude", "--mode", mode))
+    hooks = world.root("claude") / "hooks"
+    per_entry = _hook_records(world)
+    profile_file.unlink()
+    actions = _hook_actions(world)
+    assert {a["dest"] for a in actions if a["op"] == "remove"} == per_entry
+    assert all(a["reason"] == plan.COLLAPSE_REASON for a in actions if a["op"] == "remove")
+    [whole] = [a for a in actions if a["dest"] == str(hooks)]
+    assert whole["op"] == "replace" and whole["adopt"], whole
+
+    _ok(world.run("sync", "--target", "claude"))
+    assert os.path.islink(hooks) == (mode == "symlink") and _entries(hooks) == WHOLE_HOOKS
+    assert _hook_records(world) == {str(hooks)}
+    # The per-entry files left inside the old dir in one move, not one by one ahead of it.
+    assert _trashed(world) == {str(hooks)}
+    _assert_clean_rerun(world)
+
+
+def test_a_hook_changed_in_the_repo_is_updated_by_either_switch(world: Env, profile_file: Path, mode: str) -> None:
+    """Before, a per-entry copy older than its source (a pull and a profile change in one sync)
+    made the whole-dir entry unadoptable: the sync blocked it, still trashed every per-entry hook,
+    and left ~/.claude/hooks empty and blocked from then on."""
+    _ok(world.run("apply", "--target", "claude", "--mode", mode))
+    hooks = world.root("claude") / "hooks"
+    (world.repo / "hooks" / "h2.py").write_text(NEW_H2, encoding="utf-8")
+    commit_all(world.repo, "h2 v2")
+    _hook_profile(profile_file)
+    _ok(world.run("sync", "--target", "claude"))
+    assert _entries(hooks) == ENABLED_HOOKS and (hooks / "h2.py").read_text() == NEW_H2
+
+    (world.repo / "hooks" / "h3.py").write_text("# hook h3.py v2\n", encoding="utf-8")
+    commit_all(world.repo, "h3 v2")
+    profile_file.unlink()
+    _ok(world.run("sync", "--target", "claude"))
+    assert _entries(hooks) == WHOLE_HOOKS and (hooks / "h3.py").read_text() == "# hook h3.py v2\n"
+    assert _hook_records(world) == {str(hooks)}
+    _assert_clean_rerun(world)
+
+
+def test_a_user_edit_keeps_the_hooks_per_entry(world: Env, profile_file: Path) -> None:
+    """Before, the fold skipped the edited hook, trashed the rest, and blocked the whole-dir entry."""
+    _hook_profile(profile_file)
+    _ok(world.run("apply", "--target", "claude", "--mode", "copy"))
+    hooks = world.root("claude") / "hooks"
+    (hooks / "h2.py").write_text("# my h2\n", encoding="utf-8")
+    records = _hook_records(world)
+    profile_file.unlink()
+    [whole] = _hook_actions(world)
+    assert (whole["op"], whole["reason"]) == ("skip", "user-edited copy h2.py inside; not replaced")
+
+    _ok(world.run("sync", "--target", "claude"))
+    _ok(world.run("apply", "--target", "claude", "--takeover"))
+    assert _entries(hooks) == ENABLED_HOOKS and (hooks / "h2.py").read_text() == "# my h2\n"
+    assert _hook_records(world) == records and _trashed(world) == set()
+
+
+def test_an_unowned_file_blocks_the_fold_until_takeover(world: Env, profile_file: Path, mode: str) -> None:
+    _hook_profile(profile_file)
+    _ok(world.run("apply", "--target", "claude", "--mode", mode))
+    hooks = world.root("claude") / "hooks"
+    (hooks / "mine.py").write_text("# mine\n", encoding="utf-8")
+    records = _hook_records(world)
+    profile_file.unlink()
+    [whole] = _hook_actions(world)
+    assert (whole["op"], whole["reason"]) == ("blocked", "unowned file mine.py inside")
+
+    _ok(world.run("sync", "--target", "claude"))
+    assert _entries(hooks) == ENABLED_HOOKS | {"mine.py"} and _hook_records(world) == records
+
+    _ok(world.run("apply", "--target", "claude", "--takeover"))
+    assert _entries(hooks) == WHOLE_HOOKS and _hook_records(world) == {str(hooks)}
+    assert _trashed(world) == {str(hooks)}
+
+
+def test_a_user_edited_whole_dir_copy_stays_as_it_is(world: Env, profile_file: Path) -> None:
+    """The engine stops updating a copy the user edited, so the split leaves it alone, takeover included."""
+    _ok(world.run("apply", "--target", "claude", "--mode", "copy"))
+    hooks = world.root("claude") / "hooks"
+    (hooks / "h2.py").write_text("# my h2\n", encoding="utf-8")
+    _hook_profile(profile_file)
+    actions = _hook_actions(world)
+    assert {(Path(a["dest"]).name, a["op"]) for a in actions} == {
+        ("hooks", "skip"),
+        *((n, "skip") for n in ("h2.py", "h3.py", "util.py", "more.py")),
+    }, actions
+
+    _ok(world.run("sync", "--target", "claude"))
+    _ok(world.run("apply", "--target", "claude", "--takeover"))
+    assert _entries(hooks) == WHOLE_HOOKS and (hooks / "h2.py").read_text() == "# my h2\n"
+    assert _hook_records(world) == {str(hooks)} and _trashed(world) == set()
+
+
+def test_a_fold_that_cannot_place_the_dir_leaves_every_hook_installed(
+    world: Env, profile_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Windows keeps ~/.claude/hooks busy while a hook runs in it. The per-entry files and their
+    records stay until the whole-dir entry is placed, so a failed move costs nothing."""
+    _hook_profile(profile_file)
+    _ok(world.run("apply", "--target", "claude", "--mode", "copy"))
+    hooks = world.root("claude") / "hooks"
+    records = _hook_records(world)
+    profile_file.unlink()
+    real_rename = os.rename
+
+    def busy(src: object, dst: object) -> None:
+        if os.fspath(src) == str(hooks):
+            raise type("WinError", (OSError,), {"winerror": 5})(13, "winerror 5")
+        real_rename(src, dst)
+
+    monkeypatch.setattr(fsops, "time", types.SimpleNamespace(sleep=lambda _s: None))
+    monkeypatch.setattr(os, "rename", busy)
+    res = world.run("sync", "--target", "claude")
+    _ok(res)
+    assert any(f"{hooks} not updated" in line for line in res.err), res.err
+    assert _entries(hooks) == ENABLED_HOOKS and _hook_records(world) == records
+
+    monkeypatch.setattr(os, "rename", real_rename)
+    _ok(world.run("sync", "--target", "claude"))
+    assert _entries(hooks) == WHOLE_HOOKS and _hook_records(world) == {str(hooks)}
 
 
 @pytest.mark.parametrize("target", ["claude"])
