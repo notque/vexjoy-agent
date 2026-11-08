@@ -46,6 +46,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -144,25 +145,66 @@ def save_state(feature_dir: Path, state: FeatureState) -> None:
 # Deterministic per-agent output cache for interrupted parallel agent waves.
 # Persisted in the resume artifact (HANDOFF.json) under "agent_outputs":
 #   {input_hash: {"output": str, "label": str, "timestamp": str}}
-# On resume, the prose flow hashes each agent's dispatch input and reuses the
-# cached output on a hit instead of re-dispatching — saving tokens. Missing or
-# absent agent_outputs is treated as an empty cache (backwards compatible).
+# On resume, the prose flow hashes each agent's dispatch input (prompt, inputs,
+# and the contents of every file the agent reads) and reuses the cached output
+# on a hit instead of re-dispatching — saving tokens. An edited file is a miss.
+# Missing or absent agent_outputs is treated as an empty cache (backwards
+# compatible).
 
 AGENT_OUTPUTS_KEY = "agent_outputs"
 
 
-def agent_input_hash(prompt: str, inputs: Any = None) -> str:
+_HASH_CHUNK = 1 << 16
+
+
+def _file_content_digest(path: Path) -> str | None:
+    """Return the SHA256 hex digest of a file's bytes, or None if it does not exist.
+
+    Raises:
+        ValueError: path names a directory; callers must list the files it holds.
+        OSError: the file exists but cannot be read. A read failure must not
+            fall back to a stale cache hit, so it propagates.
+    """
+    if path.is_dir():
+        raise ValueError(f"agent_input_hash paths must name files, not directories: {path}")
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(_HASH_CHUNK), b""):
+                digest.update(chunk)
+    except FileNotFoundError:
+        return None
+    return digest.hexdigest()
+
+
+def agent_input_hash(prompt: str, inputs: Any = None, paths: Iterable[str | os.PathLike[str]] | None = None) -> str:
     """Deterministic SHA256 hex digest over an agent's dispatch input.
 
-    Determinism is the contract: same prompt + same inputs → same hash, stable
-    across runs and processes. No wall-clock or randomness enters the digest.
-    `inputs` is normalized via json.dumps(sort_keys=True) so dict key ordering
-    does not change the hash; None and an empty inputs value hash identically.
+    Determinism is the contract: same prompt + same inputs + same file contents
+    → same hash, stable across runs and processes. No wall-clock or randomness
+    enters the digest. `inputs` is normalized via json.dumps(sort_keys=True) so
+    dict key ordering does not change the hash; None and an empty inputs value
+    hash identically.
+
+    `paths` lists every file the agent reads or judges. The sha256 of each
+    file's bytes enters the digest, so editing any listed file after a pause
+    changes the hash and forces a re-dispatch instead of reusing a verdict on
+    content that no longer exists. Paths are normalized and sorted, so order
+    and duplicates do not matter. A missing file hashes as an "absent" marker
+    that differs from an empty file. When `paths` is None or empty the digest
+    matches the prompt-and-inputs-only digest, so older handoffs still hit.
     """
-    normalized = {
+    normalized: dict[str, Any] = {
         "prompt": prompt,
         "inputs": inputs if inputs is not None else None,
     }
+    path_list = list(paths) if paths is not None else []
+    if path_list:
+        contents: dict[str, str | None] = {}
+        for raw in path_list:
+            key = Path(os.path.normpath(os.fspath(raw))).as_posix()
+            contents[key] = _file_content_digest(Path(raw))
+        normalized["paths"] = contents
     payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 

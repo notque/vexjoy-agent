@@ -6,7 +6,8 @@ hash, so an interrupted parallel agent wave can be resumed without re-dispatchin
 agents whose inputs are unchanged.
 
 Helpers under test (all pure Python, no wall-clock/randomness in the hash):
-- agent_input_hash(prompt, inputs=None) -> stable SHA256 hex digest
+- agent_input_hash(prompt, inputs=None, paths=None) -> stable SHA256 hex digest,
+  folding in the content hash of every listed file
 - load_agent_outputs(handoff) -> dict cache (backwards-compatible)
 - store_agent_output(handoff, input_hash, output, label, timestamp) -> handoff
 - lookup_agent_output(handoff, input_hash) -> cached entry or None
@@ -17,6 +18,8 @@ from __future__ import annotations
 import importlib
 import sys
 from pathlib import Path
+
+import pytest
 
 # ─── Path setup ─────────────────────────────────────────────────────────────
 
@@ -142,3 +145,66 @@ def test_store_into_legacy_handoff_creates_field() -> None:
     assert legacy_handoff["completed_tasks"] == ["a"]
     assert "agent_outputs" in legacy_handoff
     assert legacy_handoff["agent_outputs"]["h1"]["output"] == "o"
+
+
+# ─── File-content keying (stale review guard) ────────────────────────────────
+
+
+def test_hash_paths_unchanged_content_still_hits(tmp_path: Path) -> None:
+    """Same prompt and paths over unchanged files produce the same hash."""
+    f = tmp_path / "mod.py"
+    f.write_text("x = 1\n")
+    h1 = feature_state.agent_input_hash("review mod.py", paths=[f])
+    h2 = feature_state.agent_input_hash("review mod.py", paths=[f])
+    assert h1 == h2
+
+
+def test_hash_paths_edited_content_misses(tmp_path: Path) -> None:
+    """Editing a listed file after the pause changes the hash, so the cache misses."""
+    f = tmp_path / "mod.py"
+    f.write_text("x = 1\n")
+    handoff: dict = {}
+    before = feature_state.agent_input_hash("review mod.py", paths=[f])
+    feature_state.store_agent_output(handoff, before, "LGTM on x = 1", "reviewer", "t")
+
+    f.write_text("x = 2\n")
+    after = feature_state.agent_input_hash("review mod.py", paths=[f])
+
+    assert after != before
+    assert feature_state.lookup_agent_output(handoff, after) is None
+
+
+def test_hash_paths_order_and_duplicates_do_not_matter(tmp_path: Path) -> None:
+    """Path order and repeated paths do not change the hash."""
+    a = tmp_path / "a.py"
+    b = tmp_path / "b.py"
+    a.write_text("a\n")
+    b.write_text("b\n")
+    h1 = feature_state.agent_input_hash("review", paths=[a, b])
+    h2 = feature_state.agent_input_hash("review", paths=[str(b), a, a])
+    assert h1 == h2
+
+
+def test_hash_paths_missing_file_is_stable_and_differs_from_empty(tmp_path: Path) -> None:
+    """A missing file hashes to a stable absent marker that differs from an empty file."""
+    f = tmp_path / "gone.py"
+    absent1 = feature_state.agent_input_hash("review", paths=[f])
+    absent2 = feature_state.agent_input_hash("review", paths=[f])
+    f.write_text("")
+    empty = feature_state.agent_input_hash("review", paths=[f])
+    assert absent1 == absent2
+    assert absent1 != empty
+
+
+def test_hash_paths_none_or_empty_matches_legacy_digest() -> None:
+    """No paths keeps the prompt-and-inputs digest, so legacy handoffs still hit."""
+    legacy = feature_state.agent_input_hash("review", {"k": 1})
+    assert feature_state.agent_input_hash("review", {"k": 1}, paths=None) == legacy
+    assert feature_state.agent_input_hash("review", {"k": 1}, paths=[]) == legacy
+    assert feature_state.agent_input_hash("review", {"k": 1}, paths=iter([])) == legacy
+
+
+def test_hash_paths_rejects_directory(tmp_path: Path) -> None:
+    """A directory path is rejected; callers must list the files the agent reads."""
+    with pytest.raises(ValueError, match="not directories"):
+        feature_state.agent_input_hash("review", paths=[tmp_path])
