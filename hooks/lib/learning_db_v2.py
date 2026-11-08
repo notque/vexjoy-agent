@@ -47,23 +47,22 @@ CATEGORY_DEFAULTS = {
 
 VALID_CATEGORIES = set(CATEGORY_DEFAULTS.keys())
 
-# Confidence floor for injecting a learning into context. Shared by every
-# injector (hooks/pretool-learning-injector.py, hooks/session-context.py) so
-# the value cannot drift apart in two places.
+# Confidence floor for injecting a learning into context. Nothing in this repo
+# reads it now: the learning injectors, the confidence-decay.py Stop hook, and
+# hooks/tests/test_injection_floor.py were retired with the learning-capture
+# loop (97a8fc91). decay_confidence() below still lowers confidence, for
+# routing rows only.
 #
-# INVARIANT: the floor must sit strictly below the lowest birth confidence in
-# CATEGORY_DEFAULTS for any injectable category (error, at 0.55, is the lowest
-# today). Confidence rises only for learnings that get injected: an injected
-# hint is re-recorded and boosted, an un-injected one never is. So a floor at
-# or above birth confidence is a one-way ratchet -- a new learning never
-# injects, so it never gets boosted, so it never crosses the floor -- while
-# confidence-decay.py keeps pulling it down. A 0.70 floor against a 0.55 birth
-# confidence starved the injectable pool to 3 rows.
+# INVARIANT if an injector returns: the floor must sit strictly below the
+# lowest birth confidence in CATEGORY_DEFAULTS for any injectable category
+# (error, at 0.55, is the lowest today). Confidence rose only for learnings
+# that got injected, so a floor at or above birth confidence is a one-way
+# ratchet -- a new learning never injects, never gets boosted, never crosses
+# the floor -- while decay keeps pulling it down. A 0.70 floor against a 0.55
+# birth confidence starved the injectable pool to 3 rows.
 #
 # 0.5 also absorbs float drift: decay stores 0.55 - 0.05 as 0.5499999999999999,
 # strictly below a naive 0.55 floor.
-#
-# Enforced by hooks/tests/test_injection_floor.py.
 INJECTION_MIN_CONFIDENCE = 0.5
 
 

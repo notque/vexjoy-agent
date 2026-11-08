@@ -299,6 +299,53 @@ class TestDeduplication:
         assert len(load_entries(tmp_path)) == 2
 
 
+class TestSubagentTagging:
+    """Reads inside a subagent (event carries agent_id) are tagged, not parent reads."""
+
+    def test_subagent_read_is_tagged_with_agent(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        _, _, code = run_hook({**read_event("/sub.py"), "agent_id": "agent-7"})
+        assert code == 0
+        assert [(e["path"], e.get("agent")) for e in load_entries(tmp_path)] == [("/sub.py", "agent-7")]
+
+    def test_parent_read_has_no_agent_field(self, tmp_path, monkeypatch):
+        """agent_type alone (main thread under --agent) or a blank agent_id does not mark a subagent."""
+        monkeypatch.chdir(tmp_path)
+        run_hook({**read_event("/main.py"), "agent_type": "reviewer"})
+        run_hook({**read_event("/blank.py"), "agent_id": ""})
+        entries = load_entries(tmp_path)
+        assert [e["path"] for e in entries] == ["/main.py", "/blank.py"]
+        assert all("agent" not in e for e in entries)
+
+    def test_parent_read_upgrades_earlier_subagent_entry(self, tmp_path, monkeypatch):
+        """A main-thread read of a path a subagent logged still counts as a parent read."""
+        monkeypatch.chdir(tmp_path)
+        run_hook({**read_event("/shared.py"), "agent_id": "agent-1"})
+        run_hook(read_event("/other.py"))
+        run_hook(read_event("/shared.py"))
+        entries = load_entries(tmp_path)
+        assert [(e["path"], e.get("agent")) for e in entries] == [("/other.py", None), ("/shared.py", None)]
+
+    def test_subagent_read_keeps_existing_parent_entry(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        run_hook(read_event("/shared.py"))
+        run_hook({**read_event("/shared.py"), "agent_id": "agent-1"})
+        assert [(e["path"], e.get("agent")) for e in load_entries(tmp_path)] == [("/shared.py", None)]
+
+    def test_subagent_bash_read_is_tagged(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "notes.txt").write_text("x")
+        run_hook(
+            {
+                "tool_name": "Bash",
+                "session_id": "sess-1",
+                "agent_id": "agent-2",
+                "tool_input": {"command": "cat notes.txt"},
+            }
+        )
+        assert [(e["path"], e.get("agent")) for e in load_entries(tmp_path)] == [("notes.txt", "agent-2")]
+
+
 # ---------------------------------------------------------------------------
 # Output Format
 # ---------------------------------------------------------------------------
