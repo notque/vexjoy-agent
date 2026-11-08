@@ -135,7 +135,7 @@ Reviewed the cache layer. One should-fix around eviction; overall acceptable.
 - Clear separation between store and policy.
 - Good table-driven tests.
 
-## Verdict: REQUEST-CHANGES
+## Verdict: BLOCK
 
 Rationale: eviction gap should be addressed before merge.
 """
@@ -147,7 +147,7 @@ def _build_corpus() -> list[Item]:
     # ===================== PARALLEL — VALID (negatives) ====================
     items.append(Item("P01", "parallel", "valid", "none — canonical well-formed", PARALLEL_VALID))
 
-    # Valid but APPROVE with zero findings (edge: clean review still well-formed)
+    # Valid but PASS with zero findings (edge: clean review still well-formed)
     items.append(
         Item(
             "P02",
@@ -176,7 +176,7 @@ All three reviewers found the diff clean. No issues across domains.
 | Business-Logic | 0        | 0    | 0      | 0   |
 | Architecture   | 0        | 0    | 0      | 0   |
 
-**APPROVE** - No issues found across security, logic, or architecture.
+**PASS** - No issues found across security, logic, or architecture.
 """,
         )
     )
@@ -226,7 +226,7 @@ All three reviewers found the diff clean. No issues across domains.
         )
     )
 
-    # Invalid verdict value (not in enum BLOCK/FIX/APPROVE).
+    # Invalid verdict value (not in enum PASS/NEEDS_CHANGES/BLOCK).
     items.append(
         Item(
             "P07",
@@ -243,7 +243,7 @@ All three reviewers found the diff clean. No issues across domains.
     # ==================== SYSTEMATIC — VALID (negatives) ===================
     items.append(Item("S01", "systematic", "valid", "none — canonical well-formed", SYSTEMATIC_VALID))
 
-    # Valid APPROVE, low risk, only positives.
+    # Valid PASS, low risk, only positives.
     items.append(
         Item(
             "S02",
@@ -262,7 +262,7 @@ Small, well-scoped refactor. No correctness concerns.
 - Pure rename with no behavior change.
 - Tests updated alongside.
 
-## Verdict: APPROVE
+## Verdict: PASS
 
 Rationale: low-risk mechanical change, safe to merge.
 """,
@@ -305,7 +305,7 @@ Rationale: low-risk mechanical change, safe to merge.
             "systematic",
             "malformed",
             "invalid verdict value (LGTM not in enum)",
-            SYSTEMATIC_VALID.replace("## Verdict: REQUEST-CHANGES", "## Verdict: LGTM"),
+            SYSTEMATIC_VALID.replace("## Verdict: BLOCK", "## Verdict: LGTM"),
         )
     )
 

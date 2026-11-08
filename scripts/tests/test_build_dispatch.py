@@ -7,7 +7,7 @@ Covers:
   complexity, model, health gate inputs (numeric and `health=-`), alts, stack.
 - Model enforcement: required for medium/complex, optional for trivial/simple.
 - Preamble completeness and block order: marker first, exact Skill-tool calls,
-  then thinking directive, token line, Task Specification, the 4 mandatory injections,
+  then thinking directive, token line, Task Specification, the 6 mandatory injections,
   optional worktree/local-only blocks.
 - Thinking directive by complexity + slow/fast overrides.
 - Graceful degradation: missing optional fields omit their block only.
@@ -326,29 +326,29 @@ def test_render_skill_calls_without_summary_falls_back_to_reference(monkeypatch)
     assert calls == "Read and follow ~/.gemini/skills/pr-workflow/SKILL.md before starting work."
 
 
-def test_trigger_phrase_and_category_alias_coerce_to_canonical_skill():
-    mapping = bd._trigger_to_skill_map()
-    alias = next(
-        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
+def _review_only_alias() -> str:
+    """A one-word trigger or category of the public index that only review claims."""
+    return next(
+        a
+        for a, owners in bd._trigger_claims().items()
+        if owners == ("review",) and a != "review" and a.replace("-", "").isalnum()
     )
+
+
+def test_trigger_phrase_and_category_alias_coerce_to_canonical_skill():
+    alias = _review_only_alias()
     calls = bd.render_skill_calls(_decision(skill=alias, stack=[]))
     assert calls == "Call the Skill tool with `review`."
 
 
 def test_marker_records_the_canonical_skill_for_a_coerced_alias():
-    mapping = bd._trigger_to_skill_map()
-    alias = next(
-        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
-    )
+    alias = _review_only_alias()
     first_line = _preamble(_decision(skill=alias, stack=[])).splitlines()[0]
     assert " skill=review " in first_line + " "
 
 
 def test_coerced_alias_is_deduplicated_against_its_canonical_skill():
-    mapping = bd._trigger_to_skill_map()
-    alias = next(
-        a for a, canon in mapping.items() if canon == "review" and a != "review" and a.replace("-", "").isalnum()
-    )
+    alias = _review_only_alias()
     calls = bd.render_skill_calls(_decision(skill="review", stack=[alias]))
     assert calls == "Call the Skill tool with `review`."
 
@@ -356,6 +356,78 @@ def test_coerced_alias_is_deduplicated_against_its_canonical_skill():
 def test_alias_to_unknown_skill_still_fails_closed():
     with pytest.raises(bd.InputError, match="absent from"):
         _preamble(_decision(skill="zz-no-such-trigger", stack=[]))
+
+
+# Categories several skills share, as the installed index on the owner's machine
+# carries them. "quuxcorp-ui-modding" stands in for a private overlay skill.
+SHARED_ALIAS_SKILLS = {
+    "programming": {"category": "language", "triggers": ["go test"]},
+    "quuxcorp-ui-modding": {"category": "language", "triggers": ["quuxcorp ui"]},
+    "browser-jev-automation": {"category": "infrastructure", "triggers": ["drive the browser"]},
+    "deploy": {"category": "infrastructure", "triggers": ["deploy website"]},
+    "architecture-deepening": {"category": "analysis", "triggers": ["deepen the architecture"]},
+    "assessment": {"category": "analysis", "triggers": ["explain the codebase"]},
+    "data": {"category": "analysis", "triggers": ["etl job"]},
+    "review": {"category": "code-review", "triggers": ["pr-review"]},
+}
+
+
+@pytest.fixture
+def shared_alias_index(tmp_path, monkeypatch):
+    """An installed index where three categories belong to more than one skill."""
+    index = tmp_path / "index"
+    index.mkdir()
+    (index / "skills.json").write_text(json.dumps({"skills": SHARED_ALIAS_SKILLS}), encoding="utf-8")
+    (index / "agents.json").write_text(
+        json.dumps({"agents": {"python-general-engineer": {"short_description": "Python."}}}), encoding="utf-8"
+    )
+    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(index))
+    bd._trigger_claims.cache_clear()
+    yield index
+    bd._trigger_claims.cache_clear()
+
+
+@pytest.mark.parametrize(
+    ("alias", "candidates"),
+    [
+        ("language", ["programming", "quuxcorp-ui-modding"]),
+        ("infrastructure", ["browser-jev-automation", "deploy"]),
+        ("analysis", ["architecture-deepening", "assessment", "data"]),
+    ],
+)
+def test_alias_several_skills_share_is_an_error_naming_them(shared_alias_index, alias, candidates):
+    # Coercing to the first claimant loaded an unrelated skill: "language"
+    # became a private modding skill and "infrastructure" the browser driver.
+    with pytest.raises(bd.InputError) as raised:
+        bd.render_skill_calls(_decision(skill=alias, stack=[]))
+    message = str(raised.value)
+    assert f"{alias!r}" in message
+    assert ", ".join(candidates) in message
+
+
+def test_shared_alias_in_the_stack_is_an_error_too(shared_alias_index):
+    with pytest.raises(bd.InputError, match="browser-jev-automation, deploy"):
+        bd.render_skill_calls(_decision(skill="review", stack=["infrastructure"]))
+
+
+@pytest.mark.parametrize("alias", ["pr-review", "code-review"])
+def test_alias_one_skill_claims_still_coerces(shared_alias_index, alias):
+    assert bd.render_skill_calls(_decision(skill=alias, stack=[])) == "Call the Skill tool with `review`."
+
+
+def test_cli_shared_alias_exits_2_naming_the_candidates(shared_alias_index):
+    decision = _decision(skill="infrastructure", stack=[], complexity="simple")
+    result = _run_cli("--json", json.dumps(decision), "--no-gather", "--no-record")
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "browser-jev-automation, deploy" in result.stderr
+
+
+@pytest.mark.parametrize(("skill", "stack"), [("do", []), ("d", []), ("testing", ["do"])])
+def test_router_entry_points_are_not_skill_calls(skill, stack):
+    # "Call the Skill tool with `do`" re-enters the router on the same request.
+    with pytest.raises(bd.InputError, match="router entry point"):
+        bd.render_skill_calls(_decision(skill=skill, stack=stack))
 
 
 def test_shared_pattern_stack_entry_is_not_a_skill_call():

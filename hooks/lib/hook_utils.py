@@ -569,6 +569,92 @@ def _redact_secrets(text: str) -> str:
     return _secrets_pattern().sub("<redacted>", text)
 
 
+def _tighten_if_owned(fd: int) -> None:
+    """Set an open file to 0600 when the current user owns it and it is group/other accessible.
+
+    A file owned by someone else is left alone. No-op where uid or fchmod is unavailable.
+    """
+    getuid = getattr(os, "getuid", None)
+    fchmod = getattr(os, "fchmod", None)
+    if getuid is None or fchmod is None:
+        return
+    try:
+        st = os.fstat(fd)
+        if st.st_uid == getuid() and st.st_mode & 0o077:
+            fchmod(fd, 0o600)
+    except OSError:
+        pass
+
+
+def ensure_owner_only_dir(path: Path) -> None:
+    """Create ``path`` (and parents) if missing; the directory itself is created 0700.
+
+    An existing directory is never chmodded.
+    """
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+
+def ensure_owner_only_file(path: Path) -> None:
+    """Create ``path`` as an empty 0600 file if missing, or tighten it to 0600 if the current user owns it.
+
+    For files another library opens itself (SQLite databases): call before the
+    first connect so the database, and the -wal/-shm files SQLite gives the same
+    mode, never exist group- or world-readable. Best-effort: an OSError (read-only
+    file or directory) is left for the caller's own open to report.
+    """
+    try:
+        fd = os.open(str(path), os.O_RDONLY | os.O_CREAT, 0o600)
+    except OSError:
+        return
+    try:
+        _tighten_if_owned(fd)
+    finally:
+        os.close(fd)
+
+
+def open_owner_only_append(path: Path, follow_symlinks: bool = True):
+    """Open ``path`` for text append, creating it 0600; an existing file is tightened only if owned.
+
+    The mode is passed to os.open, so a new file is never briefly readable by
+    others, whatever the umask. ``follow_symlinks=False`` refuses a symlink at
+    ``path`` (OSError), for files in shared directories such as /tmp.
+    """
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT
+    if not follow_symlinks:
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(str(path), flags, 0o600)
+    try:
+        _tighten_if_owned(fd)
+        return os.fdopen(fd, "a", encoding="utf-8")
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def hook_debug_enabled() -> bool:
+    """True when CLAUDE_HOOKS_DEBUG is set (the toolkit's hook debugging switch)."""
+    return bool(os.environ.get("CLAUDE_HOOKS_DEBUG"))
+
+
+def append_hook_debug_log(path: Path, line: str) -> None:
+    """Append one line to a hook debug log, only when hook debugging is on.
+
+    The log is created 0600. The log lives in a shared directory (/tmp), so a
+    file another account owns is never written to and a symlink is never
+    followed. Never raises.
+    """
+    if not hook_debug_enabled():
+        return
+    try:
+        with open_owner_only_append(path, follow_symlinks=False) as f:
+            getuid = getattr(os, "getuid", None)
+            if getuid is not None and os.fstat(f.fileno()).st_uid != getuid():
+                return
+            f.write(line + "\n")
+    except Exception:
+        pass
+
+
 def hook_error(hook_name: str, exc: BaseException) -> None:
     """Unconditional one-liner to stderr + append to hook-errors.jsonl.
 
@@ -603,8 +689,8 @@ def hook_error(hook_name: str, exc: BaseException) -> None:
             }
         )
         path = _hook_errors_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "a", encoding="utf-8") as f:
+        ensure_owner_only_dir(path.parent)
+        with open_owner_only_append(path) as f:
             f.write(entry + "\n")
     except Exception:
         pass

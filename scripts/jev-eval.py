@@ -96,9 +96,11 @@ def case_workload(case: dict) -> str | None:
 
 def run_d_route(case: dict, project: dict | None, timeout: float, model: str, scratch: Path) -> dict:
     """prepare -> session-model pick -> finalize for one case. Never raises: a failure
-    becomes a harness-error row with no agent or skill."""
+    becomes a harness-error row with no agent or skill. ``timeout`` is the Jev
+    timeout the prepare step (`jev-route.py --timeout`) runs with."""
     try:
-        return d_route_model.pick_route(case["request"], project, model, scratch)
+        prepared = d_route_model.prepare(case["request"], project, timeout=timeout)
+        return d_route_model.pick_route(case["request"], project, model, scratch, prepared=prepared)
     except Exception as exc:
         return {
             "source": "harness-error",

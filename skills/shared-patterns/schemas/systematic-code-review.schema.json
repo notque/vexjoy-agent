@@ -2,13 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "systematic-code-review.schema.json",
   "title": "Systematic Code Review Output Schema",
-  "description": "Schema for 4-phase systematic code review output. Verdict: APPROVE, REQUEST-CHANGES, or NEEDS-DISCUSSION. Severity tiers: blocking, should_fix, suggestions.",
+  "description": "Schema for 4-phase systematic code review output. Verdict: PASS, NEEDS_CHANGES, or BLOCK (any blocking finding needs BLOCK; a should_fix finding rules out PASS). Severity tiers: blocking, should_fix, suggestions.",
   "type": "object",
   "required": ["verdict", "findings", "risk_level"],
   "properties": {
     "verdict": {
       "type": "string",
-      "enum": ["APPROVE", "REQUEST-CHANGES", "NEEDS-DISCUSSION"]
+      "enum": ["PASS", "NEEDS_CHANGES", "BLOCK"]
     },
     "summary": {
       "type": "string",

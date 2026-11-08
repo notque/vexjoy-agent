@@ -28,6 +28,17 @@ Three ways an entry goes wrong, one check each:
                      case: comprehensive-review and toolkit-improvement each
                      declared none while their docs defined 13 and 10.
 
+  P4 FRONTMATTER-DRIFT  ``pairs_with`` (or ``triggers``) differs from the
+                     ``routing:`` frontmatter of the referenced doc, which is
+                     the source of truth (/do SKILL.md). Live case: 14 of 26
+                     entries disagreed after hand edits; game-dev paired with
+                     itself. Retired names in frontmatter compare as their
+                     successor (RETIRED_PAIRS). Triggers compare only for
+                     pipeline docs: a SKILL.md's triggers route the skill, and
+                     its pipeline entry keeps its own narrower set.
+
+  P5 DUPLICATE       A name repeats in ``pairs_with`` or ``triggers``.
+
 Phase matching is deliberately loose — a declared phase counts as present when
 it appears anywhere in any heading line, case-insensitively. Docs number and
 decorate their headings ("## Phase 3c: WAVE 3 DISPATCH — Adversarial
@@ -53,8 +64,99 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.frontmatter import parse_frontmatter
 
 DEFAULT_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
+
+
+# Components #993 retired that pipeline frontmatter still names, mapped to the
+# name the index uses instead (None: dropped, no routable successor). Fixing
+# the frontmatter shrinks this map; stale_retired_names() fails on a name no
+# frontmatter uses any more, so the map cannot outlive the debt.
+RETIRED_PAIRS: dict[str, str | None] = {
+    "agent-evaluation": "toolkit",
+    "codebase-overview": "assessment",
+    "parallel-code-review": "review",
+    "pipeline-retro": None,
+    "planning": "workflow",
+    "research-pipeline": "research",
+    "routing-table-updater": "toolkit",
+    "systematic-code-review": "review",
+    "voice-validator": "writing",
+}
+
+
+def _dedup(items: list) -> list[str]:
+    out: list[str] = []
+    for item in items:
+        text = str(item)
+        if text not in out:
+            out.append(text)
+    return out
+
+
+def _routing_frontmatter(doc: Path) -> dict | None:
+    """The doc's ``routing:`` mapping, or None when it has no frontmatter routing block."""
+    try:
+        fm, _ = parse_frontmatter(doc.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return None
+    routing = (fm or {}).get("routing")
+    return routing if isinstance(routing, dict) else None
+
+
+def expected_pairs(frontmatter_pairs: list) -> list[str]:
+    """The index's pairs_with for a frontmatter list: retired names mapped, duplicates dropped."""
+    mapped = [RETIRED_PAIRS.get(str(n), str(n)) for n in frontmatter_pairs]
+    return _dedup([n for n in mapped if n])
+
+
+def drift_failures(name: str, entry: dict, doc: Path, rel: str) -> list[str]:
+    """P4 and P5 failures for one entry whose doc exists."""
+    failures: list[str] = []
+    for key in ("pairs_with", "triggers"):
+        values = entry.get(key) or []
+        dups = sorted({str(v) for v in values if values.count(v) > 1})
+        if dups:
+            failures.append(f"  [P5 DUPLICATE] '{name}': {key} repeats {dups}. List each name once.")
+    routing = _routing_frontmatter(doc)
+    if routing is None:
+        return failures
+    fm_pairs = routing.get("pairs_with")
+    if isinstance(fm_pairs, list):
+        want = expected_pairs(fm_pairs)
+        if list(entry.get("pairs_with") or []) != want:
+            failures.append(
+                f"  [P4 FRONTMATTER-DRIFT] '{name}': pairs_with {entry.get('pairs_with') or []} differs from "
+                f"'{rel}' frontmatter, which gives {want}. The frontmatter is the source; copy it into the index."
+            )
+    fm_triggers = routing.get("triggers")
+    if doc.name != "SKILL.md" and isinstance(fm_triggers, list) and "triggers" in entry:
+        want = _dedup(fm_triggers)
+        if list(entry.get("triggers") or []) != want:
+            failures.append(
+                f"  [P4 FRONTMATTER-DRIFT] '{name}': triggers differ from '{rel}' frontmatter, which gives "
+                f"{want}. The frontmatter is the source; copy it into the index."
+            )
+    return failures
+
+
+def stale_retired_names(index_path: Path, repo_root: Path) -> list[str]:
+    """RETIRED_PAIRS names that no indexed doc's frontmatter pairs_with uses any more."""
+    try:
+        pipelines = json.loads(index_path.read_text(encoding="utf-8")).get("pipelines") or {}
+    except (OSError, json.JSONDecodeError):
+        return []
+    used: set[str] = set()
+    for entry in pipelines.values():
+        rel = entry.get("file") if isinstance(entry, dict) else None
+        doc = repo_root / rel if rel else None
+        routing = _routing_frontmatter(doc) if doc and doc.is_file() else None
+        if routing and isinstance(routing.get("pairs_with"), list):
+            used |= {str(n) for n in routing["pairs_with"]}
+    return sorted(set(RETIRED_PAIRS) - used)
 
 
 def heading_text(doc: Path) -> str:
@@ -114,6 +216,8 @@ def check(index_path: Path, repo_root: Path, verbose: bool = False) -> list[str]
             )
             continue
 
+        failures.extend(drift_failures(name, entry, doc, rel))
+
         headings = heading_text(doc)
         absent = [p for p in phases if str(p).upper() not in headings]
         if absent:
@@ -143,6 +247,12 @@ def main() -> int:
 
     print("Checking pipeline index...")
     failures = check(args.index, REPO_ROOT, verbose=args.verbose)
+    stale = stale_retired_names(args.index, REPO_ROOT)
+    if stale:
+        failures.append(
+            f"  [P4 FRONTMATTER-DRIFT] RETIRED_PAIRS lists {stale}, which no pipeline frontmatter "
+            f"names any more. Remove them from the map."
+        )
 
     for msg in failures:
         print(f"FAIL: {msg}")

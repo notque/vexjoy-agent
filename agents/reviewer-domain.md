@@ -123,7 +123,7 @@ Select the domain matching the review focus, then load its reference file.
 
 ## Output Format
 
-This agent uses the **Reviewer Schema** with domain-specific sections loaded from the reference file.
+This agent uses the **Reviewer Schema** with domain-specific sections loaded from the reference file. One vocabulary: the review's overall verdict uses only PASS / NEEDS_CHANGES / BLOCK (the vocabulary `scripts/validate-review-output.py` accepts). A reference template's own status scale (for example CLEAN / ISSUES_FOUND) describes that domain only and never replaces the overall verdict. Any CRITICAL finding means BLOCK; HIGH findings rule out PASS.
 
 ```markdown
 ## 1. VERDICT: [PASS | NEEDS_CHANGES | BLOCK]
@@ -151,7 +151,7 @@ This agent uses the **Reviewer Schema** with domain-specific sections loaded fro
 | MEDIUM | N | [categories] |
 | LOW | N | [categories] |
 
-## 4. RECOMMENDATION: [BLOCK MERGE / FIX BEFORE MERGE / APPROVE WITH NOTES]
+## 4. RECOMMENDATION: [the next step in one line; it follows the VERDICT above and adds no other verdict word]
 ```
 
 ## STOP Blocks

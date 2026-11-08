@@ -5,28 +5,22 @@ Generates realistic example outputs for each review type (systematic, parallel,
 sapcc-review, sapcc-audit), validates them, then generates intentionally broken
 outputs and confirms they fail validation with the expected errors.
 
-Usage:
-    python3 scripts/test-review-schemas.py
-    python3 scripts/test-review-schemas.py -v          # verbose — show parsed structures
-    python3 scripts/test-review-schemas.py --type parallel  # test only one type
-
-Exit codes:
-    0 = all tests pass
-    1 = at least one test failed
+Run with: python3 -m pytest scripts/tests/test_review_schemas.py -v
 """
 
 from __future__ import annotations
 
-import argparse
-
-# Import the validator module from the same scripts/ directory.
+# Import the validator module from the scripts/ directory.
 # The filename uses hyphens (validate-review-output.py) so we use importlib.
+import copy
 import importlib.util
-import json
-import sys
 import textwrap
 from pathlib import Path
 from typing import Any
+
+import pytest
+
+pytest.importorskip("jsonschema", exc_type=ImportError)
 
 _validator_path = Path(__file__).resolve().parent.parent / "validate-review-output.py"
 _spec = importlib.util.spec_from_file_location("validate_review_output", _validator_path)
@@ -75,13 +69,13 @@ VALID_SYSTEMATIC_MD = textwrap.dedent("""\
 
     Risk Level: HIGH
 
-    Verdict: REQUEST-CHANGES
+    Verdict: BLOCK
 
     Rationale: SQL injection risk must be addressed before merge.
 """)
 
 VALID_SYSTEMATIC_JSON: dict[str, Any] = {
-    "verdict": "APPROVE",
+    "verdict": "NEEDS_CHANGES",
     "summary": "Clean implementation with good test coverage and proper error handling throughout.",
     "risk_level": "LOW",
     "findings": {
@@ -159,7 +153,7 @@ VALID_PARALLEL_MD = textwrap.dedent("""\
 """)
 
 VALID_PARALLEL_JSON: dict[str, Any] = {
-    "verdict": "FIX",
+    "verdict": "NEEDS_CHANGES",
     "summary": "Several high-priority issues found across security and architecture domains.",
     "severity_matrix": {"critical": 0, "high": 3, "medium": 2, "low": 1},
     "reviewer_summary": [
@@ -440,7 +434,7 @@ def _invalid_systematic_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "bad_verdict_enum",
             {
-                "verdict": "PASS",
+                "verdict": "LGTM",
                 "findings": {"blocking": [], "should_fix": [], "suggestions": []},
                 "risk_level": "LOW",
             },
@@ -449,7 +443,7 @@ def _invalid_systematic_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "missing_risk_level",
             {
-                "verdict": "APPROVE",
+                "verdict": "PASS",
                 "findings": {"blocking": [], "should_fix": [], "suggestions": []},
             },
             "MISSING: risk_level",
@@ -457,7 +451,7 @@ def _invalid_systematic_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "bad_risk_level",
             {
-                "verdict": "APPROVE",
+                "verdict": "PASS",
                 "findings": {"blocking": [], "should_fix": [], "suggestions": []},
                 "risk_level": "EXTREME",
             },
@@ -466,7 +460,7 @@ def _invalid_systematic_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "bad_location_format",
             {
-                "verdict": "APPROVE",
+                "verdict": "BLOCK",
                 "findings": {
                     "blocking": [{"title": "Issue", "location": "handler.go"}],
                     "should_fix": [],
@@ -479,7 +473,7 @@ def _invalid_systematic_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "missing_finding_title",
             {
-                "verdict": "APPROVE",
+                "verdict": "BLOCK",
                 "findings": {
                     "blocking": [{"location": "handler.go:42"}],
                     "should_fix": [],
@@ -498,7 +492,7 @@ def _invalid_parallel_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "missing_severity_matrix",
             {
-                "verdict": "APPROVE",
+                "verdict": "PASS",
                 "findings": {"critical": [], "high": [], "medium": [], "low": []},
                 "reviewer_summary": [
                     {"reviewer": "Security", "critical": 0, "high": 0, "medium": 0, "low": 0},
@@ -509,7 +503,7 @@ def _invalid_parallel_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "missing_reviewer_summary",
             {
-                "verdict": "APPROVE",
+                "verdict": "PASS",
                 "findings": {"critical": [], "high": [], "medium": [], "low": []},
                 "severity_matrix": {"critical": 0, "high": 0, "medium": 0, "low": 0},
             },
@@ -528,7 +522,7 @@ def _invalid_parallel_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "finding_missing_reviewer",
             {
-                "verdict": "APPROVE",
+                "verdict": "BLOCK",
                 "findings": {
                     "critical": [{"title": "SQL injection", "location": "db.go:55"}],
                     "high": [],
@@ -545,7 +539,7 @@ def _invalid_parallel_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "negative_count_in_matrix",
             {
-                "verdict": "APPROVE",
+                "verdict": "PASS",
                 "findings": {"critical": [], "high": [], "medium": [], "low": []},
                 "severity_matrix": {"critical": -1, "high": 0, "medium": 0, "low": 0},
                 "reviewer_summary": [],
@@ -555,7 +549,7 @@ def _invalid_parallel_cases() -> list[tuple[str, dict[str, Any], str]]:
         (
             "missing_matrix_field",
             {
-                "verdict": "APPROVE",
+                "verdict": "PASS",
                 "findings": {"critical": [], "high": [], "medium": [], "low": []},
                 "severity_matrix": {"critical": 0, "high": 0, "medium": 0},
                 "reviewer_summary": [],
@@ -697,142 +691,147 @@ INVALID_CASES: dict[str, list[tuple[str, dict[str, Any], str]]] = {
 
 
 # ---------------------------------------------------------------------------
-# Test Runner
+# Tests
 # ---------------------------------------------------------------------------
 
-
-class TestResults:
-    """Accumulates test pass/fail counts."""
-
-    def __init__(self) -> None:
-        self.passed: int = 0
-        self.failed: int = 0
-        self.failures: list[str] = []
-
-    def record(self, name: str, passed: bool, detail: str = "") -> None:
-        """Record a test result."""
-        if passed:
-            self.passed += 1
-            print(f"  PASS  {name}")
-        else:
-            self.failed += 1
-            self.failures.append(f"{name}: {detail}")
-            print(f"  FAIL  {name}")
-            if detail:
-                print(f"        {detail}")
-
-    @property
-    def total(self) -> int:
-        return self.passed + self.failed
+ALL_TYPES = ("systematic", "parallel", "sapcc-review", "sapcc-audit")
 
 
-def run_tests(review_types: list[str], verbose: bool = False) -> TestResults:
-    """Run all schema validation tests.
-
-    Args:
-        review_types: Which review types to test.
-        verbose: Show parsed structures on pass.
-
-    Returns:
-        TestResults with accumulated pass/fail counts.
-    """
-    results = TestResults()
-
-    for rtype in review_types:
-        print(f"\n{'=' * 60}")
-        print(f"  Testing: {rtype}")
-        print(f"{'=' * 60}")
-
-        # -- Valid JSON tests --
-        print(f"\n  --- Valid JSON ({rtype}) ---")
-        json_data = VALID_JSON_FIXTURES[rtype]
-        errors = validate_structure(json_data, rtype)
-        passed = len(errors) == 0
-        detail = "; ".join(errors[:3]) if errors else ""
-        results.record(f"{rtype}/valid_json", passed, detail)
-        if verbose and passed:
-            print(f"        Structure: {json.dumps(json_data, indent=2)[:200]}...")
-
-        # -- Valid Markdown tests --
-        print(f"\n  --- Valid Markdown ({rtype}) ---")
-        md_content = VALID_MD_FIXTURES[rtype]
-        parsed = parse_markdown(md_content, rtype)
-
-        # First check parse succeeded
-        has_verdict = "verdict" in parsed
-        results.record(f"{rtype}/md_parse_verdict", has_verdict, f"parsed keys: {list(parsed.keys())}")
-
-        has_findings = "findings" in parsed and any(
-            len(v) > 0 for v in parsed.get("findings", {}).values() if isinstance(v, list)
-        )
-        results.record(f"{rtype}/md_parse_findings", has_findings, f"findings: {parsed.get('findings', {})}")
-
-        # Validate parsed markdown
-        errors = validate_structure(parsed, rtype)
-        passed = len(errors) == 0
-        detail = "; ".join(errors[:3]) if errors else ""
-        results.record(f"{rtype}/md_validates", passed, detail)
-
-        if verbose and passed:
-            print(f"        Parsed: {json.dumps(parsed, indent=2)[:300]}...")
-
-        # -- Invalid JSON tests --
-        print(f"\n  --- Invalid JSON ({rtype}) ---")
-        invalid_cases = INVALID_CASES[rtype]
-        for case_name, data, expected_error in invalid_cases:
-            errors = validate_structure(data, rtype)
-            # Should have at least one error
-            has_errors = len(errors) > 0
-            # Expected error substring should appear in at least one error
-            has_expected = any(expected_error in err for err in errors)
-            passed = has_errors and has_expected
-            if not has_errors:
-                detail = "expected validation errors but got none"
-            elif not has_expected:
-                detail = f"expected '{expected_error}' in errors, got: {errors[:2]}"
-            else:
-                detail = ""
-            results.record(f"{rtype}/invalid_{case_name}", passed, detail)
-
-    return results
+@pytest.mark.parametrize("rtype", ALL_TYPES)
+def test_valid_json_validates(rtype: str) -> None:
+    assert validate_structure(copy.deepcopy(VALID_JSON_FIXTURES[rtype]), rtype) == []
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("rtype", ALL_TYPES)
+def test_valid_markdown_parses_and_validates(rtype: str) -> None:
+    parsed = parse_markdown(VALID_MD_FIXTURES[rtype], rtype)
+    assert "verdict" in parsed, list(parsed)
+    assert any(len(v) > 0 for v in parsed.get("findings", {}).values() if isinstance(v, list)), parsed
+    assert validate_structure(parsed, rtype) == []
 
 
-def main() -> int:
-    """Run the test suite.
+@pytest.mark.parametrize(
+    ("rtype", "case_name", "data", "expected_error"),
+    [(rtype, name, data, expected) for rtype in ALL_TYPES for name, data, expected in INVALID_CASES[rtype]],
+    ids=lambda v: v if isinstance(v, str) else None,
+)
+def test_invalid_json_is_rejected(rtype: str, case_name: str, data: dict[str, Any], expected_error: str) -> None:
+    errors = validate_structure(copy.deepcopy(data), rtype)
+    assert errors, f"{rtype}/{case_name}: expected validation errors but got none"
+    assert any(expected_error in err for err in errors), errors
 
-    Returns:
-        Exit code: 0 if all pass, 1 if any fail.
-    """
-    parser = argparse.ArgumentParser(description="Test review output schemas.")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Show parsed structures on pass.")
-    parser.add_argument(
-        "--type", choices=("systematic", "parallel", "sapcc-review", "sapcc-audit"), help="Test only one review type."
+
+@pytest.mark.parametrize("rtype", ALL_TYPES)
+def test_schema_loads(rtype: str) -> None:
+    assert load_schema(rtype)["type"] == "object"
+
+
+# The Phase 4 template in skills/review/review/SKILL.md: label lines, not headings.
+SKILL_TEMPLATE_MD = textwrap.dedent("""\
+    Review Summary:
+      Files Reviewed: 3 | Lines Changed: +40/-5
+      Test Status: PASS
+      Risk Level: MEDIUM
+
+    BLOCKING:
+      1. Token compared with == leaks timing - internal/auth/token.go:42
+    SHOULD FIX:
+      1. Error message drops the cause - internal/auth/login.go:52
+      2. No test for the expired-token path - internal/auth/token_test.go:12
+    SUGGESTIONS:
+      1. Name the 3600 constant - internal/auth/token.go:62
+
+    Verdict: BLOCK
+    Rationale: The timing leak must be fixed; evidence at the cited lines.
+""")
+
+
+def test_skill_template_label_sections_are_counted() -> None:
+    parsed = parse_markdown(SKILL_TEMPLATE_MD, "systematic")
+    findings = parsed["findings"]
+    assert [f["location"] for f in findings["blocking"]] == ["internal/auth/token.go:42"]
+    assert [f["location"] for f in findings["should_fix"]] == [
+        "internal/auth/login.go:52",
+        "internal/auth/token_test.go:12",
+    ]
+    assert [f["location"] for f in findings["suggestions"]] == ["internal/auth/token.go:62"]
+    assert parsed["verdict"] == "BLOCK"
+    assert parsed["risk_level"] == "MEDIUM"
+    assert validate_structure(parsed, "systematic") == []
+
+
+def test_pass_over_blocking_label_findings_is_rejected() -> None:
+    md = SKILL_TEMPLATE_MD.replace("Verdict: BLOCK", "Verdict: PASS")
+    errors = validate_structure(parse_markdown(md, "systematic"), "systematic")
+    assert any("VERDICT: PASS" in e and "blocking" in e for e in errors), errors
+
+
+def test_needs_changes_over_blocking_is_rejected() -> None:
+    md = SKILL_TEMPLATE_MD.replace("Verdict: BLOCK", "Verdict: NEEDS_CHANGES")
+    errors = validate_structure(parse_markdown(md, "systematic"), "systematic")
+    assert any("VERDICT: NEEDS_CHANGES" in e and "BLOCK" in e for e in errors), errors
+
+
+def test_pass_over_should_fix_is_rejected() -> None:
+    md = SKILL_TEMPLATE_MD.replace(
+        "BLOCKING:\n  1. Token compared with == leaks timing - internal/auth/token.go:42\n", ""
     )
-    args = parser.parse_args()
-
-    types = [args.type] if args.type else ["systematic", "parallel", "sapcc-review", "sapcc-audit"]
-
-    print("Review Schema Validation Test Suite")
-    print("=" * 60)
-
-    results = run_tests(types, verbose=args.verbose)
-
-    print(f"\n{'=' * 60}")
-    print(f"  RESULTS: {results.passed} passed, {results.failed} failed, {results.total} total")
-    print(f"{'=' * 60}")
-
-    if results.failures:
-        print("\nFailures:")
-        for f in results.failures:
-            print(f"  - {f}")
-
-    return 0 if results.failed == 0 else 1
+    md = md.replace("Verdict: BLOCK", "Verdict: PASS")
+    errors = validate_structure(parse_markdown(md, "systematic"), "systematic")
+    assert any("VERDICT: PASS" in e and "should_fix" in e for e in errors), errors
+    ok = md.replace("Verdict: PASS", "Verdict: NEEDS_CHANGES")
+    assert validate_structure(parse_markdown(ok, "systematic"), "systematic") == []
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+def test_parallel_pass_over_high_matrix_is_rejected() -> None:
+    data = copy.deepcopy(VALID_PARALLEL_JSON)
+    data["verdict"] = "PASS"
+    errors = validate_structure(data, "parallel")
+    assert any("VERDICT: PASS" in e and "high" in e for e in errors), errors
+
+
+@pytest.mark.parametrize("legacy", ["APPROVE", "REQUEST-CHANGES", "REQUEST_CHANGES", "NEEDS-DISCUSSION", "FIX"])
+@pytest.mark.parametrize("rtype", ["systematic", "parallel"])
+def test_legacy_verdicts_are_rejected_with_the_replacement(rtype: str, legacy: str) -> None:
+    data = copy.deepcopy(VALID_JSON_FIXTURES[rtype])
+    data["verdict"] = legacy
+    errors = validate_structure(data, rtype)
+    assert any(f'"{legacy}"' in e and "use" in e and "instead" in e for e in errors), errors
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        ("Verdict: NEEDS_CHANGES", "NEEDS_CHANGES"),
+        ("VERDICT: BLOCK", "BLOCK"),
+        ("7. VERDICT: PASS", "PASS"),
+        ("## 1. VERDICT: NEEDS_CHANGES", "NEEDS_CHANGES"),
+        ("## 1. COMPOSITE VERDICT: BLOCK", "BLOCK"),
+        ("## VERDICT: PASS", "PASS"),
+        ("**NEEDS_CHANGES** - two HIGH findings", "NEEDS_CHANGES"),
+        ("**Verdict**: **PASS** - nothing found", "PASS"),
+    ],
+)
+def test_verdict_line_shapes(line: str, expected: str) -> None:
+    assert parse_markdown(f"# Review\n\n{line}\n", "systematic")["verdict"] == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "location"),
+    [
+        ("Cron runs at 02:00 every night", None),
+        ("Server listens on localhost:8080", None),
+        ("See http://localhost:8080/health", None),
+        ("Bound to 127.0.0.1:8000", None),
+        ("Leak in `internal/api/handler.go:42`", "internal/api/handler.go:42"),
+        ("Leak in handler_test.go:15 under load", "handler_test.go:15"),
+        ("Workflow .github/workflows/test.yml:7 pins nothing", ".github/workflows/test.yml:7"),
+        ("Leak in /home/user/repo/scripts/x.py:12", "/home/user/repo/scripts/x.py:12"),
+        ("See https://example.com/a/b.py:12", None),
+        ("Target has no .PHONY - Makefile:12", "Makefile:12"),
+        ("Runs as root - `Dockerfile:3`", "Dockerfile:3"),
+    ],
+)
+def test_file_line_needs_a_path(text: str, location: str | None) -> None:
+    match = _mod.FILE_LINE_RE.search(text)
+    assert (match.group(1) if match else None) == location

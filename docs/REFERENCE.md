@@ -1,7 +1,8 @@
 ---
-summary: "Hand-maintained catalog of every command, skill, and agent."
+summary: "Quick reference: slash commands, where the generated catalogs live, file layout, and the settings the installer adds."
 read_when:
   - "scanning the full command list"
+  - "checking which env settings the installer adds"
 ---
 
 # Quick Reference Card
@@ -14,219 +15,60 @@ read_when:
 
 The primary entry point is `/do`, which routes your request to the appropriate agent and skill.
 
-### Core Entry Point
+### Core Entry Points
 | Command | Purpose | Example |
 |---------|---------|---------|
 | `/do` | **Smart router** - figures out what you need | `/do debug this failing test` |
+| `/d` | Jev-validated router: picks the route with `/do`'s rules, then checks the restated intent with Jev | `/d fix the flaky payments test` |
 
 ### Other Slash Commands
+These are the files in `commands/`:
+
 | Command | Purpose |
 |---------|---------|
-| `/install` | Verify toolkit installation, diagnose issues, guide setup |
-| `/pr-review` | Comprehensive PR review with review-findings capture |
-| `/retro` | Session retrospective: routing and review telemetry, session audit |
+| `/install` | Plan, then apply, the install with the vexinstall engine |
+| `/pr-review` | Comprehensive PR review, recording reusable findings to learning.db |
+| `/retro` | Learning system interface: stats, search, graduate learnings |
 | `/reddit-moderate` | Reddit moderation: modqueue, classification, actions |
 | `/generate-claudemd` | Generate project-specific CLAUDE.md from repo analysis |
 | `/github-notifications` | Triage GitHub notifications: fetch, classify, report |
 | `/create-pipeline` | Create a new pipeline from a task description |
 | `/system-upgrade` | Systematic upgrade of agents, skills, hooks |
 | `/github-profile-rules` | Extract coding conventions from GitHub profiles |
+| `/gm-brilliant-implementation` | The staged implementation workflow for a large 5 Star Booker GM program |
+
+Every skill marked user-invocable is also a slash command under its own name (for example `/frontend`, `/review`, `/workflow`).
 
 ### Available via `/do` Routing
 These workflows are activated through `/do` with natural language:
 
-| Want This? | Try This |
-|------------|----------|
-| Test-driven development | `/do write tests using TDD` |
-| Systematic debugging | `/do debug authentication failure` |
-| Verification | `/do verify before marking done` |
-| Code linting | `/do lint src/` |
-| Devil's advocate critique | `/do roast @README.md` |
-| Evaluate agent/skill quality | `/do evaluate agents/my-agent.md` |
-| Explore without modifying | `/do read-only how does auth work` |
-| Multi-step task planning | `/do orchestrate add payment system` |
-| Go quality checks | `/do run Go quality gate on this package` |
-| Go code review | `/do review this Go code` |
-| Check CI status | `/do check CI status` |
-| Comment quality | `/do check comment quality` |
-| Business communication | `/do make this professional` |
+| Want This? | Try This | Routes to |
+|------------|----------|-----------|
+| Test-driven development | `/do write tests using TDD` | `testing` |
+| Systematic debugging | `/do debug authentication failure` | `workflow` (systematic-debugging) |
+| Verification | `/do verify before marking done` | `testing` |
+| Code linting | `/do lint src/` | `code-quality` |
+| Multi-step task planning | `/do plan the payment system` | `workflow` |
+| Go code review | `/do review this Go code` | `review` with `golang-general-engineer` |
+| Check CI status | `/do check CI status` | `pr-workflow` |
+| Comment quality | `/do check comment quality` | `comment-quality` |
+
+The router decides by meaning, so the right column is the usual route, not a guarantee.
 
 ---
 
-## Natural Language Triggers
+## Agents, Skills, and Triggers
 
-Just say these phrases. The right skill activates automatically.
+The catalogs are generated from frontmatter, so they stay current:
 
-### High Reliability (Almost Always Works)
-| Say This | Activates |
-|----------|-----------|
-| "TDD" | test-driven-development |
-| "test first" | test-driven-development |
-| "red green refactor" | test-driven-development |
-| "lint" | code-linting |
-| "format code" | code-linting |
-| "read only" | read-only-ops |
-| "don't modify" | read-only-ops |
+- [routing-map.md](routing-map.md): every agent, skill, and pipeline with its triggers, force-route flag, `not_for`, and `pairs_with`.
+- [skills.md](skills.md): every routed skill by category.
 
-### Medium Reliability (Usually Works)
-| Say This | Activates |
-|----------|-----------|
-| "debug" | systematic-debugging |
-| "investigate" | systematic-debugging |
-| "verify" | verification-before-completion |
-| "make sure it works" | verification-before-completion |
-| "orchestrate" | workflow |
-| "plan this out" | workflow |
-| "research then write" | research-pipeline |
-| "explore codebase" | codebase-overview |
-
-### Use `/do` Instead (Triggers Unreliable)
-| Intent | Use |
-|--------|-----|
-| Evaluate an agent | `/do evaluate agents/my-agent.md` |
-| Check CI status | `/do check CI status` |
-| Critique/roast something | `/do roast this design` |
+Ask for an agent by name ("Use the golang-general-engineer agent"), or let `/do` pick one.
 
 ---
 
-## Agents
-
-Request deep expertise: *"Use the [name] agent"*
-
-### Core Engineering
-| Agent | Domain |
-|-------|--------|
-| `golang-general-engineer` | Go 1.26+, debugging, code review, performance (with frontmatter hooks) |
-| `python-general-engineer` | Python 3.12+, debugging, code review, performance (with frontmatter hooks) |
-| `python-openstack-engineer` | OpenStack: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware |
-| `kotlin-general-engineer` | Kotlin: features, coroutines, debugging, code quality, multiplatform |
-| `php-general-engineer` | PHP 8.x: features, debugging, code quality, security, modern patterns |
-| `swift-general-engineer` | Swift: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing |
-| `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management |
-| `typescript-debugging-engineer` | TypeScript debugging: race conditions, async/await issues, type errors |
-| `nodejs-api-engineer` | Node.js backends: Express APIs, REST endpoints, middleware |
-
-### Infrastructure & Operations
-| Agent | Domain |
-|-------|--------|
-| `kubernetes-helm-engineer` | Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure |
-| `opensearch-elasticsearch-engineer` | OpenSearch/Elasticsearch: cluster management, performance tuning |
-| `prometheus-grafana-engineer` | Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL |
-| `rabbitmq-messaging-engineer` | RabbitMQ: message queue architecture, clustering, HA, routing patterns |
-| `ansible-automation-engineer` | Ansible: playbooks, roles, collections, Molecule testing, Vault |
-
-### Frontend & UI
-| Agent | Domain |
-|-------|--------|
-| `react-portfolio-engineer` | React portfolio/gallery sites for creatives: React 18+, Next.js App Router |
-| `nextjs-ecommerce-engineer` | Next.js e-commerce: shopping cart, Stripe payments, checkout flows |
-| `ui-design-engineer` | UI/UX design: design systems, responsive layouts, accessibility, animations |
-| `react-native-engineer` | React Native and Expo: performance, animations, navigation, native UI patterns |
-
-### Game & Animation
-| Agent | Domain |
-|-------|--------|
-| `pixijs-combat-renderer` | PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, GPU particles |
-| `rive-skeletal-animator` | Rive skeletal animation: state machines, character pipelines, combat integration |
-| `combat-effects-upgrade` | Zero-dependency combat visual upgrades: CSS particles, Framer Motion, 3D card transforms |
-
-### Quality & Testing
-| Agent | Domain |
-|-------|--------|
-| `testing-automation-engineer` | Testing strategy, E2E setup, Playwright tests, test infrastructure |
-| `performance-optimization-engineer` | Web performance: Core Web Vitals, rendering, bundle analysis |
-| `database-engineer` | Database design, optimization, query performance, migrations, indexing |
-| `data-engineer` | Data pipelines, ETL/ELT, warehouse design, dimensional modeling |
-| `reviewer-code` | Code quality: conventions, naming, dead code, performance, types, tests |
-| `reviewer-system` | System review: security, concurrency, errors, observability, APIs |
-| `reviewer-domain` | Domain-specific: ADR compliance, business logic, SAP CC structural |
-| `reviewer-perspectives` | Multi-perspective: newcomer, senior, pedant, contrarian, user advocate |
-
-### Specialized
-| Agent | Domain |
-|-------|--------|
-| `perses-engineer` | Perses observability platform: dashboards, plugins, operator, core |
-| `technical-documentation-engineer` | Technical documentation: API docs, architecture, runbooks |
-| `technical-journalist-writer` | Technical journalism: explainers, opinion pieces, analysis articles |
-| `hook-development-engineer` | Python hook development for Claude Code event-driven system |
-| `project-coordinator-engineer` | Multi-agent project coordination: task breakdown, progress tracking |
-| `research-coordinator-engineer` | Research coordination: systematic investigation, multi-source analysis |
-| `research-subagent-executor` | Research subagent execution: OODA-loop investigation, source evaluation |
-| `mcp-local-docs-engineer` | MCP server development for local documentation access |
-| `sqlite-peewee-engineer` | SQLite with Peewee ORM: model definition, query optimization |
-| `pipeline-orchestrator-engineer` | Pipeline orchestration: scaffold multi-component workflows |
-| `system-upgrade-engineer` | Systematic toolkit upgrades: adapt agents, skills, hooks after updates |
-| `toolkit-governance-engineer` | Toolkit governance: edit skills, update routing tables, manage ADRs |
-| `github-profile-rules-engineer` | Extract coding conventions and style rules from GitHub user profiles |
-
-### Voice Writers
-| Agent | Domain |
-|-------|--------|
-| private `voice-*` profile skills | Pre-calibrated voice profiles, installed from `~/private-skills` when present |
-
-### Reviewer Personas (via `reviewer-perspectives`)
-| Persona | Perspective |
-|---------|-------------|
-| newcomer | Accessibility critique, fresh eyes |
-| skeptical-senior | Production readiness, sustainability |
-| pedant | Precision, terminology, spec compliance |
-| contrarian | Challenge assumptions, alternatives |
-| user-advocate | User impact, complexity vs benefit |
-| meta-process | System design health, single points of failure |
-
-These personas are loaded on demand as reference files within the `reviewer-perspectives` umbrella agent.
-
----
-
-## Skills
-
-Loaded automatically or by the exact action contract: `Call the Skill tool with \`skill-name\`.`
-
-### Workflow Automation
-| Skill | Purpose |
-|-------|---------|
-| `test-driven-development` | RED-GREEN-REFACTOR enforcement |
-| `verification-before-completion` | Never done without verification |
-| `planning` | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume |
-| `pr-workflow` | Pull request lifecycle umbrella: commit, codex-review, sync, review, fix, status, cleanup, PR mining, branch-name, ci-check |
-
-### Workflows (formerly Pipelines)
-| Skill | Purpose |
-|-------|---------|
-| `workflow` | Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more. References in `skills/process/workflow/references/` contain workflow definitions including systematic-debugging, systematic-refactoring, research-to-article, explore-pipeline, pr-pipeline, doc-pipeline, etc. |
-| `research-pipeline` | Formal 5-phase research pipeline with artifact saving and source quality gates |
-
-### Code Quality
-| Skill | Purpose |
-|-------|---------|
-| `code-linting` | Python (ruff) + JS (Biome) |
-| `go-patterns` | Go testing, concurrency, errors, review, conventions |
-| `python-quality-gate` | Python quality checks |
-| `universal-quality-gate` | Multi-language quality checking |
-| `comment-quality` | Timeless documentation |
-| `roast` | Devil's advocate critique via HN personas |
-
-### Voice System
-| Skill | Purpose |
-|-------|---------|
-| `writing` | Voice creation, voice content generation with validation |
-
-### Knowledge Extraction
-| Skill | Purpose |
-|-------|---------|
-| `codebase-overview` | Rapid context building + statistical pattern extraction |
-
-### Domain-Specific
-| Skill | Purpose |
-|-------|---------|
-| `professional-communication` | Tech → Business transformation |
-| `read-only-ops` | Exploration without modification |
-| `agent-evaluation` | Evaluate agents/skills |
-| `condition-based-waiting` | Retry patterns, backoff, polling |
-
----
-
-## New Claude Code Features (2026)
+## Claude Code Frontmatter Features
 
 | Feature | In Frontmatter | Purpose |
 |---------|----------------|---------|
@@ -235,7 +77,7 @@ Loaded automatically or by the exact action contract: `Call the Skill tool with 
 | `context: fork` | Skill | Run in isolated sub-agent |
 | `agent: name` | Skill | Declare executor agent |
 | `hooks:` | Agent | Define agent-specific lifecycle hooks |
-| YAML tool lists | Skill | Cleaner `allowed-tools` format |
+| `allowed-tools` | Skill | Tools the skill may use without a permission prompt. On an agent the toolkit's `allowed-tools` lists are advisory: Claude Code limits a subagent's tools only through `tools:`, which no toolkit agent sets. |
 
 ---
 
@@ -257,8 +99,8 @@ What do you need?
 │   ├─ Kubernetes ──────────────► kubernetes-helm-engineer
 │   └─ React ───────────────────► react-portfolio-engineer
 │
-├─ Complex multi-step task ─────► Triggers auto-planning
-│   └─ Creates task_plan.md automatically
+├─ Complex multi-step task ─────► /do plans first
+│   └─ Writes task_plan.md for Simple+ work
 │
 └─ Don't know ──────────────────► Just describe what you want
                                   Claude figures it out
@@ -270,9 +112,8 @@ What do you need?
 
 ```
 agents/            ← Specialized agents (one .md per agent, optional references/)
-skills/            ← Skills (one directory per skill, each with SKILL.md and optional references/)
-  └─ workflow/     ← Structured multi-phase workflows (formerly pipelines/)
-      └─ references/  ← Workflow definitions loaded on demand
+skills/            ← skills/{category}/{name}/SKILL.md, each with optional references/
+  └─ process/workflow/references/  ← Workflow definitions loaded on demand (formerly pipelines/)
 commands/          ← Slash commands (one .md per command)
 hooks/             ← Python hooks and utility scripts
   └─ lib/          ← Shared libraries
@@ -289,11 +130,15 @@ Environment variables set in `.claude/settings.json` under `"env"`. `install.sh`
 | Variable | Recommended Value | Why |
 |----------|-------------------|-----|
 | `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `500000` | Every turn re-reads the whole conversation, and a cache miss after an idle gap rewrites all of it. Compacting at 500k caps that cost and the quality loss of very long context while compacting less often than 400k did. Installs still on the old shipped `400000` move to `500000` once; other values, and any value set after that, are kept. |
+| `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` | `1` | Turns on Claude Code function hooks, which the optional Jev Auto-Compact plugin (`plugins/jev-auto-compact`) uses. Without a plugin that registers one it changes nothing. |
 | `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION` | `false` | Turns off the greyed-out next-prompt suggestions, which cost tokens and add noise. |
+| `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` | `1h` | Keeps a subagent's prompt cache for an hour instead of 5 minutes. Subagents that wait 5-15 minutes on a test or sim run rewrote their whole context once the 5-minute cache expired. A 1-hour cache write is billed at a higher rate than a 5-minute one, so this trades a dearer first write for fewer full rewrites. |
 
 **Retired:** `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1`. It has no effect on Opus 5.5 and Fable, and on older models such as Opus 4.6 it forces the deprecated fixed thinking budget.
 
 **Context on `AUTO_COMPACT_WINDOW`:** Claude supports a 1M token context window, but the model reads the full conversation on every turn. Cache hits bill those tokens at a fraction of the input price (0.05x on Opus 5.5), and a miss after the cache expires bills a full rewrite. Message threads, which Claude Code uses since about 2.1.316, send only new messages each turn and cut time to first token on long requests, but they do not reduce the tokens billed. Answers also degrade as context grows, while each compaction drops detail. 500k is the middle ground between those two costs; it was 400k before message threads. History: [anthropics/claude-code#45756](https://github.com/anthropics/claude-code/issues/45756#issuecomment-4231739206), credit [@bcherny](https://github.com/bcherny).
+
+The installer merges only `hooks` and `env` from the repo settings. Keys such as `attribution`, `effortLevel`, and `autoMemoryEnabled` apply to sessions in this checkout only.
 
 ### Orchestration (optional)
 
@@ -309,4 +154,4 @@ Keys under `"orchestration"` in `.claude/settings.json` tune how `/do` sizes dis
 
 - **Don't know what to use?** → `/do [what you want]`
 - **Want to see commands?** → Check this file
-- **Building new tools?** → [../CLAUDE.md](../CLAUDE.md)
+- **Building new tools?** → [../AGENTS.md](../AGENTS.md) and [../CONTRIBUTING.md](../CONTRIBUTING.md)

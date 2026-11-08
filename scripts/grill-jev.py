@@ -34,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import jev_images
 import jev_limits
+import jev_router_common
 import jev_transport
 
 # ---------------------------------------------------------------------------
@@ -365,6 +366,17 @@ def _pack_batches(state: Any, questions: dict[str, Any], target: int = TARGET_RE
     return [list(group) for group in groups]
 
 
+# A Score question without a criteria list is read on the built-in 4-level
+# scale (0..3). An answer in the bottom third of its own scale is a finding.
+DEFAULT_SCORE_LEVELS = 4
+WEAK_SCORE_FRACTION = 1 / 3
+
+
+def _score_levels(question: dict[str, Any]) -> int:
+    criteria = question.get("criteria")
+    return len(criteria) if isinstance(criteria, list) and len(criteria) >= 2 else DEFAULT_SCORE_LEVELS
+
+
 def _is_high_signal(question: dict[str, Any], answer: dict[str, Any], threshold: float) -> bool:
     """Return True when an answer warrants reporting."""
     qtype = question.get("type", "noul")
@@ -377,7 +389,8 @@ def _is_high_signal(question: dict[str, Any], answer: dict[str, Any], threshold:
     if qtype == "choice":
         return answer.get("choice") in question.get("report_choices", []) and answer.get("confidence", 0.0) >= threshold
     if qtype == "score":
-        return answer.get("score", 1.5) <= 1.0
+        normalized = jev_router_common.score_normalized(answer, _score_levels(question))
+        return normalized is not None and normalized <= WEAK_SCORE_FRACTION + 1e-9
     return False
 
 
@@ -399,7 +412,9 @@ def _format_answer(qtype: str, answer: dict[str, Any]) -> str:
     return str(answer)
 
 
-def _suggest_action(qid: str, qtype: str, answer: dict[str, Any], question_text: str) -> str:
+def _suggest_action(
+    qid: str, qtype: str, answer: dict[str, Any], question_text: str, *, levels: int = DEFAULT_SCORE_LEVELS
+) -> str:
     """Return a one-line action suggestion for a high-signal finding."""
     if qtype == "noul":
         noul_val = answer.get("noul", 0.5)
@@ -422,8 +437,8 @@ def _suggest_action(qid: str, qtype: str, answer: dict[str, Any], question_text:
         if "detection" in qid or "failure" in qid:
             return f"failure detection is '{label}' — add monitoring or post-deploy checks"
         if "complet" in qid:
-            return f"artifact is '{label}' ({score_val:.1f}/3) — fill gaps before executing"
-        return f"score {score_val:.1f}/3 ('{label}') — review and improve"
+            return f"artifact is '{label}' ({score_val:.1f}/{levels - 1}) — fill gaps before executing"
+        return f"score {score_val:.1f}/{levels - 1} ('{label}') — review and improve"
     return f"review: {question_text.lower().rstrip('?')}"
 
 
@@ -464,6 +479,12 @@ def _answer_problem(question: dict[str, Any], answer: Any) -> str | None:
     return None
 
 
+# Outage guard: re-probe Jev after this many single-question failures in a row,
+# and stop the run (exit non-zero) after this many failed calls in all.
+REPROBE_AFTER = 3
+MAX_FAILED_CALLS = 40
+TOO_MANY_FAILURES = "too_many_failures"
+
 _BATCH_FATAL = frozenset(
     {jev_transport.REQUEST_TOO_LARGE, jev_transport.IMAGES_UNSUPPORTED, jev_transport.INVALID_IMAGE}
 )
@@ -481,12 +502,17 @@ def _run_battery(
     or oversized question costs only its own answer. A question that still
     fails is recorded as ``{"error": ...}`` (unknown, never a pass). If the
     first single-question failure also fails a tiny probe, Jev is down: raise.
+    The probe runs again after ``REPROBE_AFTER`` single-question failures in a
+    row, and the run stops after ``MAX_FAILED_CALLS`` failed calls, so an outage
+    that starts mid-run ends it instead of splitting every later batch.
 
     With ``images`` ({name: JevImage}), each request carries only the images its
     questions use (see ``_image_plan``), and all requests go to the direct API.
     """
     all_answers: dict[str, Any] = {}
     service_ok: list[bool] = []  # set once by the probe
+    # Failed single-question calls since the last good reply, and failed calls in all.
+    failures = {"in_a_row": 0, "total": 0}
     plans: dict[str, tuple[list[str], dict[str, int]]] = {}
 
     if images:
@@ -517,18 +543,27 @@ def _run_battery(
         except jev_transport.JevTransportError as exc:
             if exc.source in _BATCH_FATAL:
                 raise
+            failures["total"] += 1
+            if failures["total"] >= MAX_FAILED_CALLS:
+                raise jev_transport.JevTransportError(
+                    f"stopped after {failures['total']} failed Jev calls; last: {exc}", source=TOO_MANY_FAILURES
+                ) from exc
             if len(batch_qs) > 1:
                 ids = list(batch_qs)
                 mid = len(ids) // 2
                 send({k: batch_qs[k] for k in ids[:mid]})
                 send({k: batch_qs[k] for k in ids[mid:]})
                 return
-            if not service_ok:
+            failures["in_a_row"] += 1
+            if not service_ok or failures["in_a_row"] >= REPROBE_AFTER:
+                # Probe again after a run of failures: Jev may have gone down since the last probe.
                 jev_transport.evaluate(_PROBE_STATE, _PROBE_QUESTION, timeout=timeout)  # raises on outage
                 service_ok.append(True)
+                failures["in_a_row"] = 0
             qid = next(iter(batch_qs))
             all_answers[qid] = {"type": batch_qs[qid].get("type"), "error": str(exc)}
         else:
+            failures["in_a_row"] = 0
             replied = reply.get("answers") if isinstance(reply, dict) else None
             for qid, question in batch_qs.items():
                 answer = replied.get(qid) if isinstance(replied, dict) else None
@@ -753,7 +788,7 @@ def _print_report(
             instructions = qdef.get("instructions", {})
             question_text = instructions.get("question", qid) if isinstance(instructions, dict) else str(instructions)
             fmt = _format_answer(qtype, answer)
-            action = _suggest_action(qid, qtype, answer, question_text)
+            action = _suggest_action(qid, qtype, answer, question_text, levels=_score_levels(qdef))
             print(f"  [{category}/{qid}] {fmt}")
             print(f"    → {action}")
     else:
@@ -773,8 +808,9 @@ def _print_report(
                 if score_val >= 0:
                     legend = completeness_answer.get("legend", {})
                     label = legend.get(str(round(score_val)), "")
-                    note = "address findings before executing" if score_val < 2.0 else "ready to proceed"
-                    print(f"\nOVERALL READINESS: {score_val:.1f}/3 — {label}; {note}")
+                    top = _score_levels(qdef) - 1
+                    note = "address findings before executing" if score_val < top * 2 / 3 else "ready to proceed"
+                    print(f"\nOVERALL READINESS: {score_val:.1f}/{top} — {label}; {note}")
                 break
 
     unanswered = {qid: answers[qid]["error"] for qid in questions if "error" in answers.get(qid, {})}

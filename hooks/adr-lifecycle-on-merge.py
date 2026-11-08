@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """PostToolUse Hook: ADR lifecycle checker on merge.
 
 Fires after a Bash tool use. Detects merge commands (gh pr merge / git merge)
@@ -46,7 +46,7 @@ from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import context_output, empty_output, get_tool_input
+from hook_utils import append_hook_debug_log, context_output, empty_output, get_tool_input
 from stdin_timeout import read_stdin
 
 DEBUG_LOG = Path("/tmp/claude_hook_debug.log")
@@ -66,11 +66,8 @@ ADR_PATTERNS = [
 
 
 def debug_log(msg: str) -> None:
-    try:
-        with open(DEBUG_LOG, "a") as f:
-            f.write(f"[adr-lifecycle] {msg}\n")
-    except Exception:
-        pass
+    """Append to the shared debug log (0600) only when CLAUDE_HOOKS_DEBUG is set."""
+    append_hook_debug_log(DEBUG_LOG, f"[adr-lifecycle] {msg}")
 
 
 # ---------------------------------------------------------------------------

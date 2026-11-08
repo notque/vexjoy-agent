@@ -42,7 +42,7 @@ Action: Treat the local agents as available for routing decisions in this sessio
 ### `[strategic-compact] {N} tool calls reached`
 
 Source: `hooks/suggest-compact.py` (PreToolUse).
-Meaning: The session has reached a context-budget checkpoint. Threshold and per-25-call advisories per ADR-103.
+Meaning: The session has reached a context-budget checkpoint. Threshold and per-25-call advisories per ADR-103 (local-only: `adr/` is gitignored, so the ADR is not in a clone).
 Action: When transitioning between phases, consider `/compact` to preserve context. Mid-phase work may continue. Treat the message as a checkpoint, not a hard stop.
 
 ### `[adr-lifecycle] {message}`
@@ -73,18 +73,18 @@ Source: `hooks/operator-context-detector.py`.
 Meaning: The detected operator environment, emitted on two consecutive lines. The first line names the profile and its summary; the second names the detection trigger that picked it.
 
 Profiles:
-- `personal`: local dev, full autonomy
+- `personal`: local dev, autonomous for routine work, within branch safety and the CLAUDE.md approval rules
 - `work`: org repo, prefer explicit approval before destructive operations
 - `ci`: CI runner, non-interactive, no prompts
 - `production`: prod infrastructure, mandatory approval gates for all writes
 
-Action: Apply the profile's approval gates for the entire session. A `production` profile means stop and confirm before any write, deploy, or destructive operation. A `ci` profile means no interactive prompts. A `personal` profile means proceed without approval gates for routine operations.
+Action: Apply the profile's approval gates for the entire session. A `production` profile means stop and confirm before any write, deploy, or destructive operation. A `ci` profile means no interactive prompts. A `personal` profile means no extra approval steps for routine code and git work; actions CLAUDE.md reserves for owner approval still need it.
 
 ### `<afk-mode>` block
 
-Source: `hooks/afk-mode.py` (SessionStart; fires in SSH, tmux, screen, and headless sessions).
-Meaning: The user is not actively watching the terminal.
-Action: Work proactively. Complete multi-step tasks without confirmation prompts. Produce concise task-completion summaries when finishing long-running work. Do not ask "should I proceed" for routine next steps. Proceed and report.
+Source: `hooks/afk-mode.py` (SessionStart). In the default `always` mode (`CLAUDE_AFK_MODE`) it fires in every session; in `auto` mode only in SSH, tmux and screen sessions.
+Meaning: The configured AFK mode says to work as if the user may not be watching. Nothing checked whether anyone is watching; `auto` mode only saw an SSH, tmux or screen session.
+Action: Work proactively. Complete multi-step tasks without confirmation prompts. Produce concise task-completion summaries when finishing long-running work. Do not ask "should I proceed" for routine next steps. Actions that CLAUDE.md reserves for owner approval still need that approval.
 
 ### `[dream] {one-line summary}` (followed by multi-KB markdown payload)
 
@@ -92,17 +92,17 @@ Source: `hooks/session-context.py` (reads `~/.claude/state/dream-injection-*.md`
 Meaning: Output of the nightly memory-consolidation cycle, summarizing what it merged and pruned.
 Action: Incorporate the dream content as background context for the session. It informs skill selection and approach, not individual task decisions. Do not cite it verbatim back to the user; it is for the model's orientation.
 
-### `[sapcc-go]` plus `[auto-skill] go-patterns`
+### `[sapcc-go]` plus `[auto-skill] programming`
 
 Source: `hooks/sapcc-go-detector.py`.
-Meaning: A SAP Commerce Cloud Go project was detected in the current directory.
-Action: Apply SAP CC Go conventions for the session. The `go-patterns` and `sapcc-review` skills are in scope.
+Meaning: A SAP Converged Cloud Go project (a `github.com/sapcc/` or `github.com/sap-cloud-infrastructure/` module or import) was detected in the current directory.
+Action: Apply SAP CC Go conventions for the session. The `programming` skill carries them (`references/go/sapcc-conventions.md`).
 
-### `[fish-shell] Detected Fish shell user` plus `[auto-skill] shell-config`
+### `[fish-shell] Detected Fish shell user` plus `[auto-skill] deploy`
 
-Source: `hooks/fish-shell-detector.py`.
+Source: `hooks/fish-shell-detector.py` (`hooks/zsh-shell-detector.py` emits the same pair as `[zsh-shell]` for Zsh).
 Meaning: The user runs Fish as their interactive shell.
-Action: When the user asks for shell config edits, prefer Fish syntax (`set -gx`, `function`, `~/.config/fish/config.fish`) over Bash/Zsh idioms. The `shell-config` skill carries the full reference.
+Action: When the user asks for shell config edits, prefer Fish syntax (`set -gx`, `function`, `~/.config/fish/config.fish`) over Bash/Zsh idioms. The `deploy` skill's shell references carry the full reference.
 
 ### `[adr-health-check] Active ADR session` plus `domain` and `adr` path
 
@@ -132,11 +132,11 @@ Action: Skip re-reading files the block lists unless the task needs their conten
 
 ## Prompt-Signal Tags (emitted mid-conversation, require routing action)
 
-### `[pipeline-creator]` plus `[auto-skill] pipeline-scaffolder` (plus JSON snapshot)
+### `[pipeline-creator]` plus `[auto-skill] workflow` (plus JSON snapshot)
 
 Source: `hooks/pipeline-context-detector.py`.
 Meaning: A pipeline creation request was detected.
-Action: Treat this as a scaffold request. The `create-pipeline` skill handles the fan-out. Build pipeline components through the skill rather than manually.
+Action: Treat this as a scaffold request. The tag tells you to call the `workflow` skill, which handles the fan-out (`/create-pipeline` is the slash command for the same job). Build pipeline components through the skill rather than manually.
 
 ### `[CREATION REQUEST DETECTED]`
 
