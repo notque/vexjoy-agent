@@ -9,7 +9,9 @@ and .planning/discoveries/.
 
 Session scoping: files-seen entries come from the v2 JSONL session-reads
 format and are filtered to the given session id and the freshness window;
-v1 legacy plain-path lines are ignored. Credential-shaped paths are filtered
+v1 legacy plain-path lines are ignored. Entries tagged with "agent" were
+read inside a subagent and are skipped, so the list holds main-thread reads
+only and one subagent's reads never reach a sibling. Credential-shaped paths are filtered
 out. task_plan.md, .adr-session.json, and discovery briefs are only used when
 modified within the freshness window.
 """
@@ -48,9 +50,10 @@ def load_recent_reads(
 ) -> list[str]:
     """Load up to max_count recent file paths for the current session.
 
-    Reads the v2 JSONL format ({"ts", "session", "path"}). Entries from other
-    sessions, entries older than FRESHNESS_HOURS, credential-shaped paths, and
-    v1 legacy plain-path lines are all skipped.
+    Reads the v2 JSONL format ({"ts", "session", "path"}, plus "agent" for a
+    subagent read). Entries from other sessions, subagent-tagged entries,
+    entries older than FRESHNESS_HOURS, credential-shaped paths, and v1 legacy
+    plain-path lines are all skipped.
 
     Args:
         reads_path: Path to the session-reads.txt file.
@@ -78,6 +81,8 @@ def load_recent_reads(
                 continue
             if str(entry.get("session", "")) != session_id:
                 continue
+            if entry.get("agent"):
+                continue  # read inside a subagent, not by the parent thread
             try:
                 ts = datetime.fromisoformat(entry["ts"])
             except (KeyError, TypeError, ValueError):

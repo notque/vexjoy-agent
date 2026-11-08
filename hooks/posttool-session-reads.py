@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# hook-version: 2.1.3
+# hook-version: 2.2.0
 """
 PostToolUse Hook: Session Read Tracker
 
 Tracks files read during the session by appending JSONL entries
 ({"ts", "session", "path"}) to .claude/session-reads.txt. This provides a
-lightweight record of files the parent session has seen, used by the
+lightweight record of files the parent (main) thread has seen, used by the
 warmstart hook to give subagents context about what's already been read.
 
 v2 (session scoping): entries carry the session id and a UTC timestamp so
@@ -25,6 +25,13 @@ v2.1.3 (parallel writers): the rewrite holds a bounded lock on
 running in parallel no longer drop each other's entries or crash on a
 shared temp name. The lock wait is capped; a stuck holder means an unlocked
 write, never a stalled tool call.
+
+v2.2.0 (parent reads only): Claude Code puts a non-empty agent_id on hook
+events only when the tool call runs inside a subagent. Such reads are
+written with an "agent" field, and the warmstart reader skips them, so one
+subagent's reads never reach a sibling subagent's warmstart block. A
+main-thread read of a path a subagent already logged replaces that entry
+with an untagged one, so dedupe on (session, path) never hides a parent read.
 
 Design Principles:
 - SILENT output (no context injection)
@@ -230,6 +237,17 @@ def _fresh(entry: dict, cutoff: datetime) -> bool:
     return ts >= cutoff
 
 
+def event_agent_id(event: dict) -> str:
+    """Subagent id for this event, or "" for a main-thread call.
+
+    Claude Code sets agent_id only when the hook fires inside a subagent;
+    agent_type alone also appears on a main thread started with --agent,
+    so it is not used here.
+    """
+    agent_id = event.get("agent_id")
+    return agent_id.strip() if isinstance(agent_id, str) else ""
+
+
 _BYPASS_ENV = "POSTTOOL_SESSION_READS_BYPASS"
 
 
@@ -240,7 +258,8 @@ def main() -> None:
     1. Read stdin JSON; extract file_path (Read) or command paths (Bash)
     2. Skip credential-shaped paths entirely
     3. Rewrite .claude/session-reads.txt: fresh entries + the new one,
-       deduplicated on (session, path)
+       deduplicated on (session, path); subagent reads carry "agent", and
+       a main-thread read replaces a subagent-tagged entry
     4. Exit silently (no context injection)
     """
     if os.environ.get(_BYPASS_ENV) == "1":
@@ -264,6 +283,7 @@ def main() -> None:
             return
 
         session_id = get_session_id(event)
+        agent_id = event_agent_id(event)
         now = datetime.now(timezone.utc)
         cutoff = now - timedelta(days=RETENTION_DAYS)
 
@@ -290,9 +310,25 @@ def main() -> None:
                     pass
 
             for file_path in new_paths:
-                if (session_id, file_path) not in seen:
-                    seen.add((session_id, file_path))
-                    entries.append({"ts": now.isoformat(), "session": session_id, "path": file_path})
+                key = (session_id, file_path)
+                if key in seen:
+                    if agent_id:
+                        continue  # any existing entry already covers a subagent read
+                    # A main-thread read upgrades a subagent-tagged entry: drop
+                    # it and append an untagged one below. seen holds one
+                    # entry per key, so at most one entry matches.
+                    idx = next(
+                        (i for i, e in enumerate(entries) if (str(e.get("session", "")), str(e["path"])) == key),
+                        None,
+                    )
+                    if idx is None or not entries[idx].get("agent"):
+                        continue
+                    del entries[idx]
+                seen.add(key)
+                entry = {"ts": now.isoformat(), "session": session_id, "path": file_path}
+                if agent_id:
+                    entry["agent"] = agent_id
+                entries.append(entry)
 
             _write_atomic(reads_path, "".join(json.dumps(e) + "\n" for e in entries))
 
