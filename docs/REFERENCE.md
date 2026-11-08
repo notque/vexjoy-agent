@@ -28,7 +28,7 @@ These are the files in `commands/`:
 |---------|---------|
 | `/install` | Plan, then apply, the install with the vexinstall engine |
 | `/pr-review` | Comprehensive PR review, recording reusable findings to learning.db |
-| `/retro` | Learning system interface: stats, search, graduate learnings |
+| `/retro` | Routing and review telemetry from learning.db: route health, route stats, errors, evidence, review false positives |
 | `/reddit-moderate` | Reddit moderation: modqueue, classification, actions |
 | `/generate-claudemd` | Generate project-specific CLAUDE.md from repo analysis |
 | `/github-notifications` | Triage GitHub notifications: fetch, classify, report |

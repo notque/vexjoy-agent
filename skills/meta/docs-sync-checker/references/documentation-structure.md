@@ -1,210 +1,60 @@
 # Documentation Structure Reference
 
-This file defines where each tool type should be documented and the required fields for each documentation location.
+Where each tool type is documented, in what format, and how a drift gets fixed. `scripts/parse_docs.py` (`PRIMARY_DOCS`) is the source of truth for the targets; `scripts/validate.py` fails if any target is missing.
 
-## Documentation File Matrix
+## Primary docs
 
-| Tool Type | Primary Documentation | Secondary Documentation | Optional Documentation |
-|-----------|----------------------|-------------------------|------------------------|
-| Skills | docs/skills.md (table) | docs/REFERENCE.md (sections) | README.md (references) |
-| Agents | agents/README.md (table/list) | docs/REFERENCE.md (sections) | README.md (references) |
-| Commands | commands/README.md (list) | docs/REFERENCE.md (sections) | README.md (references) |
+| Tool type | Filesystem | Primary doc | Maintained by | Fix a drift |
+|-----------|------------|-------------|---------------|-------------|
+| Skill | `skills/<category>/<name>/SKILL.md` | `docs/skills.md` | `scripts/generate-skills-doc.py` | Rerun the generator |
+| Agent | `agents/<name>.md` | `docs/routing-map.md` (`## AGENTS` table) | `scripts/generate-routing-map.py` | Rerun the generator |
+| Command | `commands/<name>.md` | `docs/REFERENCE.md` (`## Slash Commands` tables) | Hand-written | Add or remove the row |
 
-## Required Fields Per Documentation Type
+There is no `agents/README.md` or `commands/README.md`. Never create one to satisfy this check.
 
-### docs/skills.md
+## Formats the parser reads
 
-**Format**: Markdown table
-
-**Required Columns**:
-- Name: Skill name (matches YAML `name` field)
-- Description: Brief description (from YAML `description` field)
-- Command: Invocation syntax (e.g., `skill: skill-name`)
-- Hook: Associated hook if any (or "-" if none)
-
-**Example Row**:
-```markdown
-| code-linting | Combined Python (ruff) and JavaScript (Biome) linting | `skill: code-linting` | - |
-```
-
-### agents/README.md
-
-**Format**: Markdown table or list (flexible)
-
-**Required Fields**:
-- Name: Agent name (matches YAML `name` field)
-- Description: Brief description (from YAML `description` field)
-
-**Table Example**:
-```markdown
-| Name | Description |
-|------|-------------|
-| golang-general-engineer | Deep expertise in Go development, architecture, debugging, concurrency |
-```
-
-**List Example**:
-```markdown
-- golang-general-engineer - Deep expertise in Go development, architecture, debugging, concurrency
-```
-
-### commands/README.md
-
-**Format**: Markdown list
-
-**Required Fields**:
-- Command: Command name with slash prefix (e.g., `/do`, `/code cleanup`)
-- Description: Brief description of what command does
-
-**Example**:
-```markdown
-- `/do` - Smart router that automatically selects the right agents, skills, and commands
-- `/code cleanup` - Find and fix small neglected improvements
-```
-
-### README.md (Root)
-
-**Format**: References within narrative text
-
-**Fields**: Tool name in code blocks (e.g., `skill: code-linting`, `/do`, `golang-general-engineer`)
-
-**Purpose**: High-level overview showing examples, not comprehensive catalog
-
-### docs/REFERENCE.md
-
-**Format**: Markdown sections with headers
-
-**Required Fields**:
-- Section header: `### tool-name`
-- Description: Detailed explanation of tool purpose
-- Usage: How to invoke the tool
-
-**Example**:
-```markdown
-### code-linting
-
-Combined Python (ruff) and JavaScript (Biome) linting skill. Use when user requests linting, formatting, code quality checks, or style fixes.
-
-**Usage**: `skill: code-linting`
-```
-
-## Cross-Reference Requirements
-
-### Skills
-- **MUST** be documented in: docs/skills.md
-- **SHOULD** be documented in: docs/REFERENCE.md (if significant/commonly used)
-- **MAY** be referenced in: README.md (if highlighted as important)
-
-### Agents
-- **MUST** be documented in: agents/README.md
-- **SHOULD** be documented in: docs/REFERENCE.md (if complex/major agent)
-- **MAY** be referenced in: README.md (if highlighted as important)
-
-### Commands
-- **MUST** be documented in: commands/README.md
-- **SHOULD** be documented in: docs/REFERENCE.md (if significant command)
-- **MAY** be referenced in: README.md (if highlighted as important)
-
-## Deprecation Documentation Requirements
-
-When deprecating a tool:
-
-1. Add `[DEPRECATED]` prefix to description in all documentation
-2. Specify replacement tool if applicable
-3. Include deprecation date and removal timeline
-4. Keep documentation present until removal (don't delete immediately)
-
-**Example**:
-```markdown
-| old-skill | [DEPRECATED] Old skill, use new-skill instead. Removal: 2025-03-01 | - | - |
-```
-
-## Documentation Update Workflow
-
-1. **Create Tool**: Add tool directory with SKILL.md/agent.md file
-2. **Run docs-sync-checker**: Detect missing documentation
-3. **Update Primary Documentation**: Add to docs/skills.md, agents/README.md, or commands/README.md
-4. **Update Secondary Documentation**: Add to docs/REFERENCE.md if significant tool
-5. **Update Root README**: Add reference if highlighted tool
-6. **Verify Sync**: Re-run docs-sync-checker to confirm all in sync
-
-## Special Cases
-
-### Namespaced Commands
-
-Commands in subdirectories (e.g., `commands/code/cleanup.md`) should be documented as:
-- Command name: `/code cleanup` (with namespace)
-- Path reference: `commands/code/cleanup.md`
-
-### Experimental/WIP Tools
-
-Tools in development should be:
-- Documented with `[EXPERIMENTAL]` or `[WIP]` prefix
-- Included in documentation to prevent "missing entry" reports
-- Marked clearly to set expectations
-
-**Example**:
-```markdown
-| docs-sync-checker | [EXPERIMENTAL] Verify all skills, agents, and commands are documented | `skill: docs-sync-checker` | - |
-```
-
-### Private/Internal Tools
-
-If tools should not be publicly documented:
-- Add to `.docsignore` file (if implemented)
-- Or document with `[INTERNAL]` prefix
-- Include brief description for completeness
-
-## Markdown Format Standards
-
-### Table Format
+`docs/skills.md`: one table per category; the first cell is the backticked skill name.
 
 ```markdown
-| Column 1 | Column 2 | Column 3 |
-|----------|----------|----------|
-| Value 1  | Value 2  | Value 3  |
+| Skill | Description | Invoke |
+|-------|-------------|--------|
+| `deploy` | Deploy and infrastructure: web deploy, cron, package install, shell configuration. | `/deploy` |
 ```
 
-**Requirements**:
-- Header row with column names
-- Separator row with `|---|---|` pattern
-- Data rows aligned with header
-- Consistent use of pipes `|`
-
-### List Format
+`docs/routing-map.md`, `## AGENTS (N)` section: the first cell is the bare agent name.
 
 ```markdown
-- Item 1 - Description
-- Item 2 - Description
+| name | when to call (description) | triggers | FORCE | not_for | pairs_with |
+|---|---|---|---|---|---|
+| golang-general-engineer | Go development: features, debugging, code review, performance | go, golang | | ... | programming |
 ```
 
-**Requirements**:
-- Use `-` or `*` consistently
-- Format: `- /command-name - Description`
-- One item per line
-- No nested lists for tool catalogs
+`docs/REFERENCE.md`, `## Slash Commands` section: the first cell is the backticked `/command`. Rows whose first cell is not a `/command` (for example the "Available via `/do` Routing" table) are ignored.
 
-## Documentation Quality Standards
+```markdown
+| Command | Purpose |
+|---------|---------|
+| `/retro` | Routing and review telemetry from learning.db: route health, route stats, errors, evidence, review false positives |
+```
 
-1. **Accuracy**: Descriptions must match actual tool behavior
-2. **Completeness**: All required fields present
-3. **Consistency**: Same tool described same way across all locations
-4. **Clarity**: Descriptions clear and concise (prefer <200 chars)
-5. **Currency**: Descriptions reflect current state
+## Who is expected in each doc
 
-## Validation Checks
+| Tool | Expected in primary doc | Why |
+|------|-------------------------|-----|
+| Skill with `promoted_to` | No | `generate-skill-index.py` drops it from the index, so the catalog omits it |
+| Skill or agent reached through a symlink | No | Private component; the generators strip private names |
+| Every other skill, agent, and command | Yes | Missing entry, HIGH |
+| Doc entry with no file on disk | — | Stale entry, MEDIUM |
 
-The docs-sync-checker performs these validations:
+## Root README.md
 
-1. **Existence**: Tool exists in filesystem
-2. **Documentation**: Tool documented in required location(s)
-3. **Name Match**: Documented name matches YAML `name` field
-4. **Completeness**: All required fields present
-5. **Format**: Markdown tables/lists properly formatted
-6. **Staleness**: No documentation for non-existent tools
+Narrative, not a catalog. The parser records its `/command` and `*-engineer` mentions for the report but never flags them.
 
-## Reference Files
+## Related CI checks
 
-This documentation structure is enforced by:
-- `skills/meta/docs-sync-checker/scripts/scan_tools.py` - Tool discovery
-- `skills/meta/docs-sync-checker/scripts/parse_docs.py` - Documentation parsing
-- `skills/meta/docs-sync-checker/scripts/generate_report.py` - Sync reporting
+The generated catalogs are already gated in `.github/workflows/test.yml`:
+
+- `python3 scripts/generate-skills-doc.py --check` — `docs/skills.md` matches a fresh render.
+- `python3 scripts/generate-routing-map.py --check` — `docs/routing-map.md` matches a fresh render.
+- `python3 scripts/validate-doc-links.py`, `validate-doc-counts.py`, `validate-doc-commands.py` — links, count claims, and script paths named in docs.
