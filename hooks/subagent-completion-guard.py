@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.3
+# hook-version: 1.1.0
 """
 SubagentStop Hook: Completion Guard
 
@@ -18,7 +18,8 @@ Enforces safety tiers and captures metadata at the moment any subagent stops:
   Tier 2: READ-ONLY Violation Guard (reviewer-* agents only)
     Blocks if a reviewer-* agent used Write, Edit, or NotebookEdit tools.
     Detection: agent_type field starts with "reviewer-".
-    Uses: transcript JSON scan for write tool invocations.
+    Uses: scan of the subagent's own transcript (agent_transcript_path)
+    for write tool invocations.
 
   Tier 3: Protected-Org Workflow Guard (protected-org repos only)
     Blocks if git push or gh pr merge ran without user confirmation
@@ -27,6 +28,11 @@ Enforces safety tiers and captures metadata at the moment any subagent stops:
 
 Design Principles:
 - Sub-50ms execution (git log is fast, transcript scan is O(n))
+- Transcript scans read agent_transcript_path, never transcript_path: on
+  SubagentStop the latter is the parent session's transcript, so scanning it
+  would charge the subagent with the parent's tool calls
+- Transcript lines carry tool_use blocks under message.content (Claude Code);
+  the older flat tool_name and top-level content shapes still parse
 - Non-blocking on hook errors (always exits 0 on internal failures)
 - Blocks ONLY on detected violations (never on uncertainty)
 - Uses exit 0 + JSON permissionDecision:deny to feed blocking message back to the subagent
@@ -270,48 +276,76 @@ def is_reviewer_agent(agent_type: str) -> bool:
     return bool(agent_type) and agent_type.startswith(_REVIEWER_PREFIX)
 
 
+def _iter_tool_uses(transcript_path: str):
+    """
+    Yield (tool_name, tool_input) for every tool call in an NDJSON transcript.
+
+    Parses three line shapes:
+      - Claude Code: {"type": "assistant", "message": {"content": [tool_use blocks]}}
+      - top-level content list: {"content": [tool_use blocks]}
+      - flat: {"tool_name": ..., "tool_input": {...}}
+
+    Yields nothing for a missing, unreadable, or empty path.
+    """
+    if not transcript_path:
+        return
+
+    path = Path(transcript_path)
+    if not path.is_file():
+        return
+
+    try:
+        content = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return
+
+    for line in content.splitlines():
+        # Every shape parsed below carries one of these keys verbatim; skip
+        # decoding the text and result lines that make up most of a transcript.
+        if "tool_use" not in line and "tool_name" not in line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(entry, dict):
+            continue
+
+        tool_name = entry.get("tool_name")
+        if isinstance(tool_name, str) and tool_name:
+            tool_input = entry.get("tool_input") or entry.get("input") or {}
+            yield tool_name, tool_input if isinstance(tool_input, dict) else {}
+
+        message = entry.get("message")
+        block_lists = [entry.get("content")]
+        if isinstance(message, dict):
+            block_lists.append(message.get("content"))
+        for blocks in block_lists:
+            if not isinstance(blocks, list):
+                continue
+            for block in blocks:
+                if not isinstance(block, dict) or block.get("type") != "tool_use":
+                    continue
+                name = block.get("name")
+                if not isinstance(name, str) or not name:
+                    continue
+                block_input = block.get("input")
+                yield name, block_input if isinstance(block_input, dict) else {}
+
+
 def find_write_tool_in_transcript(transcript_path: str) -> str | None:
     """
     Scan the transcript for any Write/Edit/NotebookEdit tool use.
 
     Returns the first offending tool name + file, or None if clean.
     """
-    if not transcript_path:
-        return None
-
-    path = Path(transcript_path)
-    if not path.exists() or not path.is_file():
-        return None
-
-    try:
-        content = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
-
-    # Each transcript line is a JSON object (newline-delimited JSON)
-    for line in content.splitlines():
-        line = line.strip()
-        if not line:
+    for tool_name, tool_input in _iter_tool_uses(transcript_path):
+        if tool_name not in _WRITE_TOOLS:
             continue
-        try:
-            entry = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-
-        # Tool-use entries have type="tool_use" or tool_name field
-        tool_name = entry.get("tool_name")
-        if not tool_name and isinstance(entry.get("content"), list):
-            for block in entry["content"]:
-                if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") in _WRITE_TOOLS:
-                    tool_name = block["name"]
-                    break
-        if tool_name in _WRITE_TOOLS:
-            # Try to extract the file path from tool_input
-            tool_input = entry.get("tool_input") or entry.get("input") or {}
-            file_path = tool_input.get("file_path", "")
-            if file_path:
-                return f"{tool_name}({file_path})"
-            return tool_name
+        file_path = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
+        if isinstance(file_path, str) and file_path:
+            return f"{tool_name}({file_path})"
+        return tool_name
 
     return None
 
@@ -394,37 +428,12 @@ def find_gated_command_in_transcript(transcript_path: str) -> str | None:
 
     Returns the offending command string if found, None if clean.
     """
-    if not transcript_path:
-        return None
-
-    path = Path(transcript_path)
-    if not path.exists() or not path.is_file():
-        return None
-
-    try:
-        content = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
-
-    for line in content.splitlines():
-        line = line.strip()
-        if not line:
+    for tool_name, tool_input in _iter_tool_uses(transcript_path):
+        if tool_name.lower() != "bash":
             continue
-        try:
-            entry = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-
-        # Look for Bash tool calls
-        tool_name = entry.get("tool_name")
-        if not tool_name or tool_name.lower() != "bash":
-            continue
-
-        tool_input = entry.get("tool_input") or entry.get("input") or {}
         command = tool_input.get("command", "")
-        if not command:
+        if not isinstance(command, str) or not command:
             continue
-
         for pattern in _PROTECTED_ORG_GATED_PATTERNS:
             if pattern.search(command):
                 return command.strip()
@@ -481,8 +490,17 @@ def main() -> None:
             sys.exit(0)
 
         cwd = event.get("cwd", str(Path.cwd()))
-        transcript_path = event.get("transcript_path", "")
+        # The subagent's own transcript. transcript_path is the parent
+        # session's on SubagentStop, so it is never a fallback here.
+        transcript_path = event.get("agent_transcript_path") or ""
+        if not isinstance(transcript_path, str):
+            transcript_path = ""
         agent_type = event.get("agent_type", "")
+        if not transcript_path and is_reviewer_agent(agent_type):
+            print(
+                f"[readonly-guard] skipped for {agent_type}: event has no agent_transcript_path",
+                file=sys.stderr,
+            )
 
         # Tier 0: Worktree metadata capture (always active, non-blocking)
         # Note: worktree metadata is output to stderr for dispatchers but
