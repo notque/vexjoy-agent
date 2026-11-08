@@ -291,11 +291,11 @@ def test_settings_wait_for_a_hooks_dir_that_did_not_update(world: Env, monkeypat
     assert "h4.py" in installed.read_text(encoding="utf-8") and (hooks / "h4.py").is_file()
 
 
-def test_a_failed_child_removal_does_not_outlive_its_replaced_parent(
-    world: Env, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A record left under a dir the same run replaced pointed into the new copy. The next sync
-    trashed that file out of it, and the dir read as a user edit from then on."""
+def test_a_record_under_a_replaced_dir_leaves_with_it(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The entry never moves on its own ahead of its dir, so a busy file in it cannot fail the run,
+    and its record goes once the dir is placed. A record left under a dir the same run replaced
+    pointed into the new copy: the next sync trashed that file out of it, and the dir read as a
+    user edit from then on."""
     hooks = _copy_install(world, {"hooks/h1.py": NEW_H1})
     child = hooks / "h2.py"
 
@@ -308,8 +308,9 @@ def test_a_failed_child_removal_does_not_outlive_its_replaced_parent(
     _no_sleep(monkeypatch)
     _refuse_renames(monkeypatch, lambda src, _dst: src == str(child))
     res = world.run("sync", "--target", "claude")
-    assert res.code == 0 and any(f"{child} not removed" in line for line in res.err), res.err
-    assert str(child) not in world.ledger_dests("claude")
+    assert res.code == 0 and not any(str(child) in line for line in res.err), res.err
+    assert str(child) not in world.ledger_dests("claude") and _trash_records(world, child) == []
+    assert (hooks / "h1.py").read_text() == NEW_H1
 
     monkeypatch.setattr(os, "rename", REAL_RENAME)
     assert world.run("sync", "--target", "claude").code == 0

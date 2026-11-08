@@ -305,7 +305,8 @@ install_deps() {
             pip_requirements "$linked"
         fi
     fi
-    # Vercel Jev gateway: the repo plus every real (copied) scripts dir.
+    # Vercel Jev gateway: the repo plus every real (copied) scripts dir. A sync that replaces a
+    # copy moves its node_modules into the new one (docs/installer-layout.md, npm dependencies).
     command -v npm &> /dev/null || { echo -e "${YELLOW}  ⚠ npm unavailable; /d falls back to /do${NC}"; return 0; }
     local dir real seen=" "
     for dir in "${SCRIPT_DIR}/scripts" "${CLAUDE_DIR}/scripts" "${HOME}/.codex/scripts" "${HOME}/.factory/scripts" \
