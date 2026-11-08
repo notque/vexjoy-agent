@@ -186,7 +186,7 @@ def agent_input_hash(prompt: str, inputs: Any = None, paths: Iterable[str | os.P
     Determinism is the contract: same prompt + same inputs + same file contents
     → same hash, stable across runs and processes. No wall-clock or randomness
     enters the digest. `inputs` is normalized via json.dumps(sort_keys=True) so
-    dict key ordering does not change the hash; None and an empty inputs value
+    dict key ordering does not change the hash; inputs=None and omitting inputs
     hash identically.
 
     `paths` lists every file the agent reads or judges. The sha256 of each
