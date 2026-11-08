@@ -31,6 +31,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 import subprocess
@@ -748,8 +749,13 @@ SUGGEST_ONLY_TRIGGERS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
 }
 
 
+@functools.cache
 def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
-    """Build a regex pattern for a trigger phrase.
+    """Build a regex pattern for a trigger phrase, compiled once per trigger.
+
+    Cached because route() rebuilds the match table on every call and the
+    force-route trigger set (500+) is larger than re's own 512-entry cache, so
+    without it every route call recompiled every trigger regex.
 
     Single-word triggers: exact word-boundary match.
     Multi-word triggers: each word must appear in order with up to 2
