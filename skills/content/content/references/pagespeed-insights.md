@@ -15,19 +15,19 @@ Machine-measured site performance, SEO, accessibility, and best-practices analys
 **Step 1: Run the pagespeed script**
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/pagespeed.py --url <target-url>
+python3 ${CLAUDE_SKILL_DIR}/scripts/publish/pagespeed.py --url <target-url>
 ```
 
 This runs both mobile and desktop by default. For a single strategy:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/pagespeed.py --url <target-url> --strategy mobile
+python3 ${CLAUDE_SKILL_DIR}/scripts/publish/pagespeed.py --url <target-url> --strategy mobile
 ```
 
 **Step 2: Save the baseline for comparison**
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/pagespeed.py --url <target-url> --format markdown --output /tmp/psi-baseline.md
+python3 ${CLAUDE_SKILL_DIR}/scripts/publish/pagespeed.py --url <target-url> --format markdown --output /tmp/psi-baseline.md
 ```
 
 **Step 3: Record scores**
@@ -114,7 +114,7 @@ Apply fixes from the mapping table below. Only modify content that the user has 
 **Step 1: Re-run the pagespeed script**
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/pagespeed.py --url <target-url> --format markdown --output /tmp/psi-after.md
+python3 ${CLAUDE_SKILL_DIR}/scripts/publish/pagespeed.py --url <target-url> --format markdown --output /tmp/psi-after.md
 ```
 
 **Step 2: Compare scores**
@@ -132,7 +132,7 @@ Mobile Best Practices: 90        95       +5
 
 Run with explicit threshold to get a pass/fail exit code:
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/pagespeed.py --url <target-url> --threshold 80
+python3 ${CLAUDE_SKILL_DIR}/scripts/publish/pagespeed.py --url <target-url> --threshold 80
 echo "Exit code: $?"
 ```
 
@@ -209,7 +209,7 @@ Solution:
 ## References
 
 ### Script
-- `${CLAUDE_SKILL_DIR}/scripts/pagespeed.py`: Deterministic CLI for PSI API calls
+- `${CLAUDE_SKILL_DIR}/scripts/publish/pagespeed.py`: Deterministic CLI for PSI API calls
 
 ### Related Workflows
 - `${CLAUDE_SKILL_DIR}/references/seo.md`: Manual SEO optimization (4-phase ASSESS-DECIDE-APPLY-VERIFY)

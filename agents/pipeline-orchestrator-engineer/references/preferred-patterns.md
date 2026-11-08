@@ -44,7 +44,8 @@ grep -rn 'description:' skills/*/*/SKILL.md | grep ' and \| & ' | grep -v "test\
 `validate-chain` on every chain before scaffolding. Catches type incompatibilities at design time.
 
 ```bash
-python3 scripts/artifact-utils.py validate-chain --chain "research,draft,review,publish" --domain prometheus
+# pipeline-spec.json: a JSON array of {"step": ..., "schema": ...} objects, one per chain step
+python3 scripts/artifact-utils.py validate-chain /tmp/pipeline-spec.json
 ```
 
 **Detection**:

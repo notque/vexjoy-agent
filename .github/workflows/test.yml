@@ -78,6 +78,8 @@ jobs:
       - run: python scripts/validate-doc-links.py
       - run: python scripts/validate-doc-counts.py
       - run: python scripts/validate-doc-commands.py
+      # skills/, agents/ and commands/ script calls vs each script's argparse (static parse, nothing runs).
+      - run: python scripts/validate-doc-commands.py --scope toolkit
       - run: python scripts/validate_component_models.py
       # Conformance gate for native .js workflows: declared meta.contract vs actual
       # dispatch. node is not installed in CI, so the STATIC validator is the gate

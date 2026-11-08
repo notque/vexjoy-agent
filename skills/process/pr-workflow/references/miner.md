@@ -33,7 +33,7 @@ Key principles:
 **Step 1: Verify token**
 
 ```bash
-python3 ~/.claude/scripts/miner.py --check-auth
+python3 ~/.claude/skills/pr-workflow/scripts/miner.py --check-auth
 ```
 
 Confirm output shows valid authentication with `repo` scope.
@@ -70,8 +70,8 @@ Ensure sufficient API calls remain for the planned mining scope (estimate 3-5 ca
 **Step 1: Determine scope**
 
 Choose mining parameters based on the task:
-- **Single repo**: `python3 ~/.claude/scripts/miner.py org/repo output.json --limit 50`
-- **Multi-repo**: `python3 ~/.claude/scripts/miner.py org/repo-a,org/repo-b output.json --limit 50`
+- **Single repo**: `python3 ~/.claude/skills/pr-workflow/scripts/miner.py org/repo output.json --limit 50`
+- **Multi-repo**: `python3 ~/.claude/skills/pr-workflow/scripts/miner.py org/repo-a,org/repo-b output.json --limit 50`
 - **Filtered**: Add `--reviewer name`, `--since date`, or `--all-comments`
 
 Start with 50 PRs. Expand only after validating output quality. Large limits (1000+) burn rate limits, return outdated standards, and produce unwieldy files.
@@ -79,7 +79,7 @@ Start with 50 PRs. Expand only after validating output quality. Large limits (10
 **Step 2: Execute mining**
 
 ```bash
-python3 ~/.claude/scripts/miner.py <repos> mined_data/<output>.json --limit <N>
+python3 ~/.claude/skills/pr-workflow/scripts/miner.py <repos> mined_data/<output>.json --limit <N>
 ```
 
 Monitor progress output. Watch for:
@@ -106,7 +106,7 @@ If interaction count is below 20, consider expanding scope (`--limit`, `--all-co
 **Step 1: Run validation script**
 
 ```bash
-python3 ~/.claude/scripts/validate.py
+python3 ~/.claude/skills/pr-workflow/scripts/validate.py
 ```
 
 **Step 2: Spot-check data quality**
@@ -120,7 +120,7 @@ Review 3-5 interactions manually:
 **Step 3: Generate summary statistics**
 
 ```bash
-python3 ~/.claude/scripts/miner.py <repos> <output>.json --summary
+python3 ~/.claude/skills/pr-workflow/scripts/miner.py <repos> <output>.json --summary
 ```
 
 Verify:

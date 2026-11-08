@@ -153,7 +153,7 @@ Extract domain-heavy content from a bloated SKILL.md into reference files.
 4. For each block: create reference file, remove from body (MOVE, not copy), add loading table entry.
 5. Retain in body: frontmatter, overview, phase workflow, loading table, error handling.
 6. Validate: `python3 scripts/validate-decomposition.py --before /tmp/decomp-before-{name}.md --after {path} --refs {refs_dir}/`.
-7. If fails: restore from snapshot. If passes: `python3 scripts/validate-references.py --skill {name}`.
+7. If fails: restore from snapshot. If passes: `python3 scripts/validate-references.py --check-size` (reference sizes and empty `references/` dirs; there is no per-skill mode).
 
 Load `references/decomposition-prompt.md` for the autonomous decomposition prompts.
 

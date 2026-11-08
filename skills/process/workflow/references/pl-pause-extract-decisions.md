@@ -22,14 +22,14 @@ Keep only entries that describe process changes, tooling contracts, or architect
 
 ## Step 3: Draft ADR skeletons (only if candidates found)
 
-Get the next safe ADR number once, then increment for subsequent candidates:
+Get the next safe ADR number once, then increment for subsequent candidates. `adr-query.py` has no number command, so take the highest numbered file in `adr/` plus one:
 ```bash
-python3 ~/.claude/scripts/adr-query.py next-number 2>/dev/null || echo "manual"
+last=$(ls adr/ 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1); echo $(( 10#${last:-0} + 1 ))
 ```
 
-Call `next-number` once for the first candidate. For additional candidates, increment the number manually (e.g., if first returns 132, use 133 for the second) because the script checks existing files on disk and the first skeleton has not been committed yet.
+Run it once for the first candidate. For additional candidates, increment the number manually (e.g., if first returns 132, use 133 for the second) because the command reads files on disk and the first skeleton is not written yet.
 
-If `adr-query.py` returns "manual", use placeholder numbers and note that the user should assign them before merging.
+If `adr/` is missing or has no numbered files, use placeholder numbers and note that the user should assign them before merging.
 
 Draft to `adr/{number}-{slug}.md`:
 
