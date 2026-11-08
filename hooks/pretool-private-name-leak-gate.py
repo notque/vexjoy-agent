@@ -127,7 +127,7 @@ _USER_INDEX = Path.home() / ".claude" / "skills" / "INDEX.json"
 # --body carries no new text and passes the scan anyway.
 # git global options may sit between `git` and the verb (`git -C dir push`,
 # `git -c k=v commit`, `git --no-pager push`).
-_GIT_OPTS = r"\bgit(?:\s+(?:-[Cc]\s+(?:\"[^\"]*\"|'[^']*'|\S+)|--?(?![Cc]\s)[A-Za-z][\w-]*(?:=\S+)?))*\s+"
+_GIT_OPTS = r"\bgit(?:\s+(?:-[Cc]\s+(?:\"[^\"]*\"|'[^']*'|[^\s\"']\S*)|--?(?![Cc]\s)[A-Za-z][\w-]*(?:=\S+)?))*\s+"
 _CMD_RE = re.compile(_GIT_OPTS + r"(?:commit|push)\b|\bgh\s+pr\s+(?:create|edit|comment|merge)\b")
 _GIT_COMMIT_RE = re.compile(_GIT_OPTS + r"commit\b")
 _GIT_PUSH_RE = re.compile(_GIT_OPTS + r"push\b")
@@ -708,8 +708,11 @@ def _segments(command: str) -> list[list[str]]:
                 segments[-1].pop()
             target = tokens[i + 1] if i + 1 < len(tokens) else ""
             # A write to a real file could rewrite repo config.
-            if ">" in token and not token.endswith("&") and target != "/dev/null":
-                raise _Unknown
+            if ">" in token:
+                # `>&N` and `>&-` move or close a stream; `>& word` writes a file.
+                stream = token.endswith("&") and (target.isdigit() or target == "-")
+                if not stream and target != "/dev/null":
+                    raise _Unknown
             i += 1
         elif token and set(token) <= set("()<>&|;"):
             raise _Unknown
@@ -907,14 +910,18 @@ def _target_slugs(command: str, cwd: str | None, deadline: float) -> set[tuple[s
 
 # Segments allowed beside a gated command: they read or print, and cannot
 # change where a commit or push lands.
-_HARMLESS_COMMANDS = frozenset({"echo", "printf", "true", "tail", "head", "grep", "wc", "sort", "uniq", "cat"})
+# None of these writes a file on its own; redirects are checked separately.
+_HARMLESS_COMMANDS = frozenset({"echo", "printf", "true", "tail", "head", "grep", "wc", "cat"})
 _HARMLESS_GIT = frozenset({"add", "status", "diff", "log", "show"})
 
 
 def _harmless(seg: list[str]) -> bool:
     if seg[0] in _HARMLESS_COMMANDS:
         return True
-    return len(seg) > 1 and seg[0] == "git" and seg[1] in _HARMLESS_GIT
+    if len(seg) < 2 or seg[0] != "git" or seg[1] not in _HARMLESS_GIT:
+        return False
+    # `git log/diff/show --output=<file>` writes a file.
+    return not any(arg.startswith(("--output", "-o")) for arg in seg[2:])
 
 
 def _gh_visibility(slug: tuple[str, str, str], deadline: float) -> str:

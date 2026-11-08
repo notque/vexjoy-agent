@@ -224,6 +224,12 @@ def mixed(world, tmp_path):
         f"git push -uo origin https://github.com/someone/open.git main # {PRIVATE_NAME}",
         f"echo x > .git/config && git push origin main # {PRIVATE_NAME}",
         "git" + " -C -x" * 30 + f"; git commit -m '{PRIVATE_NAME}'",
+        "git" + ' -C "x"' * 30 + f"; git commit -m '{PRIVATE_NAME}'",
+        f"printf x >& .git/config && git push origin main # {PRIVATE_NAME}",
+        f"printf x >&.git/config && git push origin main # {PRIVATE_NAME}",
+        f"git log -1 --output=.git/config && git push origin main # {PRIVATE_NAME}",
+        f"sort -o .git/config /tmp/cfg && git push origin main # {PRIVATE_NAME}",
+        f"uniq /tmp/cfg .git/config && git push origin main # {PRIVATE_NAME}",
     ],
 )
 def test_reviewed_bypass_shapes_still_block(mixed, command):
