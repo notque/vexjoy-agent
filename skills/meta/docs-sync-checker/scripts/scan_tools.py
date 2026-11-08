@@ -13,6 +13,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# YAML block scalar indicators: `|`, `>`, with optional chomping/indent markers.
+_BLOCK_SCALAR = re.compile(r"^[|>][+-]?[0-9]?$")
+
 
 class ToolScanner:
     """Discover all tools in repository."""
@@ -80,6 +83,16 @@ class ToolScanner:
             self.errors.append(error)
             return None
 
+    @staticmethod
+    def _is_symlinked(path: Path, root: Path) -> bool:
+        """True when path or a directory between it and root is a symlink."""
+        current = path
+        while current != root and root in current.parents:
+            if current.is_symlink():
+                return True
+            current = current.parent
+        return False
+
     def scan_skills(self) -> List[Dict[str, Any]]:
         """
         Scan skills/ directory for SKILL.md files.
@@ -113,6 +126,12 @@ class ToolScanner:
                 }
                 if "version" in yaml_data:
                     skill["version"] = yaml_data["version"]
+                # Promoted and symlinked (private) skills stay out of the
+                # generated catalog, so the parser must not expect them there.
+                if yaml_data.get("promoted_to"):
+                    skill["promoted_to"] = yaml_data["promoted_to"]
+                if self._is_symlinked(skill_file, skills_dir):
+                    skill["private"] = True
                 skills.append(skill)
                 self.log(f"Found skill: {yaml_data['name']} at {skill_file}")
 
@@ -152,6 +171,8 @@ class ToolScanner:
                 }
                 if "version" in yaml_data:
                     agent["version"] = yaml_data["version"]
+                if agent_file.is_symlink():
+                    agent["private"] = True
                 agents.append(agent)
                 self.log(f"Found agent: {yaml_data['name']} at {agent_file}")
 
@@ -215,6 +236,28 @@ class ToolScanner:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
+
+            # Frontmatter `description:` is authoritative when present.
+            if lines and lines[0].strip() == "---":
+                for i, line in enumerate(lines[1:], start=1):
+                    if line.strip() == "---":
+                        break
+                    match = re.match(r"^description:\s*(.+)$", line.strip())
+                    if not match:
+                        continue
+                    value = match.group(1).strip()
+                    if not _BLOCK_SCALAR.match(value):
+                        return value.strip("\"'")
+                    # Block scalar (`|`, `>`, `|-`, ...): join the indented lines that follow.
+                    body = []
+                    for cont in lines[i + 1 :]:
+                        if cont.strip() and not cont[:1].isspace():
+                            break
+                        if cont.strip():
+                            body.append(cont.strip())
+                    if body:
+                        return " ".join(body)[:200]
+                    break  # empty block: fall back to the first paragraph
 
             # Look for first paragraph after title (# Title)
             found_title = False
