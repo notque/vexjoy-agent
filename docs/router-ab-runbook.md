@@ -48,9 +48,12 @@ prompt edits, re-rank policies) with the existing blind A/B harness. One harness
    the pre-registered gates, then the verdict. Exit 0 PROMOTE, 1 REJECT,
    2 UNDERPOWERED, 3 CEILING or FLOOR. The gate is deterministic
    (expected-pair/`acceptable` matching over raw.json), so it cannot be argued
-   with after the fact. CEILING or FLOOR means both arms sit at 95% or above,
-   or 5% or below: the corpus cannot tell them apart, so report "the run judged
-   nothing", never "no difference", and harden the corpus.
+   with after the fact. CEILING or FLOOR means fewer than 6 discordant pairs
+   with both arms at 95% or above, or 5% or below: the run sits at a bound and
+   showed no difference it could have shown, so report "the run judged
+   nothing", never "no difference", and harden the corpus. A run with 6 or more
+   discordant pairs did discriminate and gets the normal verdict even at a
+   bound.
 8. **PR.** Attach `scoreboard.json` + the `--gate` output to the router-change
    PR. The gate verdict decides; a REJECT means the change does not merge in its
    current form.
@@ -58,24 +61,31 @@ prompt edits, re-rank policies) with the existing blind A/B harness. One harness
 ## Pilot first: prove the corpus can discriminate
 
 Before a paid main run on a new or changed corpus, run steps 3-5 on a pilot of
-about 20% of cases with three arms: baseline, a deliberately degraded control
-(for routing, a manifest with descriptions stripped), and a second baseline run
-as an A/A arm. Leave the candidate arm out of the pilot. Then:
+about 20% of cases with at least three arms: baseline, a deliberately degraded
+control (for routing, a manifest with descriptions stripped), and a second
+baseline run as an A/A arm. Add a reference arm of different quality (for
+example the baseline manifest under a stronger `--model-arm`) when cases the
+baseline fails must count. Leave the candidate arm out of the pilot. Then:
 
 ```sh
 python3 scripts/routing-ab-test.py --pilot-check --out-dir "$PILOT" \
-  --control-arm stripped --aa-arm full2 [--extra-arm NAME]
+  --control-arm stripped --aa-arm full2 [--extra-arm NAME] [--guard-case ID]
 ```
 
 It prints its pre-registered checks, then the verdict: baseline accuracy within
-30-70%, at least 60% of cases split across the non-control pilot arms (baseline
-and A/A; the control never counts), and the control at least 20
-points (and more than twice the A/A gap) below baseline. Exit 0 PASS, 1 FAIL
-(CEILING, FLOOR, NON-DISCRIMINATING, or CONTROL-DID-NOT-LOSE). On FAIL, harden
-or replace cases and pilot again; do not start the main run. A review or fix
-A/B outside this harness uses the same check through `--per-case FILE`, where
-FILE is `{"arms": {name: [true|false per case]}}`. Every arm in the data must
-be named by `--baseline-arm`, `--control-arm`, `--aa-arm`, or `--extra-arm`.
+30-70%; every case discriminates, meaning baseline and A/A agree on it and the
+control or a reference arm gets the other result; and the control at least 30
+points (and more than twice the A/A gap) below baseline. A baseline/A/A flip is
+noise, not a split. A case every arm passes (ceiling) or fails (floor) fails
+the check unless it is named with `--guard-case`: guards sit outside the
+analysis set, and the verdict lists them. Log each guard and its reason in the
+change log. Exit 0 PASS, 1 FAIL (CEILING, FLOOR, NON-DISCRIMINATING, or
+CONTROL-DID-NOT-LOSE). On FAIL, harden, replace, or guard the listed cases and
+pilot again; do not start the main run. A review or fix A/B outside this
+harness uses the same check through `--per-case FILE`, where FILE is
+`{"arms": {name: [true|false per case]}, "case_ids": [optional names]}`. Every
+arm in the data must be named by `--baseline-arm`, `--control-arm`, `--aa-arm`,
+or `--extra-arm`.
 Design rules for the corpus, arms, and graders:
 `skills/meta/toolkit/references/blind-ab-tests.md`.
 
@@ -147,9 +157,9 @@ PRE-REGISTERED GATES (fixed in code before any run; change only BEFORE a run):
                  of baseline.
 VERDICT: PROMOTE (exit 0) = all gates pass AND discordant pairs >= 6.
          UNDERPOWERED (exit 2) = all gates pass but discordant pairs < 6.
-         CEILING / FLOOR (exit 3) = all gates pass but both arms are >= 95.0%
-                 (CEILING) or <= 5.0% (FLOOR) accurate: the corpus cannot
-                 discriminate, so the run judges nothing. Harden the corpus.
+         CEILING / FLOOR (exit 3) = all gates pass, discordant pairs < 6, and
+                 both arms are >= 95.0% (CEILING) or <= 5.0% (FLOOR) accurate:
+                 the run sits at a bound and judges nothing. Harden the corpus.
          REJECT (exit 1) = any gate fails.
 ```
 

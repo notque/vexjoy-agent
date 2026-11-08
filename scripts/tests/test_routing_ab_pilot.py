@@ -1,8 +1,8 @@
 """Tests for the pre-run --pilot-check in scripts/routing-ab-test.py.
 
-Covers the baseline band (p1), the discriminating share over the non-control
-arms only (p2), the degraded control and A/A noise (p3), input validation,
-and the CLI paths. Pure functions on synthetic inputs. No model calls.
+Covers the baseline band (p1), per-case discrimination with A/A flips as
+noise and guard cases outside the analysis set (p2), the degraded control and
+A/A noise (p3), input validation, and the CLI paths. Pure functions on synthetic inputs. No model calls.
 """
 
 from __future__ import annotations
@@ -49,39 +49,57 @@ def raw3(rows: list[tuple[str, ...]], names: tuple[str, ...] = ("base", "aa", "c
     return {"arms": list(names), "records": records}
 
 
-# base 50%, A/A 50% splitting cases 0-2 and 5-7 (6/10), control 0%.
-PASSING = arms("1111100000", "0001111100")
+# Stable base 50% (A/A identical), control 0%, a stronger reference arm passing every case:
+# the control splits cases 0-4, the reference splits cases 5-9, so every case discriminates.
+PASSING = {**arms("1111100000"), "ref": flags("1111111111")}
 
 
-class TestDiscriminatingShare:
-    def test_six_of_ten_split_between_baseline_and_aa_passes(self, mod):
-        v = mod.pilot_verdict(PASSING, "base", "ctrl", "aa")
-        assert v["discriminating_pct"] == 60.0, "cases 0-2 and 5-7 split between base and aa"
-        assert (v["verdict"], v["exit_code"]) == ("PASS", 0), "60% split meets the 60% bar"
+class TestDiscriminating:
+    def test_every_case_split_by_control_or_reference_passes(self, mod):
+        v = mod.pilot_verdict(PASSING, "base", "ctrl", "aa", ("ref",))
+        assert (v["discriminating_cases"], v["discriminating_pct"]) == (10, 100.0), "all 10 cases split"
+        assert (v["verdict"], v["exit_code"]) == ("PASS", 0), "a stable, fully discriminating pilot passes"
 
-    def test_five_of_ten_split_is_non_discriminating(self, mod):
-        v = mod.pilot_verdict(arms("1111100000", "0011111000"), "base", "ctrl", "aa")
-        assert v["failing_checks"] == ["NON-DISCRIMINATING"], "5/10 split is under the 60% bar"
+    def test_aa_flips_are_noise_not_discrimination(self, mod):
+        # Regression: base 1111100000 vs A/A 0001111100 read 60% discriminating and PASSED on noise.
+        v = mod.pilot_verdict(arms("1111100000", "0001111100"), "base", "ctrl", "aa")
+        assert v["noise_cases"] == ["0", "1", "2", "5", "6", "7"], "baseline/A/A flips are noise"
+        assert "NON-DISCRIMINATING" in v["failing_checks"], "a noisy pilot must fail p2"
 
-    def test_control_never_counts_toward_the_split(self, mod):
-        # Regression: identical baseline and A/A with a 0% control read 60%, PASS.
+    def test_stable_baseline_with_control_only_lists_floor_cases(self, mod):
         v = mod.pilot_verdict(arms("1111110000"), "base", "ctrl", "aa")
-        assert v["discriminating_pct"] == 0.0, "every case is a fixed pass or fail for the real arms"
-        assert v["verdict"] == "NON-DISCRIMINATING", "a control-only split must fail p2"
+        assert v["discriminating_cases"] == 6, "the control splits every case the stable baseline passes"
+        assert v["floor_cases"] == ["6", "7", "8", "9"], "cases every arm fails are floor"
+        assert v["verdict"] == "NON-DISCRIMINATING", "floor cases fail p2 unless guarded"
 
-    def test_named_extra_arm_counts_toward_the_split(self, mod):
-        data = {**arms("1111100000"), "c": flags("0001111100")}
-        v = mod.pilot_verdict(data, "base", "ctrl", "aa", ("c",))
-        assert (v["split_arms"], v["discriminating_pct"]) == (["base", "aa", "c"], 60.0), "extra arm splits 6"
+    def test_guarded_floor_cases_leave_the_analysis_set(self, mod):
+        v = mod.pilot_verdict(arms("1111110000"), "base", "ctrl", "aa", guards=("6", "7", "8", "9"))
+        assert (v["analysis_cases"], v["guard_cases"]) == (6, ["6", "7", "8", "9"]), "guards are reported"
+        assert v["verdict"] == "PASS", "every case left in the analysis set discriminates"
+
+    def test_ceiling_case_fails_p2(self, mod):
+        data = {**arms("1111100000", ctrl="1000000000"), "ref": flags("1111111111")}
+        v = mod.pilot_verdict(data, "base", "ctrl", "aa", ("ref",))
+        assert v["ceiling_cases"] == ["0"], "a case every arm passes is ceiling"
+        assert "NON-DISCRIMINATING" in v["failing_checks"], "one ceiling case fails p2"
+
+    def test_unknown_guard_case_raises(self, mod):
+        with pytest.raises(ValueError, match="not case ids"):
+            mod.pilot_verdict(PASSING, "base", "ctrl", "aa", ("ref",), guards=("q999",))
+
+    def test_all_guarded_is_non_discriminating(self, mod):
+        guards = tuple(str(i) for i in range(10))
+        v = mod.pilot_verdict(PASSING, "base", "ctrl", "aa", ("ref",), guards=guards)
+        assert v["verdict"] == "NON-DISCRIMINATING", "an empty analysis set cannot pass"
 
     def test_unnamed_arm_is_rejected(self, mod):
         data = {**PASSING, "chal": flags("1111111111")}
         with pytest.raises(ValueError, match="not named"):
             mod.pilot_verdict(data, "base", "ctrl", "aa")
 
-    def test_baseline_alone_cannot_measure_a_split(self, mod):
+    def test_aa_arm_is_required(self, mod):
         data = {"base": flags("1111100000"), "ctrl": flags("0000000000")}
-        with pytest.raises(ValueError, match="two non-control arms"):
+        with pytest.raises(ValueError, match="--aa-arm"):
             mod.pilot_verdict(data, "base", "ctrl")
 
 
@@ -100,29 +118,29 @@ class TestBandAndControl:
         assert "CEILING" not in hi["failing_checks"], "70% is inside the band"
         assert "FLOOR" not in lo["failing_checks"], "30% is inside the band"
 
-    def test_control_19_points_down_did_not_lose(self, mod):
-        base, ctrl = [True] * 60 + [False] * 40, [False] * 19 + [True] * 41 + [False] * 40
+    def test_control_29_points_down_did_not_lose(self, mod):
+        base, ctrl = [True] * 60 + [False] * 40, [False] * 29 + [True] * 31 + [False] * 40
         v = mod.pilot_verdict({"base": base, "aa": base, "ctrl": ctrl}, "base", "ctrl", "aa")
-        assert "CONTROL-DID-NOT-LOSE" in v["failing_checks"], "a 19-point gap is under the 20-point bar"
+        assert "CONTROL-DID-NOT-LOSE" in v["failing_checks"], "a 29-point gap is under the 30-point bar"
 
-    def test_control_20_points_down_lost(self, mod):
-        base, ctrl = [True] * 60 + [False] * 40, [False] * 20 + [True] * 40 + [False] * 40
+    def test_control_30_points_down_lost(self, mod):
+        base, ctrl = [True] * 60 + [False] * 40, [False] * 30 + [True] * 30 + [False] * 40
         v = mod.pilot_verdict({"base": base, "aa": base, "ctrl": ctrl}, "base", "ctrl", "aa")
-        assert "CONTROL-DID-NOT-LOSE" not in v["failing_checks"], "a 20-point gap meets the bar"
+        assert "CONTROL-DID-NOT-LOSE" not in v["failing_checks"], "a 30-point gap meets the bar"
 
     def test_control_must_beat_twice_the_aa_noise(self, mod):
-        data = {"base": [True] * 50 + [False] * 50, "ctrl": [True] * 25 + [False] * 75}
-        data["aa"] = [True] * 65 + [False] * 35
+        data = {"base": [True] * 50 + [False] * 50, "ctrl": [True] * 15 + [False] * 85}
+        data["aa"] = [True] * 70 + [False] * 30
         v = mod.pilot_verdict(data, "base", "ctrl", "aa")
-        assert (v["aa_gap_pts"], v["control_gap_pts"]) == (15.0, 25.0), "setup: noise 15, gap 25"
-        assert "CONTROL-DID-NOT-LOSE" in v["failing_checks"], "a 25-point gap is inside 2 x 15 noise"
+        assert (v["aa_gap_pts"], v["control_gap_pts"]) == (20.0, 35.0), "setup: noise 20, gap 35"
+        assert "CONTROL-DID-NOT-LOSE" in v["failing_checks"], "a 35-point gap is inside 2 x 20 noise"
 
 
 class TestInputValidation:
     @pytest.mark.parametrize("bad", [["true"] * 10, [1] * 10, "1111100000", None])
     def test_non_bool_per_case_values_raise(self, mod, bad):
         with pytest.raises(ValueError, match="true/false"):
-            mod.pilot_verdict({**PASSING, "base": bad}, "base", "ctrl", "aa")
+            mod.pilot_verdict({**PASSING, "base": bad}, "base", "ctrl", "aa", ("ref",))
 
     @pytest.mark.parametrize(
         ("data", "control"),
@@ -130,11 +148,15 @@ class TestInputValidation:
     )
     def test_bad_shape_raises(self, mod, data, control):
         with pytest.raises(ValueError):
-            mod.pilot_verdict(data, "base", control, "aa")
+            mod.pilot_verdict(data, "base", control, "aa", ("ref",))
 
     def test_same_arm_for_baseline_and_control_raises(self, mod):
         with pytest.raises(ValueError, match="must all differ"):
-            mod.pilot_verdict(PASSING, "base", "base", "aa")
+            mod.pilot_verdict(PASSING, "base", "base", "aa", ("ref",))
+
+    def test_per_case_case_ids_must_match_the_case_count(self, mod):
+        with pytest.raises(ValueError, match="distinct"):
+            mod.pilot_verdict(PASSING, "base", "ctrl", "aa", ("ref",), case_ids=["a", "a"] + list("cdefghij"))
 
 
 class TestPilotCli:
@@ -153,10 +175,14 @@ class TestPilotCli:
         assert mod.pilot_check(out_dir=tmp_path, control="ctrl", aa="aa", per_case_path=src) == 1
         assert "ERROR:" in capsys.readouterr().err, "bad pilot input must print an ERROR line, not a traceback"
 
-    def test_raw_json_input_scores_routes(self, mod, tmp_path):
-        rows = [(HIT, MISS, MISS)] * 3 + [(HIT, HIT, MISS)] * 2 + [(MISS, HIT, MISS)] * 3 + [(MISS, MISS, MISS)] * 2
+    def test_raw_json_input_scores_routes_and_guards_by_record_id(self, mod, tmp_path):
+        rows = [(HIT, HIT, MISS)] * 5 + [(MISS, MISS, MISS)] * 5
         (tmp_path / "raw.json").write_text(json.dumps(raw3(rows)), encoding="utf-8")
-        assert mod.pilot_check(out_dir=tmp_path, control="ctrl", aa="aa") == 0, "50% base, 6/10 split, ctrl 0%"
+        assert mod.pilot_check(out_dir=tmp_path, control="ctrl", aa="aa") == 1, "q005-q009 are floor cases"
+        guards = [f"q{i:03d}" for i in range(5, 10)]
+        assert mod.pilot_check(out_dir=tmp_path, control="ctrl", aa="aa", guards=guards) == 0, "guarded floor"
+        verdict = json.loads((tmp_path / "pilot-verdict.json").read_text())
+        assert verdict["guard_cases"] == guards, "the verdict reports each guard"
 
     def test_candidate_arm_in_raw_json_fails(self, mod, tmp_path):
         rows = [(HIT, MISS, MISS, HIT)] * 6 + [(MISS, HIT, MISS, HIT)] * 4
@@ -173,12 +199,14 @@ class TestPilotCli:
 
     def test_main_dispatches_pilot_check(self, mod, tmp_path, monkeypatch):
         src = tmp_path / "pilot.json"
-        src.write_text(json.dumps({"arms": {**arms("1111100000"), "c": flags("0001111100")}}), encoding="utf-8")
-        argv = ["x", "--pilot-check", "--control-arm", "ctrl", "--aa-arm", "aa", "--extra-arm", "c"]
-        monkeypatch.setattr("sys.argv", [*argv, "--per-case", str(src), "--out-dir", str(tmp_path)])
-        assert mod.main() == 0, "the extra arm supplies the 6/10 split through the CLI"
+        ids = [f"c{i}" for i in range(10)]
+        src.write_text(json.dumps({"arms": arms("1111100000"), "case_ids": ids}), encoding="utf-8")
+        argv = ["x", "--pilot-check", "--control-arm", "ctrl", "--aa-arm", "aa"]
+        guards = [arg for cid in ids[5:] for arg in ("--guard-case", cid)]
+        monkeypatch.setattr("sys.argv", [*argv, *guards, "--per-case", str(src), "--out-dir", str(tmp_path)])
+        assert mod.main() == 0, "guarded floor cases leave a fully discriminating analysis set"
 
-    @pytest.mark.parametrize("flag", ["--control-arm", "--extra-arm"])
+    @pytest.mark.parametrize("flag", ["--control-arm", "--extra-arm", "--guard-case"])
     def test_pilot_flags_rejected_outside_pilot_mode(self, mod, monkeypatch, flag):
         monkeypatch.setattr("sys.argv", ["routing-ab-test.py", "--gate", flag, "x"])
         with pytest.raises(SystemExit) as exc:

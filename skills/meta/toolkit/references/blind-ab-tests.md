@@ -6,14 +6,14 @@ Use this guide when you compare two agents, prompts, reviewers, or routers and t
 
 A test that every arm passes, or every arm fails, judges the corpus, not the arms. fix-strategy-v1 scored 8/8 against 8/8 (`scripts/routing-ab-results/fix-strategy-v1/VERDICT.md`), so it could never have shown a difference.
 
-- Run a pilot on about 20% of cases before the main run, with the baseline, a degraded control, and a second baseline run (the A/A arm).
+- Run a pilot on about 20% of cases before the main run, with the baseline, a degraded control, a second baseline run (the A/A arm), and, where cases the baseline fails must count, a reference arm of different quality, such as a stronger model.
 - Keep baseline accuracy or recall within 30-70%. Above 70%, harden the cases. Below 30%, check the grader before you blame the cases.
-- Require at least 60% of cases to split across the non-control pilot arms (baseline and A/A), so that not every arm gets the same result. The degraded control never counts toward the split: a control built to lose would split every case the baseline passes. A few ceiling cases can stay as guards, but report them as non-discriminating.
-- Gate it: `python3 scripts/routing-ab-test.py --pilot-check --control-arm NAME --aa-arm NAME`, or pass `--per-case FILE` for a review A/B outside the routing harness. Name every arm in the pilot data; name another non-candidate arm with `--extra-arm NAME`. Leave the candidate arm out of the pilot data: the check rejects unnamed arms. Per-case values must be JSON `true`/`false`, not strings. On FAIL, rework the cases. Do not start the main run.
-- If the main run still ends with both arms at 95% or above (or 5% or below), `--gate` returns CEILING or FLOOR (exit 3). Report that the run judged nothing. Never report it as "no difference".
+- Require every case to discriminate: baseline and A/A agree on it, and the control or the reference arm gets the other result. A flip between baseline and A/A is noise, not discrimination. A case every arm passes is a ceiling case; one every arm fails is a floor case. Rework or drop each one, or keep it as a guard outside the analysis set and report it as non-discriminating. Log each guard and its reason in the change log.
+- Gate it: `python3 scripts/routing-ab-test.py --pilot-check --control-arm NAME --aa-arm NAME`, or pass `--per-case FILE` for a review A/B outside the routing harness. Name every arm in the pilot data; name the reference arm with `--extra-arm NAME` and each guard with `--guard-case ID`. Leave the candidate arm out of the pilot data: the check rejects unnamed arms. Per-case values must be JSON `true`/`false`, not strings. On FAIL, rework the cases. Do not start the main run.
+- If the main run still ends with both arms at 95% or above (or 5% or below) and fewer than 6 discordant pairs, `--gate` returns CEILING or FLOOR (exit 3). Report that the run judged nothing. Never report it as "no difference".
 - For a lower-is-better metric, such as false positives per review, record a case as passing when it shows the good outcome, and declare that direction before the pilot.
 
-In the reviewer-isolation pilot, 6 of 11 cases failed this check. Three replacement cases, all real bugs, hit the ceiling in the re-pilot and were dropped. Expect to lose cases here, and budget for it.
+In the reviewer-isolation pilot, 6 of 11 cases failed that protocol's per-defect version of this rule (among A1, A2, and C, at least one run misses a seeded defect and at least one catches one). Three replacement cases, all real bugs, hit the ceiling in the re-pilot and were dropped. Expect to lose cases here, and budget for it.
 
 ## 2. Build cases from real defects
 
@@ -38,7 +38,7 @@ Freeze the corpus and the answer key before anyone reads the candidate arm's tex
 
 - **Agreement gate.** Hand-label a fresh set (20 to 30 items) before the grader sees it, and require at least 90% agreement. Write the matching rule down before you label. Check every grader revision on a set it has never seen; a rule fitted on the set that exposed it is untested. In the reviewer run, two matcher rounds failed (80.0%, 76.7%) before a third passed (93.3%), and both real-defect graders failed (50%, 75%). FP was therefore counted from distractor matches only, and the verdict said so.
 - **A/A control.** Run the baseline twice. The gap between the two runs is your noise. A pairwise judge on an A/A pair should read near 0.5. In the reviewer run, one read 0.333 with n = 9, so treat any pairwise read within about 0.17 of that as noise.
-- **Degraded-arm control.** Run an arm built to lose, such as a style-only reviewer or a manifest with stripped descriptions. It must lose by at least 20 points and by more than twice the A/A gap. If it does not, the grader or the corpus cannot see quality.
+- **Degraded-arm control.** Run an arm built to lose, such as a style-only reviewer or a manifest with stripped descriptions. It must lose by at least 30 points (the reviewer-isolation positive-control bar) and by more than twice the A/A gap. If it does not, the grader or the corpus cannot see quality.
 - Spot-check about 5 main-run grader answers against the key.
 
 ## 6. Cancel position bias

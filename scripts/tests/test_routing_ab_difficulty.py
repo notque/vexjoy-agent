@@ -50,11 +50,18 @@ class TestGateBound:
         v = mod.gate_verdict(raw_of([(HIT, HIT)] * 8), "base", "chal")
         assert v["verdict"] == "CEILING", "the 8/8 vs 8/8 run must never read as no difference"
 
-    def test_powered_run_at_ceiling_is_not_promoted(self, mod):
-        pairs = [(HIT, HIT)] * 190 + [(MISS, HIT)] * 4 + [(HIT, MISS)] * 3 + [(MISS, MISS)] * 3
+    def test_powered_run_at_ceiling_gets_the_normal_verdict(self, mod):
+        # 95% vs 100% with 10 help pairs did discriminate, so it must not read "judged nothing".
+        pairs = [(HIT, HIT)] * 190 + [(MISS, HIT)] * 10
         v = mod.gate_verdict(raw_of(pairs), "base", "chal")
-        assert v["discordant_pairs"] == 7 and v["failing_gates"] == [], "setup: powered and passing"
-        assert v["verdict"] == "CEILING", "96.5% vs 97.0% must read CEILING, not PROMOTE"
+        assert v["discordant_pairs"] == 10 and v["failing_gates"] == [], "setup: powered and passing"
+        assert (v["verdict"], v["non_discriminating"]) == ("PROMOTE", None), "a powered run at a bound is PROMOTE"
+
+    def test_underpowered_run_at_ceiling_is_ceiling(self, mod):
+        pairs = [(HIT, HIT)] * 190 + [(MISS, HIT)] * 3 + [(HIT, MISS)] * 2
+        v = mod.gate_verdict(raw_of(pairs), "base", "chal")
+        assert v["discordant_pairs"] == 5, "setup: under the 6-pair bar"
+        assert v["verdict"] == "CEILING", "an underpowered run at a bound reads CEILING, not UNDERPOWERED"
 
     def test_both_arms_at_zero_is_floor(self, mod):
         v = mod.gate_verdict(raw_of([(MISS, MISS)] * 20), "base", "chal")
