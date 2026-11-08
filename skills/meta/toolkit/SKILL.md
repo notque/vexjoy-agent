@@ -123,7 +123,7 @@ Improve a skill, agent, or shared guide until a weaker model produces strong out
 Controlled benchmarks comparing agent variants on identical tasks.
 
 1. **Select variants.** Identify the agents to compare (2-4 variants).
-2. **Design benchmark.** Load `references/agent-comparison/benchmark-tasks.md`. Select 5-10 representative tasks covering the agent's domain.
+2. **Design benchmark.** Load `references/agent-comparison/benchmark-tasks.md`. Select 5-10 representative tasks covering the agent's domain. When the result decides a ship, also load `references/blind-ab-tests.md` and pass its difficulty pilot before the main run.
 3. **Execute.** Run each task with each variant. Collect: output quality, token usage, tool calls, time.
 4. **Grade.** Apply rubric from `references/agent-comparison/grading-rubric.md`. Score each dimension.
 5. **Report.** Use `references/agent-comparison/report-template.md`. Include: methodology, per-task scores, aggregate rankings, cost analysis, recommendation.
@@ -215,6 +215,7 @@ Load when the task needs detailed schemas, templates, or methodology.
 | Agent Creator | `references/agent-creator.md`, `references/agent-creator/{agent-design-patterns,agent-frontmatter-template,agent-eval-design}.md` |
 | Weak-Model Uplift | `references/weak-model-uplift.md` |
 | Agent Comparison | `references/agent-comparison.md`, `references/agent-comparison/{methodology,grading-rubric,benchmark-tasks,report-template,optimize-phase}.md` |
+| Blind A/B Tests | `references/blind-ab-tests.md`: difficulty pilot, real-bug corpus, arm parity, grader validation, position bias, power, pre-registration, recompute audit |
 | Agent Evaluation | `references/agent-evaluation.md`, `references/agent-evaluation/{scoring-rubric,report-templates,batch-evaluation}.md` |
 | Skill Composer | `references/skill-composer.md`, `references/skill-composer/{compatibility-matrix,composition-patterns,skill-patterns,examples}.md` |
 | Routing Tables | `references/routing-table-updater.md`, `references/routing-table-updater/{routing-format,extraction-patterns,conflict-resolution,examples}.md` |
