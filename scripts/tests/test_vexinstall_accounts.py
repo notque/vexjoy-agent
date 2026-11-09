@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 
-from scripts.tests.vexinstall_support import Env, world
+from scripts.tests.vexinstall_support import Env, git, world
 
 OWNED = ["h1.py", "h2.py", "h3.py"]
 USER_HOOK = {"type": "command", "command": "python3 /opt/user/hook.py"}
@@ -165,3 +165,70 @@ def test_non_claude_target_leaves_profiles_alone(world: Env) -> None:
     before = (cfg / "settings.json").read_bytes()
     assert world.run("apply", "--target", "hermes").code == 0
     assert (cfg / "settings.json").read_bytes() == before
+
+
+def ship_env(world: Env, env: dict[str, str]) -> None:
+    """Commit *env* as the fixture repo's settings env block."""
+    repo_settings = world.repo / ".claude" / "settings.json"
+    data = json.loads(repo_settings.read_text())
+    data["env"] = env
+    repo_settings.write_text(json.dumps(data, indent=2))
+    git(world.repo, "commit", "-qam", "ship env")
+
+
+def test_apply_gives_profiles_the_repo_env_and_attribution(world: Env) -> None:
+    ship_env(world, {"REPO_FLAG": "1", "USER_SET": "repo"})
+    base = world.home / ".claude" / "settings.json"
+    cfg = add_account(world, "max1", {"env": {"USER_SET": "mine", "OTHER": "x"}, "theme": "dark"})
+    kept = add_account(world, "max2", {"attribution": {"commit": "custom", "pr": ""}})
+    res = world.run("apply", "--target", "claude")
+    assert res.code == 0, res.err
+    merged = json.loads((cfg / "settings.json").read_text())
+    assert merged["env"] == {"USER_SET": "mine", "OTHER": "x", "REPO_FLAG": "1"}
+    assert merged["attribution"] == {"commit": "", "pr": ""}
+    assert merged["theme"] == "dark"
+    assert json.loads((kept / "settings.json").read_text())["attribution"] == {"commit": "custom", "pr": ""}
+    base_settings = json.loads(base.read_text())
+    for key in ("env", "attribution"):
+        assert merged[key].keys() >= base_settings[key].keys(), key
+    assert any(line.startswith("account max1:") and "attribution +1" in line for line in res.out), res.out
+    again = world.run("apply", "--target", "claude")
+    assert again.code == 0, again.err
+    assert not any(line.startswith("account ") for line in again.out), again.out
+
+
+def test_profile_old_env_default_moves_once(world: Env) -> None:
+    key = "CLAUDE_CODE_AUTO_COMPACT_WINDOW"
+    cfg = add_account(world, "max1", {"env": {key: "400000"}})
+    ship_env(world, {key: "500000"})
+    assert world.run("apply", "--target", "claude").code == 0
+    assert json.loads((cfg / "settings.json").read_text())["env"][key] == "500000"
+    assert f"{key}=400000" in world.ledger()["settings"]["env_migrated:max1"]
+    data = json.loads((cfg / "settings.json").read_text())
+    data["env"][key] = "400000"
+    (cfg / "settings.json").write_text(json.dumps(data))
+    assert world.run("apply", "--target", "claude").code == 0
+    assert json.loads((cfg / "settings.json").read_text())["env"][key] == "400000"
+
+
+def test_doctor_reports_profile_missing_attribution(world: Env) -> None:
+    cfg = add_account(world, "max1", {})
+    assert world.run("apply", "--target", "claude").code == 0
+    data = json.loads((cfg / "settings.json").read_text())
+    del data["attribution"]
+    (cfg / "settings.json").write_text(json.dumps(data))
+    drift = world.run("doctor", "--target", "claude")
+    assert drift.code == 1
+    assert any("account-settings-drift" in line and "max1: attribution +1" in line for line in drift.out), drift.out
+    assert world.run("apply", "--target", "claude").code == 0
+    assert not any("account-" in line for line in world.run("doctor", "--target", "claude").out)
+
+
+def test_uninstall_keeps_profile_env_and_attribution(world: Env) -> None:
+    ship_env(world, {"REPO_FLAG": "1"})
+    cfg = add_account(world, "max1", {})
+    assert world.run("apply", "--target", "claude").code == 0
+    assert world.run("uninstall", "--target", "claude").code == 0
+    data = json.loads((cfg / "settings.json").read_text())
+    assert data["env"] == {"REPO_FLAG": "1"}
+    assert data["attribution"] == {"commit": "", "pr": ""}

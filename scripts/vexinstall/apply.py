@@ -316,46 +316,44 @@ def _save_ledger(path: Path, ledger: Ledger, ctx: Context, guard: Guard) -> None
 
 
 def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict | None) -> dict:
-    """Merge owned hook entries and missing repo env vars into ~/.claude/settings.json.
+    """Merge owned hook entries and the repo's env vars and attribution into ~/.claude/settings.json.
 
-    Env vars are added only on install (``desired`` is None) and never removed on
-    uninstall. A user value is never overwritten, except one still holding an old
-    shipped default listed in ``SUPERSEDED_ENV``, once per install (recorded in the
-    ledger as ``env_migrated``). Returns a report dict.
+    Env vars and attribution are added only on install (``desired`` is None) and never removed on
+    uninstall. A user value is never overwritten, except an env var still holding an old shipped
+    default listed in ``SUPERSEDED_ENV``, once per install (recorded in the ledger as
+    ``env_migrated``). Returns a report dict.
     """
     home = ctx.home
     spath = home / ".claude" / "settings.json"
-    desired_env: dict[str, str] = {}
-    if desired is None:
+    install = desired is None
+    if install:
         repo_settings = ctx.source_root / ".claude" / "settings.json"
         if not repo_settings.is_file():
             return {"skipped": "repo .claude/settings.json missing"}
         desired = filter_settings_hooks(settings_mod.desired_from_repo(ctx.source_root), ctx.profile)
-        desired_env = settings_mod.desired_env_from_repo(ctx.source_root)
     try:
         current = settings_mod.read_settings(spath)
     except ValueError as exc:
         return {"skipped": f"settings.json unreadable: {exc}"}
     rule = settings_mod.OwnerRule(home=home, hooks_dir=home / ".claude" / "hooks", source_root=ctx.source_root)
     res = settings_mod.merge(current, desired, rule)
-    env_added = settings_mod.merge_env(res.settings, desired_env)
     migrated = set(ledger.settings.get("env_migrated", []))
-    env_updated, env_marked = settings_mod.update_superseded_env(res.settings, desired_env, migrated)
-    env_removed = settings_mod.remove_retired_env(res.settings) if desired_env else []
+    keys = settings_mod.merge_repo_keys(res.settings, ctx.source_root, migrated) if install else None
     backup_ts = None
-    if res.changed or env_added or env_updated or env_removed:
+    if res.changed or (keys is not None and keys.changed):
         backup_ts = settings_mod.backup(spath, state_dir(home) / "backups", guard)
         settings_mod.write(spath, res.settings, guard)
-    if env_marked:  # only after a successful write, so a failed write retries the migration
-        ledger.settings["env_migrated"] = sorted(migrated | set(env_marked))
+    if keys is not None and keys.env_marked:  # only after a successful write, so a failed write retries
+        ledger.settings["env_migrated"] = sorted(migrated | set(keys.env_marked))
     ledger.settings["claude"] = res.owned_hashes
     return {
         "added": res.added,
         "removed": res.removed,
         "deduped": res.deduped,
-        "env_added": env_added,
-        "env_updated": env_updated,
-        "env_removed": env_removed,
+        "env_added": keys.env_added if keys else [],
+        "env_updated": keys.env_updated if keys else [],
+        "env_removed": keys.env_removed if keys else [],
+        "attribution_added": keys.attribution_added if keys else False,
         "unmanaged_in_repo": res.unmanaged,
         "backup": backup_ts,
     }
