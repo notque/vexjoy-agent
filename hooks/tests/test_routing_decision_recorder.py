@@ -446,6 +446,14 @@ class TestDecisionRecorder:
         assert row["git_sha"]
         assert row["source"] == "hook:routing-decision-recorder"
 
+    def test_fable_model_marker_is_accepted(self):
+        """`fable` is a valid model wherever `opus` is; an unknown name is not."""
+        a = _load(A_PATH, "rdr_fable_model")
+        marker = "[do-route] agent=python-general-engineer skill=programming complexity=complex model={} effort=high"
+        assert a.parse_model(marker.format("fable")) == "fable"
+        assert a.parse_model(marker.format("opus")) == "opus"
+        assert a.parse_model(marker.format("fabel")) is None
+
     def test_gpt_56_model_effort_is_persisted_in_route_evidence(self, db_env, monkeypatch):
         """The model-and-effort benchmark point survives the marker round-trip."""
         a = _load(A_PATH, "rdr_gpt_56_model_effort")
@@ -2060,11 +2068,53 @@ class TestLateDecisionRowRequeue:
 STOP_PATH = HOOKS_DIR / "routing-outcome-stop-fallback.py"
 
 
+def _age_pending(db_env, session: str, seconds: float) -> None:
+    """Backdate every pending entry of one session by `seconds`."""
+    import routing_outcome_state as ros
+
+    path = ros._state_file(session)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for item in data["pending"]:
+        item["created"] = float(item["created"]) - seconds
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def _seed_evidence(key: str, session: str, decision_id: str) -> None:
+    """One evidence_route_decisions row (NULL outcome) for an `agent:skill` key."""
+    import learning_db_v2 as ldb
+
+    agent, skill = key.split(":", 1)
+    ldb.record_evidence_route_decision(
+        session_id=session, agent=agent, skill=skill, complexity="medium", decision_id=decision_id
+    )
+
+
+def _evidence_outcomes(key: str) -> dict[str, tuple]:
+    """decision_id -> (outcome, outcome_basis) for one route key."""
+    import learning_db_v2 as ldb
+
+    with ldb.get_connection() as conn:
+        rows = conn.execute(
+            "SELECT decision_id, outcome, outcome_basis FROM evidence_route_decisions WHERE route_key = ?", (key,)
+        ).fetchall()
+    return {r["decision_id"]: (r["outcome"], r["outcome_basis"]) for r in rows}
+
+
+def _fire(path: Path, name: str, event: dict):
+    mod = _load(path, name)
+    with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+        mod.main()
+    return mod
+
+
 class TestStopFallback:
-    def test_session_end_resolves_pending_via_error_flag(self, db_env, monkeypatch):
-        """No next user prompt: the Stop hook resolves still-pending dispatches
-        from each dispatch's own error flag (T4 deterministic floor):
-        error => failure (decay); CLEAN run => NEUTRAL no-op (no boost)."""
+    """Stop fires after every turn, before the user's next prompt. It resolves
+    only what the finalizer can never score better: errored and stale entries.
+    SessionEnd resolves everything."""
+
+    def test_stop_resolves_errors_and_keeps_clean_pending(self, db_env, monkeypatch):
+        """Stop: an errored dispatch fails at once; a fresh clean one stays
+        pending for the UserPromptSubmit finalizer."""
         sys.path.insert(0, str(LIB_DIR))
         import routing_outcome_state as ros
 
@@ -2076,20 +2126,132 @@ class TestStopFallback:
         ros.append_pending_outcome(session, bad, errors=True)
         ok_before = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
 
-        s = _load(STOP_PATH, "stop1")
         event = {"hook_event_name": "Stop", "session_id": session, "session_data": {"files_modified": ["x"]}}
-        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
-            s.main()
+        _fire(STOP_PATH, "stop1", event)
 
         ok_row = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
         bad_row = next(r for r in _query_routing_all(db_env) if r["key"] == bad)
-        # T4: a clean autonomous run is NEUTRAL — no boost, no count change.
         assert ok_row["success_count"] == ok_before["success_count"]
         assert ok_row["failure_count"] == 0
         assert ok_row["confidence"] == ok_before["confidence"]
-        assert bad_row["failure_count"] == 1  # error => decay (unchanged)
-        # Pending cleared — nothing left to double-resolve.
+        assert bad_row["failure_count"] == 1  # error => decay
+        assert [p["key"] for p in ros.peek_pending_outcomes(session)] == [ok]
+        # The clean entry was not scored: no default_no_complaint row.
+        assert _basis_counts(db_env) == {"tool_errors_only": 1}
+
+    def test_stop_then_next_prompt_scores_the_reaction(self, db_env, monkeypatch):
+        """The regression this fixes: Stop used to drain every entry, so the
+        finalizer never saw one and every outcome was default_no_complaint."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:turn-loop")
+        session = "turn-loop"
+        ros.append_pending_outcome(session, key, errors=False)
+
+        _fire(STOP_PATH, "stop_loop", {"hook_event_name": "Stop", "session_id": session})
+        _fire(F_PATH, "fin_loop", _prompt_event("thanks, that worked", session=session))
+
+        row = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert row["success_count"] == 1
+        assert _basis_counts(db_env) == {"acceptance_detected": 1}
         assert ros.peek_pending_outcomes(session) == []
+
+    def test_stop_resolves_stale_entry_as_neutral(self, db_env, monkeypatch):
+        """No user turn for STOP_STALE_AGE_SEC: the clean entry resolves to
+        NEUTRAL (no boost) with basis default_no_complaint."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:stale")
+        session = "stale-run"
+        ros.append_pending_outcome(session, key, errors=False)
+        before = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+
+        _age_pending(db_env, session, ros.STOP_STALE_AGE_SEC - 60)
+        _fire(STOP_PATH, "stop_not_stale", {"hook_event_name": "Stop", "session_id": session})
+        assert len(ros.peek_pending_outcomes(session)) == 1  # just under the line: kept
+
+        _age_pending(db_env, session, 120)
+        _fire(STOP_PATH, "stop_stale", {"hook_event_name": "Stop", "session_id": session})
+
+        after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert after["success_count"] == before["success_count"]
+        assert after["failure_count"] == before["failure_count"]
+        assert after["confidence"] == before["confidence"]
+        assert ros.peek_pending_outcomes(session) == []
+        assert _basis_counts(db_env) == {"default_no_complaint": 1}
+
+    def test_stop_drops_abandoned_entry_unscored(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:abandoned")
+        session = "abandoned"
+        ros.append_pending_outcome(session, key, errors=True)
+        _age_pending(db_env, session, ros.MAX_PENDING_AGE_SEC + 60)
+
+        _fire(STOP_PATH, "stop_abandoned", {"hook_event_name": "Stop", "session_id": session})
+
+        row = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert row["failure_count"] == 0
+        assert ros.peek_pending_outcomes(session) == []
+        assert _basis_counts(db_env) == {}
+
+    def test_stop_writes_the_outcome_on_the_evidence_row(self, db_env, monkeypatch):
+        """The fallback used to call apply_outcome only, leaving the decision
+        rows it resolved with a NULL outcome."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:evidence")
+        session = "evidence-run"
+        for decision_id, errors in (("d-1", True), ("d-2", False)):
+            _seed_evidence(key, session, decision_id)
+            ros.append_pending_outcome(session, key, errors, decision_id)
+
+        _fire(STOP_PATH, "stop_evidence", {"hook_event_name": "Stop", "session_id": session})
+        assert _evidence_outcomes(key) == {"d-1": ("failure", "tool_errors_only"), "d-2": (None, None)}
+
+        _fire(STOP_PATH, "end_evidence", {"hook_event_name": "SessionEnd", "session_id": session})
+        assert _evidence_outcomes(key) == {
+            "d-1": ("failure", "tool_errors_only"),
+            "d-2": ("neutral", "default_no_complaint"),
+        }
+        events = [e for e in _read_events(db_env) if e.get("type") == "outcome"]
+        assert [(e["outcome"], e["reason"]) for e in events] == [
+            ("failure", "tool-errors"),
+            ("neutral", "session-end-no-reaction"),
+        ]
+
+    def test_session_end_resolves_every_pending_entry(self, db_env, monkeypatch, capsys):
+        """SessionEnd is the true end: no next prompt can come, so a fresh
+        clean entry resolves too. SessionEnd takes no hook output."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        ok = _seed_decision("python-general-engineer:end-ok")
+        bad = _seed_decision("python-general-engineer:end-bad")
+        session = "session-end"
+        ros.append_pending_outcome(session, ok, errors=False)
+        ros.append_pending_outcome(session, bad, errors=True)
+        ok_before = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
+        capsys.readouterr()
+
+        _fire(STOP_PATH, "end1", {"hook_event_name": "SessionEnd", "session_id": session, "reason": "exit"})
+
+        assert capsys.readouterr().out == ""
+        ok_row = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
+        bad_row = next(r for r in _query_routing_all(db_env) if r["key"] == bad)
+        assert ok_row["confidence"] == ok_before["confidence"] and ok_row["success_count"] == 0
+        assert bad_row["failure_count"] == 1
+        assert ros.peek_pending_outcomes(session) == []
+        assert _basis_counts(db_env) == {"default_no_complaint": 1, "tool_errors_only": 1}
 
     def test_stop_does_not_double_resolve_finalized(self, db_env, monkeypatch):
         """A dispatch already finalized (and cleared) by UserPromptSubmit must
@@ -2115,29 +2277,54 @@ class TestStopFallback:
         row = next(r for r in _query_routing_all(db_env) if r["key"] == key)
         assert row["success_count"] == 1, "Stop double-resolved a finalized dispatch"
 
-    def test_stop_clean_run_is_neutral(self, db_env, monkeypatch):
-        """T4: a clean autonomous run (no errors, no next prompt) resolves to
-        NEUTRAL at Stop — no boost, no count change. Regression guard against the
-        old 'else boost' that inflated success on every quiet session."""
+    def test_stop_skips_a_non_dict_entry_and_scores_the_rest(self, db_env, monkeypatch):
+        """The state helper hands back malformed entries so they leave state.
+        One of them must not abort the loop and lose the entries after it."""
         sys.path.insert(0, str(LIB_DIR))
         import routing_outcome_state as ros
 
         monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
-        key = _seed_decision("python-general-engineer:clean-neutral")
-        session = "clean-run"
-        ros.append_pending_outcome(session, key, errors=False)
-        before = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        key = _seed_decision("python-general-engineer:after-junk")
+        session = "junk-entry"
+        ros.append_pending_outcome(session, key, errors=True)
+        path = ros._state_file(session)
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["pending"].insert(0, "not-a-dict")
+        path.write_text(json.dumps(data), encoding="utf-8")
 
-        s = _load(STOP_PATH, "stop_clean")
-        event = {"hook_event_name": "Stop", "session_id": session, "session_data": {"files_modified": ["x"]}}
-        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
-            s.main()
+        _fire(STOP_PATH, "stop_junk", {"hook_event_name": "Stop", "session_id": session})
+
+        row = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert row["failure_count"] == 1
+        assert ros.peek_pending_outcomes(session) == []
+
+    def test_stop_resolved_failure_blocks_the_next_repeat_weak_boost(self, db_env, monkeypatch):
+        """Neutral, then a tool-error failure resolved at Stop, then a clean
+        repeat: the repeat has an intervening failure, so it stays neutral."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:repeat-after-stop-failure")
+        session = "repeat-stop"
+
+        ros.append_pending_outcome(session, key, errors=False)
+        _fire(F_PATH, "rs_fin1", _prompt_event("now refactor the parser module", session=session))
+        assert ros.get_outcome_history(session)[key] == "neutral"
+
+        ros.append_pending_outcome(session, key, errors=True)
+        _fire(STOP_PATH, "rs_stop", {"hook_event_name": "Stop", "session_id": session})
+        assert ros.get_outcome_history(session)[key] == "failure"
+        failed = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert failed["failure_count"] == 1
+
+        ros.append_pending_outcome(session, key, errors=False)
+        _fire(F_PATH, "rs_fin2", _prompt_event("sort the report output by date", session=session))
 
         after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
-        assert after["success_count"] == before["success_count"]
-        assert after["failure_count"] == before["failure_count"]
-        assert after["confidence"] == before["confidence"]
-        assert ros.peek_pending_outcomes(session) == []
+        assert after["success_count"] == 0, "weak boost despite a Stop-resolved failure"
+        assert after["confidence"] == failed["confidence"]
+        assert "repeat_dispatch_weak" not in _basis_counts(db_env)
 
     def test_stop_exits_zero_on_malformed(self):
         assert _run_hook(STOP_PATH, {}).returncode == 0
@@ -2276,6 +2463,346 @@ class TestSingleDispatchAttribution:
         # boost, no decay. The errored sibling still fails on its own flag.
         assert clean_after["success_count"] == 0 and clean_after["failure_count"] == 0
         assert errd_after["failure_count"] == 1 and errd_after["success_count"] == 0
+
+
+class TestKeyLevelAttribution:
+    """v1.2.0: a reaction names a route when every live pending dispatch shares
+    one route key, and it scores ONE entry. Mixed keys: rejection is ignored,
+    acceptance is a bounded weak boost per key."""
+
+    def _pend(self, monkeypatch, db_env, session, keys):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        for key in dict.fromkeys(keys):
+            _seed_decision(key)
+        for i, key in enumerate(keys):
+            _seed_evidence(key, session, f"{session}:{i}")
+            ros.append_pending_outcome(session, key, False, f"{session}:{i}")
+        return ros
+
+    def _row(self, db_env, key):
+        return next(r for r in _query_routing_all(db_env) if r["key"] == key)
+
+    def test_same_key_fanout_acceptance_boosts_once(self, db_env, monkeypatch):
+        key = "python-general-engineer:fan"
+        ros = self._pend(monkeypatch, db_env, "fan-acc", [key, key, key])
+
+        _fire(F_PATH, "fin_fan_acc", _prompt_event("looks great", session="fan-acc"))
+
+        row = self._row(db_env, key)
+        assert row["success_count"] == 1, "one reaction must be one boost, not one per sibling"
+        assert _basis_counts(db_env) == {"acceptance_detected": 1, "default_no_complaint": 2}
+        assert _evidence_outcomes(key) == {
+            "fan-acc:0": ("success", "acceptance_detected"),
+            "fan-acc:1": ("neutral", "default_no_complaint"),
+            "fan-acc:2": ("neutral", "default_no_complaint"),
+        }
+        assert ros.peek_pending_outcomes("fan-acc") == []
+
+    def test_same_key_fanout_rejection_decays_once(self, db_env, monkeypatch):
+        key = "python-general-engineer:fan-rej"
+        self._pend(monkeypatch, db_env, "fan-rej", [key, key])
+
+        _fire(F_PATH, "fin_fan_rej", _prompt_event("okay that's wrong", session="fan-rej"))
+
+        row = self._row(db_env, key)
+        assert row["failure_count"] == 1 and row["success_count"] == 0
+        assert _basis_counts(db_env) == {"rejection_detected": 1, "default_no_complaint": 1}
+
+    def test_reaction_skips_an_errored_sibling(self, db_env, monkeypatch):
+        """The errored entry fails on its own flag; the acceptance scores the
+        first CLEAN entry."""
+        key = "python-general-engineer:fan-err"
+        ros = self._pend(monkeypatch, db_env, "fan-err", [])
+        _seed_decision(key)
+        ros.append_pending_outcome("fan-err", key, True, "e-0")
+        ros.append_pending_outcome("fan-err", key, False, "e-1")
+
+        _fire(F_PATH, "fin_fan_err", _prompt_event("thanks", session="fan-err"))
+
+        row = self._row(db_env, key)
+        assert row["failure_count"] == 1 and row["success_count"] == 1
+        assert _basis_counts(db_env) == {"tool_errors_only": 1, "acceptance_detected": 1}
+
+    def test_mixed_keys_acceptance_is_a_bounded_weak_boost_per_key(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as score
+
+        a = "python-general-engineer:mix-a"
+        b = "golang-general-engineer:mix-b"
+        self._pend(monkeypatch, db_env, "mix-acc", [a, b, a])
+        before = {k: self._row(db_env, k)["confidence"] for k in (a, b)}
+
+        _fire(F_PATH, "fin_mix_acc", _prompt_event("thanks, that worked", session="mix-acc"))
+
+        for key in (a, b):
+            row = self._row(db_env, key)
+            assert row["failure_count"] == 0
+            assert row["success_count"] == 1, "one weak boost per key, not per entry"
+            gain = row["confidence"] - before[key]
+            assert 0 <= gain <= score.WEAK_BOOST_DELTA + 1e-9
+            assert row["confidence"] <= max(before[key], score.WEAK_CONFIDENCE_CAP) + 1e-9
+        assert _basis_counts(db_env) == {"acceptance_shared": 2, "default_no_complaint": 1}
+        events = [e for e in _read_events(db_env) if e.get("type") == "outcome"]
+        assert [e["reason"] for e in events].count("acceptance-shared-multi-dispatch") == 2
+
+    def test_mixed_keys_rejection_is_ignored(self, db_env, monkeypatch):
+        a = "python-general-engineer:mixr-a"
+        b = "golang-general-engineer:mixr-b"
+        self._pend(monkeypatch, db_env, "mix-rej", [a, b])
+
+        _fire(F_PATH, "fin_mix_rej", _prompt_event("that's wrong", session="mix-rej"))
+
+        for key in (a, b):
+            row = self._row(db_env, key)
+            assert row["failure_count"] == 0 and row["success_count"] == 0
+        assert _basis_counts(db_env) == {"default_no_complaint": 2}
+
+
+class TestEvidenceRowTargeting:
+    """update_evidence_route_outcome must fill the row of the dispatch it
+    scores. It used to update the newest row per key and session, so repeat
+    dispatches of one key left the older rows NULL."""
+
+    KEY: ClassVar[str] = "python-general-engineer:rows"
+
+    def test_decision_id_targets_the_exact_row(self, db_env):
+        import learning_db_v2 as ldb
+
+        for i in range(3):
+            _seed_evidence(self.KEY, "rows", f"r-{i}")
+        ldb.update_evidence_route_outcome(
+            route_key=self.KEY,
+            session_id="rows",
+            outcome="failure",
+            outcome_basis="tool_errors_only",
+            decision_id="r-1",
+        )
+        assert _evidence_outcomes(self.KEY) == {
+            "r-0": (None, None),
+            "r-1": ("failure", "tool_errors_only"),
+            "r-2": (None, None),
+        }
+
+    def test_without_decision_id_fills_the_oldest_unscored_row_first(self, db_env):
+        import learning_db_v2 as ldb
+
+        for i in range(2):
+            _seed_evidence(self.KEY, "rows", f"r-{i}")
+        for outcome in ("neutral", "success"):
+            ldb.update_evidence_route_outcome(route_key=self.KEY, session_id="rows", outcome=outcome, outcome_basis="b")
+        assert _evidence_outcomes(self.KEY) == {"r-0": ("neutral", "b"), "r-1": ("success", "b")}
+
+    def test_unknown_decision_id_falls_back_to_the_key(self, db_env):
+        import learning_db_v2 as ldb
+
+        _seed_evidence(self.KEY, "rows", "r-0")
+        ldb.update_evidence_route_outcome(
+            route_key=self.KEY, session_id="rows", outcome="neutral", outcome_basis="b", decision_id="gone"
+        )
+        assert _evidence_outcomes(self.KEY) == {"r-0": ("neutral", "b")}
+
+
+def _async_agent_event(agent_id="agent-abc", session="bg1", skill="programming"):
+    """PostToolUse:Agent for a BACKGROUND dispatch: a launch receipt, no reply."""
+    event = _agent_event(skill=skill, session=session)
+    event["tool_result"] = {
+        "isAsync": True,
+        "status": "async_launched",
+        "agentId": agent_id,
+        "description": "do work",
+        "prompt": "do work",
+        "outputFile": "/nonexistent/agent.output",
+    }
+    return event
+
+
+def _subagent_stop(agent_id="agent-abc", session="bg1", **extra):
+    return {"hook_event_name": "SubagentStop", "session_id": session, "agent_id": agent_id, **extra}
+
+
+class TestBackgroundRouteFit:
+    """A background dispatch returns a launch receipt at PostToolUse:Agent, so
+    its route-fit banner is scored at SubagentStop. 304 of 304 sampled /do
+    dispatches were background launches: no verdict was ever recorded."""
+
+    KEY: ClassVar[str] = "python-general-engineer:programming"
+
+    def _launch(self, db_env, name, **kw):
+        _fire(A_PATH, name, _async_agent_event(**kw))
+
+    def test_launch_receipt_registers_the_agent_and_scores_nothing(self, db_env):
+        import routing_outcome_state as ros
+
+        self._launch(db_env, "bg_launch")
+
+        assert not any(b.startswith("route_fit:") for b in _basis_counts(db_env))
+        pending = ros.peek_pending_outcomes("bg1")
+        assert [p["key"] for p in pending] == [self.KEY]
+        route = ros.claim_async_dispatch("bg1", "agent-abc")
+        assert route == {"key": self.KEY, "decision_id": pending[0]["decision_id"]}
+
+    def test_foreground_reply_is_not_registered(self, db_env):
+        import routing_outcome_state as ros
+
+        _fire(A_PATH, "fg_launch", _agent_event(skill="programming", session="fg1", output="done.\nroute-fit: ok"))
+
+        assert _basis_counts(db_env)["route_fit:ok"] == 1
+        assert json.loads(ros._state_file("fg1").read_text(encoding="utf-8")).get("agents") in ({}, None)
+
+    def test_negative_verdict_at_subagent_stop_decays_and_resolves(self, db_env):
+        import routing_outcome_state as ros
+
+        self._launch(db_env, "bg_neg_a")
+        baseline = _routing_row(db_env, self.KEY)["confidence"]
+        decision_id = ros.peek_pending_outcomes("bg1")[0]["decision_id"]
+
+        stop = _subagent_stop(last_assistant_message="Work done.\n\nroute-fit: wrong-agent")
+        _fire(B_PATH, "bg_neg_b", stop)
+
+        row = _routing_row(db_env, self.KEY)
+        assert row["confidence"] < baseline and row["failure_count"] == 1
+        assert _basis_counts(db_env) == {"route_fit:wrong-agent": 1}
+        assert _evidence_outcomes(self.KEY)[decision_id] == ("failure", "route_fit:wrong-agent")
+        # Resolved: the pending entry is gone, so the next prompt cannot decay
+        # the route again or overwrite the verdict.
+        assert ros.peek_pending_outcomes("bg1") == []
+        # An intervening failure for the finalizer's repeat-dispatch check.
+        assert ros.get_outcome_history("bg1")[self.KEY] == "failure"
+        _fire(F_PATH, "bg_neg_f", _prompt_event("that's wrong", session="bg1"))
+        assert _routing_row(db_env, self.KEY)["failure_count"] == 1
+
+    def test_redelivered_subagent_stop_scores_once(self, db_env):
+        self._launch(db_env, "bg_dup_a")
+        stop = _subagent_stop(last_assistant_message="route-fit: wrong-skill")
+        _fire(B_PATH, "bg_dup_b1", stop)
+        _fire(B_PATH, "bg_dup_b2", stop)
+
+        assert _routing_row(db_env, self.KEY)["failure_count"] == 1
+        assert _basis_counts(db_env) == {"route_fit:wrong-skill": 1}
+
+    def test_ok_verdict_boosts_nothing_and_leaves_the_entry_pending(self, db_env):
+        import routing_outcome_state as ros
+
+        self._launch(db_env, "bg_ok_a")
+        baseline = _routing_row(db_env, self.KEY)
+
+        _fire(B_PATH, "bg_ok_b", _subagent_stop(last_assistant_message="All done.\nroute-fit: ok"))
+
+        row = _routing_row(db_env, self.KEY)
+        assert row["confidence"] == baseline["confidence"]
+        assert row["success_count"] == 0 and row["failure_count"] == 0
+        assert _basis_counts(db_env) == {"route_fit:ok": 1}
+        # `ok` is weak evidence: the user's next prompt still decides.
+        assert [p["key"] for p in ros.peek_pending_outcomes("bg1")] == [self.KEY]
+
+    def test_reply_is_read_from_the_agent_transcript_when_the_event_omits_it(self, db_env, tmp_path):
+        self._launch(db_env, "bg_tr_a")
+        transcript = tmp_path / "agent.jsonl"
+        lines = [
+            {"type": "user", "message": {"role": "user", "content": "do work"}},
+            {"type": "assistant", "message": {"content": [{"type": "text", "text": "route-fit: ok"}]}},
+            {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {}}]}},
+            {
+                "type": "assistant",
+                "message": {"content": [{"type": "text", "text": "Finished.\nroute-fit: needs-coordinator"}]},
+            },
+        ]
+        transcript.write_text("".join(json.dumps(line) + "\n" for line in lines), encoding="utf-8")
+
+        _fire(B_PATH, "bg_tr_b", _subagent_stop(agent_transcript_path=str(transcript)))
+
+        assert _basis_counts(db_env) == {"route_fit:needs-coordinator": 1}
+
+    @pytest.mark.parametrize(
+        "extra",
+        [
+            {},  # no reply and no transcript
+            {"last_assistant_message": "done, no banner"},
+            {"last_assistant_message": "route-fit: maybe"},  # outside the enum
+            {"agent_transcript_path": "/nonexistent/agent.jsonl"},
+        ],
+    )
+    def test_missing_or_malformed_banner_records_nothing(self, extra, db_env):
+        self._launch(db_env, "bg_none_a")
+        _fire(B_PATH, "bg_none_b", _subagent_stop(**extra))
+
+        assert _basis_counts(db_env) == {}
+        assert _routing_row(db_env, self.KEY)["failure_count"] == 0
+
+    def test_unregistered_agent_is_ignored(self, db_env):
+        """A reviewer sub-agent or nested fan-out was never a /do dispatch."""
+        self._launch(db_env, "bg_other_a")
+        stop = _subagent_stop(agent_id="some-other-agent", last_assistant_message="route-fit: wrong-agent")
+        _fire(B_PATH, "bg_other_b", stop)
+
+        assert _basis_counts(db_env) == {}
+
+    def test_subagent_stop_exits_zero_with_a_banner(self, db_env, monkeypatch):
+        # Subprocess: point its bridge state at tmp_path, not the real /tmp.
+        monkeypatch.setenv("CLAUDE_ROUTING_STATE_DIR", str(db_env["state"]))
+        stop = _subagent_stop(last_assistant_message="route-fit: wrong-agent")
+        assert _run_hook(B_PATH, stop).returncode == 0
+
+
+class TestOutcomeStateTakeAndClaim:
+    """Bridge-state primitives behind the Stop fallback and background route-fit."""
+
+    def test_take_resolvable_keeps_fresh_clean_entries_in_order(self, db_env):
+        import routing_outcome_state as ros
+
+        for key, errors in (("a:1", False), ("b:2", True), ("c:3", False)):
+            ros.append_pending_outcome("take", key, errors, f"d-{key}")
+        path = ros._state_file("take")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["pending"].append({"key": "d:4", "errors": False, "attempts": 0, "created": "not-a-number"})
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        taken = ros.take_resolvable_pending_outcomes("take", ros.STOP_STALE_AGE_SEC)
+
+        assert [t["key"] for t in taken] == ["b:2", "d:4"]  # errored, malformed
+        kept = ros.peek_pending_outcomes("take")
+        assert [k["key"] for k in kept] == ["a:1", "c:3"]
+        assert [k["decision_id"] for k in kept] == ["d-a:1", "d-c:3"]
+        assert ros.take_resolvable_pending_outcomes("take", ros.STOP_STALE_AGE_SEC) == []
+
+    def test_requeue_and_revalidate_keep_the_decision_id(self, db_env):
+        import routing_outcome_state as ros
+
+        ros.append_pending_outcome("rq", "a:1", False, "d-1")
+        ros.requeue_pending_outcomes("rq", ros.drain_pending_outcomes("rq"))
+        ros.revalidate_pending_outcomes("rq", ros.drain_pending_outcomes("rq"))
+
+        assert [p["decision_id"] for p in ros.peek_pending_outcomes("rq")] == ["d-1"]
+
+    def test_discard_matches_one_dispatch_of_a_repeated_key(self, db_env):
+        import routing_outcome_state as ros
+
+        ros.append_pending_outcome("disc", "a:1", False, "d-1")
+        ros.append_pending_outcome("disc", "a:1", False, "d-2")
+
+        assert ros.discard_pending_outcome("disc", "d-1") is True
+        assert ros.discard_pending_outcome("disc", "d-1") is False
+        assert ros.discard_pending_outcome("disc", "") is False
+        assert [p["decision_id"] for p in ros.peek_pending_outcomes("disc")] == ["d-2"]
+
+    def test_async_registry_is_claimed_once_and_bounded(self, db_env, monkeypatch):
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "MAX_ASYNC_AGENTS", 3)
+        for i in range(5):
+            ros.register_async_dispatch("reg", f"agent-{i}", f"k:{i}", f"d-{i}")
+
+        assert ros.claim_async_dispatch("reg", "agent-0") is None  # evicted, oldest first
+        assert ros.claim_async_dispatch("reg", "agent-4") == {"key": "k:4", "decision_id": "d-4"}
+        assert ros.claim_async_dispatch("reg", "agent-4") is None
+        assert ros.claim_async_dispatch("reg", "") is None
+        # Pending and the registry share one file and do not disturb each other.
+        ros.append_pending_outcome("reg", "k:9", False)
+        assert ros.claim_async_dispatch("reg", "agent-3") == {"key": "k:3", "decision_id": "d-3"}
+        assert [p["key"] for p in ros.peek_pending_outcomes("reg")] == ["k:9"]
 
 
 # ---------------------------------------------------------------------------

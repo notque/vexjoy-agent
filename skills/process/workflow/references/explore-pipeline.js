@@ -27,7 +27,12 @@
 // agent({prompt, schema, model, agentType}) returns a typed object; budget.
 // remaining() bounds the tail. No Date.now()/Math.random()/new Date().
 
-import { skillDirectives, mandatoryInjections } from "./workflow-helpers.js";
+import {
+  mandatoryInjections,
+  modelFor,
+  skillDirectives,
+  validateModelOverride,
+} from "./workflow-helpers.js";
 
 export const meta = {
   name: "explore-pipeline",
@@ -259,13 +264,18 @@ function coordinatorPrompt(task, payload) {
 
 // --- Workflow body ------------------------------------------------------------
 //
-// run({scope, tier, deep}):
+// run({scope, tier, deep, modelOverride}):
 //   - scope: the exploration descriptor (target repo/subsystem + focus).
 //   - tier: right-size tier from /do. tier <= 3 -> Standard (4 phases); tier 4 ->
 //     Deep (all 8). The prose Quick/Standard/Deep model mapped onto the tier dial.
 //   - deep: explicit override — force the Deep 8-phase set regardless of tier.
+//   - modelOverride: a model the owner named for this task. When set, every
+//     agent runs on it. Unset: scanners run the `gather` model, MAP and REPORT
+//     inherit the session model (`lead`), and the rest run the `work` model.
 
-export default async function run({ scope, tier, deep } = {}) {
+export default async function run({ scope, tier, deep, modelOverride } = {}) {
+  // Reject a bad model name before any dispatch.
+  validateModelOverride(modelOverride);
   const effectiveTier = typeof tier === "number" ? tier : 2;
   const runDeep = deep === true || effectiveTier >= 4;
   const minTailBudget = 8000;
@@ -280,7 +290,7 @@ export default async function run({ scope, tier, deep } = {}) {
       agent({
         prompt: scanPrompt(s.lens, scope),
         schema: SCAN_SCHEMA,
-        model: "sonnet",
+        model: modelFor("gather", modelOverride),
         agentType: "research-subagent-executor",
       }),
     ),
@@ -299,7 +309,7 @@ export default async function run({ scope, tier, deep } = {}) {
         scans,
       ),
       schema: MAP_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
@@ -318,7 +328,7 @@ export default async function run({ scope, tier, deep } = {}) {
         { architectureMap, scans },
       ),
       schema: ANALYZE_SCHEMA,
-      model: "sonnet",
+      model: modelFor("work", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
@@ -342,7 +352,7 @@ export default async function run({ scope, tier, deep } = {}) {
           { analysis, architectureMap },
         ),
         schema: COMPILE_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
         agentType: COORDINATOR_AGENT,
       });
     }
@@ -358,7 +368,7 @@ export default async function run({ scope, tier, deep } = {}) {
           compilation,
         ),
         schema: ASSESS_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
         agentType: COORDINATOR_AGENT,
       });
     }
@@ -374,7 +384,7 @@ export default async function run({ scope, tier, deep } = {}) {
           assessment,
         ),
         schema: SYNTHESIZE_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
         agentType: COORDINATOR_AGENT,
       });
     }
@@ -390,7 +400,7 @@ export default async function run({ scope, tier, deep } = {}) {
           synthesis,
         ),
         schema: REFINE_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
         agentType: COORDINATOR_AGENT,
       });
     }
@@ -410,7 +420,7 @@ export default async function run({ scope, tier, deep } = {}) {
         { scans, architectureMap, analysis, compilation, assessment, synthesis, refinement },
       ),
       schema: REPORT_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }

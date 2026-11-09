@@ -11,9 +11,11 @@ next-turn signal is available:
   - UserPromptSubmit (routing-outcome-finalizer.py): on the next user turn,
     finalizes still-pending entries from tool-errors + user reaction + re-route,
     applying boost/decay ONCE then clearing them (idempotent).
-  - Stop (routing-outcome-stop-fallback.py): resolves any STILL-pending
-    entries via the error flag alone (the deterministic floor) so autonomous /
-    no-next-prompt runs still record an outcome.
+  - Stop (routing-outcome-stop-fallback.py): Stop fires after every turn,
+    before the user can react. It resolves only entries no reaction can change
+    (errored ones) and entries older than ``STOP_STALE_AGE_SEC``; the rest stay
+    pending for the UserPromptSubmit finalizer. On SessionEnd the same hook
+    resolves everything left, by the error flag alone.
 
 State lives in a per-session JSON file under /tmp. All writes are atomic
 (write-to-temp-then-rename) so an interrupted hook never corrupts the file.
@@ -35,7 +37,11 @@ File shape:
     {
       "seen": ["<dispatch-sig>", ...],     # idempotency for the decision hook
       "pending": [{"key": "agent:skill", "errors": false,
-                   "attempts": 0, "created": 1735000000.0}, ...],
+                   "attempts": 0, "created": 1735000000.0,
+                   "decision_id": "<session>:<dispatch-sig>"}, ...],
+      "agents": {"<agent-id>": {"key": "agent:skill", "decision_id": "..."}},
+                   # background dispatches awaiting their SubagentStop, where
+                   # the agent's final message (route-fit banner) arrives
       "history": {"agent:skill": "neutral", ...}  # last finalized outcome per
                    key this session — the weak-positive signal (C6) reads it to
                    tell a repeat dispatch with no intervening failure
@@ -125,6 +131,34 @@ MAX_HISTORY_KEYS = 200
 # unbounded across long-lived or abandoned sessions.
 MAX_PENDING_AGE_SEC = 24 * 3600  # 24h
 
+# Stop fires after every turn, before the user's next message. A clean entry
+# younger than this stays pending at Stop so the UserPromptSubmit finalizer can
+# read the reaction. Older than this, the session has run this long with no
+# user turn, so the Stop fallback resolves it by the error flag alone.
+# Unmeasured starting value: long enough to outlast one unattended turn.
+STOP_STALE_AGE_SEC = 6 * 3600  # 6h
+
+# Bounded map of background dispatches awaiting their SubagentStop.
+MAX_ASYNC_AGENTS = 500
+
+
+def _pending_entry(item: dict[str, Any], attempts: int, created: float) -> dict[str, Any]:
+    """Rebuild one pending entry, keeping only known fields.
+
+    ``decision_id`` is optional: entries written before it existed lack it, and
+    the outcome writer then falls back to matching by route key.
+    """
+    entry: dict[str, Any] = {
+        "key": item.get("key"),
+        "errors": bool(item.get("errors")),
+        "attempts": attempts,
+        "created": created,
+    }
+    decision_id = item.get("decision_id")
+    if isinstance(decision_id, str) and decision_id:
+        entry["decision_id"] = decision_id
+    return entry
+
 
 def _state_dir() -> Path:
     """Resolve the state directory. Honors CLAUDE_ROUTING_STATE_DIR so separate
@@ -190,11 +224,13 @@ def _load(path: Path) -> dict[str, Any]:
                 data.setdefault("seen", [])
                 data.setdefault("pending", [])
                 data.setdefault("history", {})
+                if not isinstance(data.get("agents"), dict):
+                    data["agents"] = {}
                 return data
     except (json.JSONDecodeError, OSError, ValueError) as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[routing-outcome-state] _load: {type(e).__name__}: {e}", file=sys.stderr)
-    return {"seen": [], "pending": [], "history": {}}
+    return {"seen": [], "pending": [], "history": {}, "agents": {}}
 
 
 def _atomic_write(path: Path, data: dict[str, Any]) -> None:
@@ -254,7 +290,7 @@ def claim_dispatch(session_id: str, signature: str) -> bool:
 # the TOCTOU race ``claim_dispatch`` closes — deleted so it cannot be re-introduced.
 
 
-def append_pending_outcome(session_id: str, key: str, errors: bool) -> None:
+def append_pending_outcome(session_id: str, key: str, errors: bool, decision_id: str | None = None) -> None:
     """Append a PROVISIONAL pending outcome.
 
     The entry carries this dispatch's own observed ``errors`` flag and is left
@@ -262,12 +298,16 @@ def append_pending_outcome(session_id: str, key: str, errors: bool) -> None:
     next user turn (reaction + error + re-route) or Stop at session end (error
     flag alone). ``created`` bounds its lifetime; ``attempts`` bounds re-queues
     while the decision row is still not visible at SubagentStop.
+    ``decision_id`` names this dispatch's evidence row, so the resolver updates
+    that row and not another dispatch of the same key.
     """
     try:
         path = _state_file(session_id)
         with _state_lock(path):
             data = _load(path)
-            data["pending"].append({"key": key, "errors": bool(errors), "attempts": 0, "created": time.time()})
+            data["pending"].append(
+                _pending_entry({"key": key, "errors": errors, "decision_id": decision_id}, 0, time.time())
+            )
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
     except Exception as e:
@@ -318,6 +358,123 @@ def finalize_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
         return []
 
 
+def take_resolvable_pending_outcomes(session_id: str, min_age_sec: float) -> list[dict[str, Any]]:
+    """Remove and return only the pending entries a Stop may resolve.
+
+    Stop fires after every turn, before the user's next message. Draining all
+    entries there scored every dispatch as silence and left the UserPromptSubmit
+    finalizer nothing to read. This takes an entry only when no later reaction
+    can change its outcome, or when no reaction is coming:
+
+      - ``errors`` is set: a tool error scores failure whatever the user says.
+      - older than ``min_age_sec``: the session ran that long with no user turn.
+      - ``created`` is malformed: the entry can never be aged, so drop it here.
+
+    Every other entry stays pending, in order. Atomic under the state lock, so
+    a concurrent append is never lost.
+    """
+    try:
+        now = time.time()
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            taken: list[dict[str, Any]] = []
+            kept: list[dict[str, Any]] = []
+            for item in data.get("pending", []):
+                try:
+                    age = now - float(item.get("created", now))
+                except (TypeError, ValueError, AttributeError):
+                    taken.append(item)
+                    continue
+                if item.get("errors") or age > min_age_sec:
+                    taken.append(item)
+                else:
+                    kept.append(item)
+            if taken:
+                data["pending"] = kept
+                _atomic_write(path, data)
+        return taken
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] take_resolvable_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
+        return []
+
+
+def discard_pending_outcome(session_id: str, decision_id: str) -> bool:
+    """Drop the pending entry for one dispatch. True iff an entry was removed.
+
+    Used when a signal resolves the dispatch before the next user turn (a
+    negative route-fit verdict), so no later resolver scores it a second time.
+    Matches on ``decision_id`` only: a key can have several live dispatches.
+    """
+    if not decision_id:
+        return False
+    try:
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            pending = data.get("pending", [])
+            kept = [it for it in pending if not (isinstance(it, dict) and it.get("decision_id") == decision_id)]
+            if len(kept) == len(pending):
+                return False
+            data["pending"] = kept
+            _atomic_write(path, data)
+        return True
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] discard_pending_outcome: {type(e).__name__}: {e}", file=sys.stderr)
+        return False
+
+
+def register_async_dispatch(session_id: str, agent_id: str, key: str, decision_id: str | None = None) -> None:
+    """Remember a background dispatch until its SubagentStop.
+
+    A background Agent call returns a launch receipt at PostToolUse, not the
+    agent's reply. The reply arrives at SubagentStop, which carries the agent id
+    but no route key. This map joins the two. Bounded: oldest entry evicted.
+    """
+    if not agent_id or not key:
+        return
+    try:
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            agents = data["agents"]
+            agents.pop(agent_id, None)
+            agents[agent_id] = {"key": key, "decision_id": decision_id or ""}
+            while len(agents) > MAX_ASYNC_AGENTS:
+                agents.pop(next(iter(agents)))
+            _atomic_write(path, data)
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] register_async_dispatch: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+def claim_async_dispatch(session_id: str, agent_id: str) -> dict[str, str] | None:
+    """Remove and return the route for a finished background agent, or None.
+
+    Check-and-remove under one lock: a re-delivered SubagentStop finds nothing
+    and scores nothing.
+    """
+    if not agent_id:
+        return None
+    try:
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            entry = data["agents"].pop(agent_id, None)
+            if entry is None:
+                return None
+            _atomic_write(path, data)
+        if isinstance(entry, dict) and entry.get("key"):
+            return {"key": str(entry["key"]), "decision_id": str(entry.get("decision_id") or "")}
+        return None
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] claim_async_dispatch: {type(e).__name__}: {e}", file=sys.stderr)
+        return None
+
+
 def revalidate_pending_outcomes(session_id: str, items: list[dict[str, Any]]) -> None:
     """Re-queue VALIDATED provisional entries that are not yet finalizable.
 
@@ -340,14 +497,7 @@ def revalidate_pending_outcomes(session_id: str, items: list[dict[str, Any]]) ->
                 created = float(item.get("created", now))
                 if now - created > MAX_PENDING_AGE_SEC:
                     continue  # drop abandoned provisional entry
-                data["pending"].append(
-                    {
-                        "key": item.get("key"),
-                        "errors": bool(item.get("errors")),
-                        "attempts": int(item.get("attempts", 0)),
-                        "created": created,
-                    }
-                )
+                data["pending"].append(_pending_entry(item, int(item.get("attempts", 0)), created))
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
     except Exception as e:
@@ -442,13 +592,7 @@ def requeue_pending_outcomes(session_id: str, items: list[dict[str, Any]]) -> No
                 attempts = int(item.get("attempts", 0)) + 1
                 if attempts > MAX_REQUEUE_ATTEMPTS:
                     continue  # give up on a permanently-orphaned pending key
-                entry = {
-                    "key": item.get("key"),
-                    "errors": bool(item.get("errors")),
-                    "attempts": attempts,
-                    "created": float(item.get("created", time.time())),
-                }
-                data["pending"].append(entry)
+                data["pending"].append(_pending_entry(item, attempts, float(item.get("created", time.time()))))
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
     except Exception as e:

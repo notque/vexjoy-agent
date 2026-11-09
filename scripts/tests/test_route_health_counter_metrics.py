@@ -5,7 +5,9 @@ The fallback rate alone is gameable: a router told to minimize it can route
 every request to one specialist and score 0% with no accuracy gain. These tests
 pin the counters that make that trade visible — top-2 concentration, agent
 distribution entropy, the misroute rate, and the route-fit negative rate — and
-pin the target band (10-15%, alarm above 20%, alarm below 8%).
+pin the fallback labels (watch above 15%, alarm above 20%, no low alarm). They
+also pin "not instrumented" for the two rates no hook writes, and the
+route-signal verdict that route-health prints.
 
 Runs route-health as a subprocess against a throwaway learning.db
 (CLAUDE_LEARNING_DIR) so the real DB is never touched.
@@ -103,9 +105,10 @@ def _json(env_dir: str) -> dict:
     ("fallback_n", "other_n", "band"),
     [
         (45, 55, "ALARM-HIGH"),  # 45% — the live 44.6% regression
-        (12, 88, "IN BAND"),  # 12%
-        (5, 95, "ALARM-LOW"),  # 5% — too low: specialists forced without evidence
-        (9, 91, "WATCH"),  # 9% — between the alarm and the band
+        (18, 82, "WATCH"),  # 18% — above the watch line, below the alarm
+        (12, 88, "OK"),  # 12%
+        (5, 95, "OK"),  # 5% — low is the wanted result, never an alarm
+        (0, 100, "OK"),  # 0% — the counters below carry the gaming check
     ],
 )
 def test_fallback_band_labels(fallback_n, other_n, band, db_env):
@@ -126,9 +129,11 @@ def test_human_output_prints_the_band_explicitly(db_env):
     out = _run(db_env["env_dir"]).stdout
     assert "Fallback rate:" in out
     assert "ALARM-HIGH" in out
-    assert "target band 10-15%" in out
+    assert "watch above 15%" in out
     assert "alarm above 20%" in out
-    assert "alarm below 8%" in out
+    assert "unmeasured starting values" in out
+    assert "no low alarm" in out
+    assert "alarm below" not in out
 
 
 # --- the counters that make the fallback rate ungameable ---------------------
@@ -140,7 +145,8 @@ def test_routing_everything_to_one_specialist_scores_zero_fallback_but_fails_the
 
     data = _json(db_env["env_dir"])
     assert data["fallback_rate_pct"] == 0.0
-    assert data["fallback_band"] == "ALARM-LOW"  # a perfect score is itself an alarm
+    # No low alarm: the three counters below expose the move, not the band.
+    assert data["fallback_band"] == "OK"
     assert data["top2_concentration_pct"] == 100.0
     assert data["agent_entropy_bits"] == 0.0
     assert data["effective_agents"] == 1.0
@@ -209,7 +215,88 @@ def test_misroute_rate_counts_recorded_misroutes(db_env):
     data = _json(db_env["env_dir"])
     assert data["misroute_count"] == 5
     assert data["misroute_rate_pct"] == 10.0
+    assert data["misroute_rate_instrumented"] is True
     assert "Misroute rate: 5/50" in _run(db_env["env_dir"]).stdout
+
+
+def test_misroute_rate_with_no_rows_is_not_instrumented(db_env):
+    """No hook writes misroute rows: zero rows must not read as a 0% rate."""
+    _seed_dispatches(db_env["ldb"], "python-general-engineer", 50)
+
+    data = _json(db_env["env_dir"])
+    assert data["misroute_count"] == 0
+    assert data["misroute_rate_pct"] is None
+    assert data["misroute_rate_instrumented"] is False
+    out = _run(db_env["env_dir"]).stdout
+    assert "Misroute rate: not instrumented" in out
+    assert "Misroute rate: 0/50" not in out
+
+
+def test_correction_rate_with_no_rows_is_not_instrumented(db_env):
+    """No hook writes user-correction rows: report the gap, not 0%."""
+    _seed_dispatches(db_env["ldb"], "python-general-engineer", 5)
+
+    data = _json(db_env["env_dir"])
+    assert data["correction_rate_pct"] is None
+    assert data["correction_rate_instrumented"] is False
+    out = _run(db_env["env_dir"]).stdout
+    assert "Correction rate: not instrumented" in out
+    assert "drew correction language" not in out
+
+
+def test_correction_rate_prints_when_rows_exist(db_env):
+    ldb = db_env["ldb"]
+    _seed_dispatches(ldb, "python-general-engineer", 5)
+    ldb.record_learning(
+        topic="user-correction",
+        key="c-1",
+        value="correction: wrong file",
+        category="correction",
+        source="hook:test-correction",
+        confidence=0.7,
+        session_id="s-corr",
+    )
+
+    data = _json(db_env["env_dir"])
+    assert data["correction_rate_instrumented"] is True
+    assert data["correction_rate_pct"] is not None
+    assert "routed sessions drew correction language" in _run(db_env["env_dir"]).stdout
+
+
+# --- route signal (scripts/route-signal-check.py) ----------------------------
+
+
+def _write_events(db_dir: Path, events: list[dict]) -> None:
+    (db_dir / "route-events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+
+
+def test_route_health_reports_no_signal_without_events(db_env):
+    _seed_dispatches(db_env["ldb"], "python-general-engineer", 3)
+
+    data = _json(db_env["env_dir"])
+    assert data["route_signal"] == {"failures": 0, "scored": 0, "would_act": 0, "signal": False}
+    assert "Route signal: NO-SIGNAL" in _run(db_env["env_dir"]).stdout
+
+
+def test_route_health_reports_signal_from_route_events(db_env):
+    """route-health runs the route-signal check, so the verdict is seen."""
+    _seed_dispatches(db_env["ldb"], "python-general-engineer", 3)
+    _write_events(
+        db_env["db_dir"],
+        [
+            {"type": "outcome", "outcome": "failure", "routing_relevant": True},
+            {"type": "outcome", "outcome": "failure", "routing_relevant": False},
+            {"type": "decision", "health_at_decision": 0.4, "action": "demote"},
+            {"type": "decision", "health_at_decision": None, "action": "keep"},
+        ],
+    )
+
+    data = _json(db_env["env_dir"])
+    assert data["route_signal"] == {"failures": 1, "scored": 1, "would_act": 1, "signal": True}
+    res = _run(db_env["env_dir"])
+    assert res.returncode == 0  # the verdict is a line, not an exit code
+    assert "Route signal: SIGNAL — 1 routing-relevant failures, 1 would-demote/would-tiebreak decisions" in res.stdout
+    assert "re-propose the actuator" in res.stdout
 
 
 def test_route_fit_negative_rate(db_env):
@@ -233,7 +320,7 @@ def test_route_fit_absent_reports_no_data_and_no_divide_by_zero(db_env):
     data = _json(db_env["env_dir"])
     assert data["route_fit_total"] == 0
     assert data["route_fit_negative_rate_pct"] is None
-    assert "no route-fit verdicts yet" in _run(db_env["env_dir"]).stdout
+    assert "no route-fit verdicts recorded" in _run(db_env["env_dir"]).stdout
 
 
 def test_no_dispatch_rows_degrades_gracefully(db_env):

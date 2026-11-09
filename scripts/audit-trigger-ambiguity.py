@@ -28,6 +28,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).resolve().parent / "lib"))
+from index_freshness import ensure_fresh_indexes
+
 SCHEMA = "trigger-ambiguity-audit/v1"
 NEAR_DUP_RATIO = 0.90
 _ARTICLE_RE = re.compile(r"^(?:a|an|the)\s+")
@@ -313,6 +316,15 @@ def main() -> int:
     parser.add_argument("--skills-index", type=Path, default=repo_root / "skills" / "INDEX.json")
     parser.add_argument("--agents-index", type=Path, default=repo_root / "agents" / "INDEX.json")
     args = parser.parse_args()
+
+    # Default indexes are generated and untracked: refresh a stale copy first.
+    # Advisory script: a refresh failure is reported and never blocks.
+    for surface, path in (("skills", args.skills_index), ("agents", args.agents_index)):
+        if path == repo_root / surface / "INDEX.json":
+            try:
+                ensure_fresh_indexes(repo_root, [surface])
+            except RuntimeError as exc:
+                print(f"WARNING: {exc}", file=sys.stderr)
 
     try:
         report = build_report(args.skills_index, args.agents_index)

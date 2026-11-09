@@ -21,18 +21,35 @@
 // are one-agent-per-cluster (data-driven). REMEDIATE runs only on a validation
 // regression (tier-/data-gated).
 //
+// Safety defaults:
+//   - The run stops after REPORT. ADR through RECORD run only when the caller
+//     passes `implement: true` and a non-default work `branch`. These two args
+//     carry the operator approval that the prose Phase 5 and Phase 6 gates ask
+//     for; a request to "evaluate" never edits files.
+//   - An unset tier is the smallest tier: the foundation wave only.
+//   - `maxAgents` caps the agents one run dispatches. The run logs and returns
+//     what the cap dropped.
+//   - Models come from modelFor(role, modelOverride) in workflow-helpers.js.
+//
 // Runtime contract (see ./comprehensive-review-workflow.js for the canonical
 // description of the native primitives): meta is a pure object literal parsed
 // before the body; parallel(thunks) is a hard barrier (failed slot -> null);
 // agent({prompt, schema, model, agentType}) returns a typed object; budget.
 // remaining() bounds the tail. No Date.now()/Math.random()/new Date().
 
-import { skillDirectives, mandatoryInjections } from "./workflow-helpers.js";
+import {
+  mandatoryInjections,
+  modelFor,
+  skillDirectives,
+  tierOrSmallest,
+  validateAgentName,
+  validateModelOverride,
+} from "./workflow-helpers.js";
 
 export const meta = {
   name: "toolkit-improvement",
   description:
-    "Toolkit continuous-improvement pipeline as a deterministic native Workflow: EVALUATE -> RESEARCH -> SYNTHESIZE -> CRITIQUE -> REPORT -> ADR -> IMPLEMENT -> VALIDATE -> REMEDIATE -> RECORD. EVALUATE is a mandatory parallel barrier of 10 research-subagent-executor foundation evaluators (distinct dimensions), scaling above the floor with tier-gated deep-dive + adversarial waves; the research-coordinator-engineer then researches ecosystem practice, synthesizes + de-dupes findings, applies skeptical critique, reports the decision surface, writes one ADR per cluster, dispatches domain implementers, validates skills against baseline, remediates regressions, and records the reusable patterns. Each agent attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors toolkit-improvement.md; that markdown flow stays the cross-harness floor.",
+    "Toolkit continuous-improvement pipeline as a deterministic native Workflow: EVALUATE -> RESEARCH -> SYNTHESIZE -> CRITIQUE -> REPORT -> ADR -> IMPLEMENT -> VALIDATE -> REMEDIATE -> RECORD. Evaluate-only by default: the run stops after REPORT, and ADR through RECORD run only with implement: true plus a non-default work branch. EVALUATE is a mandatory parallel barrier of 10 research-subagent-executor foundation evaluators (distinct dimensions); deep-dive + adversarial waves run only on an explicit tier or depth. The research-coordinator-engineer then researches ecosystem practice, synthesizes + de-dupes findings, applies skeptical critique, and reports the decision surface. With implement set, it writes one ADR per cluster the critique kept, domain engineers implement each ADR on the work branch, the governance engineer validates and remediates, and the coordinator records the reusable patterns. maxAgents caps total dispatch. Each agent attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors toolkit-improvement.md; that markdown flow stays the cross-harness floor.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stage 3). STATIC validation pins the phases + the FIXED 10-agent EVALUATE
@@ -82,9 +99,10 @@ export const meta = {
     agents: { static: 10, dynamic: false },
     // The deep-dive (Wave 2) + adversarial (Wave 3) waves scale the evaluation
     // ABOVE the fixed-10 floor; RESEARCH/SYNTHESIZE/CRITIQUE/REPORT/VALIDATE/
-    // RECORD are single coordinator passes; ADR + IMPLEMENT fan out one agent per
-    // cluster (data-driven); REMEDIATE runs only on a regression. Honest limit:
-    // the gate asserts SHAPE + SKILLS for the tail, not COUNT.
+    // RECORD are single passes; ADR + IMPLEMENT fan out one agent per cluster
+    // (data-driven) and run only with implement: true; REMEDIATE runs only on a
+    // regression. Honest limit: the gate asserts SHAPE + SKILLS for the tail,
+    // not COUNT.
     dynamic: true,
   },
 };
@@ -92,13 +110,17 @@ export const meta = {
 // Map each dispatched agent to the FULL skill stack it invokes by name (one exact
 // Skill-tool call per element). The foundation/deep-dive/adversarial evaluators run the
 // evaluation methodology + earn the verification gate; the coordinator
-// synthesizes, critiques, governs ADRs, and validates with the agent-evaluation
-// stack plus validators and tests. The literal skill names live in these `skills: [...]`
+// researches, synthesizes, critiques, reports, and writes ADRs with the same stack.
+// The governance engineer implements skill, agent, and doc ADRs, and runs VALIDATE
+// and REMEDIATE; the hook and Python engineers implement their file types. The literal skill names live in these `skills: [...]`
 // arrays so the conformance gate resolves them; the body emits the directives by
 // delegating each entry's list to skillDirectives().
 const AGENT_SKILLS = {
   "research-subagent-executor": ["toolkit", "testing"],
   "research-coordinator-engineer": ["toolkit", "testing"],
+  "toolkit-governance-engineer": ["toolkit", "testing"],
+  "hook-development-engineer": ["programming", "testing"],
+  "python-general-engineer": ["programming", "testing"],
 };
 
 // The mandated minimum EVALUATE size: the prose Wave 1 of 10 foundation
@@ -106,6 +128,20 @@ const AGENT_SKILLS = {
 // this floor with the deep-dive + adversarial waves, never below it.
 const MIN_EVALUATE_AGENTS = 10;
 const COORDINATOR_AGENT = "research-coordinator-engineer";
+// Edits to skills, agents, routing, and docs, plus the VALIDATE and REMEDIATE
+// passes, go to the governance engineer. The coordinator never edits files.
+const GOVERNANCE_AGENT = "toolkit-governance-engineer";
+const HOOK_AGENT = "hook-development-engineer";
+const PYTHON_AGENT = "python-general-engineer";
+
+// Total agents one run may dispatch when the caller sets no `maxAgents`. A
+// tier-4 evaluation uses 29, which leaves room for a small implement tail.
+const DEFAULT_MAX_AGENTS = 40;
+// Widest parallel() barrier for the data-driven ADR and IMPLEMENT fan-outs.
+const MAX_PARALLEL = 10;
+// IMPLEMENT refuses these work-branch names.
+const DEFAULT_BRANCHES = ["main", "master", "trunk"];
+const BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 
 // The prose Wave 1 foundation dimensions (agent-roster.md). One distinct
 // evaluation lens per EVALUATE agent; the fixed-10 barrier covers all of them.
@@ -214,6 +250,8 @@ const SYNTHESIS_SCHEMA = {
 };
 
 // CRITIQUE output: a disposition per cluster (the prose critique_report.md).
+// `id` is the cluster id that withClusterIds() assigned; it ties a disposition
+// to its cluster. `title` is for the reader only.
 const CRITIQUE_SCHEMA = {
   type: "object",
   required: ["dispositions"],
@@ -222,8 +260,9 @@ const CRITIQUE_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        required: ["title", "disposition"],
+        required: ["id", "disposition"],
         properties: {
+          id: { type: "string" },
           title: { type: "string" },
           disposition: { type: "string", enum: ["confirm", "downgrade", "dismiss", "elevate"] },
           corrected_severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
@@ -354,30 +393,35 @@ function evaluatorPrompt(dimension, wave, scope, priorFindings) {
   );
 }
 
-// Build a coordinator prompt (RESEARCH/SYNTHESIZE/CRITIQUE/REPORT/VALIDATE/
-// RECORD + the ADR/IMPLEMENT/REMEDIATE fan-out tasks). Same skill stack +
-// mandatory injections as a direct /do dispatch of the coordinator.
-function coordinatorPrompt(task, payload) {
+// Build a prompt for a named agent: task, that agent's skill stack, the typed
+// payload, and the mandatory injections. Same context as a direct /do dispatch.
+function agentPrompt(agentName, task, payload) {
   return (
     task +
-    skillDirectives(AGENT_SKILLS[COORDINATOR_AGENT]) +
+    skillDirectives(AGENT_SKILLS[agentName]) +
     `\n${JSON.stringify(payload)}` +
     mandatoryInjections()
   );
+}
+
+// Build a coordinator prompt (RESEARCH/SYNTHESIZE/CRITIQUE/REPORT/ADR/RECORD).
+function coordinatorPrompt(task, payload) {
+  return agentPrompt(COORDINATOR_AGENT, task, payload);
 }
 
 // Dispatch one fixed-roster evaluation wave in a single parallel() barrier. The
 // CALLER enters the wave's phase (with a literal title, so the static gate sees
 // it) before invoking this; the harness then attributes each wave's agents to its
 // own phase, keeping the fixed-10 EVALUATE barrier count-pinnable. Each dimension
-// is a DISTINCT lens; failed slots resolve to null and are filtered.
-async function runWave(dimensions, wave, scope, priorFindings) {
+// is a DISTINCT lens; failed slots resolve to null and are filtered. Evaluators
+// return findings that decide, so they run the `work` model.
+async function runWave(dimensions, wave, scope, priorFindings, modelOverride) {
   const raw = await parallel(
     dimensions.map((dimension) => () =>
       agent({
         prompt: evaluatorPrompt(dimension, wave, scope, priorFindings),
         schema: EVALUATION_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
         agentType: "research-subagent-executor",
       }),
     ),
@@ -385,20 +429,166 @@ async function runWave(dimensions, wave, scope, priorFindings) {
   return raw.filter((x) => x != null);
 }
 
+// Run thunks in barriers of at most MAX_PARALLEL, in order.
+async function boundedParallel(thunks) {
+  const out = [];
+  for (let i = 0; i < thunks.length; i += MAX_PARALLEL) {
+    out.push(...(await parallel(thunks.slice(i, i + MAX_PARALLEL))));
+  }
+  return out;
+}
+
+// Count dispatched agents against the run cap. take() returns the items that
+// fit, in order, and records and logs the ones it drops.
+function makeAgentCap(maxAgents) {
+  const limit =
+    typeof maxAgents === "number" && Number.isFinite(maxAgents) && maxAgents >= 1
+      ? Math.floor(maxAgents)
+      : DEFAULT_MAX_AGENTS;
+  let used = 0;
+  const dropped = [];
+  return {
+    limit,
+    dropped,
+    used: () => used,
+    take(items, phaseTitle, label) {
+      const kept = items.slice(0, Math.max(0, limit - used));
+      used += kept.length;
+      const cut = items.slice(kept.length).map(label);
+      if (cut.length > 0) {
+        dropped.push({ phase: phaseTitle, agents: cut });
+        if (typeof log === "function") {
+          log(
+            `toolkit-improvement: maxAgents=${limit} reached in ${phaseTitle}; ` +
+              `dropped ${cut.length}: ${cut.join("; ")}`,
+          );
+        }
+      }
+      return kept;
+    },
+    // One single-agent pass: true when the cap has room for it.
+    one(phaseTitle) {
+      return this.take([phaseTitle], phaseTitle, (x) => x).length === 1;
+    },
+  };
+}
+
+// Return why IMPLEMENT must not run, or null when the caller cleared the gate.
+function implementBlocker(implement, evaluateOnly, branch) {
+  if (evaluateOnly === true) return "evaluateOnly is set";
+  if (implement !== true) return "implement is not set; evaluate-only is the default";
+  if (typeof branch !== "string" || !BRANCH_RE.test(branch)) {
+    return "implement needs `branch`: the non-default work branch to edit on";
+  }
+  if (DEFAULT_BRANCHES.includes(branch)) {
+    return `implement refuses the default branch ${branch}`;
+  }
+  return null;
+}
+
+// The rule every editing agent gets: edit only on the caller's work branch.
+function branchRule(branch) {
+  return (
+    `\nBranch rule: before any edit, run \`git branch --show-current\`. Edit only ` +
+    `when it prints \`${branch}\`. If it prints anything else, including ` +
+    `${DEFAULT_BRANCHES.join(", ")}, make no edit and report every task as ` +
+    `blocked, naming the branch you found. Never switch, create, or reset a ` +
+    `branch, and never commit or push.\n`
+  );
+}
+
+// Pick the engineer that implements one ADR from the components it touches:
+// hooks go to the hook engineer, a Python-only change to the Python engineer,
+// and skills, agents, routing, docs, or a mixed set to the governance engineer.
+function implementerFor(adr) {
+  const components =
+    adr && Array.isArray(adr.components)
+      ? adr.components.filter((c) => typeof c === "string")
+      : [];
+  if (components.some((c) => /(^|\/)hooks\//.test(c))) return HOOK_AGENT;
+  if (components.length > 0 && components.every((c) => /\.py(:\d+)?$/.test(c.trim()))) {
+    return PYTHON_AGENT;
+  }
+  return GOVERNANCE_AGENT;
+}
+
+const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+
+const KEPT_DISPOSITIONS = new Set(["confirm", "downgrade", "elevate"]);
+
+// Give each cluster a stable id (c1, c2, ...) in code, so the critique answers
+// by id and a paraphrased title cannot detach a disposition from its cluster.
+function withClusterIds(synthesis) {
+  if (!synthesis || !Array.isArray(synthesis.clusters)) return synthesis;
+  return {
+    ...synthesis,
+    clusters: synthesis.clusters.map((c, i) => ({ ...c, id: `c${i + 1}` })),
+  };
+}
+
+// Split clusters by the critique's verdict. Fails closed: a cluster becomes an
+// ADR only when a disposition with its id says confirm, downgrade, or elevate.
+// `approved` carries the corrected severity, worst first, so the cap drops the
+// least severe. `unreviewed` has no disposition under its id (the critic left
+// it out, or no critique ran) and is never implemented.
+function splitClusters(synthesis, critique) {
+  const clusters = synthesis && Array.isArray(synthesis.clusters) ? synthesis.clusters : [];
+  const dispositions = critique && Array.isArray(critique.dispositions) ? critique.dispositions : [];
+  const byId = new Map();
+  for (const d of dispositions) {
+    if (d && typeof d.id === "string") byId.set(d.id, d);
+  }
+  const approved = [];
+  const unreviewed = [];
+  for (const c of clusters) {
+    const d = byId.get(c.id);
+    if (!d || typeof d.disposition !== "string") unreviewed.push(c);
+    else if (KEPT_DISPOSITIONS.has(d.disposition)) {
+      approved.push(d.corrected_severity ? { ...c, severity: d.corrected_severity } : c);
+    } else if (d.disposition !== "dismiss") unreviewed.push(c);
+  }
+  approved.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
+  return { approved, unreviewed };
+}
+
 // --- Workflow body ------------------------------------------------------------
 //
-// run({scope, tier, depth, evaluateOnly}):
+// run({scope, tier, depth, implement, branch, evaluateOnly, maxAgents, modelOverride}):
 //   - scope: the toolkit evaluation descriptor (target dirs + focus).
-//   - tier: right-size tier from /do. tier <= 2 -> foundation wave only; tier 3
-//     adds the deep-dive wave; tier 4 (or explicit deep) adds the adversarial wave.
+//   - tier: right-size tier from /do. Unset or tier <= 2 -> foundation wave only;
+//     tier 3 adds the deep-dive wave; tier 4 adds the adversarial wave.
 //   - depth: explicit override — "deep" forces all three evaluation waves.
-//   - evaluateOnly: stop after REPORT (the prose --evaluate-only flag).
+//   - implement: `true` runs ADR -> RECORD after REPORT. Pass it only when the
+//     operator asked for implementation. Any other value stops after REPORT.
+//   - branch: the work branch IMPLEMENT edits on. Required with `implement`;
+//     main, master, and trunk are refused. Every editing agent checks it.
+//   - evaluateOnly: `true` stops after REPORT even when `implement` is set (the
+//     prose --evaluate-only flag).
+//   - maxAgents: cap on agents dispatched in this run (default 40). The run
+//     drops what does not fit, logs it, and returns it in `dropped`.
+//   - modelOverride: a model the owner named for this task. When set, every
+//     agent runs on it. Unset: RESEARCH runs the `gather` model; SYNTHESIZE,
+//     REPORT, and RECORD inherit the session model (`lead`); the rest run the
+//     `work` model.
 
-export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
-  const effectiveTier = typeof tier === "number" ? tier : 4;
+export default async function run({
+  scope,
+  tier,
+  depth,
+  implement,
+  branch,
+  evaluateOnly,
+  maxAgents,
+  modelOverride,
+} = {}) {
+  // Reject a bad model name before any dispatch.
+  validateModelOverride(modelOverride);
+  const effectiveTier = tierOrSmallest(tier);
   const runDeepDive = depth === "deep" || effectiveTier >= 3;
   const runAdversarial = depth === "deep" || effectiveTier >= 4;
-  const stopAfterReport = evaluateOnly === true;
+  const implementBlocked = implementBlocker(implement, evaluateOnly, branch);
+  const cap = makeAgentCap(maxAgents);
+  const dimensionLabel = (d) => d.split(":")[0];
   const minTailBudget = 8000;
 
   // Phase EVALUATE: the mandatory parallel barrier. The fixed 10 foundation
@@ -406,29 +596,49 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
   // dimension (single-message dispatch is the prose parallelism mandate). The
   // deep-dive + adversarial waves run as their own tier-gated phases (scaling the
   // evaluation ABOVE the fixed-10 floor), so the EVALUATE barrier stays a clean
-  // count-pinnable 10.
+  // count-pinnable 10 unless the caller's maxAgents is below 10.
   enterPhase("evaluate");
-  let findings = await runWave(FOUNDATION_DIMENSIONS, "foundation", scope, null);
+  let findings = await runWave(
+    cap.take(FOUNDATION_DIMENSIONS, "evaluate", dimensionLabel),
+    "foundation",
+    scope,
+    null,
+    modelOverride,
+  );
   if (runDeepDive && budget.remaining() >= minTailBudget) {
     // Phase DEEP-DIVE: the prose Wave 2 — receives Wave 1 findings as context to
     // avoid duplication. Tier-gated, so its presence is honestly dynamic:true.
     enterPhase("deep-dive");
-    const deep = await runWave(DEEPDIVE_DIMENSIONS, "deep-dive", scope, findings);
+    const deep = await runWave(
+      cap.take(DEEPDIVE_DIMENSIONS, "deep-dive", dimensionLabel),
+      "deep-dive",
+      scope,
+      findings,
+      modelOverride,
+    );
     findings = findings.concat(deep);
   }
   if (runAdversarial && budget.remaining() >= minTailBudget) {
     // Phase ADVERSARIAL: the prose Wave 3 — challenges Wave 1+2 consensus rather
     // than piling on. Tier-gated presence (dynamic:true).
     enterPhase("adversarial");
-    const adversarial = await runWave(ADVERSARIAL_DIMENSIONS, "adversarial", scope, findings);
+    const adversarial = await runWave(
+      cap.take(ADVERSARIAL_DIMENSIONS, "adversarial", dimensionLabel),
+      "adversarial",
+      scope,
+      findings,
+      modelOverride,
+    );
     findings = findings.concat(adversarial);
   }
 
   // Phase RESEARCH: one coordinator gathers ecosystem best-practice signal to
   // calibrate the internal findings (the prose Phase 2; advisory, never blocks).
+  // It rates each practice's priority and the gap against this toolkit, and the
+  // coordinator can write and dispatch, so it is a `work` pass, not `gather`.
   enterPhase("research");
   let research = null;
-  if (budget.remaining() >= minTailBudget) {
+  if (budget.remaining() >= minTailBudget && cap.one("research")) {
     research = await agent({
       prompt: coordinatorPrompt(
         `Gather current best practices, architectural patterns, and common ` +
@@ -438,16 +648,17 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
         scope,
       ),
       schema: RESEARCH_SCHEMA,
-      model: "sonnet",
+      model: modelFor("work", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
 
   // Phase SYNTHESIZE: one coordinator de-dupes, ranks, and clusters the typed
-  // findings + research into ADR candidates (the prose Phase 3).
+  // findings + research into ADR candidates (the prose Phase 3). Synthesis
+  // across many agents is a `lead` pass.
   enterPhase("synthesize");
   let synthesis = null;
-  if (findings.length > 0 && budget.remaining() >= minTailBudget) {
+  if (findings.length > 0 && budget.remaining() >= minTailBudget && cap.one("synthesize")) {
     synthesis = await agent({
       prompt: coordinatorPrompt(
         `De-duplicate these typed evaluation findings (merge same-issue, keep the ` +
@@ -457,9 +668,10 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
         { findings, research },
       ),
       schema: SYNTHESIS_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
+    synthesis = withClusterIds(synthesis);
   }
 
   // Phase CRITIQUE: one skeptical coordinator pass — challenge every cluster
@@ -467,27 +679,29 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
   // Phase 4).
   enterPhase("critique");
   let critique = null;
-  if (synthesis && budget.remaining() >= minTailBudget) {
+  if (synthesis && budget.remaining() >= minTailBudget && cap.one("critique")) {
     critique = await agent({
       prompt: coordinatorPrompt(
         `Challenge each finding cluster (do NOT validate). Assign one disposition ` +
           `per cluster: confirm | downgrade (corrected severity) | dismiss (cite ` +
-          `evidence) | elevate (reasoning). Concrete file:line = real; "probably" = ` +
+          `evidence) | elevate (reasoning). Copy each cluster's \`id\` into its ` +
+          `disposition unchanged; a cluster with no disposition under its id is ` +
+          `not implemented. Concrete file:line = real; "probably" = ` +
           `not. Re-rank by assessed severity. Synthesis (typed):\n`,
         synthesis,
       ),
       schema: CRITIQUE_SCHEMA,
-      model: "sonnet",
+      model: modelFor("work", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
 
   // Phase REPORT: the dual-column decision surface — where evaluation + critique
-  // agree and diverge (the prose Phase 5). Interactive gate: the prose pipeline
-  // stops here for --evaluate-only / operator ADR approval.
+  // agree and diverge (the prose Phase 5). The run stops here unless the caller
+  // cleared the implement gate.
   enterPhase("report");
   let report = null;
-  if (synthesis && budget.remaining() >= minTailBudget) {
+  if (synthesis && budget.remaining() >= minTailBudget && cap.one("report")) {
     report = await agent({
       prompt: coordinatorPrompt(
         `Produce the dual-column decision surface: per finding show original ` +
@@ -498,35 +712,58 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
         { synthesis, critique },
       ),
       schema: REPORT_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
 
-  // The prose --evaluate-only flag + the Phase 5/6 interactive operator gate:
-  // stop before any ADR is written when evaluateOnly is set or no report exists.
-  if (stopAfterReport || report == null) {
+  // The implement gate (the prose --evaluate-only flag + the Phase 5/6 operator
+  // approval): stop before any ADR is written unless the caller passed
+  // implement: true with a non-default work branch. Also stop with no report,
+  // and with no critique: no cluster was reviewed, so none may be implemented.
+  const { approved: clusters, unreviewed } = splitClusters(synthesis, critique);
+  const unreviewedTitles = unreviewed.map((c) => c.title);
+  if (unreviewed.length > 0) {
+    log(
+      `toolkit-improvement: ${unreviewed.length} cluster(s) have no critique ` +
+        `disposition and are not implemented: ${unreviewedTitles.join(", ")}`,
+    );
+  }
+  const stopReason =
+    implementBlocked != null
+      ? implementBlocked
+      : critique == null
+        ? "the critique did not run, so no cluster was reviewed"
+        : null;
+  if (stopReason != null || report == null) {
     return {
       tier: effectiveTier,
-      evaluate_only: stopAfterReport,
+      evaluate_only: true,
+      implement_requested: implement === true,
+      implement_blocked: stopReason,
+      unreviewed_clusters: unreviewedTitles,
       evaluators_ran: findings.length,
+      deep_dive_ran: runDeepDive,
+      adversarial_ran: runAdversarial,
       research,
       synthesis,
       critique,
       report,
+      agents_dispatched: cap.used(),
+      max_agents: cap.limit,
+      dropped: cap.dropped,
       budget_remaining: budget.remaining(),
     };
   }
 
-  // Phase ADR: one ADR per approved cluster, written in parallel (the prose
-  // Phase 6 single-message dispatch). The cluster set is data-driven, so the
+  // Phase ADR: one ADR per cluster the critique kept, written in parallel (the
+  // prose Phase 6 single-message dispatch). The cluster set is data-driven, so the
   // fan-out count is honestly covered by contract.dynamic:true.
   enterPhase("adr");
-  const clusters = (synthesis && Array.isArray(synthesis.clusters)) ? synthesis.clusters : [];
   let adrs = [];
   if (clusters.length > 0 && budget.remaining() >= minTailBudget) {
-    const rawAdrs = await parallel(
-      clusters.map((cluster) => () =>
+    const rawAdrs = await boundedParallel(
+      cap.take(clusters, "adr", (c) => c.title).map((cluster) => () =>
         agent({
           prompt: coordinatorPrompt(
             `Write one ADR for this finding cluster: context (original finding + ` +
@@ -537,7 +774,7 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
             cluster,
           ),
           schema: ADR_SCHEMA,
-          model: "sonnet",
+          model: modelFor("work", modelOverride),
           agentType: COORDINATOR_AGENT,
         }),
       ),
@@ -545,74 +782,91 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
     adrs = rawAdrs.filter((x) => x != null);
   }
 
-  // Phase IMPLEMENT: one implementer per ADR, fan out over the typed ADRs (the
-  // prose Phase 7 — overlap-checked domain dispatch). Data-driven count.
+  // Phase IMPLEMENT: one domain engineer per ADR (the prose Phase 7 domain
+  // dispatch), chosen by implementerFor() from the ADR's components. Every
+  // implementer gets the branch rule. Data-driven count.
   enterPhase("implement");
   let implementations = [];
   if (adrs.length > 0 && budget.remaining() >= minTailBudget) {
-    const rawImpl = await parallel(
-      adrs.map((adr) => () =>
-        agent({
-          prompt: coordinatorPrompt(
-            `Implement this ADR end-to-end: read each component before editing, ` +
-              `execute every decision task, run language-appropriate tests after ` +
-              `each change, and report a log (outcome, changes, test results, any ` +
-              `blocked tasks). Stay within the components section. ADR (typed):\n`,
+    const rawImpl = await boundedParallel(
+      cap.take(adrs, "implement", (a) => a.title).map((adr) => () => {
+        const implementer = validateAgentName(implementerFor(adr), "implementer");
+        return agent({
+          prompt: agentPrompt(
+            implementer,
+            `You are ${implementer}. Implement this ADR end-to-end: read each ` +
+              `component before editing, execute every decision task, run ` +
+              `language-appropriate tests after each change, and report a log ` +
+              `(outcome, changes, test results, any blocked tasks). Stay within ` +
+              `the components section.` +
+              branchRule(branch) +
+              `ADR (typed):\n`,
             adr,
           ),
           schema: IMPLEMENT_SCHEMA,
-          model: "sonnet",
-          agentType: COORDINATOR_AGENT,
-        }),
-      ),
+          model: modelFor("work", modelOverride),
+          agentType: implementer,
+        });
+      }),
     );
     implementations = rawImpl.filter((x) => x != null);
   }
 
-  // Phase VALIDATE: one coordinator runs the regression gate —
-  // every modified skill must pass validators and tests (the prose Phase 8).
+  // Phase VALIDATE: the governance engineer runs the regression gate — every
+  // modified skill must pass validators and tests (the prose Phase 8).
   enterPhase("validate");
   let validation = null;
-  if (implementations.length > 0 && budget.remaining() >= minTailBudget) {
+  if (implementations.length > 0 && budget.remaining() >= minTailBudget && cap.one("validate")) {
     validation = await agent({
-      prompt: coordinatorPrompt(
+      prompt: agentPrompt(
+        GOVERNANCE_AGENT,
         `Run the regression gate over the implemented changes: ` +
           `every modified skill/agent must pass validators and tests. ` +
-          `Return verdict pass|regressed and the list of any regressed skills. ` +
-          `Implementations (typed):\n`,
+          `Edit nothing. Return verdict pass|regressed and the list of any ` +
+          `regressed skills. Implementations (typed):\n`,
         implementations,
       ),
       schema: VALIDATE_SCHEMA,
-      model: "sonnet",
-      agentType: COORDINATOR_AGENT,
+      model: modelFor("work", modelOverride),
+      agentType: GOVERNANCE_AGENT,
     });
   }
 
   // Phase REMEDIATE: regression recovery — runs ONLY when VALIDATE reports a
   // regression (the prose Phase 9, gated). Data-/tier-driven presence, so it is
-  // honestly covered by contract.dynamic:true.
+  // honestly covered by contract.dynamic:true. It edits, so it gets the branch
+  // rule and the governance engineer.
   enterPhase("remediate");
   let remediation = null;
-  if (validation && validation.verdict === "regressed" && budget.remaining() >= minTailBudget) {
+  if (
+    validation &&
+    validation.verdict === "regressed" &&
+    budget.remaining() >= minTailBudget &&
+    cap.one("remediate")
+  ) {
     remediation = await agent({
-      prompt: coordinatorPrompt(
+      prompt: agentPrompt(
+        GOVERNANCE_AGENT,
         `Diagnose and fix these skill regressions (max 3 cycles before escalation): ` +
           `challenge whether the change was necessary, diagnose why the score ` +
           `dropped, and recover discoverability without reverting the ADR intent. ` +
-          `Return outcome resolved|escalated. Regressed skills (typed):\n`,
+          `Return outcome resolved|escalated; on a branch mismatch return escalated.` +
+          branchRule(branch) +
+          `Regressed skills (typed):\n`,
         validation.regressed_skills || [],
       ),
       schema: REMEDIATE_SCHEMA,
-      model: "sonnet",
-      agentType: COORDINATOR_AGENT,
+      model: modelFor("work", modelOverride),
+      agentType: GOVERNANCE_AGENT,
     });
   }
 
-  // Phase RECORD: route reusable patterns to the files that own them and write
-  // the session summary (the prose Phase 10). One coordinator pass.
+  // Phase RECORD: name reusable patterns and the files that should carry them,
+  // and write the session summary (the prose Phase 10). One coordinator pass;
+  // the final report is a `lead` pass.
   enterPhase("record");
   let record = null;
-  if (budget.remaining() >= minTailBudget) {
+  if (budget.remaining() >= minTailBudget && cap.one("record")) {
     record = await agent({
       prompt: coordinatorPrompt(
         `Name the reusable patterns and successful remediations from this run, ` +
@@ -622,7 +876,7 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
         { adrs, implementations, validation, remediation },
       ),
       schema: RECORD_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
@@ -630,6 +884,9 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
   return {
     tier: effectiveTier,
     evaluate_only: false,
+    implement_requested: true,
+    implement_blocked: null,
+    branch,
     evaluators_ran: findings.length,
     deep_dive_ran: runDeepDive,
     adversarial_ran: runAdversarial,
@@ -637,11 +894,15 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
     synthesis,
     critique,
     report,
+    unreviewed_clusters: unreviewedTitles,
     adrs_created: adrs.length,
     implementations_ran: implementations.length,
     validation,
     remediation,
     record,
+    agents_dispatched: cap.used(),
+    max_agents: cap.limit,
+    dropped: cap.dropped,
     budget_remaining: budget.remaining(),
   };
 }

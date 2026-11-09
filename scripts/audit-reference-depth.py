@@ -218,17 +218,35 @@ def _classify_level(result: ComponentResult) -> int:
 
 
 def _collect_ref_files(ref_dir: Path) -> list[RefFileMetrics]:
-    """Collect and measure all markdown reference files in a directory."""
+    """Collect and measure every markdown reference file under a directory, at any depth."""
     if not ref_dir.is_dir():
         return []
-    files = sorted(ref_dir.glob("*.md"))
+    files = sorted(ref_dir.rglob("*.md"))
     return [_measure_ref_file(f) for f in files]
+
+
+def _skill_name(skill_md: Path) -> str:
+    """Skill name for a SKILL.md path: its directory, or the one above a nested ``skill/`` directory."""
+    parent = skill_md.parent
+    return parent.parent.name if parent.name == "skill" else parent.name
+
+
+def _skill_files(base_dir: Path) -> list[Path]:
+    """Every SKILL.md under ``base_dir`` at any depth.
+
+    Repo skills nest as ``skills/<category>/<name>/SKILL.md``; deployed skills
+    are flat (``skills/<name>/SKILL.md``). A SKILL.md inside a ``references/``
+    directory is reference content of another skill, not a skill.
+    """
+    if not base_dir.is_dir():
+        return []
+    return sorted(path for path in base_dir.rglob("SKILL.md") if "references" not in path.relative_to(base_dir).parts)
 
 
 def _scan_component(md_path: Path, kind: str) -> ComponentResult:
     """Scan a single agent or skill .md file and its optional references/ dir."""
     # For SKILL.md, the component name is the parent directory (e.g., skills/engineering/go-patterns/SKILL.md → "go-patterns")
-    name = md_path.parent.name if md_path.stem == "SKILL" else md_path.stem
+    name = _skill_name(md_path) if md_path.stem == "SKILL" else md_path.stem
     # References can live in several locations depending on the component layout:
     # 1. agents/name.md with agents/name/references/  (flat agent)
     # 2. agents/name/name.md with agents/name/references/  (named agent dir)
@@ -265,6 +283,9 @@ def _scan_directory(base_dir: Path, kind: str) -> list[ComponentResult]:
     """Scan an agent or skill base directory for all .md components."""
     if not base_dir.is_dir():
         return []
+
+    if kind == "skill":
+        return [_scan_component(path, kind) for path in _skill_files(base_dir)]
 
     results: list[ComponentResult] = []
     for item in sorted(base_dir.iterdir()):
@@ -337,6 +358,9 @@ def scan_single(name: str, kind: str) -> ComponentResult | None:
 
     candidates: list[ComponentResult] = []
     for base_dir, k in search_dirs:
+        if k == "skill":
+            candidates += [_scan_component(path, k) for path in _skill_files(base_dir) if _skill_name(path) == name]
+            continue
         # Flat .md file
         md_flat = base_dir / f"{name}.md"
         if md_flat.is_file():

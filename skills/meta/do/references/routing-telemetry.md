@@ -7,7 +7,7 @@ Hooks record routing automatically. The router records one case by hand: an obse
 | Routing decision (`{agent}:{skill}`) + right-sizing feedback | `routing-decision-recorder` | PostToolUse:Agent |
 | Outcome — validate pending | `routing-outcome-recorder` | SubagentStop |
 | Outcome — finalize (boost/decay) | `routing-outcome-finalizer` | UserPromptSubmit |
-| Outcome — session-end fallback | `routing-outcome-stop-fallback` | Stop |
+| Outcome — errored and stale fallback | `routing-outcome-stop-fallback` | Stop |
 | Review findings | `review-capture` | PostToolUse:Agent |
 
 These feed the route health report:
@@ -16,7 +16,7 @@ These feed the route health report:
 python3 ~/.claude/scripts/learning-db.py route-health
 ```
 
-**Outcome fidelity.** Scored deterministically on the next user turn at zero LLM cost, three ways: failure on errors or rejection (decay); success on explicit acceptance (boost); neutral otherwise. Silence counts as neutral, never as acceptance. The Stop fallback scores errors as failure and a clean session as neutral.
+**Outcome fidelity.** Scored deterministically on the next user turn at zero LLM cost, three ways: failure on errors or rejection (decay); success on explicit acceptance (boost); neutral otherwise. Silence counts as neutral, never as acceptance. The Stop fallback scores an errored dispatch as failure at once, and a clean one as neutral only after 6 hours with no user turn. The hook resolves every pending entry on `SessionEnd`, but `.claude/settings.json` registers it under `Stop` alone, so a clean dispatch from a session's last turn stays unresolved.
 
 **Report route failures.** Report only a failure you are confident about:
 

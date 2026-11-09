@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
-"""Audit and enforce allowed-tools declarations in agent frontmatter.
+"""Audit allowed-tools declarations in agent frontmatter.
 
-ADR-063: Tool Restriction Enforcement.
-Classifies agents by role type and adds/validates allowed-tools.
+ADR-063 (local-only): Tool Restriction Enforcement. The list is advisory:
+Claude Code reads ``tools:`` for subagents and ignores ``allowed-tools:``, so
+the declaration documents intended tool use and restricts nothing.
+
+The audit passes every agent that declares ``allowed-tools``. It reports an
+agent without one. ``AGENT_ROLES`` only supplies the list ``--fix`` adds, so
+an agent missing from that table still passes when it declares its own list.
+Files in ``agents/`` without a frontmatter ``name`` are not agents and are
+skipped.
 
 Usage:
   python3 scripts/audit-tool-restrictions.py --audit     # Report only
@@ -89,11 +96,13 @@ AGENT_ROLES = {
     "technical-journalist-writer": "documentation",
     # Code modifiers - full access (their job is to write code)
     "ansible-automation-engineer": "code-modifier",
+    "combat-effects-upgrade": "code-modifier",
     "data-engineer": "code-modifier",
     "database-engineer": "code-modifier",
     "github-profile-rules-engineer": "research",
     "golang-general-engineer": "code-modifier",
     "hook-development-engineer": "code-modifier",
+    "kotlin-general-engineer": "code-modifier",
     "kubernetes-helm-engineer": "code-modifier",
     "mcp-local-docs-engineer": "code-modifier",
     "nextjs-ecommerce-engineer": "code-modifier",
@@ -101,14 +110,21 @@ AGENT_ROLES = {
     "opensearch-elasticsearch-engineer": "code-modifier",
     "performance-optimization-engineer": "code-modifier",
     "perses-engineer": "code-modifier",
+    "php-general-engineer": "code-modifier",
+    "pixijs-combat-renderer": "code-modifier",
     "prometheus-grafana-engineer": "code-modifier",
     "python-general-engineer": "code-modifier",
     "python-openstack-engineer": "code-modifier",
     "rabbitmq-messaging-engineer": "code-modifier",
+    "react-native-engineer": "code-modifier",
     "react-portfolio-engineer": "code-modifier",
+    "rive-skeletal-animator": "code-modifier",
+    "rust-general-engineer": "code-modifier",
     "skill-creator": "code-modifier",
     "sqlite-peewee-engineer": "code-modifier",
+    "swift-general-engineer": "code-modifier",
     "testing-automation-engineer": "code-modifier",
+    "toolkit-governance-engineer": "code-modifier",
     "typescript-debugging-engineer": "code-modifier",
     "typescript-frontend-engineer": "code-modifier",
     "ui-design-engineer": "code-modifier",
@@ -149,7 +165,11 @@ def add_allowed_tools(content: str, tools: list[str]) -> str:
 
 
 def audit(agents_dir: Path, fix: bool = False) -> int:
-    """Audit all agents for allowed-tools compliance."""
+    """Audit all agents for an allowed-tools declaration.
+
+    Returns the number of agents still missing one, or with ``fix`` the number
+    of agents the run added one to.
+    """
     issues = 0
     fixed = 0
 
@@ -157,26 +177,27 @@ def audit(agents_dir: Path, fix: bool = False) -> int:
         name = agent_file.stem
         content = agent_file.read_text()
 
-        role = AGENT_ROLES.get(name)
-        if role is None:
-            print(f"  UNKNOWN: {name} — not in classification table")
-            issues += 1
+        frontmatter, _, _ = parse_frontmatter(content)
+        if not frontmatter.get("name"):
+            print(f"  SKIP: {name} — no frontmatter name, not an agent")
             continue
 
-        expected_tools = ROLE_TOOLS[role]
-        has_tools = has_allowed_tools(content)
-
-        if not has_tools:
-            if fix:
-                new_content = add_allowed_tools(content, expected_tools)
-                agent_file.write_text(new_content)
-                print(f"  FIXED: {name} — added {role} tools ({len(expected_tools)} tools)")
-                fixed += 1
-            else:
-                print(f"  MISSING: {name} — needs {role} tools")
-                issues += 1
-        else:
+        if has_allowed_tools(content):
             print(f"  OK: {name} — has allowed-tools")
+            continue
+
+        role = AGENT_ROLES.get(name)
+        if role is None:
+            print(f"  MISSING: {name} — no allowed-tools and no role in AGENT_ROLES; add a role or declare the list")
+            issues += 1
+        elif fix:
+            expected_tools = ROLE_TOOLS[role]
+            agent_file.write_text(add_allowed_tools(content, expected_tools))
+            print(f"  FIXED: {name} — added {role} tools ({len(expected_tools)} tools)")
+            fixed += 1
+        else:
+            print(f"  MISSING: {name} — needs {role} tools")
+            issues += 1
 
     return issues if not fix else fixed
 

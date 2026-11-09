@@ -93,10 +93,31 @@ See PHILOSOPHY.md: "Tokens Are Expensive, Use Progressive Context."
 
 ---
 
+## Defaults
+
+- **Evaluate-only is the default.** A request to evaluate, audit, or health-check the
+  toolkit runs Phases 1-5 and stops. Run Phases 6-10 only when the operator asks for
+  implementation and approves at the Phase 5 and Phase 6 gates.
+- **Start with Wave 1.** Run Waves 2 and 3 only when the operator asks for a deep, full,
+  or adversarial evaluation, or `/do` passes tier 3 or 4. The roster rule lives in
+  `skills/meta/do/references/workflow-dispatch.md`.
+- **Never edit on the default branch.** Phase 7 and Phase 9 edit only on a work branch.
+
+Native variant (`toolkit-improvement.js`) run args that carry the same rules:
+
+| Arg | Effect |
+|-----|--------|
+| none | Wave 1, then Phases 2-5. Stops after REPORT. No file is edited. |
+| `tier: 3` / `tier: 4` / `depth: "deep"` | Adds Wave 2 / Waves 2 and 3 / all three waves. |
+| `implement: true` + `branch: "<work-branch>"` | Runs Phases 6-10. Pass both only after the operator approves implementation. `main`, `master`, and `trunk` are refused, and each editing agent checks `git branch --show-current` first. A cluster gets an ADR only when the critique confirms, downgrades, or elevates it by cluster id. The result lists the rest under `unreviewed_clusters`, and a run with no critique stops after REPORT. |
+| `evaluateOnly: true` | Stops after REPORT even when `implement` is set. |
+| `maxAgents: N` | Caps agents for the run (default 40). The result lists what the cap dropped. |
+| `modelOverride: "<model>"` | Runs every agent on the model the operator named. Unset, each agent gets its role's model from `modelFor` in `workflow-helpers.js`. |
+
 ## Flags
 
-- `--evaluate-only`: Run Phases 1-5, stop before ADR creation. Use for a health check
-  without committing to implementation.
+- `--evaluate-only`: Run Phases 1-5, stop before ADR creation. This is the default; the
+  flag forces it when the request also mentions implementation.
 - `--resume`: Skip to the first phase whose artifact is missing. Allows resuming a
   partial run without re-dispatching completed waves.
 - `--wave N`: Run only evaluation wave N (1, 2, or 3). Use when adding new evaluation
@@ -129,8 +150,9 @@ echo "Resuming from: $IMPROVE_DIR"
 
 ## Phase 1: EVALUATE — Multi-Wave Agent Dispatch
 
-**Goal**: Cover every evaluation dimension of the toolkit using parallel specialized
-agents organized into three waves. Each agent reads actual source files — not summaries.
+**Goal**: Cover the evaluation dimensions of the toolkit using parallel specialized
+agents organized into up to three waves. Run Wave 1 by default; add Waves 2 and 3 per
+"Defaults" above. Each agent reads actual source files — not summaries.
 
 Read `references/agent-roster.md` for the complete agent personas, their focus areas,
 the files each agent should read, and their output format. The roster is the authoritative
@@ -185,8 +207,8 @@ cat > "$IMPROVE_DIR/wave3-raw.md" << WEOF
 WEOF
 ```
 
-**Gate**: All three waves complete. `wave1-raw.md`, `wave2-raw.md`, `wave3-raw.md` all
-exist in `$IMPROVE_DIR`. Proceed to Phase 2.
+**Gate**: Every wave you ran is complete, and its `waveN-raw.md` file exists in
+`$IMPROVE_DIR`. Proceed to Phase 2.
 
 ---
 
@@ -234,8 +256,8 @@ Dispatch a synthesis agent:
 ```
 You are a synthesis analyst. Read:
 - $IMPROVE_DIR/wave1-raw.md
-- $IMPROVE_DIR/wave2-raw.md
-- $IMPROVE_DIR/wave3-raw.md
+- $IMPROVE_DIR/wave2-raw.md (if Wave 2 ran)
+- $IMPROVE_DIR/wave3-raw.md (if Wave 3 ran)
 - $IMPROVE_DIR/research-raw.md
 
 Your job:
@@ -368,10 +390,10 @@ task list in the Decision section.
 | Domain | Agent |
 |--------|-------|
 | Go source code | `golang-general-engineer` |
-| Python hooks and scripts | `python-general-engineer` |
-| SKILL.md files | `skill-creator` |
-| Agent .md files | `skill-creator` |
-| Security hardening | `systematic-code-review` |
+| Hooks (`hooks/`) | `hook-development-engineer` |
+| Python scripts | `python-general-engineer` |
+| SKILL.md files, agent .md files, routing, docs | `toolkit-governance-engineer` |
+| Security hardening | the engineer for the file type, with the `security` skill |
 
 **Branch before any implementation** — never implement directly on main:
 

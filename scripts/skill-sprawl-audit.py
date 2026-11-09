@@ -12,6 +12,15 @@ this toolkit; zero Codex-specific logic). Three checks:
   3. Near-duplicates: pairwise SKILL.md body similarity (difflib) above
      --similarity, plus identical descriptions.
 
+The index carries routed skills only. A SKILL.md with ``promoted_to`` or no
+``name`` is on disk but not indexed. The audit lists those files in their own
+section and includes their bodies in the near-duplicate check. They add no
+router-line cost, so they stay out of the prompt budget.
+
+The default index is generated and untracked. The audit regenerates it when it
+is missing or older than its sources (scripts/lib/index_freshness.py). An index
+passed with --index is read as given.
+
 Output is a suggest-first Markdown report: the script never edits or
 deletes anything. Exit codes:
 
@@ -38,6 +47,16 @@ DEFAULT_SIMILARITY = 0.85
 
 FRONTMATTER_RE = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
 WS_RE = re.compile(r"\s+")
+FRONTMATTER_FIELD_RE = re.compile(r"^(name|promoted_to):[ \t]*(.*)$", re.MULTILINE)
+
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+# scripts/lib holds the shared helper; append so it shadows nothing.
+sys.path.append(str(_SCRIPTS_DIR / "lib"))
+
+from index_freshness import ensure_fresh_indexes
 
 
 def token_cost(text: str) -> int:
@@ -64,6 +83,8 @@ class SkillEntry:
     line_tokens: int
     body_tokens: int = 0
     norm_body: str = ""
+    indexed: bool = True
+    promoted_to: str = ""
 
 
 @dataclass
@@ -82,6 +103,7 @@ class AuditResult:
     long_descriptions: list[SkillEntry] = field(default_factory=list)
     duplicates: list[DuplicatePair] = field(default_factory=list)
     missing_files: list[str] = field(default_factory=list)
+    unindexed: list[SkillEntry] = field(default_factory=list)
 
     @property
     def has_findings(self) -> bool:
@@ -113,6 +135,34 @@ def load_skills(index_path: Path, root: Path) -> tuple[list[SkillEntry], list[st
             missing.append(name)
         entries.append(entry)
     return entries, missing
+
+
+def load_unindexed(entries: list[SkillEntry], root: Path) -> list[SkillEntry]:
+    """SKILL.md files under ``root/skills`` that no index entry points at."""
+    skills_dir = root / "skills"
+    if not skills_dir.is_dir():
+        return []
+    indexed = {(root / e.file).resolve() for e in entries if e.file}
+    unindexed: list[SkillEntry] = []
+    for path in sorted(skills_dir.rglob("SKILL.md")):
+        if path.resolve() in indexed:
+            continue
+        body = path.read_text(encoding="utf-8", errors="replace")
+        block = FRONTMATTER_RE.match(body)
+        fields = dict(FRONTMATTER_FIELD_RE.findall(block.group(0))) if block else {}
+        unindexed.append(
+            SkillEntry(
+                name=fields.get("name", "").strip().strip("'\"") or path.parent.name,
+                file=path.relative_to(root).as_posix(),
+                description="",
+                line_tokens=0,
+                body_tokens=token_cost(body),
+                norm_body=normalize_body(body),
+                indexed=False,
+                promoted_to=fields.get("promoted_to", "").strip().strip("'\""),
+            )
+        )
+    return unindexed
 
 
 def find_duplicates(entries: list[SkillEntry], threshold: float) -> list[DuplicatePair]:
@@ -151,7 +201,8 @@ def run_audit(
         key=lambda e: e.line_tokens,
         reverse=True,
     )
-    result.duplicates = find_duplicates(entries, similarity)
+    result.unindexed = load_unindexed(entries, root)
+    result.duplicates = find_duplicates(entries + result.unindexed, similarity)
     return result
 
 
@@ -165,6 +216,7 @@ def render_report(result: AuditResult, max_desc_tokens: int, similarity: float, 
         "## Prompt Budget",
         "",
         f"- Skills indexed: {len(result.skills)}",
+        f"- SKILL.md files on disk but not indexed: {len(result.unindexed)}",
         f"- Router-line cost (sum of `- name: description` lines): {result.total_line_tokens} tokens",
         f"- Budget: {result.budget_tokens} tokens",
         f"- Status: {status}",
@@ -210,6 +262,22 @@ def render_report(result: AuditResult, max_desc_tokens: int, similarity: float, 
         lines.append(f"None at or above {similarity:.2f} body similarity.")
     lines.append("")
 
+    if result.unindexed:
+        lines += [
+            "## Unindexed SKILL.md Files",
+            "",
+            "On disk but absent from the index (`promoted_to` set, or no `name`). The",
+            "router never sees them, so they cost no router-line tokens. They are",
+            "compared in Near-duplicates. Suggested fix: once the successor carries",
+            "the content, remove the file.",
+            "",
+            "| Skill | File | Promoted to | Body tokens |",
+            "|---|---|---|---|",
+        ]
+        for e in result.unindexed:
+            lines.append(f"| {e.name} | {e.file} | {e.promoted_to or '-'} | {e.body_tokens} |")
+        lines.append("")
+
     if result.missing_files:
         lines += [
             "## Missing SKILL.md Files",
@@ -248,6 +316,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="Exit 1 when findings exist (CI mode).")
     args = parser.parse_args(argv)
 
+    if args.index == repo_root / "skills" / "INDEX.json" and args.root == repo_root:
+        try:
+            ensure_fresh_indexes(repo_root, ["skills"])
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
     if not args.index.is_file():
         print(f"ERROR: index not found: {args.index}", file=sys.stderr)
         print("Generate it first: python3 scripts/generate-skill-index.py", file=sys.stderr)

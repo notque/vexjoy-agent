@@ -12,7 +12,7 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   74 registrations = 61 mirrored here + 13 unsupported.
+#   75 registrations = 61 mirrored here + 14 unsupported.
 #   62 entries = 32 native + 30 adapted: pretool-unified-gate.py has one Claude
 #   registration (Bash|Write|Edit|Read) and two entries here, Bash and apply_patch.
 
@@ -102,7 +102,8 @@ Stop:session-summary.py class=adapted mode=stop failure=open
 Stop:rules-distill-trigger.py class=adapted mode=stop failure=open
 Stop:routing-outcome-stop-fallback.py class=adapted mode=stop failure=open
 
-# Unsupported 13 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
+# Unsupported 14 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
 # two UserPromptSubmit; five PreToolUse (four Agent, one Antigravity routing
-# gate); four PostToolUse:Skill/Agent/Workflow; StopFailure; and PostCompact
-# model-context reinjection.
+# gate); four PostToolUse:Skill/Agent/Workflow; StopFailure; SessionEnd
+# (routing-outcome fallback, not mirrored; the adapted Stop entry covers Codex);
+# and PostCompact model-context reinjection.

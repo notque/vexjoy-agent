@@ -150,3 +150,39 @@ def test_output_file(tmp_path, capsys):
     assert code == 0
     assert "# Skill Sprawl Audit" in out.read_text(encoding="utf-8")
     capsys.readouterr()
+
+
+def write_unindexed(tmp_path: Path, name: str, body: str) -> None:
+    path = tmp_path / "skills" / "test" / name / "SKILL.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+
+
+def test_unindexed_skill_files_are_listed_outside_the_budget(tmp_path):
+    write_unindexed(tmp_path, "old", "---\nname: old-skill\npromoted_to: a\n---\n# Old\n\nRetired body.\n")
+    write_unindexed(tmp_path, "nameless", "# No frontmatter\n")
+    result = run(tmp_path, {"a": {"description": "Lint things.", "body": BODY_A}})
+
+    assert [(e.name, e.promoted_to, e.indexed) for e in result.unindexed] == [
+        ("nameless", "", False),
+        ("old-skill", "a", False),
+    ]
+    assert [e.name for e in result.skills] == ["a"]
+    assert result.total_line_tokens == audit.token_cost(audit.router_line("a", "Lint things."))
+    report = audit.render_report(result, 40, 0.85)
+    assert "SKILL.md files on disk but not indexed: 2" in report
+    assert "| old-skill | skills/test/old/SKILL.md | a |" in report
+
+
+def test_unindexed_body_duplicating_an_indexed_skill_is_flagged(tmp_path):
+    write_unindexed(tmp_path, "old", BODY_A.replace("name: a", "name: old-skill\npromoted_to: a"))
+    result = run(tmp_path, {"a": {"description": "Lint things.", "body": BODY_A}})
+
+    assert [(p.a, p.b) for p in result.duplicates] == [("a", "old-skill")]
+
+
+def test_report_omits_unindexed_section_when_every_file_is_indexed(tmp_path):
+    result = run(tmp_path, {"a": {"description": "Lint things.", "body": BODY_A}})
+
+    assert result.unindexed == []
+    assert "## Unindexed SKILL.md Files" not in audit.render_report(result, 40, 0.85)

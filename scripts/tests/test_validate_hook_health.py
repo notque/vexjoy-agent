@@ -389,3 +389,39 @@ def test_matcher_liveness_ends_background_work_that_outlives_the_grace(tmp_path,
         if record.is_file():
             with contextlib.suppress(OSError):
                 os.kill(json.loads(record.read_text(encoding="utf-8"))["pid"], signal.SIGKILL)
+
+
+def _orphan_fixture(tmp_path, monkeypatch, allowlist: str) -> dict:
+    """A hooks dir with one registered hook and one orphan, plus the given allowlist text."""
+    hooks_dir = tmp_path / "hooks"
+    hooks_dir.mkdir()
+    for name in ("registered.py", "orphan.py"):
+        (hooks_dir / name).write_text("# stub\n", encoding="utf-8")
+    allow = tmp_path / "allowlist.txt"
+    allow.write_text(allowlist, encoding="utf-8")
+    monkeypatch.setattr(health, "HOOKS_DIR", hooks_dir)
+    monkeypatch.setattr(health, "ALLOWLIST_PATH", allow)
+    command = 'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/registered.py"'
+    return {"hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": command}]}]}}
+
+
+def test_orphan_hook_fails_until_it_is_allowlisted_with_a_reason(tmp_path, monkeypatch):
+    settings = _orphan_fixture(tmp_path, monkeypatch, "")
+
+    failures = health.check_no_dormant(settings)
+
+    assert len(failures) == 1
+    assert "hooks/orphan.py" in failures[0] and "registered.py" not in failures[0]
+
+
+def test_allowlisted_orphan_passes(tmp_path, monkeypatch):
+    settings = _orphan_fixture(tmp_path, monkeypatch, "orphan.py  # retired stub kept for compatibility\n")
+
+    assert health.check_no_dormant(settings) == []
+    assert health.check_allowlist_entries_have_reasons() == []
+
+
+def test_allowlist_entry_for_a_removed_hook_fails(tmp_path, monkeypatch):
+    _orphan_fixture(tmp_path, monkeypatch, "gone.py  # retired stub kept for compatibility\n")
+
+    assert any("hooks/gone.py" in msg for msg in health.check_allowlist_not_stale())

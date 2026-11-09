@@ -63,6 +63,12 @@ MOCK_INPUTS: dict[str, dict] = {
     "PostCompact": {"type": "PostCompact"},
     "Stop": {"type": "Stop", "stop_hook_active": False, "session_id": "smoke-test-session"},
     "StopFailure": {"type": "StopFailure"},
+    "SessionEnd": {
+        "type": "SessionEnd",
+        "hook_event_name": "SessionEnd",
+        "reason": "other",
+        "session_id": "smoke-test-session",
+    },
     "SubagentStop": {
         "type": "SubagentStop",
         "hook_event_name": "SubagentStop",

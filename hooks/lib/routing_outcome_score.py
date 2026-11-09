@@ -33,6 +33,12 @@ WEAK_CONFIDENCE_CAP = 0.65
 # line — neither strong feedback nor silent default-success).
 BASIS_REPEAT_WEAK = "repeat_dispatch_weak"
 
+# Basis label for an acceptance that names no single route: the turn had
+# dispatches of two or more route keys, the user accepted the result, and each
+# clean dispatch takes the same bounded weak boost as a repeat dispatch.
+# Reported on its own line, outside the strong-feedback and silent-success sums.
+BASIS_ACCEPTANCE_SHARED = "acceptance_shared"
+
 
 def decision_row_exists(key: str) -> bool:
     """True iff a routing decision row was already written for ``key``.
@@ -241,3 +247,61 @@ def apply_outcome(
     raise ValueError(
         f"unknown routing outcome {outcome!r}; expected one of {SUCCESS!r}, {FAILURE!r}, {NEUTRAL!r}, {WEAK_SUCCESS!r}"
     )
+
+
+def record_resolved_outcome(
+    *,
+    session_id: str,
+    key: str,
+    outcome: str,
+    basis: str,
+    reason: str,
+    source: str,
+    decision_id: str | None = None,
+) -> float:
+    """Write one resolved outcome to every store. Returns the new confidence.
+
+    One call per resolved dispatch, shared by the UserPromptSubmit finalizer
+    and the Stop fallback so both write the same three records:
+
+    1. ``apply_outcome``: confidence boost, decay, or no-op, plus the basis
+       counter.
+    2. ``route-events.jsonl``: the per-dispatch outcome event.
+    3. ``evidence_route_decisions``: the outcome on this dispatch's row, plus a
+       ``route_outcome`` evidence event.
+
+    The Stop fallback used to write only the first, which left the decision
+    rows it resolved with a NULL outcome. Caller MUST gate on
+    ``decision_row_exists(key)``. Records 2 and 3 are best-effort.
+    """
+    new_conf = apply_outcome(key, outcome, basis=basis)
+    try:
+        from route_events import record_outcome_event
+
+        # routing_relevant=True: a resolver failure decays the row, so
+        # route-signal-check must count it.
+        record_outcome_event(session=session_id, key=key, outcome=outcome, reason=reason, routing_relevant=True)
+    except Exception:
+        pass
+    try:
+        from learning_db_v2 import record_evidence_event, update_evidence_route_outcome
+
+        update_evidence_route_outcome(
+            route_key=key,
+            session_id=session_id or None,
+            outcome=outcome,
+            outcome_basis=basis,
+            decision_id=decision_id or None,
+        )
+        record_evidence_event(
+            event_type="route_outcome",
+            source=source,
+            session_id=session_id or None,
+            route_key=key,
+            action=outcome,
+            success=outcome != FAILURE,
+            metadata={"basis": basis, "reason": reason},
+        )
+    except Exception:
+        pass
+    return new_conf

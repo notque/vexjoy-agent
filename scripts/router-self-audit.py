@@ -15,8 +15,12 @@ One composite report over four checks, exit 0/1:
                     (runs the pre_route_only / pre_route_negative rows of
                     routing-benchmark.json through pre-route.py) plus the
                     pre-route boundary tests, run through pytest.
-  4. drift        — check-routing-drift.py: every INDEX skill appears in the
-                    routing manifest.
+  4. drift        — check-routing-drift.py: every INDEX skill and agent
+                    appears in the routing manifest.
+
+The audit first regenerates a missing or stale skills/INDEX.json or
+agents/INDEX.json (scripts/lib/index_freshness.py), so every check reads current
+indexes.
 
 Usage:
     python3 scripts/router-self-audit.py
@@ -37,6 +41,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = REPO_ROOT / "scripts"
+
+sys.path.append(str(SCRIPTS / "lib"))
+from index_freshness import ensure_fresh_indexes
 
 # Replay regression corpus runners: routing-benchmark.py replays the pinned
 # corpus (routing-benchmark.json); these pytest files hold the boundary cases.
@@ -166,11 +173,11 @@ def check_replay_suite() -> CheckResult:
 
 
 def check_drift() -> CheckResult:
-    """Run check-routing-drift.py; fail when a skill is missing from the manifest."""
+    """Run check-routing-drift.py; fail when a skill or agent is missing from the manifest."""
     proc = _run([sys.executable, str(SCRIPTS / "check-routing-drift.py")])
     lines = proc.stdout.strip().splitlines()
     ok = proc.returncode == 0
-    default = "OK (all INDEX skills present in manifest)" if ok else f"exit {proc.returncode}"
+    default = "OK (all INDEX skills and agents present in manifest)" if ok else f"exit {proc.returncode}"
     summary = lines[-1] if lines else default
     detail = "" if ok else (proc.stdout + proc.stderr).strip()
     return CheckResult("drift", ok, summary, detail)
@@ -180,6 +187,10 @@ def main() -> int:
     """Run all checks and print the composite report."""
     checks = (check_manifest, check_merged_index, check_replay_suite, check_drift)
     results: list[CheckResult] = []
+    try:
+        ensure_fresh_indexes(REPO_ROOT)
+    except RuntimeError as exc:
+        results.append(CheckResult("indexes", False, str(exc)))
     for check in checks:
         try:
             results.append(check())

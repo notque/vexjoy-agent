@@ -501,3 +501,66 @@ force_routing: true
         # Should catch: missing name, empty description, missing routing,
         # top-level pairs_with, force_routing typo
         assert len(errors) >= 4
+
+
+# ---------------------------------------------------------------------------
+# Agent description cap
+# ---------------------------------------------------------------------------
+
+
+def _make_agent(tmp_path: Path, description: str) -> Path:
+    agent_file = tmp_path / "agents" / "sample-agent.md"
+    agent_file.parent.mkdir(parents=True, exist_ok=True)
+    agent_file.write_text(f"---\nname: sample-agent\ndescription: {description}\n---\n\n# Body\n", encoding="utf-8")
+    return agent_file
+
+
+class TestAgentDescription:
+    """Agent descriptions load into every session: capped at 300 bytes, no <example> blocks."""
+
+    def test_short_description_passes(self, tmp_path: Path) -> None:
+        assert vsf.validate_agent(_make_agent(tmp_path, '"Go development: features, debugging, review."')) == []
+
+    def test_description_at_the_cap_passes(self, tmp_path: Path) -> None:
+        text = "a" * vsf.AGENT_DESCRIPTION_MAX_BYTES
+        assert vsf.validate_agent(_make_agent(tmp_path, f'"{text}"')) == []
+
+    def test_description_over_the_cap_fails(self, tmp_path: Path) -> None:
+        text = "a" * (vsf.AGENT_DESCRIPTION_MAX_BYTES + 1)
+        errors = vsf.validate_agent(_make_agent(tmp_path, f'"{text}"'))
+        assert len(errors) == 1
+        assert "301 bytes" in errors[0]
+
+    def test_cap_counts_bytes_not_characters(self, tmp_path: Path) -> None:
+        text = "é" * 151  # 151 characters, 302 bytes
+        errors = vsf.validate_agent(_make_agent(tmp_path, f'"{text}"'))
+        assert len(errors) == 1
+        assert "302 bytes" in errors[0]
+
+    def test_example_block_fails(self, tmp_path: Path) -> None:
+        errors = vsf.validate_agent(_make_agent(tmp_path, '"Go agent. <example>user: fix it</example>"'))
+        assert len(errors) == 1
+        assert "<example>" in errors[0]
+
+    def test_missing_description_fails(self, tmp_path: Path) -> None:
+        agent_file = tmp_path / "agents" / "sample-agent.md"
+        agent_file.parent.mkdir(parents=True)
+        agent_file.write_text("---\nname: sample-agent\n---\n", encoding="utf-8")
+        assert any("Missing or empty description" in e for e in vsf.validate_agent(agent_file))
+
+    def test_file_without_frontmatter_is_not_an_agent(self, tmp_path: Path) -> None:
+        shared = tmp_path / "agents" / "base-instructions.md"
+        shared.parent.mkdir(parents=True)
+        shared.write_text("# Shared instructions\n", encoding="utf-8")
+        assert vsf.validate_agent(shared) == []
+
+    def test_cli_routes_an_agent_file_to_the_agent_check(self, tmp_path: Path) -> None:
+        agent_file = _make_agent(tmp_path, '"' + "a" * 400 + '"')
+        result = subprocess.run([sys.executable, str(SCRIPT), str(agent_file)], capture_output=True, text=True)
+        assert result.returncode == 1
+        assert "400 bytes" in result.stdout
+
+    def test_every_repo_agent_passes(self) -> None:
+        agents = sorted((SCRIPT.parent.parent / "agents").glob("*.md"))
+        assert agents
+        assert [e for a in agents for e in vsf.validate_agent(a)] == []

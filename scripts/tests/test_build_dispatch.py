@@ -806,8 +806,8 @@ def test_exceptional_max_power_requires_explicit_override():
     marker = bd.build_marker(
         _decision(model=None, model_policy="max-power", manual_model_override=True, provider="anthropic")
     )
-    assert "model=opus" in marker
-    assert "effort=xhigh" in marker
+    assert "model=fable" in marker
+    assert "effort=high" in marker
 
 
 def test_manual_override_can_replace_a_policy_default():
@@ -902,12 +902,12 @@ SUPPLIED_CLAUDE_POINTS = {
     ("task_class", "model", "effort"),
     [
         ("low-risk", "haiku", "low"),
-        ("standard", "opus", "high"),
+        ("standard", "opus", "medium"),
         ("high-risk", "opus", "high"),
     ],
 )
 def test_anthropic_policy_maps_tiers_to_measured_models(task_class, model, effort):
-    """Owner policy 2026-11-01: low-risk haiku (read-only), standard and high-risk opus."""
+    """Policy 2026-11-09: low-risk haiku (read-only), standard opus/medium, high-risk opus/high."""
     decision = _decision(model=None, model_policy=task_class, provider="anthropic")
     marker = bd.build_marker(decision)
 
@@ -929,11 +929,21 @@ def test_anthropic_policy_models_are_known_and_effort_never_falls_with_risk():
 
 
 def test_anthropic_policy_sonnet_is_no_tier_default():
-    """Owner policy 2026-11-01: opus for all non-read-only tiers, haiku for read-only, sonnet for none."""
+    """Owner policy 2026-11-01: haiku for read-only, opus for work, sonnet for none; fable is max-power."""
     tiers = bd.ANTHROPIC_AUTO_POLICIES
     assert all(model != "sonnet" for model, _ in tiers.values())
-    assert tiers["low-risk"][0] == "haiku"
-    assert {tiers[p][0] for p in ("standard", "high-risk", "max-power")} == {"opus"}
+    assert tiers == {
+        "low-risk": ("haiku", "low"),
+        "standard": ("opus", "medium"),
+        "high-risk": ("opus", "high"),
+        "max-power": ("fable", "high"),
+    }
+
+
+def test_anthropic_policy_never_raises_opus_past_high():
+    """Past opus/high the ladder goes up a model at a lower effort, never to opus/xhigh or opus/max."""
+    for model, effort in bd.ANTHROPIC_AUTO_POLICIES.values():
+        assert not (model == "opus" and effort in ("xhigh", "max"))
 
 
 def _main_decision(**overrides):
@@ -1019,6 +1029,60 @@ def test_explicit_claude_models_need_no_override(model):
     assert recorder.parse_model(marker) == model
 
 
+@pytest.mark.parametrize("effort", (None, "medium", "high", "xhigh"))
+def test_explicit_fable_needs_no_override(effort):
+    """fable is accepted wherever opus is; only fable/max needs an override."""
+    marker = bd.build_marker(_decision(model="fable", model_effort=effort))
+    assert "model=fable" in marker
+    assert ("effort=" in marker) == (effort is not None)
+    assert "fable" in bd.VALID_MODELS and "fable" in bd.ANTHROPIC_MODELS
+
+
+def test_fable_marker_round_trips_through_the_recorder():
+    """The recorder (hooks/routing-decision-recorder.py) must accept the fable marker the builder emits."""
+    marker = bd.build_marker(_decision(model="fable", model_effort="high"))
+    assert recorder.parse_model(marker) == "fable"
+    assert recorder.parse_model_effort(marker) == "high"
+
+
+def test_fable_max_requires_manual_override():
+    """fable/max is an explicit escalation, as opus/max is."""
+    with pytest.raises(bd.InputError, match="fable/max requires manual_model_override"):
+        bd.build_marker(_decision(model="fable", model_effort="max"))
+    marker = bd.build_marker(_decision(model="fable", model_effort="max", manual_model_override=True))
+    assert "model=fable" in marker and "effort=max" in marker
+
+
+def test_explicit_opus_xhigh_requires_manual_override_and_points_to_fable():
+    """Past high, the next model up at a lower effort is tried before more Opus effort."""
+    with pytest.raises(bd.InputError, match="manual_model_override=true; test fable at high first"):
+        bd.build_marker(_decision(model="opus", model_effort="xhigh"))
+    marker = bd.build_marker(_decision(model="opus", model_effort="xhigh", manual_model_override=True))
+    assert "model=opus" in marker and "effort=xhigh" in marker
+
+
+def test_fable_differing_from_a_policy_tier_requires_manual_override():
+    """fable follows the opus rule: a pick that differs from the named tier needs an override and an effort."""
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model="fable", model_policy="standard"))
+    with pytest.raises(bd.InputError, match="model_effort"):
+        bd.build_marker(_decision(model="fable", model_policy="standard", manual_model_override=True))
+    marker = bd.build_marker(
+        _decision(model="fable", model_effort="medium", model_policy="standard", manual_model_override=True)
+    )
+    assert "model=fable" in marker and "effort=medium" in marker
+
+
+@pytest.mark.parametrize("model", ("haiku", "sonnet", "opus", "fable", "inherit"))
+@pytest.mark.parametrize("complexity", ("simple", "medium", "complex"))
+def test_owner_per_task_model_override_is_recordable(model, complexity):
+    """When the owner names a model for the task, every dispatch can pass and record it."""
+    prompt = _preamble(_decision(model=model, complexity=complexity, manual_model_override=True))
+    marker = prompt.splitlines()[0]
+    assert f"model={model}" in marker
+    assert "effort=" not in marker
+
+
 def test_policy_differing_pick_still_requires_manual_override():
     """A model that differs from the policy's tier needs manual_model_override and an effort."""
     with pytest.raises(bd.InputError, match="manual_model_override"):
@@ -1042,9 +1106,9 @@ def test_provider_absent_defaults_to_anthropic():
     """Missing provider field defaults to 'anthropic' (Claude Code is primary)."""
     decision = _decision(model=None, model_policy="standard")
     marker = bd.build_marker(decision)
-    # Should resolve via Anthropic table: opus/high (owner policy 2026-11-01)
+    # Should resolve via the Anthropic table: opus/medium (policy 2026-11-09)
     assert "model=opus" in marker
-    assert "effort=high" in marker
+    assert "effort=medium" in marker
 
 
 def test_provider_openai_uses_openai_table():
@@ -1195,7 +1259,8 @@ def test_cli_model_missing_error_message():
     result = _run_cli("--json", json.dumps({"agent": "claude", "skill": "quick", "complexity": "complex"}))
     assert result.returncode == 2
     assert "'model' is required" in result.stderr
-    assert "Model Selection" in result.stderr or "sonnet" in result.stderr
+    assert "fable" in result.stderr
+    assert "standard=opus/medium" in result.stderr and "max-power=fable/high" in result.stderr
 
 
 # ---------------------------------------------------------------------------
@@ -1469,7 +1534,7 @@ def test_inherit_requests_no_tool_override_and_round_trips(complexity, provider)
 
 @pytest.mark.parametrize(
     "conflict",
-    [{"model_policy": "standard"}, {"model_effort": "high"}, {"manual_model_override": True}],
+    [{"model_policy": "standard"}, {"model_effort": "high"}],
 )
 def test_inherit_rejects_conflicting_overrides(conflict):
     with pytest.raises(bd.InputError, match="cannot include"):

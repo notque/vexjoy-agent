@@ -52,11 +52,18 @@ _PID_FILE = Path("/tmp/agent-scheduler.pid")
 
 _COST_PER_MILLION: dict[str, dict[str, float]] = {
     # Claude API list price per 1M tokens for the model each alias resolves to
-    # today (haiku -> Haiku 4.5, sonnet -> Sonnet 5, opus -> Opus 5). Re-check
-    # whenever the alias targets change.
-    "haiku": {"input": 1.00, "output": 5.00},
+    # (haiku -> Haiku 5.5, sonnet -> Sonnet 5.5, opus -> Opus 5.5, fable ->
+    # Fable 5.2). Source: Anthropic model guide, 2026-11-09. Re-check whenever
+    # the alias targets change.
+    "haiku": {"input": 0.10, "output": 0.50},
     "sonnet": {"input": 2.00, "output": 10.00},
-    "opus": {"input": 5.00, "output": 25.00},
+    "opus": {"input": 4.00, "output": 20.00},
+    "fable": {"input": 8.00, "output": 40.00},
+}
+# Haiku 5.5 bills a higher rate when the prompt exceeds 100K tokens.
+_LONG_PROMPT_TOKENS = 100_000
+_LONG_PROMPT_COST_PER_MILLION: dict[str, dict[str, float]] = {
+    "haiku": {"input": 0.50, "output": 2.50},
 }
 
 log = logging.getLogger("agent-scheduler")
@@ -265,7 +272,8 @@ def estimate_cost(model: str, stdout: str) -> float:
     """Estimate USD cost from Claude CLI output.
 
     Looks for token count lines in stdout. Falls back to a rough estimate
-    based on output length when token counts are unavailable.
+    based on output length when token counts are unavailable. A model with no
+    price row is billed at the sonnet rate. Cache reads are not priced.
     """
     import re
 
@@ -283,6 +291,8 @@ def estimate_cost(model: str, stdout: str) -> float:
         output_tokens = max(len(stdout) // 4, 100)
         input_tokens = output_tokens // 2
 
+    if input_tokens > _LONG_PROMPT_TOKENS:
+        rates = _LONG_PROMPT_COST_PER_MILLION.get(model, rates)
     cost = (input_tokens / 1_000_000) * rates["input"] + (output_tokens / 1_000_000) * rates["output"]
     return round(cost, 6)
 

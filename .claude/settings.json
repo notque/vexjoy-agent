@@ -598,7 +598,7 @@
           {
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/routing-outcome-stop-fallback.py\"",
-            "description": "Resolve still-pending routing outcomes at session end (autonomous runs with no next user turn)",
+            "description": "Score errored or stale pending routing outcomes; leave clean recent ones for the next-turn finalizer",
             "timeout": 5
           },
           {
@@ -613,8 +613,20 @@
             "description": "Advisory: re-wake the session when this session's changes introduce toolkit drift (hook smoke-test, doc-count, or routing-manifest drift) so it can be fixed before CI",
             "timeout": 20,
             "asyncRewake": true,
-            "rewakeMessage": "Toolkit drift guard found drift in this session's changes \u2014 fix the drift below (or acknowledge it), then continue with the user's original request or continue waiting for their reply. This is supplementary, not a replacement for your previous response:",
+            "rewakeMessage": "Toolkit drift guard found drift in this session's changes — fix the drift below (or acknowledge it), then continue with the user's original request or continue waiting for their reply. This is supplementary, not a replacement for your previous response:",
             "rewakeSummary": "Toolkit drift guard found drift to review"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/routing-outcome-stop-fallback.py\"",
+            "description": "Resolve every still-pending routing outcome at session end",
+            "timeout": 5
           }
         ]
       }

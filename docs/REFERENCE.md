@@ -140,6 +140,19 @@ Environment variables set in `.claude/settings.json` under `"env"`. `install.sh`
 
 The installer merges only `hooks` and `env` from the repo settings. Keys such as `attribution`, `effortLevel`, and `autoMemoryEnabled` apply to sessions in this checkout only.
 
+### Model choice
+
+`/do` and `/d` set the model for each dispatched agent from the task type. To pick the model yourself, name it in the request ("use fable for everything").
+
+| Task | Model / effort |
+|------|----------------|
+| read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
+| code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
+| high-risk: auth, data, security, concurrency, irreversible | opus / high |
+| major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
+
+Sonnet is no task's default. Prices, effort trade-offs, and the evidence: [model task fit](../skills/meta/d/references/model-task-fit.md).
+
 ### Orchestration (optional)
 
 Keys under `"orchestration"` in `.claude/settings.json` tune how `/do` sizes dispatched work.

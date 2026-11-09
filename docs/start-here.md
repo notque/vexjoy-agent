@@ -48,7 +48,7 @@ python3 ~/.claude/scripts/install-doctor.py inventory
 
 ### Codex users
 
-Codex integration requires v0.144.1 or later. Codex runs 61 of the 74 hook registrations; 13 are unsupported. A registration is one hook file on one event. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`, so this is not full Claude Code parity.
+Codex integration requires v0.144.1 or later. Codex runs 61 of the 75 hook registrations; 14 are unsupported. A registration is one hook file on one event. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`, so this is not full Claude Code parity.
 
 After installation or a hook update, run `/hooks` in Codex and approve changed definitions. Codex does not run changed hook commands until they are trusted.
 

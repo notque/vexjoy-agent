@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """Consolidated toolkit health checks.
 
-Consolidates the 4 Category C checks from kairos-lite monitor-prompt.md Phase 5
+Consolidates the Category C checks from kairos-lite monitor-prompt.md Phase 5
 into a single structured script. Each dimension can be queried independently or
 all at once.
+
+Two hook dimensions, from two stores:
+    hook-errors   crashes: entries hook_error() appended to hook-errors.jsonl.
+                  WARN when one hook crashed more than the threshold in 7 days.
+    hook-denials  denials: governance_events rows in learning.db. Every recorded
+                  row is a hook doing its job, so this is a count and never warns.
 
 Usage:
     python3 scripts/toolkit-health.py                  # human-readable report
     python3 scripts/toolkit-health.py --json           # machine-readable JSON
     python3 scripts/toolkit-health.py --check hook-errors
+    python3 scripts/toolkit-health.py --check hook-denials
     python3 scripts/toolkit-health.py --check stale-memory
     python3 scripts/toolkit-health.py --check state-files
     python3 scripts/toolkit-health.py --check adr-backlog
@@ -53,12 +60,16 @@ MEMORY_PROJECTS_DIR = CLAUDE_DIR / "projects"
 STATE_DIR = CLAUDE_DIR / "state"
 ADR_DIR = Path(__file__).resolve().parent.parent / "adr"
 
-HOOK_ERROR_RATE_THRESHOLD = 20.0  # percent
+HOOK_ERRORS_JSONL = CLAUDE_DIR / "learning" / "hook-errors.jsonl"
+HOOK_WINDOW_DAYS = 7
+# Same bar as the repeat-offender check in scripts/validate-hook-health.py.
+HOOK_CRASH_WARN_COUNT = 5  # crashes of one hook inside the window
+HOOK_CRASH_TOP_N = 5
 STALE_MEMORY_WARN_COUNT = 5
 STATE_FILE_WARN_COUNT = 50
 ADR_BACKLOG_WARN_COUNT = 20
 
-CHECK_NAMES = ("hook-errors", "stale-memory", "state-files", "adr-backlog")
+CHECK_NAMES = ("hook-errors", "hook-denials", "stale-memory", "state-files", "adr-backlog")
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -67,26 +78,41 @@ CHECK_NAMES = ("hook-errors", "stale-memory", "state-files", "adr-backlog")
 Status = Literal["OK", "WARN"]
 
 
+Trend = Literal["INCREASING", "STABLE", "DECREASING"]
+
+
 @dataclass
 class HookErrorResult:
-    """Result of the hook error rate check."""
+    """Hook crashes recorded in hook-errors.jsonl over the window."""
 
-    blocked_count: int
-    total_count: int
-    error_rate: float
-    trend: Literal["INCREASING", "STABLE", "DECREASING"]
+    crash_count: int
+    by_hook: list[tuple[str, int]]  # most crashes first
+    trend: Trend
+    threshold: int
     status: Status
+    log_missing: bool = False
+
+    def flag_message(self) -> str | None:
+        if self.status != "WARN":
+            return None
+        over = [f"{hook} ({count})" for hook, count in self.by_hook if count > self.threshold]
+        return (
+            f"Hook crashes: {self.crash_count} in the last {HOOK_WINDOW_DAYS}d; "
+            f"more than {self.threshold} from {', '.join(over[:HOOK_CRASH_TOP_N])}, trending {self.trend}"
+        )
+
+
+@dataclass
+class HookDenialResult:
+    """Hook denials recorded in governance_events over the window. A count, never an alarm."""
+
+    denial_count: int
+    event_count: int
+    trend: Trend
+    status: Status = "OK"
     db_missing: bool = False
 
     def flag_message(self) -> str | None:
-        if self.db_missing:
-            return None
-        if self.status == "WARN":
-            return (
-                f"Hook error rate {self.error_rate:.1f}% "
-                f"({self.blocked_count}/{self.total_count} blocked, last 7d) "
-                f"— above {HOOK_ERROR_RATE_THRESHOLD:.0f}% threshold, trending {self.trend}"
-            )
         return None
 
 
@@ -153,7 +179,7 @@ class HealthConfig:
     stale_memory_days: int = 14
     state_file_warn_count: int = STATE_FILE_WARN_COUNT
     adr_backlog_warn_count: int = ADR_BACKLOG_WARN_COUNT
-    hook_error_rate_threshold: float = HOOK_ERROR_RATE_THRESHOLD
+    hook_crash_warn_count: int = HOOK_CRASH_WARN_COUNT
 
 
 @dataclass
@@ -161,6 +187,7 @@ class HealthReport:
     """Aggregated health report for all dimensions."""
 
     hook_errors: HookErrorResult | None = None
+    hook_denials: HookDenialResult | None = None
     stale_memory: StaleMemoryResult | None = None
     state_files: StateFileResult | None = None
     adr_backlog: AdrBacklogResult | None = None
@@ -176,82 +203,148 @@ class HealthReport:
 # ---------------------------------------------------------------------------
 
 
+def hook_errors_path() -> Path:
+    """The crash log hook_error() appends to: ``$CLAUDE_HOOK_ERRORS_PATH``, else the default.
+
+    Same rule as ``hooks/lib/hook_utils._hook_errors_path()``, without importing that module.
+    """
+    override = os.environ.get("CLAUDE_HOOK_ERRORS_PATH")
+    return Path(override) if override else HOOK_ERRORS_JSONL
+
+
+def _trend(recent: int, older: int) -> Trend:
+    """Compare the newer half of the window with the older half."""
+    if recent > older * 1.5:
+        return "INCREASING"
+    if older > 0 and recent < older * 0.5:
+        return "DECREASING"
+    return "STABLE"
+
+
+def _entry_time(value: object) -> datetime | None:
+    """A hook-errors.jsonl ``ts`` as aware UTC. hook_error() writes UTC; a naive value is read as UTC."""
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def check_hook_errors(config: HealthConfig) -> HookErrorResult:
-    """Query learning.db for hook error rate over the last 7 days with trend.
+    """Count hook crashes in hook-errors.jsonl over the last 7 days, per hook, with trend.
+
+    Lines that are not JSON objects, or carry no readable ``ts``, are skipped.
 
     Args:
         config: Health configuration with thresholds.
 
     Returns:
-        HookErrorResult with rate, trend, and pass/warn status.
+        HookErrorResult. WARN when one hook crashed more than the threshold.
     """
-    if not LEARNING_DB.exists():
-        return HookErrorResult(
-            blocked_count=0,
-            total_count=0,
-            error_rate=0.0,
-            trend="STABLE",
-            status="OK",
-            db_missing=True,
-        )
+    threshold = config.hook_crash_warn_count
+    missing = HookErrorResult(
+        crash_count=0, by_hook=[], trend="STABLE", threshold=threshold, status="OK", log_missing=True
+    )
+    path = hook_errors_path()
+    if not path.is_file():
+        return missing
 
-    cutoff_7d = (datetime.now(tz=timezone.utc) - timedelta(days=7)).isoformat()
-    cutoff_recent = (datetime.now(tz=timezone.utc) - timedelta(days=3.5)).isoformat()
+    now = datetime.now(tz=timezone.utc)
+    cutoff = now - timedelta(days=HOOK_WINDOW_DAYS)
+    cutoff_recent = now - timedelta(days=HOOK_WINDOW_DAYS / 2)
+    counts: dict[str, int] = {}
+    recent = older = 0
+    try:
+        with path.open(encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(entry, dict):
+                    continue
+                ts = _entry_time(entry.get("ts"))
+                if ts is None or ts <= cutoff:
+                    continue
+                hook = entry.get("hook")
+                if not isinstance(hook, str) or not hook:
+                    hook = "unknown"
+                counts[hook] = counts.get(hook, 0) + 1
+                if ts > cutoff_recent:
+                    recent += 1
+                else:
+                    older += 1
+    except OSError:
+        return missing
+
+    by_hook = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    status: Status = "WARN" if by_hook and by_hook[0][1] > threshold else "OK"
+    return HookErrorResult(
+        crash_count=recent + older,
+        by_hook=by_hook,
+        trend=_trend(recent, older),
+        threshold=threshold,
+        status=status,
+    )
+
+
+def check_hook_denials(config: HealthConfig) -> HookDenialResult:
+    """Count hook denials in learning.db governance_events over the last 7 days, with trend.
+
+    Every caller of record_governance() is a deny or warn path, so blocked/total
+    is near 100% by construction and says nothing about hook health. This check
+    reports the count and never warns.
+
+    Args:
+        config: Health configuration (unused; kept for a uniform check signature).
+
+    Returns:
+        HookDenialResult with counts and trend. Status is always OK.
+    """
+    missing = HookDenialResult(denial_count=0, event_count=0, trend="STABLE", db_missing=True)
+    if not LEARNING_DB.exists():
+        return missing
+
+    # governance_events.created_at holds naive local time, compared as text (see
+    # learning_db_v2.governance_timestamp). A UTC or offset-suffixed cutoff here
+    # shifts the window by the local UTC offset.
+    now = datetime.now()
+    cutoff_7d = (now - timedelta(days=HOOK_WINDOW_DAYS)).isoformat()
+    cutoff_recent = (now - timedelta(days=HOOK_WINDOW_DAYS / 2)).isoformat()
 
     conn = None
     try:
         # Read-only: the hooks own this database, and a health check never writes to it.
         conn = sqlite3.connect(f"{LEARNING_DB.absolute().as_uri()}?mode=ro", uri=True)
-        blocked_count = conn.execute(
+        denial_count = conn.execute(
             "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ?",
             (cutoff_7d,),
         ).fetchone()[0]
 
-        total_count = conn.execute(
+        event_count = conn.execute(
             "SELECT COUNT(*) FROM governance_events WHERE created_at > ?",
             (cutoff_7d,),
         ).fetchone()[0]
 
-        recent_blocked = conn.execute(
+        recent_denials = conn.execute(
             "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ?",
             (cutoff_recent,),
         ).fetchone()[0]
-
-        older_blocked = conn.execute(
-            "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ? AND created_at <= ?",
-            (cutoff_7d, cutoff_recent),
-        ).fetchone()[0]
     except sqlite3.OperationalError:
         # No governance_events table yet (fresh install), or the file cannot be opened read-only
-        return HookErrorResult(
-            blocked_count=0,
-            total_count=0,
-            error_rate=0.0,
-            trend="STABLE",
-            status="OK",
-            db_missing=True,
-        )
+        return missing
     finally:
         if conn is not None:
             conn.close()
 
-    error_rate = (blocked_count / total_count * 100) if total_count > 0 else 0.0
-
-    if recent_blocked > older_blocked * 1.5:
-        trend: Literal["INCREASING", "STABLE", "DECREASING"] = "INCREASING"
-    elif older_blocked > 0 and recent_blocked < older_blocked * 0.5:
-        trend = "DECREASING"
-    else:
-        trend = "STABLE"
-
-    status: Status = "WARN" if error_rate > config.hook_error_rate_threshold or trend == "INCREASING" else "OK"
-
-    return HookErrorResult(
-        blocked_count=blocked_count,
-        total_count=total_count,
-        error_rate=error_rate,
-        trend=trend,
-        status=status,
+    return HookDenialResult(
+        denial_count=denial_count,
+        event_count=event_count,
+        trend=_trend(recent_denials, denial_count - recent_denials),
     )
 
 
@@ -351,6 +444,9 @@ def check_toolkit_health(
         if msg:
             report.flags.append(msg)
 
+    if "hook-denials" in checks:
+        report.hook_denials = check_hook_denials(config)
+
     if "stale-memory" in checks:
         report.stale_memory = check_stale_memory(config)
         msg = report.stale_memory.flag_message()
@@ -397,11 +493,21 @@ def report_to_dict(report: HealthReport) -> dict:
         he = report.hook_errors
         result["checks"]["hook_errors"] = {
             "status": he.status,
-            "db_missing": he.db_missing,
-            "blocked_count": he.blocked_count,
-            "total_count": he.total_count,
-            "error_rate": round(he.error_rate, 1),
+            "log_missing": he.log_missing,
+            "crash_count": he.crash_count,
+            "threshold": he.threshold,
             "trend": he.trend,
+            "by_hook": [{"hook": hook, "count": count} for hook, count in he.by_hook],
+        }
+
+    if report.hook_denials is not None:
+        hd = report.hook_denials
+        result["checks"]["hook_denials"] = {
+            "status": hd.status,
+            "db_missing": hd.db_missing,
+            "denial_count": hd.denial_count,
+            "event_count": hd.event_count,
+            "trend": hd.trend,
         }
 
     if report.stale_memory is not None:
@@ -452,13 +558,25 @@ def format_human_report(report: HealthReport) -> str:
 
     if report.hook_errors is not None:
         he = report.hook_errors
-        if he.db_missing:
-            lines.append("[ OK ] hook-errors: learning.db not found — skipped")
+        if he.log_missing:
+            lines.append("[ OK ] hook-errors: hook-errors.jsonl not found — skipped")
         else:
             lines.append(
                 f"{status_prefix(he.status)} hook-errors: "
-                f"{he.error_rate:.1f}% ({he.blocked_count}/{he.total_count} blocked, last 7d), "
+                f"{he.crash_count} crashes (last {HOOK_WINDOW_DAYS}d, per-hook threshold: >{he.threshold}), "
                 f"trend={he.trend}"
+            )
+            for hook, count in he.by_hook[:HOOK_CRASH_TOP_N]:
+                lines.append(f"         {hook} — {count}")
+
+    if report.hook_denials is not None:
+        hd = report.hook_denials
+        if hd.db_missing:
+            lines.append("[ OK ] hook-denials: learning.db not found — skipped")
+        else:
+            lines.append(
+                f"[ OK ] hook-denials: {hd.denial_count} denials of {hd.event_count} governance events "
+                f"(last {HOOK_WINDOW_DAYS}d, count only), trend={hd.trend}"
             )
 
     if report.stale_memory is not None:
@@ -528,7 +646,8 @@ def load_config(config_path: Path | None) -> HealthConfig:
         stale_memory_days=thresholds.get("stale_memory_days", defaults.stale_memory_days),
         state_file_warn_count=thresholds.get("state_file_warn_count", defaults.state_file_warn_count),
         adr_backlog_warn_count=thresholds.get("adr_backlog_warn_count", defaults.adr_backlog_warn_count),
-        hook_error_rate_threshold=thresholds.get("hook_error_rate_threshold", defaults.hook_error_rate_threshold),
+        # The retired "hook_error_rate_threshold" key is ignored: that rate was denials, not errors.
+        hook_crash_warn_count=thresholds.get("hook_crash_warn_count", defaults.hook_crash_warn_count),
     )
 
 
@@ -541,7 +660,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for toolkit-health.py."""
     parser = argparse.ArgumentParser(
         prog="toolkit-health.py",
-        description="Toolkit health checks: hook errors, stale memory, state files, ADR backlog.",
+        description="Toolkit health checks: hook crashes, hook denials, stale memory, state files, ADR backlog.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"

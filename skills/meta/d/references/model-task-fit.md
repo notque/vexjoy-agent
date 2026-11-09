@@ -1,20 +1,116 @@
 # Model task fit
 
+Decision record for the `model` field in `build-dispatch.py` and every Agent call. Skills `d` (Model choice) and `do` (Step 2) carry the short table and link here.
+
+## Current policy (2026-11-09)
+
+Sources: Anthropic, "Which Claude model should you build with?" (2026-11-09), and the owner override of 2026-11-01. Where they differ, the owner override wins.
+
+### Task rows
+
+| Task | Model / effort |
+|---|---|
+| Read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
+| Code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
+| High-risk: auth, data, security, concurrency, irreversible | opus / high |
+| Major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
+
+Sonnet is no row's default.
+
+### Tiers (`model_policy` in `build-dispatch.py`)
+
+| Tier | Model / effort | Was (2026-11-01) |
+|---|---|---|
+| low-risk | haiku / low (read-only gathering only) | haiku / low |
+| standard | opus / medium | opus / high |
+| high-risk | opus / high | opus / high |
+| max-power | fable / high, needs `manual_model_override=true` | opus / xhigh |
+
+- `fable` is accepted wherever `opus` is. An explicit `model: "fable"` needs no override unless it differs from a named `model_policy` tier, the same rule as opus.
+- fable/max and opus/max need `manual_model_override=true`. So does an explicit opus/xhigh: test fable at high first.
+- Owner per-task override: when the owner names a model for the task ("use fable for everything"), every dispatch passes that model, and the builder accepts and records it.
+
+### Escalate on a miss
+
+Retry when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul ("anything worse or blocking") is at least 0.6. In order:
+
+1. Give the agent a way to verify its work: a test, build, or script.
+2. Raise effort one level, up to high.
+3. Move to the next model up, at a lower effort than the smaller model used: haiku → opus/medium → opus/high → fable/medium → fable/high.
+
+Never raise opus past high before trying fable. Effort cannot add knowledge or skill a model lacks.
+
+### What Anthropic suggests
+
+Lineup: Haiku 5.5, Sonnet 5.5, Opus 5.5, Fable 5.2. Start most work on Opus 5.5 at medium effort. Adjust effort before changing model.
+
+| Task | Starting model | Starting effort |
+|---|---|---|
+| Everyday engineering, debugging, multi-PR feature work | Opus 5.5 | medium, then high |
+| Classification, routing, tagging, high-volume extraction | Haiku 5.5 | medium |
+| Subagents that search files, read logs, summarize | Haiku 5.5 or Sonnet 5.5 | model default |
+| Chat, interactive | Sonnet 5.5 (Haiku for simple chat at volume) | low or medium |
+| Well-scoped coding: bug fixes, feature iteration, spec-driven | Sonnet 5.5 | medium, then high |
+| Everyday documents, slides, spreadsheets | Sonnet 5.5 (Opus for a complex financial model or large source pile) | high (medium in Claude Code) |
+| Repeated agent tasks: investigation, review, drafting | Sonnet 5.5 | medium |
+| Computer use, vision-heavy | Opus 5.5 | medium |
+| Major refactors and migrations, architecture planning, leading many subagents | Fable 5.2 | medium, then high |
+| Deep research, scientific or quantitative analysis | Fable 5.2 | medium, then high |
+| Not sure | Opus 5.5 | medium |
+
+The Sonnet rows are Anthropic's suggestion. The owner's experience supersedes them for code, edits, and decisions: Sonnet code work needed redo. The guide itself says to keep edits and judgment on the main model and to measure on your own work. Re-measure with the loop under "Jev as a map" before changing a row.
+
+### Prices (per Mtok)
+
+| Model | Input | Output | Cache read |
+|---|---|---|---|
+| Haiku 5.5, prompt up to 100K tokens | $0.10 | $0.50 | $0.01 |
+| Haiku 5.5, prompt over 100K tokens | $0.50 | $2.50 | $0.05 |
+| Sonnet 5.5 | $2 | $10 | $0.10 |
+| Opus 5.5 | $4 | $20 | $0.20 |
+| Fable 5.2 | $8 | $40 | $0.20 |
+
+All four: 1M context, 128K max output, default effort medium in Claude Code. Fast mode: Opus and Fable only.
+
+### Effort trade-offs
+
+- Opus 5.5 on SWE-bench Pro, against high: medium scores about 2.5 points lower at about 70% of the cost; low about 8 points lower at about a third of the cost; xhigh about 1.4 points higher at 2.5x the cost.
+- FrontierCode 2.0: Fable 5.2 at high scores 45.3, Opus 5.5 at max 45.5, at about half the cost per task. Past high, one more effort level can cost as much as a bigger model.
+- When a check can grade the outcome, run everything at low and re-run only the failures at high. Opus low plus failures at high: about 97% pass at $0.17 per task, against 95.3% at $0.29 for all-high.
+- A lean main context matters more the bigger the main model. Let cheaper subagents do the verbose reading. Small models suit high-volume checkable work, not long agentic loops.
+
+### Mixing models
+
+- Switch models at a natural break: `/compact`, or a fresh session with a short plan. The first turn on a new model pays a cache write on the whole conversation.
+- Moving down a tier drops earlier thinking blocks. Moving from Fable 5.2 to any other model drops its reasoning.
+- Keep small-model subagents on work where a mistake is cheap to spot: find files, run tests, read logs. Keep code edits and judgment calls on the main model.
+- `CLAUDE_CODE_SUBAGENT_MODEL` sets the model for subagents that name none. The built-in Explore subagent runs on the session model, so pass `model: "haiku"` to keep exploration cheap. The `haiku` alias is Haiku 5.5 from Claude Code v2.1.293.
+- `opusplan` plans on Opus and edits on Sonnet, the reverse of this policy. Do not default to it.
+- Advisor tool: none of four pairings clearly beat the executor alone. Measure the consult rate first.
+- A lead with cheaper workers pays for work larger than one context window (Opus lead plus up to 25 Sonnet workers: about a third cheaper at the same score on a 22M-token defect search). Skip it for one chain of dependent steps, or for work that fits one context.
+- When the routing rule is one model per step type, let code pick the model. Workflow scripts use `modelFor(role, override)` in `workflow-helpers.js`: gather → haiku, work → opus, lead → the session model. The run arg `modelOverride` wins for every role.
+
+### Measure on your own work
+
+Sample real tasks with outcome checks. Run each candidate at 2-3 effort levels in separate sessions. Plot score against spend. Keep a multi-model setup only if it beats every single-model point. The Jev steps are under "Jev as a map".
+
 ## Owner override (2026-11-01)
 
 Owner (notque), verbatim: "I like opus running actual code and making decisions, as it's the best model. everything else is worse, and then i don't save any tokens have to redo the work, and fix it." / "haiku for read only gathering has been fine, i just find sonnet for code and work, isn't as strong as opus."
 
-The owner's observed experience supersedes the tables below: Sonnet code work needed redo. Current policy:
+The owner's observed experience supersedes the 2026-10 tables below: Sonnet code work needed redo. It stays binding under the 2026-11-09 policy:
 
-- Opus: all code writing, edits, debugging, features, reviews that decide, and decisions. Default for anything not read-only. `build-dispatch.py` maps standard and high-risk to opus/high.
-- Haiku: read-only gathering only (locate, lookup, cite lines, collect excerpts, research fetch and executor work) that an Opus thread judges. low-risk maps to haiku/low.
-- Sonnet: no row's or tier's default. A haiku read-only miss retries on opus.
+- Opus: all code writing, edits, debugging, features, reviews that decide, and decisions. Default for anything not read-only.
+- Haiku: read-only gathering only (locate, lookup, cite lines, collect excerpts, research fetch and executor work) that an Opus thread judges.
+- Sonnet: no row's or tier's default.
+
+The 2026-11-09 policy adds Fable above Opus and changes effort: standard moved from opus/high to opus/medium, and max-power from opus/xhigh to fable/high.
 
 The rest of this file is the historical 2026-10 record, kept for re-measurement.
 
 ## Historical record (2026-10)
 
-Decision record for the `model` field in `build-dispatch.py` and every Agent call. Source: blind Jev eval, 2026-10. Skills `d` (Phase 5) and `do` (Step 2) carry the short table and link here.
+Source: blind Jev eval, 2026-10.
 
 ## Setup
 
@@ -47,16 +143,15 @@ In this 2026-10 eval, Opus topped none of the five task types; the owner overrid
 | standard | sonnet | 0.90 | Won deep_debug, ts_feature, long_lane; safer default for unmatched work. |
 | high-risk | opus | 1.00 | Unmeasured, and a miss is costly. Opus is the paid-for insurance, not a measured winner. |
 
-In 2026-10, `build-dispatch.py` mapped these tiers to haiku/low, sonnet/medium, opus/high. It now maps them to haiku/low, opus/high, opus/high. `max-power` stays opus/xhigh and needs `manual_model_override=true`.
+Tier mapping history in `build-dispatch.py`, as low-risk, standard, high-risk, max-power:
 
-## Escalate on a miss
+| Date | Mapping |
+|---|---|
+| 2026-10 | haiku/low, sonnet/medium, opus/high, opus/xhigh |
+| 2026-11-01 | haiku/low, opus/high, opus/high, opus/xhigh |
+| 2026-11-09 | haiku/low, opus/medium, opus/high, fable/high |
 
-Order: haiku, then opus (2026-10 order was haiku, sonnet, opus). Retry once on the next model when either holds:
-
-- an objective check fails (tests, `tsc`, `ruff`, acceptance command);
-- a Jev blocker Noul ("anything worse or blocking") is at least 0.6.
-
-Do not retry the same model. Do not skip a tier unless the task is high-risk.
+Escalation history: haiku, sonnet, opus (2026-10); haiku, opus (2026-11-01); the current order is under "Escalate on a miss" above.
 
 ## Evidence limits
 
@@ -72,7 +167,7 @@ A split long_lane score came from a truncated diff in the state, which hid files
 
 ## Jev as a map
 
-Jev is the map; the table above is the current position. Re-measure with the judge/decide method.
+Jev is the map; the task rows under "Current policy" are the current position. Re-measure with the judge/decide method.
 
 ### Re-measure
 

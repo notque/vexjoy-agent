@@ -38,3 +38,36 @@ def test_replay_test_files_exist() -> None:
     """Every audited replay test file exists — a rename must update the audit."""
     for rel in audit.REPLAY_TEST_FILES:
         assert (REPO_ROOT / rel).is_file(), f"replay test file missing: {rel}"
+
+
+def _stub_checks(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("check_manifest", "check_merged_index", "check_replay_suite", "check_drift"):
+        monkeypatch.setattr(audit, name, lambda name=name: audit.CheckResult(name, True, "ok"))
+
+
+def test_main_refreshes_indexes_before_the_checks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A stale INDEX.json is regenerated before any check reads it."""
+    order: list[str] = []
+    _stub_checks(monkeypatch)
+    monkeypatch.setattr(audit, "check_manifest", lambda: order.append("check") or audit.CheckResult("m", True, "ok"))
+    monkeypatch.setattr(audit, "ensure_fresh_indexes", lambda _root: order.append("refresh") or [])
+
+    assert audit.main() == 0
+    assert order == ["refresh", "check"]
+
+
+def test_main_fails_when_an_index_cannot_be_regenerated(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A generator failure fails the audit and names the cause."""
+    _stub_checks(monkeypatch)
+
+    def _raise(root: Path) -> list[str]:
+        raise RuntimeError("generate-skill-index.py exited 1: boom")
+
+    monkeypatch.setattr(audit, "ensure_fresh_indexes", _raise)
+
+    assert audit.main() == 1
+    out = capsys.readouterr().out
+    assert "[FAIL] indexes" in out
+    assert "generate-skill-index.py exited 1: boom" in out

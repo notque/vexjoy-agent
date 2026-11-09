@@ -25,7 +25,9 @@ Agent and skill frontmatter is the contract between a component and the routing 
 | `color` | string | agents (optional) | `color: blue` |
 | `model` | string | optional; omit to inherit | `model: opus` |
 
-No agent carries `version`; `validate-skill-frontmatter.py --strict` checks it on skills only. For `model`, the 2026-11-01 policy allows `opus` and `inherit`, `haiku` only on an agent whose `tools:` list (the field Claude Code enforces) cannot change files, and `sonnet` only through an exemption in `validate_component_models.py`. A read-only `allowed-tools` list does not qualify, because it restricts nothing.
+No agent carries `version`; `validate-skill-frontmatter.py --strict` checks it on skills only. For `model`, the policy (owner 2026-11-01; Fable tier added 2026-11-09) allows `opus`, `fable`, and `inherit`, `haiku` only on an agent whose `tools:` list (the field Claude Code enforces) cannot change files, and `sonnet` only through an exemption in `validate_component_models.py`. A read-only `allowed-tools` list does not qualify, because it restricts nothing.
+
+The same validator scans dispatch scripts: every `.js` and `.mjs` file in `skills/process/workflow/references/`, plus any under `skills/` or `agents/` that calls `agent(`. It fails on any literal model string outside comments, allowed models included. A script gets its model from `modelFor(role, modelOverride)` in `workflow-helpers.js`, the one script that may name models.
 
 ---
 
@@ -211,7 +213,8 @@ List only `Read`, `Glob`, `Grep`, and read-only `Bash` for a reviewer. Add `Edit
 | Agent in INDEX.json but not routed | Missing `routing.triggers` | Add `routing.triggers` list with at least one trigger string |
 | Agent changed files during a review | `allowed-tools` is advisory, so nothing blocked the write | Put the read-only rule in the agent body; the list documents intent only |
 | Description truncated in INDEX.json | Unquoted colon in description | Wrap description in double quotes |
-| `validate_component_models.py` rejects an agent | `model` pin outside the 2026-11-01 policy | Use `opus` or `inherit`, or omit `model`; keep `haiku` for agents whose `tools:` list cannot write (no Edit, Write, Bash, Agent, or Task) |
+| `validate_component_models.py` rejects an agent | `model` pin outside the model policy | Use `opus`, `fable`, or `inherit`, or omit `model`; keep `haiku` for agents whose `tools:` list cannot write (no Edit, Write, Bash, Agent, or Task) |
+| `validate_component_models.py` reports `literal model string` at `file:line` | A workflow script names a model in code | Replace the literal with `modelFor(role, modelOverride)` from `workflow-helpers.js`; roles are `gather`, `work`, and `lead` |
 
 ---
 

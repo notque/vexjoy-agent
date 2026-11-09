@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.2
+# hook-version: 1.1.0
 """
 SubagentStop Hook: Routing Outcome Validator (action B, formerly /do Phase 5)
 
@@ -27,6 +27,13 @@ What B still does (the A-before-B ordering guard is preserved):
   - Entries whose decision row IS visible are REVALIDATED — put back pending
     (without advancing the re-queue counter) so the next-turn finalizer can
     resolve them. Stale entries (older than MAX_PENDING_AGE_SEC) are dropped.
+
+  - Scores the route-fit banner of a BACKGROUND dispatch. PostToolUse:Agent
+    fires at launch for a background agent and carries no reply, so the banner
+    is first readable here. The agent id joins this event to the route key
+    (routing_outcome_state.register_async_dispatch). A foreground dispatch is
+    never registered: routing-decision-recorder.py scores its banner. See
+    hooks/lib/route_fit.py.
 
 Per-agent attribution (HIGH-2) is preserved end to end: each pending entry
 carries its OWN ``errors`` flag recorded by action A from THAT dispatch's
@@ -78,6 +85,32 @@ from stdin_timeout import read_stdin
 EVENT_NAME = "SubagentStop"
 
 
+def score_background_route_fit(event: dict, session_id: str) -> str | None:
+    """Score the route-fit banner of a finished background dispatch.
+
+    Returns the verdict, or None when this agent was not a registered
+    background /do dispatch or its reply carries no banner. The claim removes
+    the registration, so a re-delivered SubagentStop scores nothing.
+    """
+    agent_id = event.get("agent_id")
+    if not isinstance(agent_id, str) or not agent_id:
+        return None
+    from routing_outcome_state import claim_async_dispatch
+
+    route = claim_async_dispatch(session_id, agent_id)
+    if route is None:
+        return None
+    from route_fit import record_route_fit, subagent_final_text
+
+    output = subagent_final_text(event)
+    if not output:
+        return None
+    from learning_db_v2 import init_db
+
+    init_db()
+    return record_route_fit(output, route["key"], session_id, route["decision_id"] or None)
+
+
 def _max_requeue() -> int:
     """Re-queue cap (for debug logging). Mirrors routing_outcome_state."""
     from routing_outcome_state import MAX_REQUEUE_ATTEMPTS
@@ -105,6 +138,16 @@ def main() -> None:
             return
 
         session_id = event.get("session_id") or ""
+
+        # Before the drain: a negative verdict discards its own pending entry,
+        # and the drain below must not put it back.
+        try:
+            verdict = score_background_route_fit(event, session_id)
+            if verdict and os.environ.get("CLAUDE_HOOKS_DEBUG"):
+                print(f"[routing-outcome-recorder] route-fit: {verdict}", file=sys.stderr)
+        except Exception as e:
+            hook_error("routing-outcome-recorder:route-fit", e)
+
         pending = drain_pending_outcomes(session_id)
         if not pending:
             return  # nothing to validate

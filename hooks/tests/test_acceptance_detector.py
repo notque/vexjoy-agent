@@ -57,6 +57,30 @@ ACCEPTS = [
     "perfect, now add tests to the other module",  # leading acceptance, new work later
     "great job. one more thing: update the docs",
     "ok that worked",
+    # v1.2.0: leading filler is stripped before the first clause is taken
+    "okay, that worked",
+    "oh great that worked",
+    "alright thanks",
+    "well, looks good",
+    "okay great that looks good now move on to the next one",  # dictated, no punctuation
+    # v1.2.0: wider markers that judge the work
+    "awesome",
+    "excellent work",
+    "looks great",
+    "seems fine",
+    "works really well",
+    "that's right",
+    "that's exactly what i wanted",
+    "exactly what i asked for",
+    "it works",
+    "yeah that works great",
+    "much better",
+    "love it",
+    "commit it",
+    # v1.2.0: a terse verdict is the whole clause
+    "nice",
+    "cool, next one",
+    "good.",
 ]
 
 
@@ -90,6 +114,37 @@ NEUTRALS = [
     "refactor the parser so the output is perfect for downstream consumers and then rerun the suite",
     # plain new-topic prompts
     "what does route-health report",
+    # v1.2.0: an answer or a plan approval, not a verdict on finished work
+    "yes",
+    "yeah",
+    "okay",
+    "sure",
+    "yes do that",
+    "sounds good",
+    "okay",
+    # v1.2.0: contrast leads into a complaint
+    "great, but the tests fail",
+    "looks good but fix the header",
+    "it works but it is slow",
+    "that's right, however the count is off",
+    "great, that's wrong",
+    "nice, although the footer moved",
+    # v1.2.0: request cues
+    "i want a great header",
+    "please make sure it works",
+    "let's merge it",
+    "could you check it looks good",
+    "we need a much better parser",
+    # v1.2.0: marker deep in the clause is task text
+    "put the logo where the banner sits so it looks good",
+    "the footer on the pricing page looks good",
+    # v1.2.0: terse words are verdicts only as a whole clause
+    "nice to have would be a dark mode",
+    "good question",
+    "the cool thing about this parser is speed",
+    # v1.2.0: a complaint never boosts
+    "that isn't working well",
+    "it still doesn't work",
     # empty / junk
     "",
     None,
@@ -107,6 +162,63 @@ def test_neutral_stays_neutral(prompt):
 def test_rejection_still_wins_its_own_goldens():
     assert mod.is_rejection("that's wrong, redo it") is True
     assert mod.is_rejection("thanks, that worked") is False
+
+
+# --- v1.2.0 rejection goldens, both directions --------------------------------
+
+REJECTS = [
+    "that's wrong",
+    "okay that's wrong",  # leading filler stripped
+    "oh, that's not what i asked for",
+    "it's still broken",
+    "this is wrong",
+    "this isn't working",
+    "it doesn't work",
+    "that still doesn't work",
+    "still broken",
+    "still not fixed, the header overlaps",
+    "not what i wanted",
+    "you misunderstood",
+    "you broke the build",
+    "no, it still doesn't work",  # leading no + complaint in the next clause
+    "nope, still broken",
+    "thanks but that's wrong",  # a complaint in the same clause beats the marker
+]
+
+NOT_REJECTS = [
+    "that isn't wrong",  # negated complaint
+    "the CI is still failing on main, take a look",  # new task, not the prior work
+    "no, go ahead and ship it",  # leading no without a complaint
+    "no",
+    "if it doesn't work, roll back",  # conditional
+    "explain why it's broken",  # instructional
+    "should we revert that",
+    "thanks. redo it for the other file",  # acceptance leads; rework is new work
+    "there is no cache and it is wrong to assume one",  # marker deep in the clause
+    "it is wrong to assume a cache here",  # dummy-it statement, not a verdict
+    "okay next task",
+    "yes",
+    "",
+    None,
+]
+
+
+@pytest.mark.parametrize("prompt", REJECTS)
+def test_rejection_fires(prompt):
+    assert mod.is_rejection(prompt) is True, prompt
+    assert mod.is_acceptance(prompt) is False, prompt
+
+
+@pytest.mark.parametrize("prompt", NOT_REJECTS)
+def test_non_rejection_stays_clear(prompt):
+    assert mod.is_rejection(prompt) is False, prompt
+
+
+def test_filler_only_prompt_is_neutral():
+    assert mod.is_acceptance("okay") is False
+    assert mod.is_rejection("okay") is False
+    assert mod._first_clause("okay, so, that worked") == "that worked"
+    assert mod._first_clause("well done") == "well done"
 
 
 # --- outcome_basis: acceptance_detected label ---------------------------------

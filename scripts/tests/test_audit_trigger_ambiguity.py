@@ -287,3 +287,37 @@ def test_top_does_not_truncate_json(tmp_path: Path) -> None:
     # JSON is always full regardless of --top.
     data = run_json(sp, ap, "--top", "1")
     assert len(data["reportable"]) == 2
+
+
+def test_stale_default_index_is_regenerated_before_the_audit(tmp_path: Path) -> None:
+    """With default index paths, an index older than its sources is rebuilt first."""
+    import os
+    import shutil
+
+    scripts = tmp_path / "scripts"
+    (scripts / "lib").mkdir(parents=True)
+    shutil.copy(SCRIPT, scripts / SCRIPT.name)
+    shutil.copy(SCRIPT.parent / "lib" / "index_freshness.py", scripts / "lib" / "index_freshness.py")
+    fresh = {"version": "2.0", "skills": {"a": {"triggers": ["foo"]}, "c": {"triggers": ["foo"]}}}
+    (scripts / "generate-skill-index.py").write_text(
+        f"import json, pathlib\npathlib.Path('skills/INDEX.json').write_text(json.dumps({fresh!r}))\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "skills" / "a").mkdir(parents=True)
+    (tmp_path / "agents").mkdir()
+    stale = tmp_path / "skills" / "INDEX.json"
+    write_index(stale, "skills", {"a": {"triggers": ["foo"]}})
+    write_index(tmp_path / "agents" / "INDEX.json", "agents", {})
+    os.utime(stale, (1, 1))
+
+    proc = subprocess.run(
+        [sys.executable, str(scripts / SCRIPT.name), "--json"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+    assert proc.returncode == 0, proc.stderr
+    owners = [row["owners"] for row in json.loads(proc.stdout)["reportable"]]
+    assert any("c" in " ".join(o) for o in owners), proc.stdout

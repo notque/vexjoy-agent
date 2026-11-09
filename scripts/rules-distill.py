@@ -377,7 +377,7 @@ Example: ["Always exit 0 from hooks regardless of errors", "Never auto-apply cha
 
 Return [] if no universal principles are found."""
 
-        raw, _ = _run_claude_code(prompt, model="sonnet")
+        raw, _ = _run_claude_code(prompt, model="opus")
         raw = raw.strip()
         # Parse the first JSON array in the reply; tolerate surrounding prose or fences.
         match = re.search(r"\[.*\]", raw, re.DOTALL)

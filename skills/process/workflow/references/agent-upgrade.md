@@ -185,7 +185,7 @@ CRITICAL (must fix):
 
 IMPORTANT (should fix):
   3. Embed telemetry finding: "[finding summary]" → new Hardcoded behavior [~10min]
-  4. Add missing frontmatter field: `model: sonnet` [~2min]
+  4. Remove out-of-policy frontmatter pin `model: sonnet` so the agent inherits (or pin `opus`) [~2min]
 
 MINOR (nice to have):
   5. Align "What This Agent CANNOT Do" wording to peer style [~5min]

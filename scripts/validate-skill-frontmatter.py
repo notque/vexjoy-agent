@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-Validate YAML frontmatter in skill SKILL.md files.
+Validate YAML frontmatter in skill SKILL.md files and agent description size.
 
-Checks structural correctness, required fields, naming consistency,
+Skills: structural correctness, required fields, naming consistency,
 and common mistakes (top-level pairs_with, force_routing typo).
 
+Agents (agents/*.md): the description is at most 300 bytes and holds no
+<example> block. Claude Code loads every agent description into each session,
+so a long one costs tokens on every turn.
+
 Usage:
-    python3 scripts/validate-skill-frontmatter.py                       # all skills
-    python3 scripts/validate-skill-frontmatter.py skills/foo/SKILL.md   # one file
+    python3 scripts/validate-skill-frontmatter.py                       # all skills and agents
+    python3 scripts/validate-skill-frontmatter.py skills/foo/SKILL.md   # one skill
+    python3 scripts/validate-skill-frontmatter.py agents/foo.md         # one agent
     python3 scripts/validate-skill-frontmatter.py --strict              # also check optional fields
 
 Exit codes:
@@ -24,6 +29,9 @@ import sys
 from pathlib import Path
 
 import yaml
+
+# Byte cap on an agent description. Every repo agent fits (largest: 233 bytes).
+AGENT_DESCRIPTION_MAX_BYTES = 300
 
 
 def _find_key_recursive(data: object, key: str) -> bool:
@@ -127,16 +135,59 @@ def validate_skill(filepath: Path, strict: bool = False) -> list[str]:
     return errors
 
 
+def validate_agent(filepath: Path) -> list[str]:
+    """Validate the description size of one agent file.
+
+    A file with no frontmatter is not an agent (for example a shared
+    instructions file) and passes.
+
+    Args:
+        filepath: Path to an agents/*.md file.
+
+    Returns:
+        List of error strings. Empty list means valid.
+    """
+    display_path = str(filepath)
+    try:
+        content = filepath.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        return [f"{display_path}: Cannot read file: {e}"]
+
+    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    if not match:
+        return []
+    try:
+        fm = yaml.safe_load(match.group(1))
+    except yaml.YAMLError as e:
+        return [f"{display_path}: YAML parse error: {e}"]
+    if not isinstance(fm, dict):
+        return [f"{display_path}: Frontmatter is not a mapping (got {type(fm).__name__})"]
+
+    errors: list[str] = []
+    desc = fm.get("description")
+    if not isinstance(desc, str) or not desc.strip():
+        return [f"{display_path}: Missing or empty description"]
+    size = len(desc.encode("utf-8"))
+    if size > AGENT_DESCRIPTION_MAX_BYTES:
+        errors.append(
+            f"{display_path}: description is {size} bytes; the cap is {AGENT_DESCRIPTION_MAX_BYTES}. "
+            "Move detail into the agent body"
+        )
+    if re.search(r"<example\b", desc, re.IGNORECASE):
+        errors.append(f"{display_path}: description holds an <example> block; move examples into the agent body")
+    return errors
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Validate YAML frontmatter in skill SKILL.md files.",
+        description="Validate skill SKILL.md frontmatter and agent description size.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "files",
         nargs="*",
-        help="Specific SKILL.md files to validate. If omitted, validates all skills.",
+        help="SKILL.md or agent .md files to validate. If omitted, validates all skills and agents.",
     )
     parser.add_argument(
         "--strict",
@@ -165,12 +216,16 @@ def main() -> int:
         if not targets:
             print("Error: No SKILL.md files found", file=sys.stderr)
             return 2
+        targets += sorted((repo_root / "agents").glob("*.md"))
 
     # Validate each file
     all_errors: list[str] = []
     valid_count = 0
     for filepath in targets:
-        errors = validate_skill(filepath, strict=args.strict)
+        if filepath.name == "SKILL.md":
+            errors = validate_skill(filepath, strict=args.strict)
+        else:
+            errors = validate_agent(filepath)
         if errors:
             all_errors.extend(errors)
         else:
@@ -179,12 +234,12 @@ def main() -> int:
     # Report results
     total = len(targets)
     if all_errors:
-        print(f"Skill frontmatter validation: {len(all_errors)} error(s) in {total - valid_count} file(s)")
+        print(f"Frontmatter validation: {len(all_errors)} error(s) in {total - valid_count} file(s)")
         for err in all_errors:
             print(f"  ERROR: {err}")
         return 1
 
-    print(f"Skill frontmatter validation: {total} file(s) OK")
+    print(f"Frontmatter validation: {total} file(s) OK")
     return 0
 
 

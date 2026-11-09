@@ -128,7 +128,7 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("Stop", "state:learning-db", "session-summary.py")
     add("Stop", "deny:Toolkit drift detected", "stop-drift-guard.py")
     add("Stop", "context:[rules-distill]", "rules-distill-trigger.py")
-    add("Stop", "state:routing-drained", "routing-outcome-stop-fallback.py")
+    add("Stop", "state:routing-kept", "routing-outcome-stop-fallback.py")
     return contracts
 
 
@@ -591,13 +591,15 @@ def _assert_meaningful(
         assert isinstance(state_path, Path)
         state = json.loads(state_path.read_text(encoding="utf-8"))
         assert len(state["pending"]) == 1 and state["pending"][0]["attempts"] == 1
-    elif contract == "state:routing-drained":
-        # The Stop fallback calls finalize_pending_outcomes, which atomically
-        # reads AND clears pending, so the seeded entry must be gone.
+    elif contract == "state:routing-kept":
+        # Stop fires after every turn. A fresh, clean entry must stay pending
+        # so the UserPromptSubmit finalizer can read the user's reaction; Stop
+        # takes only errored and stale entries.
         state_path = evidence["routing_state"]
         assert isinstance(state_path, Path)
         state = json.loads(state_path.read_text(encoding="utf-8"))
-        assert state["pending"] == [], f"{key} left pending outcomes unresolved at session end"
+        assert len(state["pending"]) == 1, f"{key} drained a fresh pending outcome at Stop"
+        assert state["pending"][0]["key"] == "runtime:missing-row"
     else:
         raise AssertionError(f"unknown runtime semantic contract: {contract}")
 

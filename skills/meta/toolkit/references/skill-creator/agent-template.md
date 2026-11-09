@@ -456,7 +456,7 @@ When upgrading an agent to v2.0:
 - [ ] Moved verbose content to references/
 
 ### YAML Frontmatter
-- [ ] Model specified (`model: sonnet` for most executors; `opus` for reviews/analysis/deep work — consult the canonical model-selection table in `/do` SKILL.md; Haiku retired)
+- [ ] Model follows policy: omit `model` to inherit, or pin `opus` (`fable` for the hardest work); `haiku` only with a read-only `tools:` list; never `sonnet`. Table: `/do` SKILL.md, Model choice. Check: `python3 scripts/validate_component_models.py`
 - [ ] All routing metadata preserved (triggers, retro-topics, pairs_with, complexity, category)
 - [ ] Hooks preserved
 - [ ] Color preserved

@@ -55,8 +55,14 @@ setup-python only). When node is absent the DYNAMIC pass is SKIPPED (recorded as
 note), NOT failed — the STATIC pass is the CI gate. The .mjs harness is a documented
 local/dev tool. See adr/native-fast-path-portable-floor.md Stages 0-1.
 
-Files WITHOUT a ``meta.contract`` are EXEMPT (prose-only / legacy) — skipped, not
-failed.
+Files WITHOUT a ``meta.contract`` are EXEMPT (prose-only / legacy) from the
+contract checks — skipped, not failed.
+
+MODEL rule (static, every ``.js`` file, with or without a contract): a workflow
+script names no model. Every ``model:`` value is a ``modelFor(role, modelOverride)``
+call, and no quoted model name (``"haiku"``, ``"sonnet"``, ``"opus"``, ``"fable"``,
+``"claude-..."``) appears outside comments. ``workflow-helpers.js`` holds the one
+role-to-model table and is the only file exempt from this rule.
 
 Pure stdlib. Exit 0 when every contracted file passes (and exempt files are
 skipped); exit 1 on any conformance mismatch; exit 2 on a usage error.
@@ -153,6 +159,14 @@ _SKILL_FIELD = re.compile(r"""\bskill\s*:\s*["'`]([^"'`$]+)["'`]""")
 # Quoted string values inside an AGENT_SKILL-style map (key: "value").
 _MAP_VALUE = re.compile(r"""["'`][\w.\-/]+["'`]\s*:\s*["'`]([^"'`$]+)["'`]""")
 _AGENT_CALL = re.compile(r"\bagent\(")
+# The one file that may name models: it holds the role-to-model table.
+MODEL_TABLE_FILE = "workflow-helpers.js"
+# A `model:` property whose value is anything but a modelFor( call.
+_MODEL_PROPERTY = re.compile(r"\bmodel\s*:(?!\s*modelFor\()([^,\n}]*)")
+# A `model` shorthand property inside an agent({...}) call (`model,` or `model }`).
+_MODEL_SHORTHAND = re.compile(r"[{,]\s*model\s*(?=[,}])")
+# A quoted string that is exactly a model alias or a `claude-` model ID.
+_MODEL_LITERAL = re.compile(r"""(["'`])(haiku|sonnet|opus|fable|claude-[a-z0-9][a-z0-9.-]*)\1""")
 
 
 def _match_braced_block(source: str, open_brace_idx: int) -> str | None:
@@ -368,6 +382,24 @@ def roster_is_fully_dynamic(contract: dict) -> bool:
 def count_agent_callsites(source: str) -> int:
     """Count agent( call-sites in source."""
     return len(_AGENT_CALL.findall(source))
+
+
+def model_literal_errors(source: str) -> list[str]:
+    """Return one error per place where workflow source names a model itself.
+
+    Comments are ignored. Callers skip MODEL_TABLE_FILE, the one file that holds
+    the role-to-model table.
+    """
+    body = strip_comments(source)
+    errors: list[str] = []
+    for match in _MODEL_PROPERTY.finditer(body):
+        value = match.group(1).strip() or "<empty>"
+        errors.append(f"model: must be a modelFor(role, modelOverride) call, found `model: {value}`")
+    if _MODEL_SHORTHAND.search(body):
+        errors.append("model shorthand property: write `model: modelFor(role, modelOverride)`")
+    for name in sorted({m.group(2) for m in _MODEL_LITERAL.finditer(body)}):
+        errors.append(f'literal model string "{name}": the model table lives in {MODEL_TABLE_FILE}; call modelFor()')
+    return errors
 
 
 # --- static validation --------------------------------------------------------
@@ -641,14 +673,25 @@ def validate_file(js_path: Path, static_only: bool = False) -> dict:
         result["static_errors"].append(f"unreadable file: {exc}")
         return result
 
+    # The MODEL rule applies to every workflow file, contract or not.
+    model_errors: list[str] = []
+    if js_path.name == MODEL_TABLE_FILE:
+        result["notes"].append("model: this file holds the role-to-model table; literal models allowed")
+    else:
+        model_errors = model_literal_errors(source)
+        result["checks"].append("model: no literal model string; every model: value is a modelFor() call")
+
     contract = extract_contract(source)
     if contract is None:
         result["notes"].append("exempt: no meta.contract (prose-only/legacy)")
+        if model_errors:
+            result["static_errors"] = model_errors
+            result["status"] = "fail"
         return result
 
     static_errors, labels = _static_checks(source, contract)
-    result["static_errors"] = static_errors
-    result["checks"] = labels
+    result["static_errors"] = model_errors + static_errors
+    result["checks"].extend(labels)
 
     if not static_only:
         if node_available():
