@@ -147,9 +147,21 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pyyaml
-      # INDEX.json is generated (untracked); the drift check reads it.
+      # INDEX.json is generated (untracked); the drift check reads both indexes.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/check-routing-drift.py --verbose
+
+  router-self-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml pytest
+      # Composite router check: manifest, merged index (--strict), replay
+      # corpus, and drift. It regenerates the untracked INDEX.json files.
+      - run: python scripts/router-self-audit.py
 
   joy-check:
     runs-on: ubuntu-latest

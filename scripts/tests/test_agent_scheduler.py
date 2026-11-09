@@ -255,8 +255,32 @@ class TestCostEstimation:
     def test_token_count_parsing(self) -> None:
         stdout = "Some output\ninput_tokens: 1000\noutput_tokens: 500\n"
         cost = agent_scheduler.estimate_cost("haiku", stdout)
-        expected = (1000 / 1_000_000) * 1.00 + (500 / 1_000_000) * 5.00
+        expected = (1000 / 1_000_000) * 0.10 + (500 / 1_000_000) * 0.50
         assert abs(cost - round(expected, 6)) < 0.000001
+
+    @pytest.mark.parametrize(
+        ("model", "expected"),
+        [("haiku", 0.51), ("sonnet", 10.20), ("opus", 20.40), ("fable", 40.80)],
+    )
+    def test_list_prices_match_the_2026_11_09_guide(self, model: str, expected: float) -> None:
+        """1M output tokens plus a prompt at the 100K boundary, which still bills the base rate."""
+        stdout = "input_tokens: 100000\noutput_tokens: 1000000"
+        assert agent_scheduler.estimate_cost(model, stdout) == pytest.approx(expected)
+
+    def test_haiku_long_prompt_bills_the_higher_rate(self) -> None:
+        """Haiku 5.5 costs 0.50/2.50 per 1M tokens once the prompt passes 100K tokens."""
+        stdout = "input_tokens: 200000\noutput_tokens: 1000000"
+        assert agent_scheduler.estimate_cost("haiku", stdout) == pytest.approx(0.2 * 0.50 + 2.50)
+
+    def test_long_prompt_leaves_flat_rate_models_unchanged(self) -> None:
+        stdout = "input_tokens: 200000\noutput_tokens: 1000000"
+        assert agent_scheduler.estimate_cost("opus", stdout) == pytest.approx(0.2 * 4.00 + 20.00)
+
+    def test_fable_costs_twice_opus(self) -> None:
+        stdout = "x" * 4000
+        assert agent_scheduler.estimate_cost("fable", stdout) == pytest.approx(
+            2 * agent_scheduler.estimate_cost("opus", stdout)
+        )
 
     def test_unknown_model_falls_back_to_sonnet(self) -> None:
         cost = agent_scheduler.estimate_cost("unknown-model", "x" * 400)

@@ -32,7 +32,7 @@ is reading file names without opening the components — that detects presence, 
 For each agent in scope, check these fields in order:
 
 ```bash
-# 1. Check model pins against the 2026-11-01 policy (opus or inherit; haiku only read-only; sonnet only exempt)
+# 1. Check model pins against the model policy (opus, fable, or inherit; haiku only read-only; sonnet only exempt)
 python3 scripts/validate_component_models.py
 
 # 2. Check allowed-tools for deprecated tools

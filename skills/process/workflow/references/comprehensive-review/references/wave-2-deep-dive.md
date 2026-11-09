@@ -4,7 +4,7 @@ These agents receive Wave 0+1 aggregated findings as input. They perform targete
 
 **ALL 10 agents MUST be dispatched in ONE message for true parallel execution.**
 
-Use `model: sonnet` for all Wave 2 agents. The orchestrator runs on Opus; dispatched agents run on Sonnet.
+Review agents run on `opus` (the `work` role in `workflow-helpers.js`); pass the owner's model instead when the owner names one. Never use haiku or sonnet for code review.
 
 ## Agent Roster
 

@@ -20,7 +20,14 @@
 //   - Wall-clock and randomness are unavailable by design, so determinism is
 //     bit-stable across replay. This script uses neither.
 
-import { skillDirectives, mandatoryInjections } from "./workflow-helpers.js";
+import {
+  engineerForPath,
+  mandatoryInjections,
+  modelFor,
+  skillDirectives,
+  tierOrSmallest,
+  validateModelOverride,
+} from "./workflow-helpers.js";
 
 export const meta = {
   name: "comprehensive-review-workflow",
@@ -69,6 +76,14 @@ const AGENT_SKILLS = {
   "reviewer-code": ["review", "testing"],
   "reviewer-perspectives": ["assessment", "testing"],
 };
+
+// The per-finding verify pass dispatches the challenger reviewer with its stack.
+const VERIFY_AGENT = "reviewer-perspectives";
+
+// The fix loop dispatches the engineer that owns the finding's file type
+// (engineerForPath) with this stack. A file type with no listed engineer runs
+// without agentType and still attaches the stack.
+const FIX_SKILLS = ["programming", "testing"];
 
 // --- Wave rosters: the four real reviewer agents, applied through wave-specific
 //     lenses. The agent files are agents/reviewer-{system,domain,code,perspectives}.md;
@@ -240,12 +255,18 @@ function enterPhase(title) {
 //
 // `scope` is the diff descriptor the caller passes in (changed files, packages,
 // and the right-size-review tier). `tier` honors scripts/right-size-review.py:
-//   tier 2 -> Wave 1 only; tier 3 -> Wave 1 + Wave 2 subset (Wave 3 only on a
+//   tier <= 2 -> Wave 1 only; tier 3 -> Wave 1 + Wave 2 subset (Wave 3 only on a
 //   CRITICAL); tier 4 -> Wave 1 + Wave 2 full + Wave 3. Wave 3 also runs at any
-//   tier once a CRITICAL surfaces (the escalation safety valve).
+//   tier once a CRITICAL surfaces (the escalation safety valve). An unset tier
+//   is the smallest tier (Wave 1 only); the caller asks for more with a tier.
+// `modelOverride` is a model the owner named for this task. When set, every
+// agent runs on it. Unset: every agent runs the `work` model, because reviewers
+// and verifiers return findings that decide and the fix loop edits files.
 
-export default async function run({ scope, tier, fixThreshold }) {
-  const effectiveTier = typeof tier === "number" ? tier : 4;
+export default async function run({ scope, tier, fixThreshold, modelOverride } = {}) {
+  // Reject a bad model name before any dispatch.
+  validateModelOverride(modelOverride);
+  const effectiveTier = tierOrSmallest(tier);
   const minBudgetPerFix = typeof fixThreshold === "number" ? fixThreshold : 8000;
 
   // Wave 1: foundation. Hard barrier — every foundation agent completes before
@@ -256,7 +277,7 @@ export default async function run({ scope, tier, fixThreshold }) {
       agent({
         prompt: reviewPrompt(r, scope, null),
         schema: WAVE_OUTPUT_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
         agentType: r.agent,
       }),
     ),
@@ -275,7 +296,7 @@ export default async function run({ scope, tier, fixThreshold }) {
         agent({
           prompt: reviewPrompt(r, scope, wave2Summary),
           schema: WAVE_OUTPUT_SCHEMA,
-          model: "sonnet",
+          model: modelFor("work", modelOverride),
           agentType: r.agent,
         }),
       ),
@@ -294,7 +315,7 @@ export default async function run({ scope, tier, fixThreshold }) {
         agent({
           prompt: reviewPrompt(r, scope, wave3Summary),
           schema: WAVE_OUTPUT_SCHEMA,
-          model: "sonnet",
+          model: modelFor("work", modelOverride),
           agentType: r.agent,
         }),
       ),
@@ -305,18 +326,22 @@ export default async function run({ scope, tier, fixThreshold }) {
   findings = dedupeFindings(findings);
 
   // Per-finding adversarial verify BEFORE synthesis (mirrors the pr-review
-  // gated per-finding verify). Each finding gets one challenger; DISMISS drops
-  // it from the fix queue. parallel() barriers the whole verify pass.
+  // gated per-finding verify). Each finding gets one challenger (VERIFY_AGENT
+  // with its skill stack); DISMISS drops it from the fix queue. parallel()
+  // barriers the whole verify pass.
   enterPhase("verify");
   const verdicts = await parallel(
     findings.map((f) => () =>
       agent({
         prompt:
-          `Adversarially verify this review finding. Confirm it is real and ` +
-          `correctly rated, or challenge it with evidence. Finding:\n` +
-          `${JSON.stringify(f)}`,
+          `You are ${VERIFY_AGENT}. Adversarially verify this review finding. ` +
+          `Confirm it is real and correctly rated, or challenge it with evidence.` +
+          skillDirectives(AGENT_SKILLS[VERIFY_AGENT]) +
+          `\nFinding:\n${JSON.stringify(f)}` +
+          mandatoryInjections(),
         schema: VERIFY_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
+        agentType: VERIFY_AGENT,
       }),
     ),
   );
@@ -344,10 +369,13 @@ export default async function run({ scope, tier, fixThreshold }) {
       prompt:
         `Apply the fix for this verified review finding, then confirm it ` +
         `compiles and relevant tests pass. If the fix breaks tests and an ` +
-        `alternative also breaks tests, return outcome BLOCKED. Finding:\n` +
-        `${JSON.stringify(f)}`,
+        `alternative also breaks tests, return outcome BLOCKED.` +
+        skillDirectives(FIX_SKILLS) +
+        `\nFinding:\n${JSON.stringify(f)}` +
+        mandatoryInjections(),
       schema: FIX_SCHEMA,
-      model: "sonnet",
+      model: modelFor("work", modelOverride),
+      agentType: engineerForPath(f.location),
     });
     if (result) {
       fixes.push(result);

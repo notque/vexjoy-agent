@@ -59,6 +59,7 @@ KNOWN_EVENTS = {
     "PostCompact",
     "Stop",
     "StopFailure",
+    "SessionEnd",
     "SubagentStart",
     "SubagentStop",
     "TaskCompleted",
@@ -679,6 +680,7 @@ _EVENT_BASE = {
         "cwd": tempfile.gettempdir(),
     },
     "StopFailure": {"hook_event_name": "StopFailure"},
+    "SessionEnd": {"hook_event_name": "SessionEnd", "reason": "other", "session_id": "hh"},
     "SubagentStart": {
         "hook_event_name": "SubagentStart",
         "agent_id": "hh-agent",

@@ -1887,8 +1887,20 @@ def update_evidence_route_outcome(
     session_id: str | None = None,
     outcome: str,
     outcome_basis: str | None = None,
+    decision_id: str | None = None,
 ) -> None:
-    """Attach the latest outcome to the newest matching route decision."""
+    """Attach an outcome to one route decision row.
+
+    Row choice, first match wins:
+
+    1. ``decision_id``, when given and present: the exact dispatch.
+    2. The oldest matching row with no outcome yet. N dispatches of one key in
+       one session then fill N rows in dispatch order.
+    3. The newest matching row: a later signal overwrites an earlier one.
+
+    Matching by newest row alone wrote every outcome of a repeated key to the
+    same row and left the others NULL.
+    """
     init_db()
     clauses = ["route_key = ?"]
     params: list = [route_key]
@@ -1897,10 +1909,22 @@ def update_evidence_route_outcome(
         params.append(session_id)
     where = " AND ".join(clauses)
     with get_connection() as conn:
-        row = conn.execute(
-            f"SELECT decision_id FROM evidence_route_decisions WHERE {where} ORDER BY id DESC LIMIT 1",  # security-review: ignore (fixed clauses; user values bound as ?)
-            params,
-        ).fetchone()
+        row = None
+        if decision_id:
+            row = conn.execute(
+                "SELECT decision_id FROM evidence_route_decisions WHERE decision_id = ?",
+                (_bounded_text(decision_id, 160),),
+            ).fetchone()
+        if not row:
+            row = conn.execute(
+                f"SELECT decision_id FROM evidence_route_decisions WHERE {where} AND outcome IS NULL ORDER BY id ASC LIMIT 1",  # security-review: ignore (fixed clauses; user values bound as ?)
+                params,
+            ).fetchone()
+        if not row:
+            row = conn.execute(
+                f"SELECT decision_id FROM evidence_route_decisions WHERE {where} ORDER BY id DESC LIMIT 1",  # security-review: ignore (fixed clauses; user values bound as ?)
+                params,
+            ).fetchone()
         if not row:
             return
         conn.execute(
@@ -2300,6 +2324,18 @@ VALID_SEVERITIES = {"critical", "high", "medium", "warning"}
 VALID_RESOLUTIONS = {"dismissed", "false_positive", "remediated"}
 
 
+def governance_timestamp(age: timedelta | None = None) -> str:
+    """The current time, less ``age``, in the form ``governance_events.created_at`` holds.
+
+    The column holds naive local time (``datetime.now().isoformat()``), and SQLite
+    compares it as text. A reader that builds its cutoff in UTC, or with an offset
+    suffix, is wrong by the local UTC offset. Build every cutoff for this column
+    here, or the same way.
+    """
+    now = datetime.now()
+    return (now - age if age else now).isoformat()
+
+
 def record_governance_event(
     event_type: str,
     *,
@@ -2340,7 +2376,7 @@ def record_governance_event(
         eid = event_id or f"gov-{ts_ms}-{suffix}"
 
         payload_str = _json.dumps(payload) if payload else None
-        created_at = datetime.now().isoformat()
+        created_at = governance_timestamp()
 
         with get_connection() as conn:
             conn.execute(
@@ -2386,7 +2422,7 @@ def resolve_governance_event(
 
     try:
         init_db()
-        resolved_at = datetime.now().isoformat()
+        resolved_at = governance_timestamp()
         with get_connection() as conn:
             result = conn.execute(
                 "UPDATE governance_events SET resolved_at = ?, resolution = ? WHERE id = ?",
@@ -2427,7 +2463,7 @@ def query_governance_events(
         params: list = []
 
         if days is not None:
-            cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+            cutoff = governance_timestamp(timedelta(days=days))
             conditions.append("created_at >= ?")
             params.append(cutoff)
 

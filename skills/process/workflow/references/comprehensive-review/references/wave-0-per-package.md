@@ -31,7 +31,7 @@ find . -name "index.ts" -o -name "index.tsx" | grep -v node_modules | xargs dirn
 | TypeScript | `typescript-frontend-engineer` |
 | Mixed | Use language of majority files in that package |
 
-Use `model: sonnet` for ALL per-package agents. Never use haiku for code review. The orchestrator runs on Opus; dispatched agents run on Sonnet for cost efficiency (40% savings, minimal quality tradeoff).
+Review agents run on `opus` (the `work` role in `workflow-helpers.js`); pass the owner's model instead when the owner names one. Never use haiku or sonnet for code review.
 
 ## Per-Package Agent Dispatch Prompt
 

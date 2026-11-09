@@ -22,8 +22,10 @@
 
 import {
   mandatoryInjections,
+  modelFor,
   skillDirectives,
   validateAgentName,
+  validateModelOverride,
   validateRoster,
 } from "./workflow-helpers.js";
 
@@ -131,7 +133,7 @@ function workerPrompt(r, scope) {
 
 // --- Workflow body ------------------------------------------------------------
 //
-// run({scope, tier, roster, synthAgentType, fixThreshold}):
+// run({scope, tier, roster, synthAgentType, fixThreshold, modelOverride}):
 //   - scope: the shared task/diff descriptor passed to every worker.
 //   - tier: right-size-review tier (carried into scope for the workers; this
 //     workflow does not gate phases on tier — the CALLER sizes the roster).
@@ -139,8 +141,20 @@ function workerPrompt(r, scope) {
 //     `skills` is a LIST (the full /do Phase-3 stack), one exact Skill-tool call per element.
 //   - synthAgentType: the synthesizer agent (default a general synthesizer).
 //   - fixThreshold: min budget to attempt the synthesis pass (default 8000).
+//   - modelOverride: a model the owner named for this task. When set, every
+//     agent runs on it. Unset: workers run the `work` model and the
+//     synthesizer inherits the session model (`lead`). See modelFor().
 
-export default async function run({ scope, tier, roster, synthAgentType, fixThreshold } = {}) {
+export default async function run({
+  scope,
+  tier,
+  roster,
+  synthAgentType,
+  fixThreshold,
+  modelOverride,
+} = {}) {
+  // Reject a bad model name before any dispatch.
+  validateModelOverride(modelOverride);
   // Validate the complete caller-supplied dispatch plan before entering a phase
   // or invoking agent(), so one bad name rejects the whole fan-out.
   const workers = validateRoster(roster, "roster");
@@ -163,7 +177,7 @@ export default async function run({ scope, tier, roster, synthAgentType, fixThre
       agent({
         prompt: workerPrompt(r, scope),
         schema: WORKER_SCHEMA,
-        model: "sonnet",
+        model: modelFor("work", modelOverride),
         agentType: r.agentType,
         phase: "fan-out",
       }),
@@ -184,7 +198,7 @@ export default async function run({ scope, tier, roster, synthAgentType, fixThre
         `and list concrete recommendations. Results (typed, in-memory):\n` +
         `${JSON.stringify(results)}`,
       schema: SYNTH_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: synthesizer,
       phase: "synthesize",
     });

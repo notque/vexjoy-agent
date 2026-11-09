@@ -535,3 +535,411 @@ def test_real_fan_out_dynamic_records_every_skill():
     res = _result_for(data, "fan-out-workflow.js")
     assert res["status"] == "pass", res
     assert not res["dynamic_errors"], res["dynamic_errors"]
+
+
+# --- MODEL rule: workflow scripts name no model -------------------------------
+# One role-to-model table lives in workflow-helpers.js. Every other workflow .js
+# sets `model: modelFor(role, modelOverride)`. The static gate fails a literal.
+
+HELPERS_FILE = "workflow-helpers.js"
+
+
+def _run_harness(workflow, tiers, args=None, stubs=None):
+    """Run the recording harness on a real workflow; return (rc, parsed output)."""
+    cmd = [
+        NODE,
+        str(RUN_SCRIPT.parent / "conformance-harness.mjs"),
+        str(RUN_WORKFLOW_DIR / workflow),
+        "--tiers",
+        tiers,
+    ]
+    if args is not None:
+        cmd += ["--args", json.dumps(args)]
+    if stubs is not None:
+        cmd += ["--stubs", json.dumps(stubs)]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    return proc.returncode, json.loads(proc.stdout)
+
+
+def _run_model_for(role, override=None):
+    """Call modelFor() in a fresh Node process; print the JSON result or the error."""
+    helper = RUN_WORKFLOW_DIR / HELPERS_FILE
+    script = (
+        "import { modelFor } from "
+        + json.dumps(helper.as_uri())
+        + "; const [role, override] = JSON.parse(process.argv[1]);"
+        + " const model = modelFor(role, override === null ? undefined : override);"
+        + " process.stdout.write(JSON.stringify({ model: model === undefined ? null : model }));"
+    )
+    return subprocess.run(
+        [NODE, "--input-type=module", "-e", script, json.dumps([role, override])],
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'agent({ prompt, model: "sonnet", agentType: "reviewer-code" })',
+        "agent({ prompt, model: 'opus' })",
+        "agent({ prompt, model: chosenModel })",
+        "agent({ prompt, model })",
+        'const DEFAULT = "haiku";\nagent({ prompt, model: modelFor("work", DEFAULT) })',
+        'const m = "claude-opus-4-1";',
+        'const m = "fable";',
+    ],
+)
+def test_model_literal_errors_flags_a_named_model(source):
+    assert vwc.model_literal_errors(source), source
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'agent({ prompt, model: modelFor("work", modelOverride), agentType: "reviewer-code" })',
+        'agent({ prompt, model:\n  modelFor("lead", modelOverride) })',
+        '// was model: "sonnet"\nagent({ prompt })',
+        '/* model: "opus" */ agent({ prompt })',
+        "const prompt = `Prefer the opus-sized answer over a sonnet.`;",
+        "run({ scope, tier, modelOverride })",
+    ],
+)
+def test_model_literal_errors_accepts_model_for_and_comments(source):
+    assert vwc.model_literal_errors(source) == [], source
+
+
+def test_literal_model_fails_a_contracted_file(tmp_path):
+    """A contracted workflow that passes every contract check still fails on a literal model."""
+    source = (FIXTURES / "matching.js").read_text()
+    assert "agentType:" in source
+    bad = tmp_path / "literal-model.js"
+    bad.write_text(source.replace("agentType:", 'model: "sonnet", agentType:', 1))
+    rc, data = _run_json("--dir", str(tmp_path), "--static-only")
+    res = _result_for(data, "literal-model.js")
+    assert rc == 1 and res["status"] == "fail", res
+    assert any("sonnet" in e for e in res["static_errors"]), res["static_errors"]
+
+
+def test_literal_model_fails_a_file_without_contract(tmp_path):
+    """The contract exemption does not cover the MODEL rule."""
+    bad = tmp_path / "no-contract-model.js"
+    bad.write_text('export default async function run() {\n  return agent({ prompt: "x", model: "opus" });\n}\n')
+    rc, data = _run_json("--dir", str(tmp_path), "--static-only")
+    res = _result_for(data, "no-contract-model.js")
+    assert rc == 1 and res["status"] == "fail", res
+    assert any("opus" in e for e in res["static_errors"]), res["static_errors"]
+
+
+def test_model_table_file_may_name_models(tmp_path):
+    """Only workflow-helpers.js, which holds the table, may name a model."""
+    (tmp_path / HELPERS_FILE).write_text('const ROLE_MODELS = { gather: "haiku", work: "opus" };\n')
+    rc, data = _run_json("--dir", str(tmp_path), "--static-only")
+    res = _result_for(data, HELPERS_FILE)
+    assert rc == 0 and res["status"] == "exempt", res
+    assert res["static_errors"] == [], res
+
+
+def test_real_workflows_name_no_model():
+    """Every shipped workflow .js except the table file passes the MODEL rule."""
+    scripts = sorted(REAL_WORKFLOW_DIR.glob("*.js"))
+    assert {p.name for p in CONTRACTED_WORKFLOWS} <= {p.name for p in scripts}
+    for path in scripts:
+        if path.name == HELPERS_FILE:
+            continue
+        source = path.read_text(encoding="utf-8")
+        assert vwc.model_literal_errors(source) == [], path.name
+        assert "modelFor(" in source and "modelOverride" in source, path.name
+
+
+def test_real_workflows_pass_static_gate_with_model_rule():
+    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR), "--static-only")
+    assert rc == 0, [r for r in data["files"] if r["status"] == "fail"]
+    assert data["summary"]["failed"] == 0
+
+
+@pytest.mark.parametrize(
+    "role,override,expected",
+    [
+        ("gather", None, "haiku"),
+        ("work", None, "opus"),
+        ("lead", None, None),
+        ("gather", "opus", "opus"),
+        ("work", "haiku", "haiku"),
+        ("lead", "sonnet", "sonnet"),
+        ("lead", "claude-opus-4-1", "claude-opus-4-1"),
+        ("work", "", "opus"),
+    ],
+)
+@pytest.mark.skipif(NODE is None, reason="node not available; helper runtime tests require node")
+def test_model_for_role_table_and_override(role, override, expected):
+    proc = _run_model_for(role, override)
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout) == {"model": expected}
+
+
+@pytest.mark.parametrize(
+    "role,override,message",
+    [
+        ("judge", None, "unknown role"),
+        ("work", "gpt-4", "unknown model"),
+        ("work", "best", "unknown model"),
+        ("work", 5, "must be a string"),
+    ],
+)
+@pytest.mark.skipif(NODE is None, reason="node not available; helper runtime tests require node")
+def test_model_for_rejects_unknown_role_or_model(role, override, message):
+    proc = _run_model_for(role, override)
+    assert proc.returncode != 0
+    assert message in proc.stderr, proc.stderr
+
+
+@pytest.mark.parametrize("workflow", [p.name for p in CONTRACTED_WORKFLOWS])
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_model_override_reaches_every_agent(workflow):
+    rc, out = _run_harness(workflow, "4", args={"modelOverride": "haiku"})
+    assert rc == 0 and not out["errors"], out["errors"]
+    agents = out["traces"]["4"]["agents"]
+    assert agents, workflow
+    assert {a["model"] for a in agents} == {"haiku"}, workflow
+
+
+@pytest.mark.parametrize("workflow", [p.name for p in CONTRACTED_WORKFLOWS])
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_default_models_come_from_the_role_table(workflow):
+    """With no override, each agent gets a role model: haiku, opus, or the inherited session model."""
+    rc, out = _run_harness(workflow, "4")
+    assert rc == 0 and not out["errors"], out["errors"]
+    models = {a["model"] for a in out["traces"]["4"]["agents"]}
+    assert models <= {"haiku", "opus", None}, (workflow, models)
+    assert "sonnet" not in models
+
+
+@pytest.mark.parametrize("workflow", [p.name for p in CONTRACTED_WORKFLOWS])
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_bad_model_override_stops_before_any_dispatch(workflow):
+    rc, out = _run_harness(workflow, "4", args={"modelOverride": "gpt-4"})
+    assert rc == 2, out
+    assert out["traces"] == {}
+    assert "modelOverride" in out["errors"][0]["error"], out["errors"]
+
+
+# --- toolkit-improvement: evaluate-only default, implement gate, caps ----------
+
+TOOLKIT = "toolkit-improvement.js"
+EVALUATE_PHASES = ["evaluate", "research", "synthesize", "critique", "report"]
+IMPLEMENT_PHASES = ["adr", "implement", "validate", "remediate", "record"]
+IMPLEMENT_STUBS = {
+    "synthesize": {
+        "clusters": [
+            {"title": "low-doc", "severity": "low"},
+            {"title": "crit-hook", "severity": "critical"},
+            {"title": "dismissed", "severity": "high"},
+            {"title": "med-script", "severity": "medium"},
+        ]
+    },
+    # The script numbers clusters c1..cN in synthesis order; the critique answers by id.
+    "critique": {
+        "dispositions": [
+            {"id": "c3", "title": "dismissed", "disposition": "dismiss"},
+            {"id": "c1", "title": "low-doc", "disposition": "confirm"},
+            {"id": "c2", "title": "crit-hook (reworded)", "disposition": "confirm"},
+            {"id": "c4", "title": "med-script", "disposition": "elevate"},
+        ]
+    },
+    "adr": [
+        {"title": "adr-hook", "decision": "d", "components": ["hooks/pre-tool.py", "docs/x.md"]},
+        {"title": "adr-script", "decision": "d", "components": ["scripts/a.py", "scripts/tests/test_a.py:12"]},
+        {"title": "adr-doc", "decision": "d", "components": ["skills/meta/do/SKILL.md"]},
+    ],
+    "validate": {"verdict": "regressed", "regressed_skills": ["do"]},
+}
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_default_is_evaluate_only_smallest_tier():
+    """No args: the foundation wave, then research through report. Nothing past REPORT."""
+    rc, out = _run_harness(TOOLKIT, "unset")
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["unset"]
+    assert trace["phases_entered"] == EVALUATE_PHASES
+    assert trace["agent_count"] == 14
+    result = trace["result"]
+    assert result["tier"] == 1
+    assert result["evaluate_only"] is True
+    assert result["deep_dive_ran"] is False and result["adversarial_ran"] is False
+    assert "implement is not set" in result["implement_blocked"]
+
+
+@pytest.mark.parametrize(
+    "args,reason",
+    [
+        ({}, "implement is not set"),
+        ({"implement": "yes", "branch": "fix/x"}, "implement is not set"),
+        ({"implement": True}, "needs `branch`"),
+        ({"implement": True, "branch": "main"}, "default branch main"),
+        ({"implement": True, "branch": "master"}, "default branch master"),
+        ({"implement": True, "branch": "fix/x; rm -rf ."}, "needs `branch`"),
+        ({"implement": True, "branch": "fix/x", "evaluateOnly": True}, "evaluateOnly is set"),
+    ],
+)
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_implement_gate_blocks(args, reason):
+    """Even with clusters ready, no ADR or edit agent runs unless the gate is cleared."""
+    rc, out = _run_harness(TOOLKIT, "4", args=args, stubs=IMPLEMENT_STUBS)
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["4"]
+    assert not set(trace["phases_entered"]) & set(IMPLEMENT_PHASES), trace["phases_entered"]
+    assert trace["result"]["evaluate_only"] is True
+    assert reason in trace["result"]["implement_blocked"], trace["result"]["implement_blocked"]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_implement_runs_on_a_work_branch_with_domain_engineers():
+    rc, out = _run_harness(TOOLKIT, "unset", args={"implement": True, "branch": "fix/eval-1"}, stubs=IMPLEMENT_STUBS)
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["unset"]
+    assert trace["phases_entered"] == EVALUATE_PHASES + IMPLEMENT_PHASES
+    by_phase = {}
+    for a in trace["agents"]:
+        by_phase.setdefault(a["phase"], []).append(a)
+
+    # One ADR per cluster the critique kept, worst severity first.
+    adr_prompts = [a["prompt"] for a in by_phase["adr"]]
+    assert len(adr_prompts) == 3
+    assert not any('"dismissed"' in p for p in adr_prompts)
+    assert '"crit-hook"' in adr_prompts[0] and '"low-doc"' in adr_prompts[2]
+
+    # Each ADR goes to the engineer for its components, never the coordinator.
+    assert [a["agentType"] for a in by_phase["implement"]] == [
+        "hook-development-engineer",
+        "python-general-engineer",
+        "toolkit-governance-engineer",
+    ]
+    assert by_phase["implement"][0]["skills"] == ["programming", "testing"]
+    assert by_phase["implement"][2]["skills"] == ["toolkit", "testing"]
+    for a in by_phase["implement"] + by_phase["remediate"]:
+        assert "git branch --show-current" in a["prompt"], a["agentType"]
+        assert "`fix/eval-1`" in a["prompt"]
+        assert a["model"] == "opus"
+    assert [a["agentType"] for a in by_phase["validate"] + by_phase["remediate"]] == ["toolkit-governance-engineer"] * 2
+    for a in trace["agents"]:
+        assert a["agentType"] and a["skills"], a["phase"]
+
+    result = trace["result"]
+    assert result["evaluate_only"] is False and result["branch"] == "fix/eval-1"
+    assert result["adrs_created"] == 3 and result["implementations_ran"] == 3
+    assert result["dropped"] == []
+    assert result["unreviewed_clusters"] == []
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_cluster_without_a_disposition_is_not_implemented():
+    """Fail closed: the critic skipped one cluster and matched another by title
+    only. Neither gets an ADR; both are reported."""
+    stubs = dict(IMPLEMENT_STUBS)
+    stubs["critique"] = {
+        "dispositions": [
+            {"id": "c1", "title": "low-doc", "disposition": "confirm"},
+            {"id": "c3", "title": "dismissed", "disposition": "dismiss"},
+            {"title": "crit-hook", "disposition": "confirm"},
+        ]
+    }
+    rc, out = _run_harness(TOOLKIT, "unset", args={"implement": True, "branch": "fix/eval-1"}, stubs=stubs)
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["unset"]
+    adr_prompts = [a["prompt"] for a in trace["agents"] if a["phase"] == "adr"]
+    assert len(adr_prompts) == 1 and '"low-doc"' in adr_prompts[0]
+    assert trace["result"]["unreviewed_clusters"] == ["crit-hook", "med-script"]
+    assert any("no critique disposition" in line and "crit-hook" in line for line in trace["logs"]), trace["logs"]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_no_critique_blocks_implementation():
+    """A dropped critique reviewed nothing, so the cleared gate still stops the run."""
+    stubs = dict(IMPLEMENT_STUBS)
+    stubs["critique"] = None
+    rc, out = _run_harness(TOOLKIT, "unset", args={"implement": True, "branch": "fix/eval-1"}, stubs=stubs)
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["unset"]
+    assert not set(trace["phases_entered"]) & set(IMPLEMENT_PHASES), trace["phases_entered"]
+    result = trace["result"]
+    assert result["evaluate_only"] is True and result["implement_requested"] is True
+    assert "critique did not run" in result["implement_blocked"]
+    assert len(result["unreviewed_clusters"]) == 4
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_role_models():
+    rc, out = _run_harness(TOOLKIT, "4")
+    models = {}
+    for a in out["traces"]["4"]["agents"]:
+        models.setdefault(a["phase"], set()).add(a["model"])
+    assert models == {
+        "evaluate": {"opus"},
+        "deep-dive": {"opus"},
+        "adversarial": {"opus"},
+        "research": {"opus"},  # rates priority and gap, so `work`, not `gather`
+        "synthesize": {None},
+        "critique": {"opus"},
+        "report": {None},
+    }
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_max_agents_caps_and_reports_drops():
+    rc, out = _run_harness(TOOLKIT, "4", args={"maxAgents": 12})
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["4"]
+    assert trace["agent_count"] == 12
+    result = trace["result"]
+    assert result["max_agents"] == 12 and result["agents_dispatched"] == 12
+    dropped = {d["phase"]: d["agents"] for d in result["dropped"]}
+    assert len(dropped["deep-dive"]) == 8
+    assert len(dropped["adversarial"]) == 5
+    assert dropped["research"] == ["research"]
+    assert any("maxAgents=12" in line and "dropped 8" in line for line in trace["logs"]), trace["logs"]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_default_cap_fits_a_full_evaluation():
+    rc, out = _run_harness(TOOLKIT, "4")
+    result = out["traces"]["4"]["result"]
+    assert result["max_agents"] == 40 and result["agents_dispatched"] == 29
+    assert result["dropped"] == []
+
+
+# --- comprehensive-review: smallest tier default, verify and fix agents --------
+
+REVIEW = "comprehensive-review-workflow.js"
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_comprehensive_review_unset_tier_runs_wave_1_only():
+    rc, out = _run_harness(REVIEW, "unset")
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["unset"]
+    assert "wave-2" not in trace["phases_entered"] and "wave-3" not in trace["phases_entered"]
+    assert trace["agent_count"] == 4
+    assert trace["result"]["tier"] == 1
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_comprehensive_review_verify_and_fix_agents_carry_agent_and_skills():
+    finding = {"title": "t1", "severity": "HIGH", "location": "src/a.py:10", "description": "d"}
+    stubs = {
+        "wave-1": {"findings": [finding]},
+        "verify": {"finding_title": "t1", "disposition": "CONFIRM"},
+    }
+    rc, out = _run_harness(REVIEW, "unset", stubs=stubs)
+    assert rc == 0 and not out["errors"], out["errors"]
+    agents = out["traces"]["unset"]["agents"]
+    verify = [a for a in agents if a["phase"] == "verify"]
+    fix = [a for a in agents if a["phase"] == "fix"]
+    assert len(verify) == 1 and len(fix) == 1, [(a["phase"], a["agentType"]) for a in agents]
+    assert verify[0]["agentType"] == "reviewer-perspectives"
+    assert verify[0]["skills"] == ["assessment", "testing"]
+    assert fix[0]["agentType"] == "python-general-engineer"
+    assert fix[0]["skills"] == ["programming", "testing"]
+    assert "Operating standards (injected)" in verify[0]["prompt"]
+    assert "Operating standards (injected)" in fix[0]["prompt"]

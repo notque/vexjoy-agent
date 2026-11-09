@@ -59,9 +59,53 @@ from learning_db_v2 import (
     record_learning,
 )
 
+# Key prefixes of bookkeeping rows that share topic=routing,
+# category=effectiveness with route decisions (written by
+# hooks/routing-decision-recorder.py). They are not `<agent>:<skill>` routes.
+_NON_ROUTE_KEY_PREFIXES = ("stack-usage:", "fallback-reason:")
+
+
+def _route_records() -> list[dict[str, str | int]]:
+    """Route-decision rows, each parsed from its pipe-delimited value. Bookkeeping rows are dropped."""
+    results = query_learnings(topic="routing", category="effectiveness", limit=10000, exclude_graduated=False)
+    records: list[dict[str, str | int]] = []
+    for r in results:
+        if str(r["key"]).startswith(_NON_ROUTE_KEY_PREFIXES):
+            continue
+        parsed: dict[str, str | int] = {"key": r["key"], "observation_count": r.get("observation_count", 1)}
+        for pair in r["value"].split(" | "):
+            if ": " in pair:
+                k, v = pair.split(": ", 1)
+                parsed[k.strip()] = v.strip()
+        records.append(parsed)
+    return records
+
+
+def _route_stats_report(records: list[dict[str, str | int]], dimension: str) -> dict[str, object]:
+    """Aggregate route records for one --by dimension. This dict is the --json output."""
+    from collections import Counter
+
+    total = len(records)
+    report: dict[str, object] = {"by": dimension, "total_routes": total}
+    if dimension in ("agent", "skill"):
+        part = 0 if dimension == "agent" else -1
+        counts = Counter(str(r["key"]).split(":")[part] for r in records)
+        report["counts"] = [{"name": name, "count": count} for name, count in counts.most_common()]
+    elif dimension == "force-route":
+        force = sum(1 for r in records if r.get("force_used") == "1" or "force-route" in str(r.get("key", "")))
+        report.update(force_routed=force, scored=total - force)
+    elif dimension == "errors":
+        report["errored"] = [
+            {"key": str(r["key"]), "request": str(r.get("request", ""))} for r in records if r.get("tool_errors") == "1"
+        ]
+    elif dimension == "override":
+        overrides = sum(1 for r in records if r.get("llm_override") == "1")
+        report.update(llm_override=overrides, phase0_as_is=total - overrides)
+    return report
+
 
 def cmd_route_stats(args: argparse.Namespace) -> None:
-    """Display routing decision statistics."""
+    """Display routing decision statistics. With --json, print only the JSON report."""
     init_db()
 
     # Time-series dimensions (ADR: learning-telemetry-envelope) read the
@@ -70,66 +114,45 @@ def cmd_route_stats(args: argparse.Namespace) -> None:
         _route_stats_time_series(args)
         return
 
-    results = query_learnings(topic="routing", category="effectiveness", limit=10000, exclude_graduated=False)
+    records = _route_records()
+    dimension = args.by
+    report = _route_stats_report(records, dimension)
 
-    if not results:
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+        return
+
+    if not records:
         print("No routing data found. Run sessions with /do to capture routing decisions.")
         return
 
-    # Parse pipe-delimited values into dicts
-    records: list[dict[str, str | int]] = []
-    for r in results:
-        parsed: dict[str, str | int] = {"key": r["key"], "observation_count": r.get("observation_count", 1)}
-        for pair in r["value"].split(" | "):
-            if ": " in pair:
-                k, v = pair.split(": ", 1)
-                parsed[k.strip()] = v.strip()
-        records.append(parsed)
-
-    dimension = args.by
-
-    if dimension == "agent":
-        _print_freq_table(
-            records, "Agent", lambda r: str(r["key"]).split(":")[0] if ":" in str(r["key"]) else str(r["key"])
-        )
-    elif dimension == "skill":
-        _print_freq_table(
-            records, "Skill", lambda r: str(r["key"]).split(":")[-1] if ":" in str(r["key"]) else str(r["key"])
-        )
+    total = len(records)
+    if dimension in ("agent", "skill"):
+        print(f"{dimension.capitalize()} Frequency ({total} total routes)")
+        print(f"{'─' * 50}")
+        for row in report["counts"][:20]:  # type: ignore[index]
+            bar = "█" * min(row["count"], 30)
+            print(f"  {row['name']:35s} {row['count']:>4} {bar}")
     elif dimension == "force-route":
-        total = len(records)
-        force = sum(1 for r in records if r.get("force_used") == "1" or "force-route" in str(r.get("key", "")))
+        force = int(report["force_routed"])  # type: ignore[call-overload]
         print(f"Force-Route Stats ({total} total routes)")
         print(f"{'─' * 40}")
-        if total:
-            print(f"  Force-routed:  {force:>4} ({force / total * 100:.0f}%)")
-            print(f"  Scored:        {total - force:>4} ({(total - force) / total * 100:.0f}%)")
-        else:
-            print("  No data")
+        print(f"  Force-routed:  {force:>4} ({force / total * 100:.0f}%)")
+        print(f"  Scored:        {total - force:>4} ({(total - force) / total * 100:.0f}%)")
     elif dimension == "errors":
-        errored = [r for r in records if r.get("tool_errors") == "1"]
-        print(f"Routes with Tool Errors ({len(errored)} of {len(records)})")
+        errored = report["errored"]
+        print(f"Routes with Tool Errors ({len(errored)} of {total})")  # type: ignore[arg-type]
         print(f"{'─' * 50}")
-        for r in errored:
-            req = str(r.get("request", ""))[:60]
-            print(f"  {str(r['key']):40s} | {req}")
+        for row in errored:  # type: ignore[attr-defined]
+            print(f"  {row['key']:40s} | {row['request'][:60]}")
         if not errored:
             print("  No tool errors recorded.")
     elif dimension == "override":
-        total = len(records)
-        overrides = sum(1 for r in records if r.get("llm_override") == "1")
+        overrides = int(report["llm_override"])  # type: ignore[call-overload]
         print(f"LLM Override Stats ({total} total routes)")
         print(f"{'─' * 40}")
-        if total:
-            print(f"  LLM overrode Phase 0: {overrides:>4} ({overrides / total * 100:.0f}%)")
-            print(f"  Used Phase 0 as-is:   {total - overrides:>4} ({(total - overrides) / total * 100:.0f}%)")
-        else:
-            print("  No data")
-
-    if args.json:
-        import json as json_mod
-
-        print(json_mod.dumps(records, indent=2, default=str))
+        print(f"  LLM overrode Phase 0: {overrides:>4} ({overrides / total * 100:.0f}%)")
+        print(f"  Used Phase 0 as-is:   {total - overrides:>4} ({(total - overrides) / total * 100:.0f}%)")
 
 
 def collect_route_weights() -> dict[str, dict[str, object]]:
@@ -776,6 +799,9 @@ _BASIS_LABELS = (
     # feedback nor silent default-success — reported on its own line and kept
     # OUT of the silent-success share (strong + default formula unchanged).
     "repeat_dispatch_weak",
+    # Acceptance of a turn that ran two or more route keys: one bounded weak
+    # boost per key. Also outside the share.
+    "acceptance_shared",
 )
 
 
@@ -808,11 +834,14 @@ def _read_basis_counts() -> dict[str, int]:
 # dispatch), NOT from the aggregated learnings rows — those are one row per
 # route KEY, so they cannot measure traffic share.
 _FALLBACK_AGENT = "general-purpose"
-# Target band. Below ~8% the router is forcing specialists it has no evidence
-# for (or gaming the number); above 20% it is not routing at all. Both are
-# alarms — a fallback rate can be too LOW.
-_FALLBACK_BAND_LOW, _FALLBACK_BAND_HIGH = 10.0, 15.0
-_FALLBACK_ALARM_LOW, _FALLBACK_ALARM_HIGH = 8.0, 20.0
+# High side only. Above the alarm the router is not routing. Both numbers are
+# starting values nobody measured; treat the label as a prompt to look, not a
+# verdict. There is no low alarm: a low fallback rate is the wanted result
+# (specialists took the work), and the old ALARM-LOW fired on it. A rate pushed
+# low by routing everything to one agent shows in top-2 concentration and
+# entropy, printed on the next lines.
+_FALLBACK_WATCH_HIGH = 15.0
+_FALLBACK_ALARM_HIGH = 20.0
 _TOP2_TARGET = 50.0  # top-2 agent share; above this the "distribution" is two agents
 _ROUTE_FIT_BASIS_PREFIX = "route_fit:"
 
@@ -862,14 +891,12 @@ def _read_misroute_count() -> int:
 
 
 def _fallback_band(pct: float) -> str:
-    """Label one fallback rate against the target band."""
+    """Label one fallback rate. High side only; a low rate is never an alarm."""
     if pct > _FALLBACK_ALARM_HIGH:
         return "ALARM-HIGH"
-    if pct < _FALLBACK_ALARM_LOW:
-        return "ALARM-LOW"
-    if _FALLBACK_BAND_LOW <= pct <= _FALLBACK_BAND_HIGH:
-        return "IN BAND"
-    return "WATCH"
+    if pct > _FALLBACK_WATCH_HIGH:
+        return "WATCH"
+    return "OK"
 
 
 def _routing_shape(dist: dict[str, int]) -> dict:
@@ -932,8 +959,8 @@ def _print_routing_shape(shape: dict, fit: dict, misroutes: int) -> None:
         f"{_FALLBACK_AGENT} ({shape['fallback_rate_pct']:.1f}%) — {shape['fallback_band']}"
     )
     print(
-        f"  target band {_FALLBACK_BAND_LOW:.0f}-{_FALLBACK_BAND_HIGH:.0f}%; "
-        f"alarm above {_FALLBACK_ALARM_HIGH:.0f}%; alarm below {_FALLBACK_ALARM_LOW:.0f}%"
+        f"  watch above {_FALLBACK_WATCH_HIGH:.0f}%; alarm above {_FALLBACK_ALARM_HIGH:.0f}% "
+        "(unmeasured starting values); no low alarm, read a low rate against the two lines below"
     )
     print(
         f"Top-2 agent concentration: {shape['top2_concentration_pct']:.1f}% "
@@ -946,7 +973,12 @@ def _print_routing_shape(shape: dict, fit: dict, misroutes: int) -> None:
         f"{shape['agent_entropy_max_bits']:.2f} max{norm_text} across "
         f"{shape['distinct_agents']} agents (effective agents {shape['effective_agents']:.1f})"
     )
-    print(f"Misroute rate: {misroutes}/{total} dispatches reported a misroute ({misroutes / total * 100:.1f}%)")
+    if misroutes:
+        print(f"Misroute rate: {misroutes}/{total} dispatches reported a misroute ({misroutes / total * 100:.1f}%)")
+    else:
+        # No hook writes a misroute row; only a hand-run record-misroute.py does.
+        # Zero rows means nobody recorded one, not that none happened.
+        print("Misroute rate: not instrumented (0 rows; only a hand-run scripts/record-misroute.py writes them)")
     fit_total = fit["route_fit_total"]
     if fit_total:
         print(
@@ -955,7 +987,36 @@ def _print_routing_shape(shape: dict, fit: dict, misroutes: int) -> None:
             f"{', '.join(f'{v} {n}' for v, n in sorted(fit['route_fit_counts'].items()))}"
         )
     else:
-        print("Route-fit negatives: no route-fit verdicts yet (banner lands with the next dispatches)")
+        print("Route-fit negatives: no route-fit verdicts recorded")
+
+
+def _read_route_signal() -> dict | None:
+    """Counts from scripts/route-signal-check.py. None when it cannot load."""
+    try:
+        import importlib.util
+
+        path = Path(__file__).resolve().parent / "route-signal-check.py"
+        spec = importlib.util.spec_from_file_location("route_signal_check", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.count_signals()
+    except Exception:
+        return None
+
+
+def _print_route_signal(signal: dict | None) -> None:
+    """Print the route-signal verdict (the actuator re-proposal trigger)."""
+    if signal is None:
+        print("Route signal: unavailable (scripts/route-signal-check.py did not load)")
+        return
+    verdict = "SIGNAL" if signal["signal"] else "NO-SIGNAL"
+    print(
+        f"Route signal: {verdict} — {signal['failures']} routing-relevant failures, "
+        f"{signal['would_act']} would-demote/would-tiebreak decisions, "
+        f"{signal['scored']} decisions with health_at_decision"
+    )
+    if signal["signal"]:
+        print("  re-propose the actuator (docs/route-loop-validation.md)")
 
 
 def cmd_route_health(args: argparse.Namespace) -> None:
@@ -1014,6 +1075,9 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     routed_sessions = {r["session_id"] for r in results if r.get("session_id")}
     routed_with_corr = len(corr_sessions & routed_sessions)
     pct_corr = (routed_with_corr / len(routed_sessions) * 100) if routed_sessions else 0.0
+    # No hook writes `user-correction` rows today. With none stored, 0% would
+    # read as "no corrections"; report the metric as not instrumented instead.
+    corr_instrumented = bool(corrections)
     unattributed_corr = len(corr_sessions - routed_sessions)
 
     # Fallback rate + its counter-metrics. Never report one without the others:
@@ -1023,7 +1087,9 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     fit = _route_fit_summary(_read_route_fit_counts())
     misroutes = _read_misroute_count()
     dispatch_total = shape.get("dispatch_total", 0)
-    misroute_rate = round(misroutes / dispatch_total * 100, 1) if dispatch_total else None
+    # 0 rows => not instrumented (see _print_routing_shape), so null, not 0.0.
+    misroute_rate = round(misroutes / dispatch_total * 100, 1) if dispatch_total and misroutes else None
+    route_signal = _read_route_signal()
 
     if as_json:
         print(
@@ -1041,7 +1107,8 @@ def cmd_route_health(args: argparse.Namespace) -> None:
                     "default_success": default_success,
                     "silent_success_share": silent_share,
                     "governed_path_coverage": round(pct, 1),
-                    "correction_rate_pct": round(pct_corr, 1),
+                    "correction_rate_pct": round(pct_corr, 1) if corr_instrumented else None,
+                    "correction_rate_instrumented": corr_instrumented,
                     "routed_sessions_with_correction": routed_with_corr,
                     "routed_sessions": len(routed_sessions),
                     "unattributed_corrections": unattributed_corr,
@@ -1049,6 +1116,8 @@ def cmd_route_health(args: argparse.Namespace) -> None:
                     **fit,
                     "misroute_count": misroutes,
                     "misroute_rate_pct": misroute_rate,
+                    "misroute_rate_instrumented": bool(misroutes),
+                    "route_signal": route_signal,
                 },
                 indent=2,
             )
@@ -1068,14 +1137,19 @@ def cmd_route_health(args: argparse.Namespace) -> None:
         print(f"  acceptance_detected  {basis['acceptance_detected']}")
         print(f"  default_no_complaint {basis['default_no_complaint']}")
         print(f"  repeat_dispatch_weak {basis['repeat_dispatch_weak']} (weak-positive; outside the share below)")
+        print(f"  acceptance_shared    {basis['acceptance_shared']} (weak-positive; outside the share below)")
         print(f"Silent-success share: {silent_share * 100:.0f}% of scored outcomes ({default_success}/{basis_total})")
     print(f"Governed-path coverage: {has_outcome}/{total} routing rows carry a finalized outcome ({pct:.0f}%)")
-    print(
-        f"Correction rate: {routed_with_corr}/{len(routed_sessions)} "
-        f"routed sessions drew correction language ({pct_corr:.0f}%)"
-    )
-    print(f"Unattributed corrections: {unattributed_corr} (correction with no concurrent /do route)")
+    if corr_instrumented:
+        print(
+            f"Correction rate: {routed_with_corr}/{len(routed_sessions)} "
+            f"routed sessions drew correction language ({pct_corr:.0f}%)"
+        )
+        print(f"Unattributed corrections: {unattributed_corr} (correction with no concurrent /do route)")
+    else:
+        print("Correction rate: not instrumented (0 user-correction rows; no hook writes them)")
     _print_routing_shape(shape, fit, misroutes)
+    _print_route_signal(route_signal)
 
 
 _SPEC_SCORE_MAX = 7
@@ -1173,19 +1247,6 @@ def cmd_handoff_report(args: argparse.Namespace) -> None:
     for item in report["top_missing"]:
         label = item["spec_missing"] or "(none missing)"
         print(f"  {item['count']:>4}  {label}")
-
-
-def _print_freq_table(records: list[dict[str, str | int]], label: str, key_fn: object) -> None:
-    """Print a frequency table sorted by count descending."""
-    from collections import Counter
-
-    counts = Counter(key_fn(r) for r in records)  # type: ignore[operator]
-    total = sum(counts.values())
-    print(f"{label} Frequency ({total} total routes)")
-    print(f"{'─' * 50}")
-    for name, count in counts.most_common(20):
-        bar = "█" * min(count, 30)
-        print(f"  {name:35s} {count:>4} {bar}")
 
 
 def cmd_record_review_fp(args):
@@ -1432,7 +1493,7 @@ def main():
         choices=["agent", "skill", "force-route", "errors", "override", "week", "day"],
         help="Dimension to aggregate by (week|day read telemetry_runs time-series)",
     )
-    p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
+    p_route_stats.add_argument("--json", action="store_true", help="Print the report as JSON only")
     p_route_stats.set_defaults(func=cmd_route_stats)
 
     # route-weights

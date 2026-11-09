@@ -21,6 +21,10 @@ Usage:
     - a PUBLIC pairs_with name that resolves to nothing
     - committed docs/routing-map.md differs from a fresh render
 
+skills/INDEX.json and agents/INDEX.json are generated and untracked. Every run
+regenerates one that is missing or older than its sources
+(scripts/lib/index_freshness.py) before reading it.
+
 Private components never reach the map. Names of locally installed private
 components are removed from entries and from pairs_with lists before both
 rendering and validation, using the same runtime source of truth as
@@ -38,7 +42,6 @@ import argparse
 import functools
 import importlib.util
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -54,6 +57,11 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+# scripts/lib holds the shared helper; append so it shadows nothing.
+sys.path.append(str(_SCRIPTS_DIR / "lib"))
+
+from index_freshness import ensure_fresh_indexes
+
 
 def _index_paths(repo_root: Path) -> dict[str, Path]:
     return {
@@ -64,20 +72,12 @@ def _index_paths(repo_root: Path) -> dict[str, Path]:
 
 
 def _ensure_generated_indexes(repo_root: Path) -> None:
-    """Generate missing tracked indexes, or fail before rendering anything."""
-    generators = {
-        "skills": repo_root / "scripts" / "generate-skill-index.py",
-        "agents": repo_root / "scripts" / "generate-agent-index.py",
-    }
-    for surface, index_path in _index_paths(repo_root).items():
-        if index_path.is_file():
-            continue
-        generator = generators.get(surface)
-        if generator is None or not generator.is_file():
-            raise RuntimeError(f"required {surface} index missing and cannot be generated: {index_path}")
-        subprocess.run([sys.executable, str(generator)], cwd=repo_root, check=True)
-        if not index_path.is_file():
-            raise RuntimeError(f"{generator.name} did not create required index: {index_path}")
+    """Regenerate missing or stale generated indexes, or fail before rendering anything.
+
+    A stale index would make --check disagree with CI and make a write-mode
+    run render outdated text into the committed map.
+    """
+    ensure_fresh_indexes(repo_root)
 
 
 HEADER = """\
@@ -272,7 +272,7 @@ def main() -> int:
     map_path = args.map_path or (args.repo_root / "docs" / "routing-map.md")
     try:
         surfaces = load_all_entries(args.repo_root)
-    except (RuntimeError, subprocess.CalledProcessError) as exc:
+    except RuntimeError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 

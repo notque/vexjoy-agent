@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -176,6 +177,39 @@ class TestRealRepo:
         assert "## AGENTS (1)" in rendered
         assert "## SKILLS (1)" in rendered
         assert "## PIPELINES (1)" in rendered
+
+    def test_stale_generated_index_is_regenerated_before_render(self, tmp_path) -> None:
+        """An index older than a component file is rebuilt, so the map never renders old text."""
+        repo = tmp_path / "repo"
+        scripts = repo / "scripts"
+        scripts.mkdir(parents=True)
+        (scripts / "generate-skill-index.py").write_text(
+            "from pathlib import Path\n"
+            'Path("skills/INDEX.json").write_text(\'{"skills":{"new":{"description":"New.","triggers":["n"]}}}\')\n',
+            encoding="utf-8",
+        )
+        (repo / "agents").mkdir()
+        (repo / "agents" / "INDEX.json").write_text('{"agents":{}}', encoding="utf-8")
+        pipeline_index = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
+        pipeline_index.parent.mkdir(parents=True)
+        pipeline_index.write_text('{"pipelines":{}}', encoding="utf-8")
+        stale_index = repo / "skills" / "INDEX.json"
+        stale_index.write_text('{"skills":{"old":{"description":"Old.","triggers":["o"]}}}', encoding="utf-8")
+        os.utime(stale_index, (1_000_000_000, 1_000_000_000))
+        skill = repo / "skills" / "meta" / "new"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("---\nname: new\n---\n", encoding="utf-8")
+
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--repo-root", str(repo)],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stdout + result.stderr
+        rendered = (repo / "docs" / "routing-map.md").read_text(encoding="utf-8")
+        assert "| new |" in rendered
+        assert "| old |" not in rendered
 
     @pytest.mark.parametrize(
         "bad_content",

@@ -700,8 +700,26 @@ def hook_error(hook_name: str, exc: BaseException) -> None:
 # Governance Event Recording (enriched wrapper)
 # =============================================================================
 
-# Per-second dedup: suppress duplicate governance events within the same second.
+# Governance dedup window, in seconds. One event is kept per window for each
+# (session, event type, tool, hook, command head, blocked) combination.
+_GOV_DEDUP_WINDOW_S = 1.0
+
+# In-process fast path only. Each hook invocation is a new process, so the
+# dedup that works across processes is the deterministic event id below.
 _GOV_DEDUP: dict[str, float] = {}
+
+
+def _governance_event_id(window: int, *parts: object) -> str:
+    """The id every process derives for the same governance event in the same window.
+
+    ``governance_events.id`` is the primary key and the insert is ``INSERT OR
+    IGNORE``, so SQLite drops a second process's copy atomically. No extra query
+    runs, and no schema changes.
+    """
+    import hashlib  # lazy: only deny paths record governance events
+
+    digest = hashlib.sha256("\x1f".join(str(p) for p in parts).encode("utf-8", "replace")).hexdigest()[:16]
+    return f"gov-{int(window * _GOV_DEDUP_WINDOW_S * 1000)}-{digest}"
 
 
 def _redact_command_head(command: str, max_len: int = 80) -> str:
@@ -726,19 +744,16 @@ def record_governance(
     Wraps learning_db_v2.record_governance_event with:
     - session_id extracted from event or environment
     - payload with hook name and redacted command head
-    - per-second dedup (suppresses duplicate event_type+tool_name within 1s)
+    - dedup across processes: an identical event (same session, event type, tool,
+      hook, command head, and blocked flag) in the same ``_GOV_DEDUP_WINDOW_S``
+      window maps to one row. A different session, hook, or command is a
+      different event and is always recorded.
 
-    Never raises. Returns event id on success, None on failure or dedup.
+    Never raises. Returns the event id, or None on failure. A duplicate caught
+    in this process returns None; one caught by the database returns the id of
+    the row already stored.
     """
     try:
-        # Per-second dedup key
-        now = time.time()
-        dedup_key = f"{event_type}:{tool_name}:{hook_name}"
-        last = _GOV_DEDUP.get(dedup_key, 0.0)
-        if now - last < 1.0:
-            return None  # suppressed
-        _GOV_DEDUP[dedup_key] = now
-
         # Extract session_id
         session_id = None
         if event and isinstance(event, dict):
@@ -753,6 +768,23 @@ def record_governance(
         if command:
             payload["command_head"] = _redact_command_head(command)
 
+        now = time.time()
+        window = int(now // _GOV_DEDUP_WINDOW_S)
+        event_id = _governance_event_id(
+            window,
+            session_id,
+            event_type,
+            tool_name,
+            hook_phase,
+            severity,
+            hook_name,
+            payload.get("command_head", ""),
+            int(bool(blocked)),
+        )
+        if _GOV_DEDUP.get(event_id) is not None:
+            return None  # suppressed: this process already recorded it
+        _GOV_DEDUP[event_id] = now
+
         from learning_db_v2 import record_governance_event
 
         return record_governance_event(
@@ -763,6 +795,7 @@ def record_governance(
             severity=severity,
             payload=payload if payload else None,
             blocked=blocked,
+            event_id=event_id,
         )
     except Exception:
         return None

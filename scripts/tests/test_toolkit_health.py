@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import sqlite3
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -52,9 +54,9 @@ def learning_db(tmp_path: Path) -> Path:
 
 
 def _insert_events(db_path: Path, *, blocked: int, total: int, age_days: float = 1.0) -> None:
-    """Insert test governance events into a learning.db fixture."""
+    """Insert governance events stamped the way the hooks stamp them: naive local time."""
     conn = sqlite3.connect(str(db_path))
-    ts = (datetime.now(tz=timezone.utc) - timedelta(days=age_days)).isoformat()
+    ts = (datetime.now() - timedelta(days=age_days)).isoformat()
     for i in range(total):
         conn.execute(
             "INSERT INTO governance_events (blocked, created_at) VALUES (?, ?)",
@@ -64,72 +66,185 @@ def _insert_events(db_path: Path, *, blocked: int, total: int, age_days: float =
     conn.close()
 
 
+def _write_crashes(path: Path, crashes: list[tuple[str, float]], extra_lines: list[str] | None = None) -> None:
+    """Write hook-errors.jsonl entries as hook_error() does: one (hook, age in days) per line, UTC ``ts``."""
+    now = datetime.now(tz=timezone.utc)
+    lines = [
+        json.dumps({"ts": (now - timedelta(days=age)).isoformat(), "hook": hook, "type": "ValueError", "msg": "x"})
+        for hook, age in crashes
+    ]
+    path.write_text("\n".join(lines + (extra_lines or [])) + "\n", encoding="utf-8")
+
+
+@pytest.fixture
+def crash_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    path = tmp_path / "crashes" / "hook-errors.jsonl"
+    path.parent.mkdir()
+    monkeypatch.setenv("CLAUDE_HOOK_ERRORS_PATH", str(path))
+    return path
+
+
 # ---------------------------------------------------------------------------
-# check_hook_errors
+# check_hook_errors (crashes, from hook-errors.jsonl)
 # ---------------------------------------------------------------------------
 
 
 class TestCheckHookErrors:
+    def test_log_missing_is_ok(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        result = th.check_hook_errors(default_config)
+        assert result.status == "OK"
+        assert result.log_missing is True
+        assert result.flag_message() is None
+
+    def test_default_path_is_the_learning_dir_log(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("CLAUDE_HOOK_ERRORS_PATH")
+        assert th.hook_errors_path() == th.CLAUDE_DIR / "learning" / "hook-errors.jsonl"
+
+    def test_counts_crashes_per_hook_inside_the_window(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        _write_crashes(crash_log, [("a", 1), ("a", 2), ("b", 6.9), ("old", 7.1), ("old", 30)])
+        result = th.check_hook_errors(default_config)
+        assert result.log_missing is False
+        assert result.crash_count == 3
+        assert result.by_hook == [("a", 2), ("b", 1)]
+        assert result.status == "OK"
+
+    def test_at_threshold_is_ok_and_above_warns(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        _write_crashes(crash_log, [("a", 1)] * th.HOOK_CRASH_WARN_COUNT)
+        assert th.check_hook_errors(default_config).status == "OK"
+
+        _write_crashes(crash_log, [("a", 1)] * (th.HOOK_CRASH_WARN_COUNT + 1) + [("b", 1)])
+        result = th.check_hook_errors(default_config)
+        assert result.status == "WARN"
+        message = result.flag_message()
+        assert message is not None
+        assert "a (6)" in message and "b (" not in message
+
+    def test_threshold_is_per_hook_not_total(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        _write_crashes(crash_log, [(f"hook-{i}", 1) for i in range(th.HOOK_CRASH_WARN_COUNT * 3)])
+        result = th.check_hook_errors(default_config)
+        assert result.crash_count == th.HOOK_CRASH_WARN_COUNT * 3
+        assert result.status == "OK"
+
+    def test_threshold_comes_from_config(self, crash_log: Path) -> None:
+        _write_crashes(crash_log, [("a", 1), ("a", 1)])
+        assert th.check_hook_errors(th.HealthConfig(hook_crash_warn_count=1)).status == "WARN"
+
+    def test_trend(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        _write_crashes(crash_log, [("a", 1)] * 4 + [("a", 5)])
+        assert th.check_hook_errors(default_config).trend == "INCREASING"
+        _write_crashes(crash_log, [("a", 1)] + [("a", 5)] * 4)
+        assert th.check_hook_errors(default_config).trend == "DECREASING"
+        _write_crashes(crash_log, [("a", 1), ("a", 5)])
+        assert th.check_hook_errors(default_config).trend == "STABLE"
+
+    def test_unreadable_lines_are_skipped(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        _write_crashes(
+            crash_log,
+            [("a", 1)],
+            extra_lines=[
+                "not json",
+                "[1, 2]",
+                "null",
+                json.dumps({"hook": "no-ts"}),
+                json.dumps({"ts": "yesterday", "hook": "bad-ts"}),
+                json.dumps({"ts": 5, "hook": "int-ts"}),
+                "",
+            ],
+        )
+        result = th.check_hook_errors(default_config)
+        assert result.by_hook == [("a", 1)]
+
+    def test_missing_hook_name_counts_as_unknown(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        now = datetime.now(tz=timezone.utc).isoformat()
+        crash_log.write_text(json.dumps({"ts": now}) + "\n" + json.dumps({"ts": now, "hook": 3}) + "\n")
+        assert th.check_hook_errors(default_config).by_hook == [("unknown", 2)]
+
+    def test_naive_timestamp_is_read_as_utc(self, default_config: th.HealthConfig, crash_log: Path) -> None:
+        naive = datetime.now(tz=timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
+        crash_log.write_text(json.dumps({"ts": naive.isoformat(), "hook": "a"}) + "\n")
+        assert th.check_hook_errors(default_config).crash_count == 1
+
+    def test_does_not_read_the_database(self, default_config: th.HealthConfig, crash_log: Path, tmp_path: Path) -> None:
+        """Denials never reach the crash count: 100 denials and no crash log entries is 0 crashes."""
+        db = tmp_path / "learning.db"
+        conn = sqlite3.connect(str(db))
+        conn.execute("CREATE TABLE governance_events (id INTEGER PRIMARY KEY, blocked INTEGER, created_at TEXT)")
+        conn.commit()
+        conn.close()
+        _insert_events(db, blocked=100, total=100)
+        _write_crashes(crash_log, [])
+        with patch.object(th, "LEARNING_DB", db):
+            result = th.check_hook_errors(default_config)
+        assert (result.crash_count, result.status) == (0, "OK")
+
+
+# ---------------------------------------------------------------------------
+# check_hook_denials (count, from governance_events)
+# ---------------------------------------------------------------------------
+
+
+class TestCheckHookDenials:
     def test_db_missing_returns_ok(self, default_config: th.HealthConfig, tmp_path: Path) -> None:
         with patch.object(th, "LEARNING_DB", tmp_path / "nonexistent.db"):
-            result = th.check_hook_errors(default_config)
+            result = th.check_hook_denials(default_config)
         assert result.status == "OK"
         assert result.db_missing is True
 
-    def test_low_error_rate_is_ok(self, default_config: th.HealthConfig, learning_db: Path) -> None:
-        # Spread events evenly across both halves of the 7-day window so trend is STABLE
-        _insert_events(learning_db, blocked=1, total=10, age_days=1.0)  # recent half
-        _insert_events(learning_db, blocked=1, total=10, age_days=5.0)  # older half
+    def test_all_blocked_is_ok_not_an_alarm(self, default_config: th.HealthConfig, learning_db: Path) -> None:
+        """Every recorded governance event is a denial, so 100% blocked is the normal reading."""
+        _insert_events(learning_db, blocked=500, total=500, age_days=1.0)
         with patch.object(th, "LEARNING_DB", learning_db):
-            result = th.check_hook_errors(default_config)
+            result = th.check_hook_denials(default_config)
+        assert (result.denial_count, result.event_count) == (500, 500)
+        assert result.trend == "INCREASING"
         assert result.status == "OK"
-        assert result.error_rate == pytest.approx(10.0)
+        assert result.flag_message() is None
 
-    def test_high_error_rate_warns(self, default_config: th.HealthConfig, learning_db: Path) -> None:
-        _insert_events(learning_db, blocked=10, total=20)  # 50%
+    def test_counts_only_the_window(self, default_config: th.HealthConfig, learning_db: Path) -> None:
+        _insert_events(learning_db, blocked=2, total=3, age_days=1.0)
+        _insert_events(learning_db, blocked=4, total=4, age_days=5.0)
+        _insert_events(learning_db, blocked=9, total=9, age_days=8.0)
         with patch.object(th, "LEARNING_DB", learning_db):
-            result = th.check_hook_errors(default_config)
-        assert result.status == "WARN"
-        assert result.error_rate == pytest.approx(50.0)
+            result = th.check_hook_denials(default_config)
+        assert (result.denial_count, result.event_count) == (6, 7)
+        assert result.trend == "STABLE"
 
     def test_zero_events_is_ok(self, default_config: th.HealthConfig, learning_db: Path) -> None:
         with patch.object(th, "LEARNING_DB", learning_db):
-            result = th.check_hook_errors(default_config)
-        assert result.status == "OK"
-        assert result.error_rate == 0.0
-
-    def test_trend_increasing(self, default_config: th.HealthConfig, learning_db: Path) -> None:
-        # Recent (last 3.5 days): many blocks
-        _insert_events(learning_db, blocked=10, total=10, age_days=1.0)
-        # Older (3.5-7 days ago): few blocks
-        _insert_events(learning_db, blocked=1, total=10, age_days=5.0)
-        with patch.object(th, "LEARNING_DB", learning_db):
-            result = th.check_hook_errors(default_config)
-        assert result.trend == "INCREASING"
+            result = th.check_hook_denials(default_config)
+        assert (result.denial_count, result.status, result.db_missing) == (0, "OK", False)
 
     def test_missing_table_handled(self, default_config: th.HealthConfig, tmp_path: Path) -> None:
         db_path = tmp_path / "empty.db"
         conn = sqlite3.connect(str(db_path))
         conn.close()
         with patch.object(th, "LEARNING_DB", db_path):
-            result = th.check_hook_errors(default_config)
+            result = th.check_hook_denials(default_config)
         assert result.db_missing is True
         assert result.status == "OK"
 
-    def test_flag_message_none_when_ok(self, default_config: th.HealthConfig, learning_db: Path) -> None:
-        # Spread events evenly so trend is STABLE and rate is below threshold
-        _insert_events(learning_db, blocked=1, total=10, age_days=1.0)
-        _insert_events(learning_db, blocked=1, total=10, age_days=5.0)
-        with patch.object(th, "LEARNING_DB", learning_db):
-            result = th.check_hook_errors(default_config)
-        assert result.flag_message() is None
-
-    def test_flag_message_present_when_warn(self, default_config: th.HealthConfig, learning_db: Path) -> None:
-        _insert_events(learning_db, blocked=10, total=20)
-        with patch.object(th, "LEARNING_DB", learning_db):
-            result = th.check_hook_errors(default_config)
-        assert result.flag_message() is not None
-        assert "50.0%" in result.flag_message()  # type: ignore[operator]
+    @pytest.mark.parametrize("tz", ["America/Los_Angeles", "UTC", "Asia/Tokyo"])
+    def test_window_edge_is_right_in_any_time_zone(
+        self, tz: str, default_config: th.HealthConfig, learning_db: Path
+    ) -> None:
+        """created_at is naive local time. A UTC cutoff moved the window edge by the UTC offset (8 h in Los Angeles)."""
+        saved = os.environ.get("TZ")
+        os.environ["TZ"] = tz
+        time.tzset()
+        try:
+            _insert_events(learning_db, blocked=1, total=1, age_days=7 - 2 / 24)  # 2 h inside the window
+            _insert_events(learning_db, blocked=1, total=1, age_days=7 + 2 / 24)  # 2 h outside it
+            _insert_events(learning_db, blocked=1, total=1, age_days=3.5 - 2 / 24)  # 2 h inside the recent half
+            with patch.object(th, "LEARNING_DB", learning_db):
+                result = th.check_hook_denials(default_config)
+        finally:
+            if saved is None:
+                del os.environ["TZ"]
+            else:
+                os.environ["TZ"] = saved
+            time.tzset()
+        assert result.denial_count == 2
+        assert result.trend == "STABLE", "one denial in each half"
 
     def test_opens_the_database_read_only(
         self, default_config: th.HealthConfig, learning_db: Path, monkeypatch: pytest.MonkeyPatch
@@ -144,8 +259,8 @@ class TestCheckHookErrors:
 
         monkeypatch.setattr(sqlite3, "connect", spy)
         with patch.object(th, "LEARNING_DB", learning_db):
-            result = th.check_hook_errors(default_config)
-        assert result.total_count == 2
+            result = th.check_hook_denials(default_config)
+        assert result.event_count == 2
         assert calls and all(kw.get("uri") is True and str(a[0]).endswith("?mode=ro") for a, kw in calls), calls
 
 
@@ -183,9 +298,9 @@ class TestLearningDbLocation:
         stray.touch()  # the empty file the old path read, which made the check always say OK
         mod = _load_fresh_module(monkeypatch)
         assert tmp_path / ".claude" / "learning" / "learning.db" == mod.LEARNING_DB
-        result = mod.check_hook_errors(mod.HealthConfig())
+        result = mod.check_hook_denials(mod.HealthConfig())
         assert result.db_missing is False
-        assert (result.blocked_count, result.total_count, result.status) == (10, 20, "WARN")
+        assert (result.denial_count, result.event_count, result.status) == (10, 20, "OK")
         assert stray.stat().st_size == 0
 
     def test_claude_learning_dir_overrides_the_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -194,7 +309,7 @@ class TestLearningDbLocation:
         _real_store(tmp_path / "alt" / "learning.db")
         mod = _load_fresh_module(monkeypatch)
         assert tmp_path / "alt" / "learning.db" == mod.LEARNING_DB
-        assert mod.check_hook_errors(mod.HealthConfig()).total_count == 20
+        assert mod.check_hook_denials(mod.HealthConfig()).event_count == 20
         assert not (tmp_path / "home" / ".claude").exists(), "the check must not create anything under HOME"
 
 
@@ -349,6 +464,7 @@ class TestCheckToolkitHealth:
         ):
             report = th.check_toolkit_health(default_config)
         assert report.hook_errors is not None
+        assert report.hook_denials is not None
         assert report.stale_memory is not None
         assert report.state_files is not None
         assert report.adr_backlog is not None
@@ -357,6 +473,7 @@ class TestCheckToolkitHealth:
         with patch.object(th, "ADR_DIR", tmp_path / "adr"):
             report = th.check_toolkit_health(default_config, checks=("adr-backlog",))
         assert report.hook_errors is None
+        assert report.hook_denials is None
         assert report.stale_memory is None
         assert report.state_files is None
         assert report.adr_backlog is not None
@@ -403,11 +520,15 @@ class TestLoadConfig:
                         "stale_memory_days": 7,
                         "state_file_warn_count": 30,
                         "adr_backlog_warn_count": 10,
+                        "hook_crash_warn_count": 2,
+                        "hook_error_rate_threshold": 99.0,  # retired key: ignored, not an error
                     }
                 }
             )
         )
         config = th.load_config(cfg)
+        assert config.hook_crash_warn_count == 2
+        assert not hasattr(config, "hook_error_rate_threshold")
         assert config.stale_memory_days == 7
         assert config.state_file_warn_count == 30
         assert config.adr_backlog_warn_count == 10
@@ -440,7 +561,15 @@ class TestReportToDict:
         assert "has_warnings" in d
         assert "flags" in d
         assert "checks" in d
-        assert "hook_errors" in d["checks"]
+        assert set(d["checks"]["hook_errors"]) == {
+            "status",
+            "log_missing",
+            "crash_count",
+            "threshold",
+            "trend",
+            "by_hook",
+        }
+        assert set(d["checks"]["hook_denials"]) == {"status", "db_missing", "denial_count", "event_count", "trend"}
         assert "stale_memory" in d["checks"]
         assert "state_files" in d["checks"]
         assert "adr_backlog" in d["checks"]
@@ -491,3 +620,41 @@ class TestFormatHumanReport:
         text = th.format_human_report(report)
         assert "[WARN]" in text
         assert "adr-backlog" in text
+
+
+class TestHookLinesInReports:
+    def test_crashes_warn_and_denials_do_not(
+        self, tmp_path: Path, default_config: th.HealthConfig, learning_db: Path, crash_log: Path
+    ) -> None:
+        _insert_events(learning_db, blocked=50, total=50)
+        _write_crashes(crash_log, [("pretool-unified-gate", 1)] * 6)
+        with (
+            patch.object(th, "LEARNING_DB", learning_db),
+            patch.object(th, "MEMORY_PROJECTS_DIR", tmp_path / "projects"),
+            patch.object(th, "STATE_DIR", tmp_path / "state"),
+            patch.object(th, "ADR_DIR", tmp_path / "adr"),
+        ):
+            report = th.check_toolkit_health(default_config)
+        text = th.format_human_report(report)
+        d = th.report_to_dict(report)
+
+        assert len(report.flags) == 1 and "pretool-unified-gate (6)" in report.flags[0]
+        assert "[WARN] hook-errors: 6 crashes" in text
+        assert "[ OK ] hook-denials: 50 denials of 50 governance events" in text
+        assert d["checks"]["hook_errors"]["by_hook"] == [{"hook": "pretool-unified-gate", "count": 6}]
+        assert d["checks"]["hook_denials"]["status"] == "OK"
+
+    def test_denials_alone_leave_the_report_nominal(
+        self, tmp_path: Path, default_config: th.HealthConfig, learning_db: Path, crash_log: Path
+    ) -> None:
+        _insert_events(learning_db, blocked=50, total=50)
+        with (
+            patch.object(th, "LEARNING_DB", learning_db),
+            patch.object(th, "MEMORY_PROJECTS_DIR", tmp_path / "projects"),
+            patch.object(th, "STATE_DIR", tmp_path / "state"),
+            patch.object(th, "ADR_DIR", tmp_path / "adr"),
+        ):
+            report = th.check_toolkit_health(default_config)
+
+        assert not report.has_warnings()
+        assert "All systems nominal." in th.format_human_report(report)

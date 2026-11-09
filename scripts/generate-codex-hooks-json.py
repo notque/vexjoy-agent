@@ -91,6 +91,9 @@ UNSUPPORTED_REGISTRATIONS = {
     ("PreToolUse", "pretool-dispatch-spec-gate.py"): (
         "Codex SubagentStart does not expose the Agent prompt whose handoff blocks this gate checks."
     ),
+    ("SessionEnd", "routing-outcome-stop-fallback.py"): (
+        "The adapted Stop entry already resolves Codex routing outcomes; the Codex mirror registers no SessionEnd event."
+    ),
     ("PostToolUse", "usage-tracker.py"): (
         "Codex has no PostToolUse surface for Claude Skill or Agent tool invocations tracked here."
     ),

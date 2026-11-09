@@ -10,7 +10,7 @@ allowed-tools:
   - Grep
   - Glob
   - Skill
-  - Task
+  - Agent
 routing:
   triggers:
     - "jev router"
@@ -271,7 +271,7 @@ python3 "$SDIR/build-dispatch.py" --json '{
   "agent": "<ROUTE.agent>", "skill": "<ROUTE.skill; omit when agent-only>",
   "pipeline": "<ROUTE.pipeline; omit when null>",
   "complexity": "<ROUTE.complexity>",
-  "model": "<opus (code, edits, decisions) | haiku (read-only gathering) or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high from Model choice>",
+  "model": "<haiku|opus|fable from Model choice, or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high>",
   "context_mode": "summary",
   "provider": "<anthropic|openai|google|antigravity|other>",
   "manual_model_override": false,
@@ -294,25 +294,26 @@ python3 "$SDIR/build-dispatch.py" --json '{
 
 Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
 
-| Task type | Model | Why |
-|---|---|---|
-| code writing and edits, including mechanical renames | opus | Owner, 2026-11-01: Sonnet code work needed redo |
-| debugging, features, long lanes | opus | Same; a redo costs more than the Opus premium |
-| review that decides (verdict, ship or merge call) | opus | Decisions stay on Opus |
-| decisions, design, no row fits | opus | Default for anything not read-only |
-| read-only gathering: locate, lookup, cite lines, collect excerpts, fetch research (executor work) | haiku | An Opus thread judges the result; haiku 0.91 on locate |
+| Task type | Model / effort |
+|---|---|
+| read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
+| code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
+| high-risk: auth, data, security, concurrency, irreversible | opus / high |
+| major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
-Sonnet is no row's default.
+Sonnet is no row's default. When the owner names a model for the task ("use fable for everything"), pass that model on every dispatch with `manual_model_override=true`.
 
-Tiers (`model_policy`): low-risk = haiku (read-only gathering only), standard = opus/high, high-risk = opus/high (on Antigravity / Google AI with `provider="google"`: `low-risk` = `gemini-3.8-flash`, `standard` = `gemini-4-argon`, `high-risk` = `gemini-4-argon-high`, `max-power` = `gemini-4-argon-high` / `max`; see `skills/meta/do/references/antigravity-execution.md`). `max-power` stays opus/xhigh (or `gemini-4-argon-high`/`max`) and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
+Tiers (`model_policy`): low-risk = haiku/low (read-only gathering only), standard = opus/medium, high-risk = opus/high, max-power = fable/high. `max-power`, fable/max, opus/max, and explicit opus/xhigh need `manual_model_override=true`; test fable at high before opus/xhigh. Use `inherit` only when no row or tier fits and the session model is acceptable.
 
-Escalate on a miss: a haiku read-only miss retries on opus. Retry once when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
+Escalate on a miss, when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6. In order: (1) give the agent a way to verify (test, build, script); (2) raise effort one level, up to high; (3) move to the next model up at a lower effort: haiku → opus/medium → opus/high → fable/medium → fable/high. Never raise opus past high before trying fable.
 
-Evidence: the owner's 2026-11-01 override supersedes the 2026-10 task-fit table. The historical record, Jev questions, probabilities, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
+Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 override, which wins where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
+
+On Antigravity / Google AI (`provider="google"`), the tiers are `low-risk` = `gemini-3.8-flash`, `standard` = `gemini-4-argon`, `high-risk` = `gemini-4-argon-high`, and `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`; see `skills/meta/do/references/antigravity-execution.md`.
 
 The builder validates each name against its index, then emits the dispatch
 action. For Complex or creation requests, apply creation detection, plan-file
-gating, quality-loop, workflow dispatch, fan-out, and auto-pipeline fallback.
+gating, quality-loop, workflow dispatch, fan-out, and the `auto-pipeline` fallback.
 
 **Gate**: Agent invoked, results delivered.
 

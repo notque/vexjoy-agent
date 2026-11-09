@@ -24,7 +24,12 @@
 // agent({prompt, schema, model, agentType}) returns a typed object; budget.
 // remaining() bounds the tail. No Date.now()/Math.random()/new Date().
 
-import { skillDirectives, mandatoryInjections } from "./workflow-helpers.js";
+import {
+  mandatoryInjections,
+  modelFor,
+  skillDirectives,
+  validateModelOverride,
+} from "./workflow-helpers.js";
 
 export const meta = {
   name: "research-pipeline",
@@ -218,15 +223,21 @@ function anglesForDepth(depth) {
 
 // --- Workflow body ------------------------------------------------------------
 //
-// run({scope, tier, depth}):
+// run({scope, tier, depth, modelOverride}):
 //   - scope: the research descriptor (primary question + sub-questions + source
 //     types). Passed to every gather agent and into synthesis.
 //   - tier: right-size tier (carried through; this pipeline scales angles by
 //     `depth`, the prose pipeline's own dial, not by review tier).
 //   - depth: quick | standard | deep — scales the gather angle count ABOVE the
 //     mandated 3. Default standard.
+//   - modelOverride: a model the owner named for this task. When set, every
+//     agent runs on it. Unset: gather agents run the `gather` model, SYNTHESIZE
+//     and DELIVER inherit the session model (`lead`), and VALIDATE runs the
+//     `work` model.
 
-export default async function run({ scope, tier, depth } = {}) {
+export default async function run({ scope, tier, depth, modelOverride } = {}) {
+  // Reject a bad model name before any dispatch.
+  validateModelOverride(modelOverride);
   const effectiveDepth = typeof depth === "string" ? depth : "standard";
   const minTailBudget = 8000;
 
@@ -244,7 +255,7 @@ export default async function run({ scope, tier, depth } = {}) {
       agent({
         prompt: gatherPrompt(angle, scope),
         schema: RAW_RESEARCH_SCHEMA,
-        model: "sonnet",
+        model: modelFor("gather", modelOverride),
         agentType: "research-subagent-executor",
       }),
     ),
@@ -265,7 +276,7 @@ export default async function run({ scope, tier, depth } = {}) {
         raw,
       ),
       schema: SYNTHESIS_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
@@ -284,7 +295,7 @@ export default async function run({ scope, tier, depth } = {}) {
         synthesis,
       ),
       schema: VALIDATION_SCHEMA,
-      model: "sonnet",
+      model: modelFor("work", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }
@@ -302,7 +313,7 @@ export default async function run({ scope, tier, depth } = {}) {
         { synthesis, validation },
       ),
       schema: REPORT_SCHEMA,
-      model: "sonnet",
+      model: modelFor("lead", modelOverride),
       agentType: COORDINATOR_AGENT,
     });
   }

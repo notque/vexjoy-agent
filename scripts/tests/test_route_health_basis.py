@@ -152,5 +152,6 @@ def test_json_zero_basis_no_divide_by_zero(db_env):
         "acceptance_detected": 0,
         "default_no_complaint": 0,
         "repeat_dispatch_weak": 0,
+        "acceptance_shared": 0,
     }
     assert data["silent_success_share"] is None

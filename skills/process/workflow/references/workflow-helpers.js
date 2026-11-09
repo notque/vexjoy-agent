@@ -6,6 +6,11 @@
 // so a dispatched workflow agent receives the SAME context it would have gotten
 // from a direct /do dispatch — not a single bare skill.
 //
+// Model choice also lives here, in one table. Workflow scripts call
+// modelFor(role, modelOverride) and never name a model themselves;
+// scripts/validate-workflow-conformance.py fails a literal model string in any
+// other workflow .js file.
+//
 // Two builders, used identically by both workflows:
 //   - skillDirectives(skills): emit one exact Skill-tool call for EVERY skill
 //     in the roster entry's skills list (the Phase-3 enhancement stack: primary
@@ -36,6 +41,78 @@ function indexNames(index, key, label) {
 
 const KNOWN_AGENTS = indexNames(agentIndex, "agents", "agent");
 const KNOWN_SKILLS = indexNames(skillIndex, "skills", "skill");
+
+// --- Model choice -------------------------------------------------------------
+// One model per role. The role states what the dispatched agent does:
+//   gather: read-only locate, collect, or fetch. A later stage judges the result.
+//   work:   edits, verification, findings that decide, and anything else.
+//   lead:   synthesis across many agents, architecture, and final reports.
+//           `undefined` makes agent() inherit the session model.
+const ROLE_MODELS = { gather: "haiku", work: "opus", lead: undefined };
+const MODEL_ALIASES = new Set(["haiku", "sonnet", "opus", "fable"]);
+const MODEL_ID_RE = /^claude-[a-z0-9][a-z0-9.-]*$/;
+
+// Return the caller's model override, or undefined when none is set. Throws on
+// a value that is not a model alias or a `claude-` model ID. Call it at the top
+// of run(): a throw inside a parallel() thunk becomes a silent null slot.
+export function validateModelOverride(override) {
+  if (override === undefined || override === null || override === "") {
+    return undefined;
+  }
+  if (typeof override !== "string") {
+    throw new TypeError("modelOverride: model name must be a string.");
+  }
+  if (!MODEL_ALIASES.has(override) && !MODEL_ID_RE.test(override)) {
+    throw new TypeError(`modelOverride: unknown model ${JSON.stringify(override)}.`);
+  }
+  return override;
+}
+
+// Return the model for a role. `override` is the run arg `modelOverride`: when
+// the owner names a model for the task, it wins for every role.
+export function modelFor(role, override) {
+  if (!Object.hasOwn(ROLE_MODELS, role)) {
+    throw new TypeError(`modelFor: unknown role ${JSON.stringify(role)}.`);
+  }
+  return validateModelOverride(override) ?? ROLE_MODELS[role];
+}
+
+// --- Roster size --------------------------------------------------------------
+// An unset tier means the smallest roster. A caller asks for more with an
+// explicit tier. Rule owner: skills/meta/do/references/workflow-dispatch.md.
+export const SMALLEST_TIER = 1;
+
+export function tierOrSmallest(tier) {
+  return typeof tier === "number" && Number.isFinite(tier) ? tier : SMALLEST_TIER;
+}
+
+// --- Engineer selection -------------------------------------------------------
+// Map a file path (a bare path or `path:line`) to the engineer agent that edits
+// that file type. Returns undefined when no listed engineer fits; the caller
+// then dispatches without agentType.
+const ENGINEER_BY_EXTENSION = {
+  py: "python-general-engineer",
+  go: "golang-general-engineer",
+  ts: "typescript-frontend-engineer",
+  tsx: "typescript-frontend-engineer",
+  jsx: "typescript-frontend-engineer",
+  js: "nodejs-api-engineer",
+  mjs: "nodejs-api-engineer",
+  cjs: "nodejs-api-engineer",
+  rs: "rust-general-engineer",
+  kt: "kotlin-general-engineer",
+  swift: "swift-general-engineer",
+  php: "php-general-engineer",
+  md: "technical-documentation-engineer",
+};
+
+export function engineerForPath(path) {
+  if (typeof path !== "string") return undefined;
+  const file = path.replace(/:\d+.*$/, "");
+  const match = /\.([A-Za-z0-9]+)$/.exec(file);
+  const name = match ? ENGINEER_BY_EXTENSION[match[1].toLowerCase()] : undefined;
+  return name && KNOWN_AGENTS.has(name) ? name : undefined;
+}
 
 export function validateAgentName(name, label = "agentType") {
   if (typeof name !== "string") {

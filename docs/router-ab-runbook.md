@@ -130,7 +130,7 @@ orchestrator session or a human — bridges, exactly as in the semantic-first ru
 whose artifacts sit in `scripts/routing-ab-results/`:
 
 - For each `"$OUT"/prompts/<arm>/<id>.txt` (legacy: `prompts/<id>.txt`), send the
-  file content verbatim as a single prompt to **Haiku** (`claude-haiku-4-5`, the
+  file content verbatim as a single prompt to **Haiku** (`--model haiku`, now Haiku 5.5; earlier runs used `claude-haiku-4-5`, the
   router model before self-route landed) — or, when `arms.json` carries a `models` map
   (`--model-arm` runs), to that arm's model (`default` = omit `--model`).
   Record per-call `cost_usd` and token counts in the run dir
@@ -257,15 +257,15 @@ in a way this box never will.
 
 ## Cost: 100-case, 2-arm run
 
-Haiku 4.5 (`claude-haiku-4-5`): $1.00/M input, $5.00/M output.
+Haiku 5.5 (`haiku` alias): $0.10/M input, $0.50/M output (prompts up to 100K tokens).
 
 | Step | Calls | Tokens (approx) | Cost |
 |---|---|---|---|
-| Routing answers | 200 (100 x 2 arms) | ~6K in + ~0.1K out each → 1.2M in, 20K out | ~$1.30 |
-| Blind judge | a single agent pass over 200 rows | ~40K in, ~5K out | ~$0.07 |
+| Routing answers | 200 (100 x 2 arms) | ~6K in + ~0.1K out each → 1.2M in, 20K out | ~$0.13 |
+| Blind judge | a single agent pass over 200 rows | ~40K in, ~5K out | ~$0.01 |
 | score / gate / pre-route-map | 0 model calls | — | $0 |
 
-**~$1.50 per full run** (compact manifest ≈ 20KB ≈ 5-6K tokens per prompt; a
+**~$0.15 per full run** (compact manifest ≈ 20KB ≈ 5-6K tokens per prompt; a
 tiered arm's prompts are smaller, so real runs cost less). Negligible against
 the Opus orchestrator session driving it.
 

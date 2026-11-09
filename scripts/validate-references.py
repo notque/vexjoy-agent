@@ -559,6 +559,54 @@ _COMMAND_LEGACY_HANDOFF = re.compile(
 )
 
 
+# Dispatch text: the files whose agent and skill names reach a dispatch call verbatim.
+_DISPATCH_NAME_GLOBS = ("skills/**/SKILL.md", "skills/meta/do/references/*.md")
+# Harness-provided agent types, plus `main` (the main-thread route in the [do-route] marker).
+_BUILTIN_AGENTS = frozenset({"general-purpose", "main", "Explore", "Plan"})
+_NAME = r"[A-Za-z0-9][A-Za-z0-9-]*"
+_DISPATCH_AGENT = re.compile(
+    rf"""(?:\b(?:agentType|subagent_type)|["']agent["'])\s*[:=]\s*["'`]({_NAME})["'`]|\bagent=({_NAME})"""
+)
+_DISPATCH_SKILL = re.compile(rf"""["']skill["']\s*:\s*["'`]({_NAME})["'`]|\bskill=({_NAME})""")
+_DISPATCH_SKILL_LIST = re.compile(r"\bskills\s*:\s*\[([^\]]*)\]")
+_QUOTED_NAME = re.compile(rf"""["']({_NAME})["']""")
+
+
+def _agent_names(root: Path) -> set[str]:
+    """Agent names from agents/INDEX.json when built, plus every agents/*.md file."""
+    names = {p.stem for p in (root / "agents").glob("*.md") if p.name not in _SKIP_FILENAMES}
+    index = root / "agents" / "INDEX.json"
+    if index.is_file():
+        names |= set(json.loads(index.read_text(encoding="utf-8")).get("agents", {}))
+    return names
+
+
+def check_dispatch_names(root: Path, skill_names: set[str]) -> list[str]:
+    """Return failures for agent and skill names in dispatch text that resolve to nothing.
+
+    Checks only keyed slots, where the name is passed to a dispatch as written:
+    `agentType: "x"`, `subagent_type: "x"`, `"agent": "x"`, `agent=x`, `"skill": "x"`,
+    `skill=x`, and `skills: ["x", "y"]`. Placeholders (`<agent>`, `{a}`) never match.
+    """
+    agents = _agent_names(root) | _BUILTIN_AGENTS
+    files = sorted({p for pattern in _DISPATCH_NAME_GLOBS for p in root.glob(pattern) if p.is_file()})
+    failures: list[str] = []
+    for path in files:
+        rel = path.relative_to(root)
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for match in _DISPATCH_AGENT.finditer(line):
+                name = match.group(1) or match.group(2)
+                if name not in agents:
+                    failures.append(f"{rel}:{lineno}: dispatches agent {name!r}, which is no indexed agent")
+            named = [m.group(1) or m.group(2) for m in _DISPATCH_SKILL.finditer(line)]
+            for match in _DISPATCH_SKILL_LIST.finditer(line):
+                named.extend(_QUOTED_NAME.findall(match.group(1)))
+            for name in named:
+                if name not in skill_names:
+                    failures.append(f"{rel}:{lineno}: dispatches skill {name!r}, which is no indexed skill or command")
+    return failures
+
+
 def _skill_call_runtime_files(root: Path) -> list[Path]:
     files: list[Path] = []
     for name in _SKILL_CALL_RUNTIME_ROOTS:
@@ -582,6 +630,8 @@ def check_skill_calls(root: Path = REPO_ROOT) -> list[str]:
     - Every "Call the Skill tool with `x`" outside tests names an indexed skill or a
       command; a retired or misspelled name fails at runtime, and the failed call
       leaves no usage record.
+    - Every agent and skill name in a keyed dispatch slot of a SKILL.md or a /do
+      reference resolves (see ``check_dispatch_names``).
     """
     repo = str(REPO_ROOT.resolve())
     if repo not in sys.path:
@@ -630,6 +680,7 @@ def check_skill_calls(root: Path = REPO_ROOT) -> list[str]:
                         f"{path.relative_to(root)}:{lineno}: calls the Skill tool with {match.group(1)!r}, "
                         "which is no indexed skill or command"
                     )
+    failures.extend(check_dispatch_names(root, callable_names))
     return failures
 
 
@@ -783,7 +834,7 @@ def main() -> None:
     parser.add_argument(
         "--check-skill-calls",
         action="store_true",
-        help="Check Skill-tool call wording, pipeline handoffs, and that each called skill exists",
+        help="Check Skill-tool call wording, pipeline handoffs, and that each called or dispatched name exists",
     )
     parser.add_argument(
         "--allowlist",

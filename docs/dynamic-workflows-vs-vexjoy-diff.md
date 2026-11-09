@@ -1,7 +1,7 @@
 # Dynamic Workflows: Native (Anthropic) vs VexJoy Homegrown Orchestration
 
 > Generated 2026-05-28 by a native dynamic workflow (run `wf_a28e3be7-adb`): 7 parallel
-> dimension-compare agents + 1 synthesis agent, 8 agents / ~222k tokens / ~2 min.
+> dimension-compare agents + 1 synthesis agent, 8 in total / ~222k tokens / ~2 min.
 
 ## TL;DR
 
@@ -16,7 +16,7 @@ The native tool makes orchestration a **deterministic JavaScript program a runti
 | **Persistence & resume** | Runtime journal keyed by `runId`; unchanged-prefix of `agent()` returns from cache instantly; no LLM "where am I" reasoning; survives 11-day runs | Disk artifacts (`.feature` state, `HANDOFF.json`, `task_plan.md`); inferential priority-cascade resume; prior agent outputs never cached/replayed | **Native stronger** — native resume is free and lossless; vexjoy re-runs interrupted work |
 | **Structured inter-agent output** | `agent({schema})` forces `StructuredOutput` tool; validated at tool-call layer; auto-retry on mismatch; returns typed object; non-conforming payload cannot reach caller | Real draft-2020-12 schemas + jsonschema validator exist but are **decoupled from dispatch** (grep: never referenced); validation = optional post-hoc markdown re-parse | **Native stronger** — native guarantees conformance; vexjoy's schemas are unwired |
 | **Verification & adversarial checking** | No built-in verification content; you author it, but gating is enforceable — schema-validated verdicts, auto-retry, deterministic JS so a reject mechanically blocks next stage; cross-model via `opts.model` | Richest ready-made content: two-stage review gate, 4-level goal-backward audit (EXISTS/SUBSTANTIVE/WIRED/DATA-FLOW), live Playwright validation, cross-model Codex; but all prose-honored | **Complementary** — vexjoy = methodology out of the box (trust LLM to honor); native = author it yourself but gate is a hard program |
-| **Cost control & scale ceiling** | First-class `budget` global; `agent()` throws when exhausted; enables `while(budget.remaining()>0)` loop-until-budget; cached re-runs near-zero token cost; hours-to-days, hundreds of agents | No token-budget primitive anywhere in the spine; bounded only by 10-cap + human retry counts; ceiling ≈ single-session burst (~25 agents); re-runs re-spend | **Native stronger** — native is the only one that bounds unattended spend |
+| **Cost control & scale ceiling** | First-class `budget` global; `agent()` throws when exhausted; enables `while(budget.remaining()>0)` loop-until-budget; cached re-runs near-zero token cost; hours-to-days, hundreds of agents | No token-budget primitive anywhere in the spine; bounded only by 10-cap + human retry counts; ceiling ≈ single-session burst (~25 concurrent agents); re-runs re-spend | **Native stronger** — native is the only one that bounds unattended spend |
 | **Activation & governance** | Opt-in only (explicit or `ultracode`); first-run confirmation preview; admin kill-switch via managed settings; guardrails baked into runtime | Always-on: `/do` routes every prompt, parallelism auto-fires (2+ items / 3+ subtasks); ~65 edge hooks (hard branch-safety deny, ADR/config gates) + `PROTECTED_ORGS` per-action policy | **Complementary** — native = launch-time consent gate; vexjoy = per-action policy gates |
 
 ## What the native tool gives you that vexjoy doesn't
@@ -34,10 +34,10 @@ The native tool makes orchestration a **deterministic JavaScript program a runti
 - **Shipped adversarial verification methodology you get for free.** A two-stage per-task review gate (ADR-compliance reviewer gates code-quality reviewer, max 3 fix retries, then human escalation), a final integration reviewer over a captured `BASE_SHA` diff — native ships zero verification content.
 - **A 4-level goal-backward audit** (`EXISTS` → `SUBSTANTIVE`-not-stub → `WIRED` → `DATA-FLOW`) explicitly built to counter an executor confirming its own narrative.
 - **Live browser validation in the loop.** The 14-phase quality-loop chains REVIEW, INTENT-VERIFY, LIVE-VALIDATE (real-browser Playwright), and CODEX-REVIEW (cross-model GPT second opinion) as ready-made phases.
-- **A semantic-first `/do` router** over ~46 pipelines with a deterministic Python regex/scoring safety-net classifier — an always-on dispatch layer the native tool has no analog for.
+- **A semantic-first `/do` router** over the pipeline index with a deterministic Python regex/scoring safety-net classifier — an always-on dispatch layer the native tool has no analog for.
 - **Real, well-formed schemas and a working validator.** Draft-2020-12 schemas (verdict, severity-bucketed findings, `file:line` regex) plus `scripts/validate-review-output.py` (jsonschema, exit 0/1/2) — built and correct, even if not wired into dispatch.
 - **Persistent routing telemetry.** `learning-db.py` over SQLite + FTS5 records every route decision and the outcome it produced, then reports route health, route stats, and stack usage.
-- **Dense, per-action governance at the harness edge.** ~65 hooks across PreToolUse/PostToolUse/SessionStart/UserPromptSubmit/Stop, a hard `permissionDecision:deny` branch-safety gate, ADR/config-protection gates, and a data-driven org-sensitivity policy (`classify-repo.py` + `PROTECTED_ORGS`) requiring confirmation before each git action on protected repos.
+- **Dense, per-action governance at the harness edge.** Dozens of hooks across PreToolUse/PostToolUse/SessionStart/UserPromptSubmit/Stop, a hard `permissionDecision:deny` branch-safety gate, ADR/config-protection gates, and a data-driven org-sensitivity policy (`classify-repo.py` + `PROTECTED_ORGS`) requiring confirmation before each git action on protected repos.
 - **Structured pause/resume artifacts.** `HANDOFF.json` (decisions, next_action, context_notes) + `.continue-here.md` + `.feature` lifecycle state with a priority-cascade resume that builds a human-confirmable status dashboard.
 
 ## The core insight

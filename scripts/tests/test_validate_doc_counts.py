@@ -275,3 +275,46 @@ def test_stale_codex_support_claims_fail(tmp_path: Path) -> None:
     assert "Drifts: 2" in result.stdout
     assert "'60 of the 71 hook registrations'  actual=1 of 2" in result.stdout
     assert "'11 are unsupported'  actual=1" in result.stdout
+
+
+def write_pipeline_index(repo: Path, names: list[str]) -> Path:
+    """Write pipeline-index.json with one entry per name, beside non-pipeline reference docs."""
+    refs = repo / "skills" / "process" / "workflow" / "references"
+    refs.mkdir(parents=True, exist_ok=True)
+    (refs / "pipeline-index.json").write_text(
+        json.dumps({"pipelines": {name: {"file": f"{name}.md"} for name in names}}), encoding="utf-8"
+    )
+    # Phase and reference docs live in the same directory and are not pipelines.
+    for extra in ("pl-check.md", "fl-design.md", "adr-template.md", *[f"{n}.md" for n in names]):
+        (refs / extra).write_text("# doc\n", encoding="utf-8")
+    return refs
+
+
+def test_pipelines_count_comes_from_pipeline_index_not_md_files(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    write_pipeline_index(repo, ["alpha", "beta"])
+
+    assert truth_of(repo)["pipelines"] == 2
+
+
+def test_pipeline_claim_matching_md_file_count_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    write_pipeline_index(repo, ["alpha", "beta"])
+    write_doc(repo, "The router ships 5 pipelines.\n")
+
+    result = run_validator(repo)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "5 pipelines" in result.stdout
+
+
+def test_pipeline_claims_are_skipped_without_a_readable_index(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, (2, 3, 1, 4))
+    refs = write_pipeline_index(repo, ["alpha"])
+    (refs / "pipeline-index.json").write_text("{", encoding="utf-8")
+    write_doc(repo, "The router ships 5 pipelines.\n")
+
+    result = run_validator(repo)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "pipelines" not in truth_of(repo)

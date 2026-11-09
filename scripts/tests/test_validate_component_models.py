@@ -80,6 +80,15 @@ def test_opus_and_inherit_are_allowed(tmp_path: Path, monkeypatch) -> None:
     assert _flagged(repo, monkeypatch) == {}
 
 
+def test_fable_is_allowed(tmp_path: Path, monkeypatch) -> None:
+    # Fable is the tier above Opus; it needs no read-only tool list.
+    repo = _make_repo(tmp_path)
+    _agent(repo, "lead", "model: fable\n")
+    _agent(repo, "lead-writer", "model: fable\ntools: Read, Edit, Bash\n")
+
+    assert _flagged(repo, monkeypatch) == {}
+
+
 def test_sonnet_is_flagged_everywhere(tmp_path: Path, monkeypatch) -> None:
     # Owner policy 2026-11-01: Sonnet is no task's default, in any component class.
     repo = _make_repo(tmp_path)
@@ -183,3 +192,167 @@ def test_main_fails_when_a_target_class_finds_no_files(tmp_path: Path, monkeypat
     monkeypatch.setattr(sys, "argv", ["validate_component_models.py"])
 
     assert _mod.main() == 2
+
+
+_WORKFLOW_DIR = Path("skills") / "process" / "workflow" / "references"
+
+
+def _script(repo: Path, relative: str, body: str) -> None:
+    path = repo / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+
+
+def _script_hits(repo: Path, monkeypatch) -> list[tuple[str, int | None, str]]:
+    monkeypatch.setattr(_mod, "REPO_ROOT", repo)
+    return [(v.file, v.line, v.issue) for v in _mod.validate_models() if v.component_type == "dispatch_script"]
+
+
+def test_workflow_script_literal_model_is_flagged_with_its_line(tmp_path: Path, monkeypatch) -> None:
+    # The frontmatter-only scan passed six workflow scripts that held 32 `model: "sonnet"`.
+    repo = _make_repo(tmp_path)
+    _script(
+        repo,
+        str(_WORKFLOW_DIR / "demo-workflow.js"),
+        'export async function run() {\n  await agent({\n    prompt: "p",\n    model: "sonnet",\n  });\n}\n',
+    )
+
+    hits = _script_hits(repo, monkeypatch)
+
+    assert [(file, line) for file, line, _ in hits] == [(str(_WORKFLOW_DIR / "demo-workflow.js"), 4)]
+    assert "'sonnet'" in hits[0][2]
+    assert "modelFor" in hits[0][2]
+
+
+def test_every_literal_model_form_is_flagged_even_an_allowed_model(tmp_path: Path, monkeypatch) -> None:
+    # The rule is "no literal", not "no sonnet": opus and fable literals fail too.
+    repo = _make_repo(tmp_path)
+    _script(
+        repo,
+        str(_WORKFLOW_DIR / "forms.mjs"),
+        "\n".join(
+            [
+                'agent({ model: "opus" });',
+                "agent({ model: 'fable' });",
+                "agent({ model: `haiku` });",
+                'const model = "inherit";',
+                'agent({ model: deep ? "opus" : "haiku" });',
+                'const TIERS = ["sonnet", "claude-opus-5-5", "opus[1m]"];',
+                'agent({ model: "gpt-4o" });',
+            ]
+        )
+        + "\n",
+    )
+
+    found = {(line, issue.split("'")[1]) for _, line, issue in _script_hits(repo, monkeypatch)}
+
+    assert found == {
+        (1, "opus"),
+        (2, "fable"),
+        (3, "haiku"),
+        (4, "inherit"),
+        (5, "opus"),
+        (5, "haiku"),
+        (6, "sonnet"),
+        (6, "claude-opus-5-5"),
+        (6, "opus[1m]"),
+        (7, "gpt-4o"),
+    }
+
+
+def test_model_from_helper_and_prose_are_not_flagged(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _script(
+        repo,
+        str(_WORKFLOW_DIR / "clean.js"),
+        "\n".join(
+            [
+                'import { modelFor } from "./workflow-helpers.js";',
+                '// gather runs on "haiku"; model: "sonnet" was the old pin',
+                '/* work -> "opus"',
+                '   lead -> model: "fable" */',
+                "export async function run({ modelOverride }) {",
+                '  await agent({ prompt: "Use opus-grade care; see https://example.test/x", model: modelFor("work", modelOverride) });',
+                '  await agent({ prompt: `magnum opus // not a comment`, model: modelFor("gather", modelOverride) });',
+                '  const model = modelFor("lead", modelOverride);',
+                "  await agent({ model });",
+                "}",
+            ]
+        )
+        + "\n",
+    )
+
+    assert _script_hits(repo, monkeypatch) == []
+
+
+def test_literal_after_a_comment_keeps_its_line_number(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _script(
+        repo,
+        str(_WORKFLOW_DIR / "late.js"),
+        '/* two\n   lines */\nconst url = "https://example.test"; // note\nagent({ model: "sonnet" });\n',
+    )
+
+    assert [line for _, line, _ in _script_hits(repo, monkeypatch)] == [4]
+
+
+def test_workflow_helpers_is_the_one_script_that_may_name_models(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    table = 'const MODELS = { gather: "haiku", work: "opus" };\n'
+    _script(repo, str(_WORKFLOW_DIR / "workflow-helpers.js"), table)
+    # The same file name elsewhere gets no pass.
+    _script(repo, "skills/demo/demo-skill/scripts/workflow-helpers.js", table + "agent({});\n")
+
+    hits = _script_hits(repo, monkeypatch)
+
+    assert {file for file, _, _ in hits} == {"skills/demo/demo-skill/scripts/workflow-helpers.js"}
+
+
+def test_scripts_outside_the_workflow_dir_are_scanned_only_when_they_dispatch(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path)
+    _script(repo, "skills/demo/demo-skill/scripts/dispatch.mjs", 'await agent({ model: "sonnet" });\n')
+    _script(repo, "agents/demo-agent/scripts/dispatch.js", "await agent ({ model: 'haiku' });\n")
+    # No agent() call: an image or 3D model name is not a Claude dispatch.
+    _script(repo, "skills/demo/demo-skill/scripts/render.mjs", 'fetch(url, { model: "meshy-5" });\n')
+    _script(repo, "skills/demo/demo-skill/node_modules/dep/index.js", 'agent({ model: "sonnet" });\n')
+
+    hits = _script_hits(repo, monkeypatch)
+
+    assert {file for file, _, _ in hits} == {
+        "skills/demo/demo-skill/scripts/dispatch.mjs",
+        "agents/demo-agent/scripts/dispatch.js",
+    }
+
+
+def test_main_exits_1_and_prints_file_and_line_for_a_script_literal(tmp_path: Path, monkeypatch, capsys) -> None:
+    repo = _make_repo(tmp_path)
+    _agent(repo, "demo-agent", "model: opus\n")
+    skill_dir = repo / "skills" / "demo" / "demo-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("---\nname: demo-skill\n---\n", encoding="utf-8")
+    (repo / _WORKFLOW_DIR / "demo-pipeline.md").write_text("---\nname: demo-pipeline\n---\n", encoding="utf-8")
+    _script(repo, str(_WORKFLOW_DIR / "demo-workflow.js"), 'agent({\n  model: "sonnet",\n});\n')
+    monkeypatch.setattr(_mod, "REPO_ROOT", repo)
+    monkeypatch.setattr(sys, "argv", ["validate_component_models.py"])
+
+    assert _mod.main() == 1
+    assert f"{_WORKFLOW_DIR / 'demo-workflow.js'}:2: literal model string 'sonnet'" in capsys.readouterr().out
+
+    _script(repo, str(_WORKFLOW_DIR / "demo-workflow.js"), 'agent({\n  model: modelFor("work", modelOverride),\n});\n')
+
+    assert _mod.main() == 0
+
+
+def test_main_fails_when_no_dispatch_script_is_found(tmp_path: Path, monkeypatch, capsys) -> None:
+    # A moved workflow directory must not turn the script scan into a silent pass.
+    repo = _make_repo(tmp_path)
+    _agent(repo, "demo-agent", "model: opus\n")
+    skill_dir = repo / "skills" / "demo" / "demo-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("---\nname: demo-skill\n---\n", encoding="utf-8")
+    (repo / _WORKFLOW_DIR / "demo-pipeline.md").write_text("---\nname: demo-pipeline\n---\n", encoding="utf-8")
+    monkeypatch.setattr(_mod, "REPO_ROOT", repo)
+    monkeypatch.setattr(sys, "argv", ["validate_component_models.py"])
+
+    assert _mod.main() == 2
+    assert "dispatch_script" in capsys.readouterr().err

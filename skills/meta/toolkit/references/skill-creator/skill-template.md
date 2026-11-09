@@ -17,7 +17,7 @@ description: |                           # REQUIRED — 1024 char max
 # compatibility: "Requires Python 3.10+, network access for API calls"
 # user-invocable: false
 # agent: golang-general-engineer
-# model: sonnet
+# model: opus                         # omit to inherit; never sonnet (scripts/validate_component_models.py)
 routing:                                 # REQUIRED — must be a mapping
   triggers:                              # REQUIRED — non-empty list
     - keyword1

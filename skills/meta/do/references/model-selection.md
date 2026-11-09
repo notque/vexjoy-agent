@@ -1,37 +1,68 @@
 # Explicit model selection
 
-Task-to-model choice lives in `skills/meta/d/references/model-task-fit.md`. Use this reference for override rules and legacy policy tables. `inherit` remains valid when no task type fits. The builder produces a prompt; the dispatcher must apply that instruction.
+Task-to-model choice lives in `skills/meta/d/references/model-task-fit.md`. Use this reference for the builder's policy tiers, override rules, prices, and legacy measurement tables. `inherit` remains valid when no task type fits. The builder produces a prompt; the dispatcher must apply that instruction.
 
-## Compatibility policies
+## Anthropic policy (2026-11-09)
 
-`scripts/build-dispatch.py` owns accepted model names, provider policies, effort validation, and override rules. Existing explicit selections remain supported. Set `provider` from the actual harness, not the first installed scripts directory. `model_policy` selects the provider's existing table below; provider `other` requires a supported explicit model instead. `deterministic` means run a script, not an LLM dispatch.
+Owner order 2026-11-01 plus the effort ladder from Anthropic's model guide (2026-11-09). `scripts/build-dispatch.py` enforces this table for `provider="anthropic"`, the default.
 
+| `model_policy` | Selection | Use for |
+|---|---|---|
+| deterministic | no LLM | Run the script directly. |
+| low-risk | `haiku` / `low` | Read-only gathering only (locate, lookup, cite lines, excerpts, research fetch, log reading). An Opus thread judges the result. |
+| standard | `opus` / `medium` | Code writing and edits, debugging, features, deciding reviews, decisions, and any task no other row fits. Start at medium, then high. |
+| high-risk | `opus` / `high` | Auth, data, security, concurrency, irreversible changes. |
+| max-power | `fable` / `high` | Major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, a long unattended run, or Opus at high fell short. Requires `manual_model_override=true`; state the justification in task_spec intent. Start an explicit `fable` pick at medium, then high. |
+
+Sonnet is no tier's default. Anthropic suggests Sonnet for well-scoped coding, documents, chat, and repeated agent tasks; the owner's experience (2026-11-01: Sonnet code work needed redo) supersedes that. Re-measure with the loop in `skills/meta/d/references/model-task-fit.md` before changing it.
+
+Escalate on a miss (an objective check fails, or a Jev blocker Noul is 0.6 or higher), in this order:
+
+1. Give the agent a way to verify its work: a test, build, or script.
+2. Raise effort one level, up to high.
+3. Move to the next model up at a lower effort: `haiku` -> `opus`/`medium` -> `opus`/`high` -> `fable`/`medium` -> `fable`/`high`.
+
+Never raise Opus past high before trying Fable. Fable at high scores about the same as Opus at max for about half the cost per task (FrontierCode 2.0: 45.3 vs 45.5). Effort cannot add knowledge or skill a model lacks.
+
+### Prices
+
+Anthropic list price in USD per 1M tokens, 2026-11-09. Every model has a 1M-token context and a 128K-token maximum output. `scripts/agent-scheduler.py` uses the input and output columns for cost estimates.
+
+| Alias | Model | Input | Output | Cache read |
+|---|---|---|---|---|
+| `haiku` | Haiku 5.5, prompt up to 100K tokens | 0.10 | 0.50 | 0.01 |
+| `haiku` | Haiku 5.5, prompt over 100K tokens | 0.50 | 2.50 | 0.05 |
+| `sonnet` | Sonnet 5.5 | 2.00 | 10.00 | 0.10 |
+| `opus` | Opus 5.5 | 4.00 | 20.00 | 0.20 |
+| `fable` | Fable 5.2 | 8.00 | 40.00 | 0.20 |
+
+## Override rules
+
+`scripts/build-dispatch.py` owns accepted model names, provider policies, effort validation, and override rules. Set `provider` from the actual harness, not the first installed scripts directory. `model_policy` selects the provider's table; provider `other` requires a supported explicit model instead. `deterministic` means run a script, not an LLM dispatch.
+
+- **Owner per-task override:** when the owner names a model for the task ("use fable for everything"), pass that `model` with `manual_model_override=true` on every dispatch. The builder accepts it for every model, `inherit` included, and records the model in the route marker.
 - `max-power` requires `manual_model_override=true`.
-- A model different from a policy's choice requires `manual_model_override=true` and an explicit `model_effort`.
-- Explicit GPT-5.6 choices require effort and manual override. GPT-5.5 requires manual override. Opus/max requires manual override. Haiku, sonnet, and opus need none unless they differ from the policy tier.
+- A model or effort different from a named policy's choice requires `manual_model_override=true`. A different model also requires an explicit `model_effort`.
+- Explicit `haiku`, `sonnet`, `opus`, and `fable` need no override, with two exceptions. `opus`/`xhigh` requires `manual_model_override=true`: test `fable` at high first. `opus`/`max` and `fable`/`max` require `manual_model_override=true`.
+- `inherit` takes no `model_policy` and no `model_effort`.
+- Explicit GPT-5.6 choices require effort and manual override. GPT-5.5 requires manual override.
 - Claude effort is advisory when the agent tool has no effort parameter. Only pass options the tool supports.
 - Cross-provider calls remain deliberate, explicit choices. Do not infer a cross-provider upgrade from historical scores.
 - A route marker records a requested selection. It does not establish which model ran. Report actual identity only from harness execution metadata.
 
 ## Historical measurements and policy tables
 
-These are the previously recorded DeepSWE measurements and compatibility policy choices, retained for reference. They are not measurements of the current session or proof of current model quality. Opus 5 was an owner-directed default without a DeepSWE run. The builder's named policies retain those choices for existing callers; inheritance does not use them.
+These are the previously recorded DeepSWE measurements, retained for reference. They are not measurements of the current session or proof of current model quality. The Claude rows measure earlier models (Opus 4.8, Sonnet 5): do not read them as Opus 5.5, Sonnet 5.5, or Fable 5.2 scores. No DeepSWE run exists for the current Claude lineup; the Anthropic policy above rests on the owner's order and Anthropic's guide. The OpenAI policy table below is still the builder's `provider="openai"` table.
 
-Measurement cells: Pass@1 / average USD per task / output tokens / steps. Higher Pass@1 is better; the other values are lower-is-better. Policy tables show the historical rationale; “current session model” below refers to the original policy context, not the active session.
+Measurement cells: Pass@1 / average USD per task / output tokens / steps. Higher Pass@1 is better; the other values are lower-is-better.
 
 | Variant | max | xhigh | high | medium | low |
 |---|---|---|---|---|---|
-| Opus-5 (current default, unmeasured) | n/a — not yet benchmarked | n/a — not yet benchmarked | n/a — not yet benchmarked | n/a — not yet benchmarked | n/a — not yet benchmarked |
+| Opus-5 (stale label: never measured; the current model is Opus 5.5) | n/a | n/a | n/a | n/a | n/a |
 | Opus-4.8 (prior measurement) | 59 / 13.22 / 135k / 120 | 54 / 8.01 / 86k / 95 | 52 / 4.28 / 50k / 73 | 49 / 3.44 / 41k / 66 | 41 / 2.29 / 29k / 54 |
 | Sonnet-5 (prior measurement) | 54 / 26.40 / 214k / 268 | 50 / 11.89 / 121k / 186 | 48 / 7.43 / 87k / 147 | 40 / 4.08 / 57k / 108 | 31 / 2.19 / 36k / 77 |
 
-| Task class | Selection | pts/$ | Why |
-|---|---|---|---|
-| deterministic | no LLM | — | Run the script directly. |
-| low-risk | `haiku` / `low` | n/a | Read-only gathering only (locate, lookup, cite lines, excerpts, research fetch); an Opus thread judges the result. |
-| standard | `opus` / `high` | n/a | Owner, 2026-11-01: all code, edits, debugging, deciding reviews, and decisions. Sonnet code work needed redo. |
-| high-risk | `opus` / `high` | n/a | A miss is costly. |
-| max-power | `opus` / `xhigh` | n/a | `manual_model_override=true`; state justification in task_spec intent. |
+Superseded Anthropic tiers (2026-11-01 to 2026-11-09): standard was `opus`/`high` and max-power was `opus`/`xhigh`. The current table is under "Anthropic policy" above.
 
 | Variant | max | xhigh | high | medium | low |
 |---|---|---|---|---|---|

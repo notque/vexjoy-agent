@@ -11,6 +11,9 @@ Reads `<CLAUDE_LEARNING_DIR or ~/.claude/learning>/route-events.jsonl`
 Exit 0 = NO-SIGNAL (informational). Exit 3 = SIGNAL: at least one
 routing-relevant failure OR one would-demote/would-tiebreak — re-propose the
 actuator (see docs/route-loop-validation.md). Read-only: never writes.
+
+Exit 3 is a verdict, not a crash. `learning-db.py route-health` calls
+`count_signals` and prints the same verdict, so no separate job runs this file.
 """
 
 from __future__ import annotations
@@ -33,12 +36,20 @@ def events_path() -> Path:
     return get_db_dir() / "route-events.jsonl"
 
 
-def main() -> int:
-    """Count signal events and report NO-SIGNAL (0) or SIGNAL (3)."""
+def count_signals(path: Path | None = None) -> dict:
+    """Count signal events in route-events.jsonl. Read-only.
+
+    Returns ``failures`` (routing-relevant failure outcomes), ``scored``
+    (decisions with a non-null health_at_decision), ``would_act``
+    (would-demote or would-tiebreak decisions), and ``signal`` (True when
+    ``failures`` or ``would_act`` is non-zero). A missing file counts as zeros.
+    `learning-db.py route-health` prints the same counts, so the check runs
+    whenever route health is read.
+    """
     failures = scored = would_act = 0
-    path = events_path()
+    path = path or events_path()
     if path.is_file():
-        for line in path.read_text(encoding="utf-8").splitlines():
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
             try:
                 event = json.loads(line)
             except json.JSONDecodeError:
@@ -53,10 +64,16 @@ def main() -> int:
                     scored += 1
                 if event.get("action") in ("demote", "tiebreak"):
                     would_act += 1
-    print(f"routing-relevant failures: {failures}")
-    print(f"decisions with health_at_decision: {scored}")
-    print(f"would-demote/would-tiebreak decisions: {would_act}")
-    if failures or would_act:
+    return {"failures": failures, "scored": scored, "would_act": would_act, "signal": bool(failures or would_act)}
+
+
+def main() -> int:
+    """Count signal events and report NO-SIGNAL (0) or SIGNAL (3)."""
+    counts = count_signals()
+    print(f"routing-relevant failures: {counts['failures']}")
+    print(f"decisions with health_at_decision: {counts['scored']}")
+    print(f"would-demote/would-tiebreak decisions: {counts['would_act']}")
+    if counts["signal"]:
         print("SIGNAL: re-propose the actuator (docs/route-loop-validation.md)")
         return EXIT_SIGNAL
     print("NO-SIGNAL")

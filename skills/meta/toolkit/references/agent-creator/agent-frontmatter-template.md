@@ -22,10 +22,15 @@ description: "Domain-specific work: concrete capability A, capability B. Not for
 # red, purple, orange. Omit if the agent has no visual grouping.
 color: blue
 
-# Optional: model override. Omit to use the session default.
-# Values: sonnet (implementation/lighter work), opus (reviews/analysis/deep work).
-# Model-selection policy: /do SKILL.md, Model Selection. Haiku is retired.
-model: sonnet
+# Optional: model pin. Omit it to inherit the session model; most agents do.
+# Values: opus (code, edits, debugging, reviews that decide, decisions),
+# fable (major refactors, architecture, leading a many-agent fan-out),
+# inherit (same as omitting the field).
+# haiku: only for read-only gathering, and only with a `tools:` list that
+# holds no Edit, Write, MultiEdit, NotebookEdit, Bash, Agent, or Task.
+# sonnet is no task's default; the validator rejects it.
+# Policy: /do SKILL.md, Model choice. Check: scripts/validate_component_models.py.
+# model: opus
 
 routing:
   # Required: list of 3–6 intent phrases matching natural speech.
@@ -80,7 +85,7 @@ user-invocable: false
 | `name` | yes | string | lowercase, hyphens, numbers |
 | `description` | yes | quoted string | 60–120 chars; no "Use when:" prefix |
 | `color` | no | string | blue, green, yellow, red, purple, orange |
-| `model` | no | string | sonnet, opus |
+| `model` | no | string | omit to inherit; `opus`, `fable`, `inherit`; `haiku` only with a read-only `tools:` list; never `sonnet` |
 | `routing.triggers` | yes | list | 3–6 natural-speech phrases |
 | `routing.pairs_with` | no | list | agent names that exist on disk |
 | `routing.complexity` | yes | enum | Low, Medium, High (case-sensitive) |

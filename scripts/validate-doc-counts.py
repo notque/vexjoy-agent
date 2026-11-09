@@ -75,7 +75,7 @@ CLAIM = re.compile(
     re.IGNORECASE,
 )
 
-# "Codex runs 61 of the 74 hook registrations; 13 are unsupported." Checked only on
+# "Codex runs 61 of the 75 hook registrations; 14 are unsupported." Checked only on
 # lines that mention Codex, against scripts/codex-hooks-allowlist.txt.
 CODEX_LINE = re.compile(r"\bCodex\b", re.IGNORECASE)
 CODEX_SUPPORT = re.compile(r"\b(\d{1,4}) of (?:the )?(\d{1,4}) hook registrations\b", re.IGNORECASE)
@@ -160,6 +160,16 @@ def count_active_skills(skills_dir: Path) -> int:
     return count
 
 
+def count_pipelines(index_path: Path) -> int | None:
+    """Entries under ``pipelines`` in pipeline-index.json; None when the file is absent or malformed."""
+    try:
+        data = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    pipelines = data.get("pipelines") if isinstance(data, dict) else None
+    return len(pipelines) if isinstance(pipelines, dict) else None
+
+
 def load_settings_hooks() -> dict:
     """The ``hooks`` mapping of .claude/settings.json, or {} when missing or unreadable."""
     if not SETTINGS.is_file():
@@ -220,9 +230,12 @@ def ground_truth() -> dict[str, int]:
     skills_dir = REPO_ROOT / "skills"
     truth["skills"] = count_active_skills(skills_dir)
 
-    # workflow skills (pipelines)
-    pipelines_dir = skills_dir / "process" / "workflow" / "references"
-    truth["pipelines"] = count_files(pipelines_dir, "*.md")
+    # Pipelines are the entries of pipeline-index.json (what the routing
+    # manifest ships). The references/ directory also holds phase and
+    # reference docs, so a *.md count overstates them.
+    pipelines = count_pipelines(skills_dir / "process" / "workflow" / "references" / "pipeline-index.json")
+    if pipelines is not None:
+        truth["pipelines"] = pipelines
 
     # hook events
     if SETTINGS.is_file():

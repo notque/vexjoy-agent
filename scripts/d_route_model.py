@@ -26,7 +26,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPTS = REPO / "scripts"
-DEFAULT_MODEL = "sonnet"
+DEFAULT_MODEL = "opus"
 
 _JSON_RE = re.compile(r"\{.*\}", re.S)
 

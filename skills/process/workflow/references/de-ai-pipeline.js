@@ -27,8 +27,10 @@
 
 import {
   mandatoryInjections,
+  modelFor,
   skillDirectives,
   validateAgentName,
+  validateModelOverride,
   validateRoster,
 } from "./workflow-helpers.js";
 
@@ -178,7 +180,7 @@ function fixPrompt(r) {
 
 // --- Workflow body ------------------------------------------------------------
 //
-// run({scope, tier, roster}):
+// run({scope, tier, roster, modelOverride}):
 //   - scope.scanHits: the deterministic scanner output (scan-ai-patterns.py),
 //     run OUT-OF-BAND by the /do caller (detection is deterministic — no LLM).
 //     Shape: { files_with_errors: [...], hits_by_file: {file: [hit,...]},
@@ -188,8 +190,13 @@ function fixPrompt(r) {
 //     pre-build it; the conformance harness exercises this path.
 //   - tier: right-size tier (carried through; this pipeline loops on the re-scan
 //     verdict, not the review tier).
+//   - modelOverride: a model the owner named for this task. When set, every
+//     agent runs on it. Unset: every agent runs the `work` model, because FIX
+//     edits files, VERIFY decides the loop, and REPORT stages files.
 
-export default async function run({ scope, tier, roster } = {}) {
+export default async function run({ scope, tier, roster, modelOverride } = {}) {
+  // Reject a bad model name before any dispatch.
+  validateModelOverride(modelOverride);
   const fixAgent = validateAgentName(FIX_AGENT, "FIX_AGENT");
   const scanHits = (scope && scope.scanHits) || {};
   const initialErrors = typeof scanHits.total_errors === "number" ? scanHits.total_errors : 0;
@@ -229,7 +236,7 @@ export default async function run({ scope, tier, roster } = {}) {
         agent({
           prompt: fixPrompt(r),
           schema: FIX_SCHEMA,
-          model: "sonnet",
+          model: modelFor("work", modelOverride),
           agentType: r.agentType,
         }),
       ),
@@ -247,7 +254,7 @@ export default async function run({ scope, tier, roster } = {}) {
         `count of errors remaining, and the files that still have errors. Fixed ` +
         `files (typed):\n${JSON.stringify(errorFiles)}`,
       schema: VERIFY_SCHEMA,
-      model: "sonnet",
+      model: modelFor("work", modelOverride),
       agentType: fixAgent,
     });
     if (!lastVerify || lastVerify.verdict === "clean") {
@@ -270,7 +277,7 @@ export default async function run({ scope, tier, roster } = {}) {
         `files. Stage the fixed files but do NOT commit. Results (typed):\n` +
         JSON.stringify({ iteration, initialErrors, filesScanned, allFixes, lastVerify }),
       schema: REPORT_SCHEMA,
-      model: "sonnet",
+      model: modelFor("work", modelOverride),
       agentType: fixAgent,
     });
   }

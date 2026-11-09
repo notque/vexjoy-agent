@@ -20,6 +20,11 @@ ENTRIES = [
 ]
 
 
+def test_default_stand_in_model_is_the_decision_model() -> None:
+    """The stand-in plays the /d session, which decides a route. Decisions run on Opus; Sonnet is no default."""
+    assert drm.DEFAULT_MODEL == "opus"
+
+
 def test_system_text_holds_the_skill_the_rules_and_the_manifest() -> None:
     with mock.patch.object(drm, "manifest_for", return_value="AGENTS: a\nSKILLS: b\nPIPELINES: c"):
         text = drm.system_text("fix it")

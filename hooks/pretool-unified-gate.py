@@ -61,7 +61,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error, record_governance
+from hook_utils import get_tool_input, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 # Module-level state set by main() so _block() can enrich governance events.
@@ -3635,6 +3635,16 @@ def check_sysadmin_security(command: str) -> None:
 # ═══════════════════════════════════════════════════════════════
 
 
+def _str_field(tool_input: dict, key: str) -> str:
+    """The string at ``tool_input[key]``, or "" when it is missing or not a string.
+
+    Every check takes a string. A non-string value (null, a list, a number) is a malformed
+    call with nothing to match, so it reads as empty instead of crashing the gate.
+    """
+    value = tool_input.get(key, "")
+    return value if isinstance(value, str) else ""
+
+
 def main() -> None:
     global _CURRENT_EVENT, _CURRENT_COMMAND
     _ADVISORIES.clear()
@@ -3643,15 +3653,20 @@ def main() -> None:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         return
+    if not isinstance(event, dict):
+        # Valid JSON that is not an event object (null, a list, a number) names no tool to check.
+        return
 
     _CURRENT_EVENT = event
 
     # Field name compatibility: try new names first, fall back to old
     tool = event.get("tool_name") or event.get("tool", "")
-    tool_input = event.get("tool_input", event.get("input", {}))
+    # A malformed tool_input (null, a list, a number) becomes {} instead of a crash that skips
+    # every check. A string is still checked: JSON text is parsed, and bare text is the command.
+    tool_input = get_tool_input(event)
 
     if tool == "Bash":
-        command = tool_input.get("command", "")
+        command = _str_field(tool_input, "command")
         _CURRENT_COMMAND = command
         if not command:
             return
@@ -3663,23 +3678,23 @@ def main() -> None:
         check_sensitive_bash(command)
 
     elif tool == "Write":
-        file_path = tool_input.get("file_path", "")
+        file_path = _str_field(tool_input, "file_path")
         if not file_path:
             return
-        cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
+        cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
         check_creation_gate(file_path, cwd=cwd)
         check_guard_integrity(file_path)
         check_sensitive_file(file_path)
 
     elif tool == "Edit":
-        file_path = tool_input.get("file_path", "")
+        file_path = _str_field(tool_input, "file_path")
         if not file_path:
             return
         check_guard_integrity(file_path)
         check_sensitive_file(file_path)
 
     elif tool == "Read":
-        file_path = tool_input.get("file_path", "")
+        file_path = _str_field(tool_input, "file_path")
         if not file_path:
             return
         check_sensitive_file(file_path, deny=False)

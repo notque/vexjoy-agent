@@ -74,3 +74,53 @@ def test_check_skill_calls_skips_tests_for_unknown_names(tmp_path: Path) -> None
     fixture.parent.mkdir(parents=True)
     fixture.write_text('EXPECTED = "Call the Skill tool with `inst-skill`."\n', encoding="utf-8")
     assert validate_references.check_skill_calls(root) == []
+
+
+def _dispatch_repo(tmp_path: Path, skill_body: str) -> Path:
+    """Add one real agent to the minimal repo, so dispatch names have something to resolve to."""
+    root = _repo(tmp_path, GOOD_COMMAND, skill_body)
+    (root / "agents").mkdir()
+    (root / "agents" / "real-engineer.md").write_text("# real-engineer\n", encoding="utf-8")
+    return root
+
+
+def test_check_skill_calls_flags_dispatch_of_an_agent_that_does_not_exist(tmp_path: Path) -> None:
+    body = '# Demo\n\nagent(prompt, {agentType: "reviewer-language-specialist"})\n[do-route] agent=ghost-engineer\n'
+    failures = validate_references.check_skill_calls(_dispatch_repo(tmp_path, body))
+    assert failures == [
+        "skills/cat/demo/SKILL.md:3: dispatches agent 'reviewer-language-specialist', which is no indexed agent",
+        "skills/cat/demo/SKILL.md:4: dispatches agent 'ghost-engineer', which is no indexed agent",
+    ]
+
+
+def test_check_skill_calls_flags_dispatch_of_a_skill_that_does_not_exist(tmp_path: Path) -> None:
+    body = (
+        '# Demo\n\n{agentType: "real-engineer", skills: ["workflow", "systematic-code-review"]}\n'
+        '{"agent": "real-engineer", "skill": "auto-pipeline"}\n'
+    )
+    failures = validate_references.check_skill_calls(_dispatch_repo(tmp_path, body))
+    assert failures == [
+        "skills/cat/demo/SKILL.md:3: dispatches skill 'systematic-code-review', which is no indexed skill or command",
+        "skills/cat/demo/SKILL.md:4: dispatches skill 'auto-pipeline', which is no indexed skill or command",
+    ]
+
+
+def test_check_skill_calls_accepts_real_builtin_and_placeholder_dispatch_names(tmp_path: Path) -> None:
+    body = (
+        '# Demo\n\n{"agent": "real-engineer", "skill": "workflow", "skills": ["demo"]}\n'
+        '{"agent": "general-purpose", "skill": "<skill; omit when agent-only>"}\n'
+        "[do-route] agent=main skill={s} complexity={c}\n"
+        'Agent(subagent_type: "Explore") then agent={a} skill=workflow\n'
+    )
+    assert validate_references.check_skill_calls(_dispatch_repo(tmp_path, body)) == []
+
+
+def test_check_skill_calls_reads_agents_from_the_index_and_do_references(tmp_path: Path) -> None:
+    root = _dispatch_repo(tmp_path, "# Demo\n")
+    (root / "agents" / "INDEX.json").write_text(json.dumps({"agents": {"indexed-engineer": {}}}), encoding="utf-8")
+    ref = root / "skills" / "meta" / "do" / "references" / "dispatch.md"
+    ref.parent.mkdir(parents=True)
+    ref.write_text('{agentType: "indexed-engineer"}\n{agentType: "workflow-orchestrator"}\n', encoding="utf-8")
+    assert validate_references.check_skill_calls(root) == [
+        "skills/meta/do/references/dispatch.md:2: dispatches agent 'workflow-orchestrator', which is no indexed agent"
+    ]

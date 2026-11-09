@@ -52,11 +52,15 @@ Input schema (missing optional fields degrade gracefully — block omitted):
       "complexity": "medium",                      // required enum, case-insensitive:
                                                    // trivial|simple|medium|complex
       "model": "inherit",                          // required for medium/complex;
-                                                   // optional for trivial/simple
+                                                   // optional for trivial/simple.
+                                                   // Claude: haiku|sonnet|opus|fable
       "model_policy": null,                        // optional policy, not with inherit
       "model_effort": null,                        // explicit picks only, not with inherit
-      "manual_model_override": false,               // required for non-default GPT picks
-                                                   // and policy-differing picks
+      "manual_model_override": false,               // true when the owner named the model
+                                                   // for this task (any model, inherit
+                                                   // included); required for max-power,
+                                                   // non-default GPT picks, policy-differing
+                                                   // picks, opus/xhigh, and <model>/max
       "context_mode": "summary",                   // summary|files|none; default files
       "health": {"confidence": 0.72, "n": 6,       // optional; absent/blank
                  "failure": 0, "action": "keep",   // confidence => health=-
@@ -186,9 +190,9 @@ GOOGLE_MODELS = (
     "flash_lite",
     "pro",
 )
-VALID_MODELS = ("inherit", "haiku", "sonnet", "opus", "codex", LEGACY_GPT_55, *GPT_56_MODELS, *GOOGLE_MODELS)
+VALID_MODELS = ("inherit", "haiku", "sonnet", "opus", "fable", "codex", LEGACY_GPT_55, *GPT_56_MODELS, *GOOGLE_MODELS)
 VALID_PROVIDERS = ("anthropic", "openai", "google", "antigravity", "other")
-ANTHROPIC_MODELS = ("opus", "sonnet", "haiku")
+ANTHROPIC_MODELS = ("fable", "opus", "sonnet", "haiku")
 
 # DeepSWE Pass@1 / cost benchmark defaults per provider lane.
 # `deterministic` deliberately has no model: use scripts.
@@ -198,17 +202,22 @@ OPENAI_AUTO_POLICIES = {
     "high-risk": ("gpt-5.6-sol", "xhigh"),  # 71 / $4.70
     "max-power": ("gpt-5.6-sol", "max"),  # 73 / $8.39, explicit only
 }
-# Anthropic lane: owner policy, 2026-11-01. It supersedes the 2026-10 task-fit
-# table in skills/meta/d/references/model-task-fit.md (Sonnet code work needed
-# redo). Opus does all code, edits, debugging, deciding reviews, and decisions.
-# Haiku does read-only gathering that an Opus thread judges. Sonnet is no tier's
-# default. A read-only miss retries on opus.
+# Anthropic lane: owner policy, 2026-11-01, with the effort ladder from
+# Anthropic's 2026-11-09 model guide (skills/meta/d/references/model-task-fit.md).
+# Opus does all code, edits, debugging, deciding reviews, and decisions: start
+# at medium, then high. Haiku does read-only gathering that an Opus thread
+# judges. Sonnet is no tier's default (owner: Sonnet code work needed redo).
+# Past opus/high, go up a model at a lower effort instead of raising effort:
+# haiku -> opus/medium -> opus/high -> fable/medium -> fable/high.
 ANTHROPIC_AUTO_POLICIES = {
     "low-risk": ("haiku", "low"),  # read-only gathering only
-    "standard": ("opus", "high"),
+    "standard": ("opus", "medium"),
     "high-risk": ("opus", "high"),
-    "max-power": ("opus", "xhigh"),  # explicit only
+    "max-power": ("fable", "high"),  # explicit only
 }
+# Explicit <model>/max needs manual_model_override=true: the top effort is an
+# escalation, never a starting point.
+_MAX_EFFORT_OVERRIDE_MODELS = frozenset({"opus", "fable", "gemini-4-argon", "gemini-4-argon-high", "argon", "pro"})
 # Google / Antigravity CLI lane (Gemini 4 Argon & Gemini 3.8 Flash):
 # low-risk routes to Flash (fast mechanical/scouting work), standard routes to
 # Argon at medium effort, high-risk routes to Argon-High at high effort, and
@@ -233,7 +242,7 @@ VALID_MODEL_POLICIES = ("deterministic", *AUTO_MODEL_POLICIES)
 _MODEL_REQUIRED_COMPLEXITY = frozenset({"medium", "complex"})
 VALID_ACTIONS = ("keep", "demote", "tiebreak")
 # Main-thread execution (Anthropic lane, owner 2026-11-01). Trivial and Simple
-# work runs in the /do thread: a dispatched worker cold-reloads ~12k tokens of
+# work runs in the /do thread: a dispatched worker cold-reloads about 20k tokens of
 # instructions and re-reads files the main thread already holds. The marker
 # records the route as `agent=main ... model=inherit ... exec=main`, and the CLI
 # feeds it to hooks/routing-decision-recorder.py, so route telemetry still
@@ -357,6 +366,11 @@ def _optional_effort(value: object) -> str | None:
     return effort
 
 
+def _policy_summary(policies: dict[str, tuple[str, str]]) -> str:
+    """Render a policy table as ``tier=model/effort`` pairs for an error message."""
+    return ", ".join(f"{tier}={model}/{effort}" for tier, (model, effort) in policies.items())
+
+
 def _resolve_provider(decision: dict) -> str:
     """Extract and validate the provider field; default 'anthropic' (Claude Code)."""
     raw = decision.get("provider")
@@ -374,12 +388,18 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
     """Return the validated ``(model, effort)`` for one dispatch decision.
 
     Harness-aware: ``provider`` selects the automatic policy table.
-    Anthropic lane defaults map low-risk to haiku (read-only gathering) and
-    standard and high-risk to opus (owner policy, 2026-11-01); haiku, sonnet,
-    and opus need no override.
+    Anthropic lane defaults map low-risk to haiku (read-only gathering),
+    standard to opus/medium, high-risk to opus/high, and max-power to
+    fable/high (owner policy 2026-11-01, effort ladder 2026-11-09). Explicit
+    haiku, sonnet, opus, and fable need no override, except opus/xhigh and
+    opus/max or fable/max.
     OpenAI lane defaults select GPT-5.6 Sol/Terra.  Effort is recorded in
     the marker for all models; for Claude lanes it is advisory (the harness
     Agent tool does not accept per-call effort).
+
+    ``manual_model_override=true`` records an owner per-task model pick. It is
+    accepted with every model, ``inherit`` included (the owner named the
+    session model).
     """
     manual = decision.get("manual_model_override", False)
     if not isinstance(manual, bool):
@@ -391,8 +411,8 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
     effort = _optional_effort(decision.get("model_effort"))
 
     if model == "inherit":
-        if policy or effort is not None or manual:
-            raise InputError("model='inherit' cannot include model_policy, model_effort, or manual_model_override=true")
+        if policy or effort is not None:
+            raise InputError("model='inherit' cannot include model_policy or model_effort")
         return "inherit", None
 
     if policy:
@@ -448,10 +468,15 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
             raise InputError("legacy gpt-5.5 requires manual_model_override=true")
         return model, effort
 
-    # Claude models (opus, sonnet, haiku), Google models (gemini-4-argon*, gemini-3.8-flash*,
-    # flash_lite, flash, pro), and codex wrapper.
+    # Claude models (fable, opus, sonnet, haiku), Google models (gemini-4-argon*,
+    # gemini-3.8-flash*, flash_lite, flash, pro), and codex wrapper.
     # Effort is optional and recorded in the marker (model@effort) for telemetry.
-    if model in ("opus", "gemini-4-argon", "gemini-4-argon-high", "argon", "pro") and effort == "max" and not manual:
+    if model == "opus" and effort == "xhigh" and not manual:
+        raise InputError(
+            "opus/xhigh requires manual_model_override=true; test fable at high first "
+            "(past high, the next model up at a lower effort costs less than one more effort level)"
+        )
+    if model in _MAX_EFFORT_OVERRIDE_MODELS and effort == "max" and not manual:
         raise InputError(f"{model}/max requires manual_model_override=true (unmeasured top tier; escalate on a miss)")
     return model, effort
 
@@ -862,7 +887,8 @@ def build_marker(decision: dict) -> str:
                 f"'model' is required for complexity={complexity} "
                 f"(allowed: {'/'.join(VALID_MODELS)}). "
                 f"Omitting model inherits the session main-loop model — "
-                f"set model=inherit deliberately or select a supported model/policy."
+                f"set model=inherit deliberately or select a supported model/policy "
+                f"(Anthropic policies: {_policy_summary(ANTHROPIC_AUTO_POLICIES)})."
             )
         parts.append("model=-")
 

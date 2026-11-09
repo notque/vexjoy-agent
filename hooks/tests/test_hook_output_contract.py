@@ -349,6 +349,7 @@ def _payloads(event: str, matcher: str, project: Path, transcript: Path, session
         ],
         "Stop": [{"stop_hook_active": False, "last_assistant_message": "done"}],
         "StopFailure": [{"error": "rate_limit", "error_details": "contract probe"}],
+        "SessionEnd": [{"reason": "other"}],
     }
     assert event in variants, f"no contract payload for {event}: add one"
     return [{**base, **extra} for extra in variants[event]]

@@ -99,7 +99,6 @@ PROSE_TERMS = frozenset(
         "re-dispatch",  # "lazy re-dispatch" (route-failure triggers)
         "re-route",  # "Triggers: re-route, ..." (route-failure triggers)
         "right-sizing",  # "right-sizing feedback" (learning-capture table)
-        "session-end",  # "session-end fallback" (learning-capture table)
         "whole-repo",  # "whole-repo audits"
     }
 )

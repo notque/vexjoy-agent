@@ -574,4 +574,7 @@ class TestLlmExtraction:
                 "source": "skill-a",
             }
         ]
+        # Extraction judges which rules generalize: a decision, so Opus. Sonnet is no default.
+        cmd = mock_run.call_args.args[0]
+        assert cmd[cmd.index("--model") + 1] == "opus"
         assert mock_run.call_args.args[0][:2] == ["claude", "-p"]
