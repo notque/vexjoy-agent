@@ -228,6 +228,57 @@ def merge_env(settings: dict, desired_env: dict[str, str]) -> list[str]:
     return added
 
 
+def desired_attribution_from_repo(source_root: Path) -> dict | None:
+    """The ``attribution`` key of repo ``.claude/settings.json``, or None when it has none."""
+    path = source_root / ".claude" / "settings.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    value = data.get("attribution")
+    return value if isinstance(value, dict) else None
+
+
+def merge_attribution(settings: dict, desired: dict | None) -> bool:
+    """Add the repo ``attribution`` key when *settings* has none; never overwrite a user value."""
+    if desired is None or "attribution" in settings:
+        return False
+    settings["attribution"] = dict(desired)
+    return True
+
+
+@dataclass
+class RepoKeysResult:
+    """Outcome of merging the repo's non-hook keys (env, attribution) into one settings.json."""
+
+    env_added: list[str] = field(default_factory=list)
+    env_updated: list[str] = field(default_factory=list)
+    env_marked: list[str] = field(default_factory=list)
+    env_removed: list[str] = field(default_factory=list)
+    attribution_added: bool = False
+
+    @property
+    def changed(self) -> bool:
+        """True when the merge changed the settings."""
+        return bool(self.env_added or self.env_updated or self.env_removed or self.attribution_added)
+
+
+def merge_repo_keys(settings: dict, source_root: Path, migrated: set[str]) -> RepoKeysResult:
+    """Merge the repo's env vars and attribution into *settings* in place, as an install does.
+
+    Missing env vars are added, an old shipped default in ``SUPERSEDED_ENV`` is moved once (*migrated*
+    holds the markers of earlier runs), retired values are removed, and ``attribution`` is added when
+    absent. A user value is never overwritten otherwise.
+    """
+    desired_env = desired_env_from_repo(source_root)
+    res = RepoKeysResult()
+    res.env_added = merge_env(settings, desired_env)
+    res.env_updated, res.env_marked = update_superseded_env(settings, desired_env, migrated)
+    res.env_removed = remove_retired_env(settings) if desired_env else []
+    res.attribution_added = merge_attribution(settings, desired_attribution_from_repo(source_root))
+    return res
+
+
 def owned_entries(settings: dict, rule: OwnerRule) -> list[tuple[str, dict, dict]]:
     """(event, group meta, entry) for every owned entry in *settings*."""
     out = []

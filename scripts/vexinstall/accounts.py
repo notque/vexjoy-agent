@@ -9,9 +9,11 @@ this module:
   default ``~/.claude`` entries when the profile has none (a real dir or a link
   elsewhere is reported, never replaced);
 * merges the toolkit-owned hook registrations into the profile's
-  ``settings.json`` with the same owner rule as ``~/.claude/settings.json``.
-  Every other key (env, auth, model, permissions, plugins, MCP) and every
-  non-owned hook entry stays as it is.
+  ``settings.json`` with the same owner rule as ``~/.claude/settings.json``;
+* on install, merges the repo's env vars and ``attribution`` the same way as
+  ``~/.claude/settings.json``: missing ones are added, user values are kept.
+  Every other key (auth, model, permissions, plugins, MCP) and every non-owned
+  hook entry stays as it is.
 
 The old file is copied to ``<state>/backups/<name>-settings.<ts>.json`` before
 a write. Hook commands use ``$HOME/.claude/hooks/...``, so one hooks dir serves
@@ -45,6 +47,7 @@ class AccountPlan:
     links_add: list[str] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
     merge: settings_mod.MergeResult | None = None
+    keys: settings_mod.RepoKeysResult | None = None
     settings_error: str | None = None
 
     @property
@@ -55,7 +58,12 @@ class AccountPlan:
     @property
     def changed(self) -> bool:
         """True when apply would write anything."""
-        return bool(self.links_add) or bool(self.merge is not None and self.merge.changed)
+        return bool(self.links_add) or self.settings_changed
+
+    @property
+    def settings_changed(self) -> bool:
+        """True when apply would rewrite settings.json."""
+        return bool(self.merge is not None and self.merge.changed) or bool(self.keys is not None and self.keys.changed)
 
     def summary(self) -> str:
         """One line for plan, apply, and doctor output."""
@@ -63,6 +71,8 @@ class AccountPlan:
         added = len(m.added) if m else 0
         stale = (len(m.removed) + len(m.deduped)) if m else 0
         line = f"account {self.name}: links +{len(self.links_add)}, hooks missing={added} stale={stale}"
+        if self.keys is not None and self.keys.changed:
+            line += f", {keys_summary(self.keys)}"
         if self.problems:
             line += f", problems={len(self.problems)}"
         if self.settings_error:
@@ -70,8 +80,9 @@ class AccountPlan:
         return line
 
     def to_json(self) -> dict:
-        """Serializable form (no settings values)."""
+        """Serializable form."""
         m = self.merge
+        k = self.keys
         return {
             "name": self.name,
             "config_dir": str(self.config_dir),
@@ -80,8 +91,27 @@ class AccountPlan:
             "hooks_added": list(m.added) if m else [],
             "hooks_removed": list(m.removed) if m else [],
             "hooks_deduped": list(m.deduped) if m else [],
+            "env_added": list(k.env_added) if k else [],
+            "env_updated": list(k.env_updated) if k else [],
+            "env_removed": list(k.env_removed) if k else [],
+            "attribution_added": k.attribution_added if k else False,
             "settings_error": self.settings_error,
         }
+
+
+def keys_summary(keys: settings_mod.RepoKeysResult) -> str:
+    """Short form of an env and attribution merge for plan, apply, and doctor output."""
+    parts = []
+    if keys.env_added or keys.env_updated or keys.env_removed:
+        parts.append(f"env +{len(keys.env_added)} ~{len(keys.env_updated)} -{len(keys.env_removed)}")
+    if keys.attribution_added:
+        parts.append("attribution +1")
+    return ", ".join(parts)
+
+
+def migrated_key(name: str) -> str:
+    """Ledger ``settings`` key holding a profile's ``SUPERSEDED_ENV`` markers."""
+    return f"env_migrated:{name}"
 
 
 def registry(home: Path) -> dict[str, Path]:
@@ -126,7 +156,8 @@ def plan_account(ctx: Context, name: str, cfg: Path, desired: dict | None, *, li
     plan = AccountPlan(name=name, config_dir=cfg)
     if links:
         _plan_links(ctx.home, cfg, plan)
-    if desired is None:
+    install = desired is None
+    if install:
         desired = filter_settings_hooks(settings_mod.desired_from_repo(ctx.source_root), ctx.profile)
     try:
         current = settings_mod.read_settings(plan.settings_path)
@@ -138,6 +169,9 @@ def plan_account(ctx: Context, name: str, cfg: Path, desired: dict | None, *, li
         return plan
     rule = settings_mod.OwnerRule(home=ctx.home, hooks_dir=ctx.home / ".claude" / "hooks", source_root=ctx.source_root)
     plan.merge = settings_mod.merge(current, desired, rule)
+    if install:
+        migrated = set(ctx.ledger.settings.get(migrated_key(name), []))
+        plan.keys = settings_mod.merge_repo_keys(plan.merge.settings, ctx.source_root, migrated)
     return plan
 
 
@@ -162,9 +196,12 @@ def apply_account(ctx: Context, plan: AccountPlan, guard: Guard) -> dict:
     report["backup"] = None
     for entry in plan.links_add:
         atomic_symlink(plan.config_dir / entry, ctx.home / ".claude" / entry, guard)
-    if plan.merge is not None and plan.merge.changed:
+    if plan.merge is not None and plan.settings_changed:
         report["backup"] = _backup(plan, state_dir(ctx.home) / "backups", guard)
         settings_mod.write(plan.settings_path, plan.merge.settings, guard)
+    if plan.keys is not None and plan.keys.env_marked:  # only after a successful write
+        key = migrated_key(plan.name)
+        ctx.ledger.settings[key] = sorted(set(ctx.ledger.settings.get(key, [])) | set(plan.keys.env_marked))
     return report
 
 
@@ -187,9 +224,20 @@ def report_lines(reports: list[dict]) -> list[str]:
     for r in reports:
         if r.get("error"):
             lines.append(f"account {r['name']}: ERROR {r['error']}")
-        elif r["links_add"] or r["hooks_added"] or r["hooks_removed"] or r["hooks_deduped"]:
+        elif r["links_add"] or r["hooks_added"] or r["hooks_removed"] or r["hooks_deduped"] or _keys_changed(r):
+            keys = settings_mod.RepoKeysResult(
+                env_added=r["env_added"],
+                env_updated=r["env_updated"],
+                env_removed=r["env_removed"],
+                attribution_added=r["attribution_added"],
+            )
+            extra = f", {keys_summary(keys)}" if keys.changed else ""
             lines.append(
                 f"account {r['name']}: links +{len(r['links_add'])}, hooks +{len(r['hooks_added'])} "
-                f"-{len(r['hooks_removed'])} dedup {len(r['hooks_deduped'])}, backup {r['backup']}"
+                f"-{len(r['hooks_removed'])} dedup {len(r['hooks_deduped'])}{extra}, backup {r['backup']}"
             )
     return lines
+
+
+def _keys_changed(r: dict) -> bool:
+    return bool(r.get("env_added") or r.get("env_updated") or r.get("env_removed") or r.get("attribution_added"))

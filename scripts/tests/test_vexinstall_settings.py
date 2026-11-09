@@ -252,3 +252,27 @@ def test_repo_settings_do_not_ship_superseded_value() -> None:
     desired = sm.desired_env_from_repo(Path(__file__).resolve().parents[2])
     for key, old_values in sm.SUPERSEDED_ENV.items():
         assert desired.get(key) not in old_values
+
+
+def test_apply_settings_adds_attribution_once_and_keeps_user_value(world: Env) -> None:
+    spath = world.home / ".claude" / "settings.json"
+    spath.write_text(json.dumps({"theme": "dark"}))
+    res = world.run("apply", "--target", "claude")
+    assert res.code == 0, res.err
+    assert json.loads(spath.read_text())["attribution"] == {"commit": "", "pr": ""}
+    spath.write_text(json.dumps({**json.loads(spath.read_text()), "attribution": {"commit": "mine", "pr": ""}}))
+    assert world.run("apply", "--target", "claude").code == 0
+    assert json.loads(spath.read_text())["attribution"] == {"commit": "mine", "pr": ""}
+
+
+def test_merge_attribution_adds_only_when_absent() -> None:
+    settings: dict = {}
+    assert sm.merge_attribution(settings, {"commit": "", "pr": ""})
+    assert settings == {"attribution": {"commit": "", "pr": ""}}
+    assert not sm.merge_attribution(settings, {"commit": "x", "pr": "x"})
+    assert not sm.merge_attribution({}, None)
+
+
+def test_repo_settings_ship_empty_attribution() -> None:
+    root = Path(__file__).resolve().parents[2]
+    assert sm.desired_attribution_from_repo(root) == {"commit": "", "pr": ""}

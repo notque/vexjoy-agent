@@ -252,6 +252,9 @@ def _check_accounts(ctx: Context, findings: list[Finding]) -> None:
             m = plan.merge
             detail = f"{plan.name}: missing={len(m.added)} stale={len(m.removed) + len(m.deduped)}"
             findings.append(Finding(ERROR, "account-hooks-drift", "claude", spath, detail))
+        if not plan.settings_error and plan.keys is not None and plan.keys.changed:
+            detail = f"{plan.name}: {accounts_mod.keys_summary(plan.keys)}"
+            findings.append(Finding(ERROR, "account-settings-drift", "claude", spath, detail))
 
 
 def _check_repo(ctx: Context, findings: list[Finding]) -> None:
