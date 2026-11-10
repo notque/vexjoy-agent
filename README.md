@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 45 skills, 71 hooks, 164 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+43 agents, 46 skills, 71 hooks, 164 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
 
@@ -229,7 +229,7 @@ Know the trade-off first. The default prompt also carries Claude Code's own guid
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 45 | Reusable guidance and methodology for recurring work. |
+| Skills | 46 | Reusable guidance and methodology for recurring work. |
 | Hooks | 71 | Lifecycle checks, context injection, and telemetry. |
 | Scripts | 164 | Repeatable validation, orchestration, and plumbing. |
 

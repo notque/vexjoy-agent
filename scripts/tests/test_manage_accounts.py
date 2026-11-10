@@ -266,7 +266,7 @@ def test_fish_alias_block_uses_set_lx():
     block = ma._fish_alias_block(accounts)
     assert "set -lx CLAUDE_CONFIG_DIR" in block
     assert "function cwork" in block
-    assert 'claude --dangerously-skip-permissions --chrome --system-prompt="." $argv' in block
+    assert 'claude --dangerously-skip-permissions --chrome --remote-control --system-prompt="." $argv' in block
 
 
 def test_bash_alias_block_inlines_env():
@@ -274,7 +274,7 @@ def test_bash_alias_block_inlines_env():
     block = ma._bash_alias_block(accounts)
     assert "alias cwork=" in block
     assert "CLAUDE_CONFIG_DIR" in block
-    assert 'claude --dangerously-skip-permissions --chrome --system-prompt="."' in block
+    assert 'claude --dangerously-skip-permissions --chrome --remote-control --system-prompt="."' in block
 
 
 _TWO = {

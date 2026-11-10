@@ -16,7 +16,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 Regenerate: `python3 scripts/generate-skills-doc.py`.
 CI check: `python3 scripts/generate-skills-doc.py --check`.
 
-45 routed skills.
+46 routed skills.
 
 ---
 
@@ -133,6 +133,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 | Skill | Description | Invoke |
 |-------|-------------|--------|
 | `debugging` | Debugging: guided diagnosis of application bugs, and post-mortem of failed agent sessions. |  |
+| `improve` | Advisor mode: audit a codebase, rank what is worth doing, and write self-contained handoff plans that a fresh agent executes. | `/improve` |
 | `plant-seed` | Capture forward-looking idea as a seed for future feature design. |  |
 | `pr-workflow` | Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining. | `/pr-workflow` |
 | `process` | Process: retrospectives, session handoff, pair programming, subagent-driven development, condition-based waiting. | `/process` |

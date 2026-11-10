@@ -104,13 +104,13 @@ cwork --resume   # resumes the last session for the 'work' account
 ```fish
 function cwork
     set -lx CLAUDE_CONFIG_DIR "~/.claude-accounts/work"
-    claude --dangerously-skip-permissions --chrome --system-prompt="." $argv
+    claude --dangerously-skip-permissions --chrome --remote-control --system-prompt="." $argv
 end
 ```
 
 **Bash/Zsh** (`~/.bashrc` / `~/.zshrc`):
 ```bash
-alias cwork='CLAUDE_CONFIG_DIR="~/.claude-accounts/work" claude --dangerously-skip-permissions --chrome --system-prompt="."'
+alias cwork='CLAUDE_CONFIG_DIR="~/.claude-accounts/work" claude --dangerously-skip-permissions --chrome --remote-control --system-prompt="."'
 ```
 
 `install-aliases` also writes `cm0`, which starts the default profile (`~/.claude`). It runs `env -u CLAUDE_CONFIG_DIR claude ...`: it clears an inherited value and never sets one, because setting `CLAUDE_CONFIG_DIR` (even to `~/.claude`) moves Claude's state off `~/.claude.json` and breaks the default login. `cm0` is reserved; `add` rejects it.

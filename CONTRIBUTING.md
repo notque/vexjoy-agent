@@ -97,6 +97,15 @@ Tests must be safe to run in parallel: write under `tmp_path`, change env and cw
 
 Doc-structure checks (reference sizes, Skill-call wording, joy-check fleet scan, `$SDIR` portability) are validators in `scripts/`, run by the CI lint job, not per-file pytest cases.
 
+Run the whole CI lint job locally before you push:
+
+```bash
+bash scripts/ci-local.sh            # every lint-job step, in CI order
+bash scripts/ci-local.sh --tests    # the same, then the fast pytest tier
+```
+
+The script stops at the first failing step. It regenerates the untracked `INDEX.json` files and `docs/routing-map.md`, exactly as CI does. CI pins ruff; the script warns when your local ruff is another version.
+
 Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verification. Agents and skills use the validators and review methodology in `skills/meta/toolkit/`.
 
 ## Conventions

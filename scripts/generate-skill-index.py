@@ -30,6 +30,7 @@ Exit codes:
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -40,6 +41,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scripts.lib.atomic_io import atomic_write_text
 from scripts.lib.frontmatter import extract_frontmatter_block
 
 # Phase header regex: matches "## Phase 1:" or "### Phase 1:", "### Phase 0.5:", "### Phase 4b:", etc.
@@ -554,7 +556,7 @@ def write_index(index: dict, output_path: Path) -> bool:
         True on success, False on error (error printed to stderr).
     """
     try:
-        output_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+        atomic_write_text(output_path, json.dumps(index, indent=2) + "\n")
         return True
     except PermissionError:
         print(f"Error: Permission denied writing to {output_path}", file=sys.stderr)
@@ -567,6 +569,24 @@ def write_index(index: dict, output_path: Path) -> bool:
 def default_output_path(skills_dir: Path, include_private: bool) -> Path:
     """Keep private-inclusive indexes out of the public index filename."""
     return skills_dir / ("INDEX.local.json" if include_private else "INDEX.json")
+
+
+def _should_run_drift_gate(output: str | None, repo_root: Path, script_dir: Path) -> bool:
+    """Return whether the post-generation routing-drift check should run.
+
+    The gate is skipped when:
+    - A non-default output path is set (``--output``).
+    - The repo root differs from this script's own checkout (``--repo-root``).
+    - A consumer (``ensure_fresh_indexes``) started this run, indicated by
+      the ``VEXJOY_INDEX_REGEN`` environment variable.
+    """
+    if output is not None:
+        return False
+    if repo_root != script_dir.parent.resolve():
+        return False
+    if os.environ.get("VEXJOY_INDEX_REGEN"):
+        return False
+    return True
 
 
 def main() -> int:
@@ -797,10 +817,7 @@ def main() -> int:
     print(f"Force-routed: {force_routed}")
 
     # Post-generation drift gate: warn when routing manifest falls out of sync.
-    # Only runs for the default output (skills/INDEX.json); skips local override indexes.
-    # check-routing-drift.py checks this script's own checkout and regenerates its
-    # index when missing, so skip it when --repo-root targets another tree.
-    if args.output is None and repo_root == script_dir.parent.resolve():
+    if _should_run_drift_gate(args.output, repo_root, script_dir):
         drift_script = Path(__file__).parent / "check-routing-drift.py"
         if drift_script.exists():
             drift_result = subprocess.run(

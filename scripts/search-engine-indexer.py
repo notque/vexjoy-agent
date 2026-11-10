@@ -84,6 +84,16 @@ def get_config() -> dict[str, str]:
     }
 
 
+def _redact(value: str, kind: str) -> str:
+    """Return the host's redaction marker for a credential."""
+    return f"<redacted:{kind}:{value[-4:]}>" if value else ""
+
+
+def _scrub(text: str, secret: str, kind: str) -> str:
+    """Replace every occurrence of *secret* in *text* with its marker."""
+    return text.replace(secret, _redact(secret, kind)) if secret else text
+
+
 def extract_host_from_url(url: str) -> str:
     """Extract the host domain from a URL.
 
@@ -187,7 +197,14 @@ def submit_indexnow(url: str, host: str, indexnow_key: str, dry_run: bool = Fals
     }
 
     if dry_run:
-        return {"status": "dry_run", "endpoint": INDEXNOW_ENDPOINT, "payload": payload}
+        redacted_key = _redact(indexnow_key, "api-key")
+        safe_payload = {
+            "host": host,
+            "key": redacted_key,
+            "keyLocation": f"https://{host}/{redacted_key}.txt",
+            "urlList": [url],
+        }
+        return {"status": "dry_run", "endpoint": INDEXNOW_ENDPOINT, "payload": safe_payload}
 
     try:
         response = requests.post(
@@ -201,10 +218,14 @@ def submit_indexnow(url: str, host: str, indexnow_key: str, dry_run: bool = Fals
         if response.status_code in (200, 202):
             return {"status": "success", "response_code": response.status_code}
         else:
-            return {"status": "error", "response_code": response.status_code, "error": response.text[:300]}
+            return {
+                "status": "error",
+                "response_code": response.status_code,
+                "error": _scrub(response.text, indexnow_key, "api-key")[:300],
+            }
 
     except requests.exceptions.RequestException as e:
-        return {"status": "error", "error": str(e)}
+        return {"status": "error", "error": _scrub(str(e), indexnow_key, "api-key")}
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +253,8 @@ def submit_baidu(url: str, site_url: str, push_token: str, dry_run: bool = False
     endpoint = f"{BAIDU_PUSH_ENDPOINT}?site={site_url}&token={push_token}"
 
     if dry_run:
-        return {"status": "dry_run", "endpoint": endpoint, "payload": url}
+        safe_endpoint = f"{BAIDU_PUSH_ENDPOINT}?site={site_url}&token={_redact(push_token, 'token')}"
+        return {"status": "dry_run", "endpoint": safe_endpoint, "payload": url}
 
     try:
         response = requests.post(
@@ -245,10 +267,14 @@ def submit_baidu(url: str, site_url: str, push_token: str, dry_run: bool = False
         if response.status_code == 200:
             return {"status": "success", "response_code": response.status_code}
         else:
-            return {"status": "error", "response_code": response.status_code, "error": response.text[:300]}
+            return {
+                "status": "error",
+                "response_code": response.status_code,
+                "error": _scrub(response.text, push_token, "token")[:300],
+            }
 
     except requests.exceptions.RequestException as e:
-        return {"status": "error", "error": str(e)}
+        return {"status": "error", "error": _scrub(str(e), push_token, "token")}
 
 
 # ---------------------------------------------------------------------------

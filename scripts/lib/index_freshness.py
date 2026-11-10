@@ -26,6 +26,11 @@ from pathlib import Path
 
 SURFACES = ("skills", "agents")
 
+#: Environment variable set when a consumer (e.g. ``ensure_fresh_indexes``)
+#: starts a generator.  The generator should skip its own drift gate to
+#: avoid an unbounded regeneration cycle.
+REGEN_ENV_VAR = "VEXJOY_INDEX_REGEN"
+
 _GENERATORS = {
     "skills": "generate-skill-index.py",
     "agents": "generate-agent-index.py",
@@ -91,6 +96,7 @@ def ensure_fresh_indexes(repo_root: Path, surfaces: Iterable[str] = SURFACES) ->
             if missing:
                 raise RuntimeError(f"required {surface} index missing and cannot be generated: {index}")
             continue
+        env = {**os.environ, REGEN_ENV_VAR: "1"}
         try:
             proc = subprocess.run(
                 [sys.executable, str(generator)],
@@ -99,6 +105,7 @@ def ensure_fresh_indexes(repo_root: Path, surfaces: Iterable[str] = SURFACES) ->
                 text=True,
                 timeout=_GENERATOR_TIMEOUT,
                 check=False,
+                env=env,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise RuntimeError(f"{generator.name} could not run: {exc}") from exc
