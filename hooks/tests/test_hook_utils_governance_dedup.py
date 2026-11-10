@@ -106,6 +106,20 @@ def test_a_different_event_in_the_same_window_is_kept(
     assert len(_rows(gov_db)) == 2
 
 
+def test_blocked_edits_of_two_files_in_one_window_are_two_rows(gov_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Edit and Write carry no command, so the target file is the only difference.
+    for at, path in ((1000.1, "/repo/a.py"), (1000.2, "/repo/b.py"), (1000.3, "/repo/a.py")):
+        _record(
+            monkeypatch,
+            at,
+            tool_name="Edit",
+            command="",
+            event={"session_id": "s1", "tool_input": {"file_path": path}},
+        )
+
+    assert len(_rows(gov_db)) == 2, "a.py twice is one row; b.py is its own"
+
+
 def test_event_id_keeps_the_gov_ms_hex_shape(gov_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     eid = _record(monkeypatch, 1000.1)
 

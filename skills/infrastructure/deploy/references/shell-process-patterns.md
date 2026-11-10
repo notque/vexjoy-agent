@@ -23,7 +23,7 @@ Start, supervise, and terminate shell processes safely -- background jobs, subsh
 - `wait` semantics, reaping children, race conditions between background-start and resource readiness.
 
 **Out of scope:**
-- Cron scripts and scheduled job reliability (owned by `cron-job-auditor`).
+- Cron scripts and scheduled job reliability (owned by `headless-cron-creator`).
 - Polling, retry, backoff, health-check loops (owned by `condition-based-waiting`).
 - Service health reporting (owned by `service-health-check`).
 - Fish shell configuration (owned by `shell-config`).

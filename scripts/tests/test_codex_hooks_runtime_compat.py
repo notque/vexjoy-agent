@@ -97,6 +97,7 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
         "security-review-hook.py",
         "pretool-unified-gate.py",
         "pretool-worktree-edit-guard.py",
+        "pretool-config-protection.py",
         "pretool-synthesis-gate.py",
         "pretool-plan-gate.py",
         "pretool-prompt-injection-scanner.py",
@@ -623,11 +624,11 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    # 62 entries for 61 Claude registrations: the unified gate runs on Bash and apply_patch.
-    assert len(REGISTRATIONS) == 62, "runtime matrix must execute every supported registration"
-    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 62
+    # 63 entries for 62 Claude registrations: the unified gate runs on Bash and apply_patch.
+    assert len(REGISTRATIONS) == 63, "runtime matrix must execute every supported registration"
+    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 63
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 61
+    assert len(registrations) == 62
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 

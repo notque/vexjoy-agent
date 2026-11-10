@@ -30,7 +30,7 @@ routing:
 
 ## Overview
 
-This pipeline wraps `skill-creator` with explicit discovery, design review, and validation gates. It is the **formal path** for creating new skills — as opposed to ad-hoc creation — and should be used whenever skill quality, uniqueness, or routing correctness is important. The pipeline does not replace the creator agent; it provides the scaffolding around it.
+This pipeline wraps the `toolkit` skill's Skill Creator mode (`skills/meta/toolkit/references/skill-creator.md`) with explicit discovery, design review, and validation gates. It is the **formal path** for creating new skills — as opposed to ad-hoc creation — and should be used whenever skill quality, uniqueness, or routing correctness is important. `skill-creator` is that mode and its reference set, not an agent. The pipeline does not replace it; it provides the scaffolding around it.
 
 ---
 
@@ -174,7 +174,7 @@ DESIGN BRIEF: [skill-name]
 ==========================
 
 Complexity Tier: [Simple | Medium | Complex | Comprehensive]
-Agent Binding:   skill-creator (default) or [other agent if domain-specific]
+Agent Binding:   none (default) or [an agent that exists in agents/, if domain-specific]
 User-Invocable:  [true | false]
 
 Phases:
@@ -314,27 +314,20 @@ iteration as any quality fixes to avoid accumulating framing debt:
 
 ### Phase 5: INTEGRATE
 
-**Goal**: Wire the validated skill into the routing system. **INDEX.json update
+**Goal**: Wire the validated skill into the routing system. **The INDEX.json regeneration
 is non-optional** — a skill that exists on disk but not in the index is invisible
 to routing.
 
-**Step 1**: Add to `skills/INDEX.json`.
+**Step 1**: Regenerate `skills/INDEX.json`.
 
-Read the current INDEX.json and append an entry for the new skill:
+`skills/INDEX.json` is generated from frontmatter and untracked. Never edit it by hand: the
+next generator run overwrites the edit. If the design brief binds an agent, set `agent:` in the
+SKILL.md frontmatter to an agent that exists in `agents/`; otherwise leave the field out. Then
+run the generator and confirm the entry:
 
-```json
-{
-  "name": "skill-name",
-  "path": "skills/skill-name/SKILL.md",
-  "description": "[first line of the frontmatter description]",
-  "user-invocable": true,
-  "agent": "skill-creator"
-}
-```
-
-Validate JSON syntax before proceeding:
 ```bash
-python3 -c "import json; json.load(open('skills/INDEX.json'))"
+python3 scripts/generate-skill-index.py
+python3 -c "import json; print(json.load(open('skills/INDEX.json'))['skills']['skill-name'])"
 ```
 
 **Step 2**: Check whether the skill needs a routing entry in `/do`.
@@ -357,7 +350,7 @@ INTEGRATE COMPLETE
 ==================
 
 Skill:   skills/{name}/SKILL.md
-Index:   Added to skills/INDEX.json
+Index:   skills/INDEX.json regenerated, entry confirmed
 Routing: [Added triggers: "..." | No routing entry needed | Routing update pending]
 
 Grade at integration: [B | A]
@@ -366,7 +359,7 @@ Score:  [N]/100
 New skill is ready to use.
 ```
 
-**Gate**: INDEX.json updated and validated. Routing status reported. Phase 5 complete.
+**Gate**: INDEX.json regenerated and the new entry confirmed. Routing status reported. Phase 5 complete.
 
 ---
 
@@ -393,10 +386,11 @@ file is missing.
 Solution: Perform a manual rubric check against the 6 criteria table. Document
 the manual score and proceed if ≥75. Flag that automated validation was skipped.
 
-### Error: "INDEX.json malformed after update"
-Cause: JSON edit introduced a syntax error.
-Solution: Run `python3 -c "import json; json.load(open('skills/INDEX.json'))"` to
-validate. Fix the syntax before completing Phase 5.
+### Error: "New skill missing from INDEX.json after regeneration"
+Cause: The generator skipped the skill: malformed frontmatter, or a SKILL.md outside
+`skills/{category}/{name}/`.
+Solution: Run `python3 scripts/validate-skill-frontmatter.py skills/{category}/{name}/SKILL.md`,
+fix what it reports, and rerun `python3 scripts/generate-skill-index.py` before completing Phase 5.
 
 ---
 
@@ -408,7 +402,7 @@ Actions: Phase 1 scans INDEX — finds `git-commit-flow` but it handles the full
 commit workflow, not message generation specifically; overlap ~40%, under
 threshold. Phase 2 selects Simple tier (1–2 phases: gather context, generate
 message). Design brief saved. Phase 3 scaffolds a 2-phase SKILL.md. Phase 4
-scores 81/100 (grade B). Phase 5 adds to INDEX.json, notes routing trigger
+scores 81/100 (grade B). Phase 5 regenerates INDEX.json, notes routing trigger
 "commit message" should be added.
 
 ### Example 2: Overlap detected, extend recommended
@@ -431,6 +425,6 @@ Handling). Returns to Phase 3 with specific fixes. Second scaffold scores 82/100
 
 ## References
 
-- [agent-template.md](../../skill-creator/references/agent-template.md) - Template for agent and skill structural patterns
-- [agent-evaluation](../../skills/meta/agent-evaluation/SKILL.md) - Rubric-based scoring used in Phase 4 VALIDATE
-- [routing-table-updater](../../skills/meta/routing-table-updater/SKILL.md) - Routing integration used in Phase 5 INTEGRATE
+- [agent-template.md](../../../meta/toolkit/references/skill-creator/agent-template.md) - Template for agent and skill structural patterns
+- [agent-evaluation](../../../meta/toolkit/references/agent-evaluation.md) - Rubric-based scoring used in Phase 4 VALIDATE
+- [routing-table-updater](../../../meta/toolkit/references/routing-table-updater.md) - Routing integration used in Phase 5 INTEGRATE

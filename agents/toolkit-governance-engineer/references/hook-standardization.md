@@ -22,10 +22,11 @@ Hooks are shell commands registered in `settings.json` that execute in response 
 | `PostToolUse` | After a tool returns | — | 5 |
 | `PreCompact` | Before context compression | `true` | 5 |
 | `PostCompact` | After context compression | — | 5 |
-| `TaskCompleted` | After task completion | — | 5 |
+| `SubagentStart` | Before a subagent starts | — | 5 |
 | `SubagentStop` | After subagent finishes | — | 5 |
 | `StopFailure` | Session ends with error | — | 5 |
-| `Stop` | Session ends cleanly | — | 5–10 |
+| `Stop` | After every turn | — | 5–10 |
+| `SessionEnd` | Session ends | — | 5 |
 
 Claude Code reads `timeout` in **seconds**, so `"timeout": 3000` means 50 minutes, not 3 seconds. The timeout is a kill limit, not a latency budget: keep critical-path hooks fast in code, and give gates headroom, because a gate killed by its timeout cannot deny the call.
 
@@ -395,21 +396,24 @@ Deploy the hook Python file to `~/.claude/hooks/` first, verify it exists with `
 
 ### Registered Hook Inventory by Event
 
-| Event | Count | Gate | Advisory | Notes |
-|-------|-------|------|----------|-------|
-| SessionStart | 9 | 0 | 9 | sync, context loading, environment detection |
-| UserPromptSubmit | 4 | 0 | 4 | pipeline detection, correction capture, prompt capture |
-| PreToolUse | 15 | 8 | 7 | branch safety, format gates, plan gates, context injection |
-| PostToolUse | 22 | 0 | 22 | lint, security scan, learning, analytics, testing |
-| PreCompact | 1 | 0 | 1 | archive learnings |
-| PostCompact | 1 | 0 | 1 | re-inject plan context |
-| TaskCompleted | 1 | 0 | 1 | completion metadata |
-| SubagentStop | 1 | 0 | 1 | branch safety enforcement |
-| StopFailure | 1 | 0 | 1 | failure recording |
-| Stop | 5 | 0 | 5 | summary, decay, learning, graduation |
-| **Total** | **60** | **8** | **52** | |
+Counts are command entries in `.claude/settings.json` on 2026-11-09. The file is the source of truth: recount it before you rely on a number here.
 
-18 additional hook files exist in `hooks/` but are not registered in settings.json (retired, superseded by unified-gate, or feature-flagged).
+| Event | Count | Notes |
+|-------|-------|-------|
+| SessionStart | 18 | sync, context loading, environment detection (17 hook files plus `session-bootstrap.sh`) |
+| UserPromptSubmit | 8 | pipeline detection, prompt capture, routing-outcome finalizer |
+| PreToolUse | 21 | safety gates, branch safety, config protection, context injection |
+| PostToolUse | 16 | lint, security scan, routing decisions, index refresh |
+| PreCompact | 1 | archive the session transcript |
+| PostCompact | 1 | re-inject plan context |
+| SubagentStart | 1 | warm-start context for the subagent |
+| SubagentStop | 5 | completion guard, routing-outcome recorder, state tracking |
+| StopFailure | 1 | failure recording |
+| Stop | 4 | summary, routing-outcome fallback (errored or stale), rules distill, drift guard |
+| SessionEnd | 1 | routing-outcome fallback (every pending outcome) |
+| **Total** | **77** | 76 hook-file registrations plus `session-bootstrap.sh` |
+
+Other hook files exist in `hooks/` but are not registered in settings.json (retired, superseded by the unified gate, or feature-flagged).
 
 ---
 

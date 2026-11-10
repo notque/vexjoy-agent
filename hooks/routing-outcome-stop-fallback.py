@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.1.0
+# hook-version: 2.1.1
 """
 Stop / SessionEnd Hook: Routing-Outcome Fallback
 
@@ -15,10 +15,9 @@ of 291 outcomes as `default_no_complaint` and left the finalizer nothing. So:
 | Stop       | errored entries; entries older than STOP_STALE_AGE_SEC | everything else |
 | SessionEnd | every pending entry                                  | nothing        |
 
-The SessionEnd row runs only where this hook is registered under `SessionEnd`.
-`.claude/settings.json` registers it under `Stop` alone, so there a clean entry
-from a session's last turn stays pending and its decision row keeps a NULL
-outcome. Adding the registration is the owner's call.
+`.claude/settings.json` registers this hook under both `Stop` and `SessionEnd`.
+Where a runtime mirrors only the `Stop` entry (Codex), a clean entry from a
+session's last turn stays pending and its decision row keeps a NULL outcome.
 
 An errored entry scores failure whatever the user says next, so Stop resolves
 it at once. A stale entry means the session ran STOP_STALE_AGE_SEC with no user
@@ -116,48 +115,60 @@ def finalize_routing_outcomes(session_id: str, session_end: bool = False) -> int
         init_db()
         now = time.time()
         history_updates: dict[str, str] = {}
-        for item in pending:
-            if not isinstance(item, dict):
-                continue  # malformed entry: already cleared from state, do not score
-            key = item.get("key")
-            if not key:
-                continue
-            try:
-                created = float(item.get("created", now))
-            except (TypeError, ValueError):
-                continue  # malformed entry: drop, do not score
-            if now - created > MAX_PENDING_AGE_SEC:
-                continue  # drop abandoned provisional entry, do not score
-            if not decision_row_exists(key):
-                continue  # no row to score (orphaned); drop quietly
-            # Deterministic floor (T4): errors => failure (decay); a clean
-            # run carries no acceptance evidence => NEUTRAL no-op.
-            # Basis is the failure-axis label only (no next turn => a non-error
-            # entry is default_no_complaint), recorded for route-health's
-            # silent-success report.
-            errors = bool(item.get("errors"))
-            if errors:
-                reason = "tool-errors"
-            elif session_end:
-                reason = "session-end-no-reaction"
-            else:
-                reason = "stale-no-reaction"
-            record_resolved_outcome(
-                session_id=session_id,
-                key=key,
-                outcome="failure" if errors else "neutral",
-                basis="tool_errors_only" if errors else "default_no_complaint",
-                reason=reason,
-                source=_SOURCE,
-                decision_id=item.get("decision_id") or None,
-            )
-            resolved += 1
-            # Feed the finalizer's repeat-dispatch check, as the finalizer does:
-            # a failure resolved here must block the next weak boost for its
-            # key. Failure wins over a clean same-key entry in one run.
-            if history_updates.get(key) != "failure":
-                history_updates[key] = "failure" if errors else "neutral"
-        record_outcome_history(session_id, history_updates)
+        try:
+            for item in pending:
+                # Every entry here is already cleared from state. One bad entry
+                # is dropped on its own: it must not abort the loop and lose
+                # the entries after it.
+                if not isinstance(item, dict):
+                    continue  # malformed entry: do not score
+                key = item.get("key")
+                if not isinstance(key, str) or not key:
+                    continue  # a key that is not a string names no route
+                try:
+                    created = float(item.get("created", now))
+                except (TypeError, ValueError):
+                    continue  # malformed entry: drop, do not score
+                if now - created > MAX_PENDING_AGE_SEC:
+                    continue  # drop abandoned provisional entry, do not score
+                # Deterministic floor (T4): errors => failure (decay); a clean
+                # run carries no acceptance evidence => NEUTRAL no-op.
+                # Basis is the failure-axis label only (no next turn => a non-error
+                # entry is default_no_complaint), recorded for route-health's
+                # silent-success report.
+                errors = bool(item.get("errors"))
+                if errors:
+                    reason = "tool-errors"
+                elif session_end:
+                    reason = "session-end-no-reaction"
+                else:
+                    reason = "stale-no-reaction"
+                decision_id = item.get("decision_id")
+                try:
+                    if not decision_row_exists(key):
+                        continue  # no row to score (orphaned); drop quietly
+                    record_resolved_outcome(
+                        session_id=session_id,
+                        key=key,
+                        outcome="failure" if errors else "neutral",
+                        basis="tool_errors_only" if errors else "default_no_complaint",
+                        reason=reason,
+                        source=_SOURCE,
+                        decision_id=decision_id if isinstance(decision_id, str) and decision_id else None,
+                    )
+                except Exception as e:
+                    hook_error("routing-outcome-stop-fallback:entry", e)
+                    continue
+                resolved += 1
+                # Feed the finalizer's repeat-dispatch check, as the finalizer does:
+                # a failure resolved here must block the next weak boost for its
+                # key. Failure wins over a clean same-key entry in one run.
+                if history_updates.get(key) != "failure":
+                    history_updates[key] = "failure" if errors else "neutral"
+        finally:
+            # Written even when the loop stops early: a failure already
+            # resolved above must still reach the per-session history.
+            record_outcome_history(session_id, history_updates)
 
     except Exception as e:
         hook_error("routing-outcome-stop-fallback", e)

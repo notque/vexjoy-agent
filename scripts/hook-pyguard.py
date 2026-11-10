@@ -58,6 +58,7 @@ GATES = frozenset(
         "pipeline-phase-gate.py",
         "pretool-adr-creation-gate.py",
         "pretool-branch-safety.py",
+        "pretool-config-protection.py",
         "pretool-dispatch-spec-gate.py",
         "pretool-plan-gate.py",
         "pretool-private-name-leak-gate.py",

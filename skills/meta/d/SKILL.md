@@ -298,16 +298,16 @@ Set `model` from the task type, not `inherit`. Pass the same `model` on every Ag
 |---|---|
 | read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
 | code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
-| high-risk: auth, data, security, concurrency, irreversible | opus / high |
+| high-risk: auth, data, security, concurrency, irreversible | opus / medium, then high |
 | major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
 Sonnet is no row's default. When the owner names a model for the task ("use fable for everything"), pass that model on every dispatch with `manual_model_override=true`.
 
-Tiers (`model_policy`): low-risk = haiku/low (read-only gathering only), standard = opus/medium, high-risk = opus/high, max-power = fable/high. `max-power`, fable/max, opus/max, and explicit opus/xhigh need `manual_model_override=true`; test fable at high before opus/xhigh. Use `inherit` only when no row or tier fits and the session model is acceptable.
+Tiers (`model_policy`): low-risk = haiku/low (read-only gathering only), standard = opus/medium, high-risk = opus/medium, max-power = fable/high. Owner, 2026-11-09: "Also I prefer opus 5.5 medium over high". Opus starts at medium on every row and tier, high-risk included. opus/high is no tier's default: reach it as an explicit pick (`model: "opus"`, `model_effort: "high"`, no `model_policy`) or as the step after a failed opus/medium attempt. `max-power`, fable/max, opus/max, and explicit opus/xhigh need `manual_model_override=true`; test fable at high before opus/xhigh. Use `inherit` only when no row or tier fits and the session model is acceptable.
 
 Escalate on a miss, when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6. In order: (1) give the agent a way to verify (test, build, script); (2) raise effort one level, up to high; (3) move to the next model up at a lower effort: haiku → opus/medium → opus/high → fable/medium → fable/high. Never raise opus past high before trying fable.
 
-Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 override, which wins where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
+Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 and 2026-11-09 orders, which win where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
 On Antigravity / Google AI (`provider="google"`), the tiers are `low-risk` = `gemini-3.8-flash`, `standard` = `gemini-4-argon`, `high-risk` = `gemini-4-argon-high`, and `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`; see `skills/meta/do/references/antigravity-execution.md`.
 

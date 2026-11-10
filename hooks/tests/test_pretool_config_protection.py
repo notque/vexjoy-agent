@@ -1,7 +1,7 @@
 """pretool-config-protection denies linter-config edits and survives malformed input.
 
-The hook is not registered in .claude/settings.json (see
-scripts/hook-health-allowlist.txt). These tests keep it correct for the day it is.
+The hook is registered in .claude/settings.json under PreToolUse
+``Write|Edit|MultiEdit``; test_hook_is_registered_for_every_tool_it_checks pins that.
 
 Run with: python3 -m pytest hooks/tests/test_pretool_config_protection.py -v
 """
@@ -126,3 +126,24 @@ def test_denial_records_the_real_tool_name(tmp_path: Path) -> None:
     finally:
         conn.close()
     assert rows == [("Edit", 1)]
+
+
+def test_hook_is_registered_for_every_tool_it_checks() -> None:
+    """An unregistered gate enforces nothing: pin the event, the matcher, and the command form."""
+    repo = HOOK_PATH.parent.parent
+    settings = json.loads((repo / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    found = [
+        (group.get("matcher"), hook)
+        for group in settings["hooks"]["PreToolUse"]
+        for hook in group["hooks"]
+        if "pretool-config-protection.py" in hook.get("command", "")
+    ]
+
+    assert len(found) == 1
+    matcher, hook = found[0]
+    assert set(matcher.split("|")) == {"Write", "Edit", "MultiEdit"}
+    assert hook["command"] == 'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/pretool-config-protection.py"'
+    assert hook["type"] == "command"
+
+    allowlist = (repo / "scripts" / "hook-health-allowlist.txt").read_text(encoding="utf-8")
+    assert not any(line.startswith("pretool-config-protection.py") for line in allowlist.splitlines())

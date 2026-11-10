@@ -12,7 +12,7 @@
 // recorded trace against meta.contract. See adr/native-fast-path-portable-floor.md
 // Stages 0-1.
 //
-// Contract with the runtime it mocks (matches dynamic-workflows-vs-vexjoy-diff.md):
+// Contract with the runtime it mocks (matches docs/dynamic-workflows-vs-vexjoy-diff.md):
 //   - agent({prompt, schema, model, agentType}) -> records {agentType, skills, phase,
 //     model, prompt} and returns a minimal schema-shaped stub (or the --stubs
 //     object for that phase) so the workflow body can proceed.

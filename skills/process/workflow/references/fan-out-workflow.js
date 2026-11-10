@@ -8,7 +8,7 @@
 // no fixed agent/skill literals in source. The prose `dispatching-parallel-
 // agents` flow is the always-safe floor when the Workflow tool is absent.
 //
-// Runtime contract (see ../../../dynamic-workflows-vs-vexjoy-diff.md):
+// Runtime contract (see docs/dynamic-workflows-vs-vexjoy-diff.md):
 //   - meta is a pure object literal (name + description + contract) parsed
 //     before the body.
 //   - parallel(thunks) is a hard barrier; a failed agent resolves to null.

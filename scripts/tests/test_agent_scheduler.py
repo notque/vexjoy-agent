@@ -94,6 +94,14 @@ class TestLoadConfig:
         assert disabled_job["model"] == "haiku"
         assert disabled_job["timeout_seconds"] == 60
 
+    def test_job_with_no_model_anywhere_defaults_to_opus(self, tmp_path: Path) -> None:
+        """Owner order 2026-11-01: Sonnet is no default."""
+        path = tmp_path / "schedules.json"
+        path.write_text(json.dumps({"jobs": [{"name": "bare", "prompt": "do the thing"}]}))
+        config = agent_scheduler.load_config(path)
+        assert agent_scheduler._DEFAULT_MODEL == "opus"
+        assert config["jobs"][0]["model"] == "opus"
+
     def test_missing_config_exits(self, tmp_path: Path) -> None:
         with pytest.raises(SystemExit):
             agent_scheduler.load_config(tmp_path / "nonexistent.json")
@@ -282,10 +290,41 @@ class TestCostEstimation:
             2 * agent_scheduler.estimate_cost("opus", stdout)
         )
 
-    def test_unknown_model_falls_back_to_sonnet(self) -> None:
-        cost = agent_scheduler.estimate_cost("unknown-model", "x" * 400)
-        sonnet_cost = agent_scheduler.estimate_cost("sonnet", "x" * 400)
-        assert cost == sonnet_cost
+    @pytest.mark.parametrize(
+        ("model", "alias"),
+        [
+            ("claude-opus-5-5", "opus"),
+            ("claude-fable-5-2", "fable"),
+            ("claude-haiku-5-5", "haiku"),
+            ("claude-sonnet-5-5", "sonnet"),
+            ("claude-opus-5-5-20261101", "opus"),
+            ("us.anthropic.claude-haiku-5-5-v1:0", "haiku"),
+            ("opus[1m]", "opus"),
+            ("Claude-Opus-5-5", "opus"),
+        ],
+    )
+    def test_full_model_id_bills_its_alias_row(self, model: str, alias: str) -> None:
+        stdout = "input_tokens: 50000\noutput_tokens: 1000000"
+        assert agent_scheduler.resolve_price_alias(model) == alias
+        assert agent_scheduler.estimate_cost(model, stdout) == agent_scheduler.estimate_cost(alias, stdout)
+
+    def test_full_haiku_id_bills_the_long_prompt_rate(self) -> None:
+        stdout = "input_tokens: 200000\noutput_tokens: 1000000"
+        assert agent_scheduler.estimate_cost("claude-haiku-5-5", stdout) == pytest.approx(0.2 * 0.50 + 2.50)
+
+    @pytest.mark.parametrize("model", ["unknown-model", "", "gpt-9", "opusplan", "claude-opus-or-haiku", "command"])
+    def test_unknown_model_bills_the_most_expensive_row(self, model: str) -> None:
+        """Budgets fail safe: a name with no price row never bills below the top rate."""
+        stdout = "input_tokens: 200000\noutput_tokens: 1000000"
+        assert agent_scheduler.resolve_price_alias(model) is None
+        cost = agent_scheduler.estimate_cost(model, stdout)
+        assert cost == max(agent_scheduler.estimate_cost(alias, stdout) for alias in agent_scheduler._COST_PER_MILLION)
+        assert cost == pytest.approx(0.2 * 8.00 + 40.00)
+
+    def test_unknown_model_is_logged(self, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level("WARNING", logger="agent-scheduler"):
+            agent_scheduler.estimate_cost("unknown-model", "x" * 400)
+        assert "unknown-model" in caplog.text
 
 
 # ---------------------------------------------------------------------------

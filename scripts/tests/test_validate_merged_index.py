@@ -312,6 +312,76 @@ def test_local_overlay_absent_tolerated(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Private-overlay entries: category defects warn, never gate
+# ---------------------------------------------------------------------------
+
+
+def test_private_overlay_missing_category_warns_and_passes_strict(tmp_path):
+    entry = skill_entry("overlay-nocat")
+    del entry["category"]
+    repo, claude = make_repo(tmp_path, {"good-skill": skill_entry("good-skill")}, local_skills={"overlay-nocat": entry})
+    result = run(repo, claude, "--strict")
+    assert "WARN MISSING-FIELD overlay-nocat" in result.stdout
+    assert "ERROR" not in result.stdout
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_private_overlay_unregistered_category_warns_and_passes_strict(tmp_path):
+    local = {"overlay-offbook": skill_entry("overlay-offbook", category="private-uncharted")}
+    repo, claude = make_repo(tmp_path, {"good-skill": skill_entry("good-skill")}, local_skills=local)
+    result = run(repo, claude, "--strict")
+    assert "WARN UNKNOWN-CATEGORY overlay-offbook" in result.stdout
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_overlay_owned_entry_in_the_main_index_missing_category_warns(tmp_path):
+    # An installed index marks overlay entries with an owner, not a second file.
+    entry = skill_entry("owned-nocat", owner="overlay:private-pack")
+    del entry["category"]
+    repo, claude = make_repo(tmp_path, {"owned-nocat": entry})
+    result = run(repo, claude, "--strict")
+    assert "WARN MISSING-FIELD owned-nocat" in result.stdout
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_public_missing_category_still_fails_strict(tmp_path):
+    entry = skill_entry("nocat")
+    del entry["category"]
+    # The same name in the overlay does not make a public entry private.
+    repo, claude = make_repo(tmp_path, {"nocat": entry}, local_skills={"nocat": dict(entry)})
+    result = run(repo, claude, "--strict")
+    assert "ERROR MISSING-FIELD nocat" in result.stdout
+    assert result.returncode == 1
+
+
+def test_public_agent_missing_category_still_fails_strict(tmp_path):
+    agent = agent_entry("real-agent")
+    del agent["category"]
+    repo, claude = make_repo(tmp_path, {"good-skill": skill_entry("good-skill")}, agents={"real-agent": agent})
+    result = run(repo, claude, "--strict")
+    assert "ERROR MISSING-FIELD real-agent" in result.stdout
+    assert result.returncode == 1
+
+
+def test_private_overlay_other_defects_still_fail_strict(tmp_path):
+    # Only the category checks relax: a private entry that cannot load,
+    # has no description, or names a dead agent still gates.
+    nodesc = skill_entry("overlay-nodesc")
+    del nodesc["description"]
+    local = {
+        "overlay-ghost": skill_entry("overlay-ghost", file="phantom/og/SKILL.md"),
+        "overlay-nodesc": nodesc,
+        "overlay-dead-ref": skill_entry("overlay-dead-ref", agent="vanished-agent"),
+    }
+    repo, claude = make_repo(tmp_path, {"good-skill": skill_entry("good-skill")}, local_skills=local)
+    result = run(repo, claude, "--strict")
+    assert "ERROR PHANTOM overlay-ghost" in result.stdout
+    assert "ERROR MISSING-FIELD overlay-nodesc" in result.stdout
+    assert "ERROR DEAD-AGENT-REF overlay-dead-ref" in result.stdout
+    assert result.returncode == 1
+
+
+# ---------------------------------------------------------------------------
 # Exit codes, ordering, summary
 # ---------------------------------------------------------------------------
 

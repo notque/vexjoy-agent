@@ -10,10 +10,11 @@
 | `PostToolUse` | After tool execution | Record routing decisions, lint, security scan |
 | `PreCompact` | Before context compression | Archive the session transcript |
 | `PostCompact` | After context compression | Re-inject plan context |
-| `TaskCompleted` | After task completion | Record completion metadata |
+| `SubagentStart` | Before a subagent starts | Inject parent-session context |
 | `SubagentStop` | After subagent finishes | Enforce branch safety, reviewer contracts |
 | `StopFailure` | Session ends with error | Record the failure as a routing outcome |
-| `Stop` | Session ends | Generate summary, score any unresolved routing outcome |
+| `Stop` | After every turn | Generate summary, score errored or stale (over 6 hours) routing outcomes |
+| `SessionEnd` | Session ends | Resolve every routing outcome still pending |
 
 ## Key Hook Features
 

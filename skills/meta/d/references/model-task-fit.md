@@ -4,7 +4,9 @@ Decision record for the `model` field in `build-dispatch.py` and every Agent cal
 
 ## Current policy (2026-11-09)
 
-Sources: Anthropic, "Which Claude model should you build with?" (2026-11-09), and the owner override of 2026-11-01. Where they differ, the owner override wins.
+Sources: Anthropic, "Which Claude model should you build with?" (2026-11-09), the owner override of 2026-11-01, and the owner order of 2026-11-09. Where they differ, the owner wins.
+
+Owner (notque), verbatim, 2026-11-09: "Also I prefer opus 5.5 medium over high". Opus runs at medium on every row and tier, high-risk included.
 
 ### Task rows
 
@@ -12,7 +14,7 @@ Sources: Anthropic, "Which Claude model should you build with?" (2026-11-09), an
 |---|---|
 | Read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
 | Code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
-| High-risk: auth, data, security, concurrency, irreversible | opus / high |
+| High-risk: auth, data, security, concurrency, irreversible | opus / medium, then high |
 | Major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
 Sonnet is no row's default.
@@ -23,9 +25,10 @@ Sonnet is no row's default.
 |---|---|---|
 | low-risk | haiku / low (read-only gathering only) | haiku / low |
 | standard | opus / medium | opus / high |
-| high-risk | opus / high | opus / high |
+| high-risk | opus / medium | opus / high |
 | max-power | fable / high, needs `manual_model_override=true` | opus / xhigh |
 
+- opus/high is no tier's default. It stays valid as an explicit pick (`model: "opus"`, `model_effort: "high"`, no `model_policy`) and as the escalation step after a failed opus/medium attempt. A named tier with `model_effort: "high"` needs `manual_model_override=true`.
 - `fable` is accepted wherever `opus` is. An explicit `model: "fable"` needs no override unless it differs from a named `model_policy` tier, the same rule as opus.
 - fable/max and opus/max need `manual_model_override=true`. So does an explicit opus/xhigh: test fable at high first.
 - Owner per-task override: when the owner names a model for the task ("use fable for everything"), every dispatch passes that model, and the builder accepts and records it.
@@ -104,7 +107,7 @@ The owner's observed experience supersedes the 2026-10 tables below: Sonnet code
 - Haiku: read-only gathering only (locate, lookup, cite lines, collect excerpts, research fetch and executor work) that an Opus thread judges.
 - Sonnet: no row's or tier's default.
 
-The 2026-11-09 policy adds Fable above Opus and changes effort: standard moved from opus/high to opus/medium, and max-power from opus/xhigh to fable/high.
+The 2026-11-09 policy adds Fable above Opus and changes effort: standard and high-risk moved from opus/high to opus/medium, and max-power from opus/xhigh to fable/high. High-risk moved on the owner's order of the same day: "Also I prefer opus 5.5 medium over high".
 
 The rest of this file is the historical 2026-10 record, kept for re-measurement.
 
@@ -149,7 +152,8 @@ Tier mapping history in `build-dispatch.py`, as low-risk, standard, high-risk, m
 |---|---|
 | 2026-10 | haiku/low, sonnet/medium, opus/high, opus/xhigh |
 | 2026-11-01 | haiku/low, opus/high, opus/high, opus/xhigh |
-| 2026-11-09 | haiku/low, opus/medium, opus/high, fable/high |
+| 2026-11-09 (PR #1150) | haiku/low, opus/medium, opus/high, fable/high |
+| 2026-11-09 (owner order, same day) | haiku/low, opus/medium, opus/medium, fable/high |
 
 Escalation history: haiku, sonnet, opus (2026-10); haiku, opus (2026-11-01); the current order is under "Escalate on a miss" above.
 

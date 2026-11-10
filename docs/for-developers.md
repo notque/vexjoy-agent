@@ -156,7 +156,9 @@ Fixtures: `scripts/tests/fixtures/` for script test data. Hook tests inline thei
 
 **Wabi-sabi in docs.** Sentence fragments where they're clear. Varied length. No "delve", "robust", "streamline", or "empower"; the full list is `scripts/data/banned-patterns.json`. The `scripts/scan-ai-patterns.py` script catches these.
 
-**INDEX.json is generated.** Run the generation scripts. They parse frontmatter and build the index. Hand-edits get overwritten.
+**INDEX.json is generated.** Run the generation scripts. They parse frontmatter and build the index. Hand-edits get overwritten. A script that reads an index calls `ensure_fresh_indexes` in `scripts/lib/index_freshness.py` first: it regenerates an index that is missing or older than its sources, so a local check matches CI.
+
+**Agent descriptions stay at or under 300 bytes.** Claude Code loads every agent description into each session, so a long one costs tokens on every turn. `scripts/validate-skill-frontmatter.py` fails an `agents/*.md` description over 300 bytes or one that holds an `<example>` block.
 
 **Hooks live in hooks/.** Write there. The sync hook deploys to `~/.claude/hooks/` on session start.
 

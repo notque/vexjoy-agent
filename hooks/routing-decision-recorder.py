@@ -44,6 +44,8 @@ and the subagent's tool_result. From these we:
      (tool_errors, request/description snippet).
   3. (C) Parse a `rightsizing:tier{N}` banner from the subagent output and
      record a separate rightsizing row, parse-only and silent when absent.
+     A background dispatch has no reply here; routing-outcome-recorder.py
+     reads its banner at SubagentStop (hooks/lib/rightsizing_banner.py).
   4. (D, v1.3.0) Parse the `route-fit:` banner from the subagent output and
      score it ASYMMETRICALLY: a negative verdict decays the route, `ok` is a
      no-op that boosts nothing. Parse-only and silent when absent. See
@@ -104,6 +106,7 @@ except ImportError as exc:
     # Record why and exit 0: this hook only records telemetry.
     hook_error("routing-decision-recorder", exc)
     sys.exit(0)
+from rightsizing_banner import record_rightsizing
 from route_fit import _ROUTE_FIT_NEGATIVE, _ROUTE_FIT_RE, parse_route_fit, record_route_fit
 from routing_outcome_state import append_pending_outcome, claim_dispatch, register_async_dispatch
 from stdin_timeout import read_stdin
@@ -412,17 +415,9 @@ def parse_model_effort(marker_text: str) -> str | None:
     return match.group(1).lower() if match else None
 
 
-# Right-sizing banner. The first four fields are required; findings= and the
-# cost fields (tokens=, wall_clock_s=) are optional, additive extensions
-# (ADR: review-tier-roi). Legacy four-field banners still match.
-#   rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M tokens=84000 wall_clock_s=312
-_RIGHTSIZING_RE = re.compile(
-    r"rightsizing:\s*tier=(\d+)\s+files=(\d+)\s+packages=(\d+)\s+agents_dispatched=(\d+)"
-    r"(?:\s+findings=(\d+)C/(\d+)H/(\d+)M)?"
-    r"(?:\s+tokens=(\d+))?"
-    r"(?:\s+wall_clock_s=(\d+))?",
-    re.IGNORECASE,
-)
+# Right-sizing banner (C): parsing and recording live in hooks/lib/rightsizing_banner.py,
+# shared with routing-outcome-recorder.py. A background dispatch returns only a
+# launch receipt here, so its banner is recorded at SubagentStop instead.
 
 
 # Route-fit banner (D): parsing and scoring live in hooks/lib/route_fit.py,
@@ -627,39 +622,6 @@ def extract_output_text(result: object) -> str:
             return extract_output_text(result["content"])
         return ""
     return ""
-
-
-def record_rightsizing(output: str, session_id: str | None = None) -> None:
-    """(C) Add one rightsizing review to the tier's running sums. Silent when no banner.
-
-    Per-review findings and cost are accumulated into running sums in the
-    rightsizing:tier{N} row (`accumulate_rightsizing`) so `learning-db.py
-    review-roi` reports a TRUE per-tier mean (sum / count), not the last
-    review's sample. findings= and the cost fields are optional: a legacy
-    banner (no findings=) bumps the review count only; a "-" cost never enters
-    its sum (ADR: review-tier-roi).
-    """
-    if not output or "rightsizing:" not in output.lower():
-        return
-    m = _RIGHTSIZING_RE.search(output)
-    if not m:
-        return
-
-    def _int_or_none(s: str | None) -> int | None:
-        return int(s) if s is not None and s != "" else None
-
-    from learning_db_v2 import accumulate_rightsizing
-
-    accumulate_rightsizing(
-        int(m.group(1)),
-        critical=_int_or_none(m.group(5)),
-        high=_int_or_none(m.group(6)),
-        medium=_int_or_none(m.group(7)),
-        tokens=_int_or_none(m.group(8)),
-        wall_clock_s=_int_or_none(m.group(9)),
-        source="hook:routing-decision-recorder",
-        session_id=session_id or None,
-    )
 
 
 def main() -> None:
@@ -869,9 +831,10 @@ def main() -> None:
         result = get_tool_result(event)
 
         # A background Agent dispatch returns a launch receipt here, not the
-        # reply. Register the agent id so routing-outcome-recorder.py can score
-        # the route-fit banner when the reply arrives at SubagentStop. One
-        # decision only, as below: a Workflow has no single agent id.
+        # reply. Register the agent id so routing-outcome-recorder.py can read
+        # the rightsizing and route-fit banners when the reply arrives at
+        # SubagentStop. One decision only, as below: a Workflow has no single
+        # agent id.
         if tool_name == "Agent" and len(recorded_keys) == 1:
             launched = async_agent_id(result)
             if launched:

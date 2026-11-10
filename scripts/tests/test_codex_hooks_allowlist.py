@@ -85,7 +85,7 @@ def test_every_current_entry_has_explicit_compatibility_metadata() -> None:
 def test_apply_patch_entries_use_patch_mode_and_alias_matcher() -> None:
     """Edit/Write guards are promoted only through deterministic patch adaptation."""
     patch_entries = [entry for entry in _entries() if entry["mode"] == "patch"]
-    assert len(patch_entries) == 17
+    assert len(patch_entries) == 18
     assert {entry["event"] for entry in patch_entries} == {"PreToolUse", "PostToolUse"}
     assert {entry["matcher"] for entry in patch_entries} <= {"Edit|Write", "Write|Edit"}
     assert all(entry["classification"] == "adapted" for entry in patch_entries)

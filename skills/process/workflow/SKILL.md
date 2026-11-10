@@ -269,7 +269,6 @@ under `${CLAUDE_SKILL_DIR}`.
 | Debugging | Evidence-based diagnosis | `references/systematic-debugging.md` |
 | Refactoring | Safe refactoring with test gates | `references/systematic-refactoring.md` |
 | Research | Formal research with source gates | `references/research-pipeline.md` |
-| Research | Research to article | `references/research-to-article.md` |
 | Content | Article evaluation | `references/article-evaluation-pipeline.md` |
 | Content | De-AI content | `references/de-ai-pipeline.md` |
 | Content | Documentation | `references/doc-pipeline.md` |

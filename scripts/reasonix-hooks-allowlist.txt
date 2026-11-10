@@ -14,7 +14,6 @@
 # ----- UserPromptSubmit: prompt-time gates and recorders (no match) -----
 
 UserPromptSubmit:pipeline-context-detector.py
-UserPromptSubmit:user-correction-capture.py
 UserPromptSubmit:codex-auto-review.py
 UserPromptSubmit:prompt-capture.py
 UserPromptSubmit:routing-outcome-finalizer.py
@@ -22,7 +21,5 @@ UserPromptSubmit:routing-outcome-finalizer.py
 # ----- Stop: session-end observers and summarizers (no match) -----
 
 Stop:session-summary.py
-Stop:confidence-decay.py
-Stop:session-learning-recorder.py
-Stop:knowledge-graduation-proposer.py
+Stop:routing-outcome-stop-fallback.py
 Stop:rules-distill-trigger.py

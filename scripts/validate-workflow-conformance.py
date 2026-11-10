@@ -85,6 +85,12 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# scripts/lib holds the shared helper; append so it shadows nothing.
+sys.path.append(str(REPO_ROOT / "scripts" / "lib"))
+
+from index_freshness import ensure_fresh_indexes
+
 DEFAULT_DIR = REPO_ROOT / "skills" / "process" / "workflow" / "references"
 HARNESS = REPO_ROOT / "scripts" / "conformance-harness.mjs"
 AGENT_INDEX = REPO_ROOT / "agents" / "INDEX.json"
@@ -724,6 +730,18 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--json", action="store_true", help="emit JSON report")
     parser.add_argument("--static-only", action="store_true", help="skip the dynamic harness pass")
     args = parser.parse_args(argv)
+
+    # Regenerate a missing or stale index first: a stale one lets a workflow
+    # dispatch a renamed or removed agent or skill and still pass.
+    global KNOWN_AGENTS, KNOWN_SKILLS
+    try:
+        regenerated = ensure_fresh_indexes(REPO_ROOT)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    if regenerated:
+        KNOWN_AGENTS = _load_index_names(AGENT_INDEX, "agents")
+        KNOWN_SKILLS = _load_index_names(SKILL_INDEX, "skills")
 
     target = Path(args.dir)
     results = validate_dir(target, static_only=args.static_only)

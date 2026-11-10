@@ -13,7 +13,7 @@ session starts -> prompt submitted -> tool selected -> tool runs -> response sto
 
 context compaction: PreCompact -> compact -> PostCompact
 subagent lifecycle: SubagentStart -> SubagentStop
-session outcomes:   Stop | StopFailure
+session outcomes:   Stop | StopFailure | SessionEnd
 ```
 
 The installed configuration currently uses these events:
@@ -30,6 +30,7 @@ The installed configuration currently uses these events:
 | `SubagentStop` | When a subagent finishes | Check completion state and record outcomes |
 | `Stop` | After a normal response cycle ends | Persist summaries and resolve pending state |
 | `StopFailure` | When a session ends because of an API error | Record failure metadata |
+| `SessionEnd` | When the session ends | Resolve every routing outcome still pending |
 
 `PreToolUse` hooks may block a tool call; advisory hooks allow it to continue. Other events have event-specific response contracts. No toolkit `Stop` or `SubagentStop` hook blocks today: `subagent-completion-guard` prints a PreToolUse-style deny, which `SubagentStop` ignores. [Gates in Every Repo](../docs/start-here.md#gates-in-every-repo) lists the hooks that do block and what each one blocks. Check the corresponding script and tests before changing exit behavior or output fields.
 

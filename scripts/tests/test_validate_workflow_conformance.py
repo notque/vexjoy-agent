@@ -51,6 +51,16 @@ _spec.loader.exec_module(vwc)
 
 NODE = shutil.which("node")
 
+_rsr_spec = importlib.util.spec_from_file_location("right_size_review", SCRIPT.parent / "right-size-review.py")
+_rsr = importlib.util.module_from_spec(_rsr_spec)
+_rsr_spec.loader.exec_module(_rsr)
+
+
+def rsr_native_estimate(tier: int) -> int:
+    """Native-path reviewer count right-size-review.py reports for a tier."""
+    return _rsr.composition_for_tier(tier)["native_agent_estimate"]
+
+
 # The validator and workflow-helpers.js read agents/INDEX.json and
 # skills/INDEX.json beside themselves (helpers by static JSON import). Those are
 # generated and gitignored, so a fresh checkout has none. Runs go through a tmp
@@ -67,6 +77,8 @@ def conformance_tree(public_index_dir, tmp_path_factory) -> Path:
     (root / "scripts").mkdir()
     shutil.copy2(SCRIPT, root / "scripts" / SCRIPT.name)
     shutil.copy2(REPO_ROOT / "scripts" / "conformance-harness.mjs", root / "scripts")
+    (root / "scripts" / "lib").mkdir()
+    shutil.copy2(REPO_ROOT / "scripts" / "lib" / "index_freshness.py", root / "scripts" / "lib")
     shutil.copytree(REAL_WORKFLOW_DIR, root / "skills" / "process" / "workflow" / "references")
     (root / "agents").mkdir()
     shutil.copy2(public_index_dir / "agents.json", root / "agents" / "INDEX.json")
@@ -727,7 +739,9 @@ def test_bad_model_override_stops_before_any_dispatch(workflow):
 # --- toolkit-improvement: evaluate-only default, implement gate, caps ----------
 
 TOOLKIT = "toolkit-improvement.js"
+REVIEW = "comprehensive-review-workflow.js"
 EVALUATE_PHASES = ["evaluate", "research", "synthesize", "critique", "report"]
+FULL_EVALUATE_PHASES = ["evaluate", "deep-dive", "adversarial", *EVALUATE_PHASES[1:]]
 IMPLEMENT_PHASES = ["adr", "implement", "validate", "remediate", "record"]
 IMPLEMENT_STUBS = {
     "synthesize": {
@@ -757,18 +771,56 @@ IMPLEMENT_STUBS = {
 
 
 @pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
-def test_toolkit_improvement_default_is_evaluate_only_smallest_tier():
-    """No args: the foundation wave, then research through report. Nothing past REPORT."""
+def test_toolkit_improvement_default_is_evaluate_only_all_waves():
+    """No args: all three evaluation waves, then research through report. Nothing past REPORT."""
     rc, out = _run_harness(TOOLKIT, "unset")
     assert rc == 0 and not out["errors"], out["errors"]
     trace = out["traces"]["unset"]
-    assert trace["phases_entered"] == EVALUATE_PHASES
-    assert trace["agent_count"] == 14
+    assert trace["phases_entered"] == FULL_EVALUATE_PHASES
+    # 10 foundation + 10 deep-dive + 5 adversarial + research, synthesize, critique, report.
+    assert trace["agent_count"] == 29
     result = trace["result"]
-    assert result["tier"] == 1
+    assert result["tier"] == 4
     assert result["evaluate_only"] is True
-    assert result["deep_dive_ran"] is False and result["adversarial_ran"] is False
+    assert result["deep_dive_ran"] is True and result["adversarial_ran"] is True
+    assert result["dropped"] == []
     assert "implement is not set" in result["implement_blocked"]
+
+
+@pytest.mark.parametrize(
+    "tier,phases,agents",
+    [
+        ("1", EVALUATE_PHASES, 14),
+        ("2", EVALUATE_PHASES, 14),
+        ("3", ["evaluate", "deep-dive", *EVALUATE_PHASES[1:]], 24),
+        ("4", FULL_EVALUATE_PHASES, 29),
+    ],
+)
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_toolkit_improvement_only_an_explicit_tier_shrinks_the_evaluation(tier, phases, agents):
+    rc, out = _run_harness(TOOLKIT, tier)
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"][tier]
+    assert trace["phases_entered"] == phases
+    assert trace["agent_count"] == agents
+    assert trace["result"]["tier"] == int(tier)
+
+
+@pytest.mark.parametrize("workflow", ["toolkit-improvement.js", "comprehensive-review-workflow.js"])
+@pytest.mark.parametrize("bad_tier", ["3", True, [2]])
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_a_non_number_tier_fails_before_any_dispatch(workflow, bad_tier):
+    """A mistyped tier never picks a roster silently."""
+    rc, out = _run_harness(workflow, "unset", args={"tier": bad_tier})
+    assert out["errors"] and "tier: expected a number" in out["errors"][0]["error"], out
+    assert "unset" not in out["traces"]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_null_tier_is_unset_and_runs_all_waves():
+    rc, out = _run_harness(REVIEW, "unset", args={"tier": None})
+    assert rc == 0 and not out["errors"], out["errors"]
+    assert out["traces"]["unset"]["result"]["tier"] == 4
 
 
 @pytest.mark.parametrize(
@@ -799,7 +851,7 @@ def test_toolkit_improvement_implement_runs_on_a_work_branch_with_domain_enginee
     rc, out = _run_harness(TOOLKIT, "unset", args={"implement": True, "branch": "fix/eval-1"}, stubs=IMPLEMENT_STUBS)
     assert rc == 0 and not out["errors"], out["errors"]
     trace = out["traces"]["unset"]
-    assert trace["phases_entered"] == EVALUATE_PHASES + IMPLEMENT_PHASES
+    assert trace["phases_entered"] == FULL_EVALUATE_PHASES + IMPLEMENT_PHASES
     by_phase = {}
     for a in trace["agents"]:
         by_phase.setdefault(a["phase"], []).append(a)
@@ -909,19 +961,78 @@ def test_toolkit_improvement_default_cap_fits_a_full_evaluation():
     assert result["dropped"] == []
 
 
-# --- comprehensive-review: smallest tier default, verify and fix agents --------
-
-REVIEW = "comprehensive-review-workflow.js"
+# --- comprehensive-review: all waves by default, fix gate, verify and fix agents --
 
 
 @pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
-def test_comprehensive_review_unset_tier_runs_wave_1_only():
+def test_comprehensive_review_unset_tier_runs_all_waves():
+    """Owner, 2026-11-09: "Comprehensive review is no longer comprehensive with 1 wave"."""
     rc, out = _run_harness(REVIEW, "unset")
     assert rc == 0 and not out["errors"], out["errors"]
     trace = out["traces"]["unset"]
-    assert "wave-2" not in trace["phases_entered"] and "wave-3" not in trace["phases_entered"]
-    assert trace["agent_count"] == 4
-    assert trace["result"]["tier"] == 1
+    assert trace["phases_entered"] == ["wave-1", "wave-2", "wave-3", "verify"]
+    by_phase = {}
+    for a in trace["agents"]:
+        by_phase[a["phase"]] = by_phase.get(a["phase"], 0) + 1
+    assert by_phase == {"wave-1": 4, "wave-2": 5, "wave-3": 4}
+    assert trace["result"]["tier"] == 4 and trace["result"]["wave3_ran"] is True
+
+
+@pytest.mark.parametrize(
+    "tier,counts",
+    [
+        ("1", {"wave-1": 4}),
+        ("2", {"wave-1": 4}),
+        ("3", {"wave-1": 4, "wave-2": 3}),
+        ("4", {"wave-1": 4, "wave-2": 5, "wave-3": 4}),
+    ],
+)
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_comprehensive_review_only_an_explicit_tier_shrinks_the_review(tier, counts):
+    rc, out = _run_harness(REVIEW, tier)
+    assert rc == 0 and not out["errors"], out["errors"]
+    by_phase = {}
+    for a in out["traces"][tier]["agents"]:
+        by_phase[a["phase"]] = by_phase.get(a["phase"], 0) + 1
+    assert by_phase == counts
+    # The native roster sizes right-size-review.py reports for this path.
+    assert sum(counts.values()) == rsr_native_estimate(int(tier))
+
+
+REVIEW_FIX_STUBS = {
+    "wave-1": {
+        "findings": [{"title": "t1", "severity": "high", "location": "src/a.py:10", "description": "d"}],
+    },
+    "verify": {"finding_title": "t1", "disposition": "AGREE"},
+}
+
+
+@pytest.mark.parametrize(
+    "args,reason",
+    [
+        ({}, "implement is not set"),
+        ({"implement": "yes", "branch": "fix/x"}, "implement is not set"),
+        ({"implement": True}, "needs `branch`"),
+        ({"implement": True, "branch": "main"}, "default branch main"),
+        ({"implement": True, "branch": "master"}, "default branch master"),
+        ({"implement": True, "branch": "trunk"}, "default branch trunk"),
+        ({"implement": True, "branch": "fix/x; rm -rf ."}, "needs `branch`"),
+        ({"implement": True, "branch": "fix/x", "reviewOnly": True}, "reviewOnly is set"),
+    ],
+)
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_comprehensive_review_fix_gate_blocks(args, reason):
+    """A verified finding is reported, and no fix agent runs unless the gate is cleared."""
+    rc, out = _run_harness(REVIEW, "2", args=args, stubs=REVIEW_FIX_STUBS)
+    assert rc == 0 and not out["errors"], out["errors"]
+    trace = out["traces"]["2"]
+    assert "fix" not in trace["phases_entered"]
+    assert not [a for a in trace["agents"] if a["phase"] == "fix"]
+    result = trace["result"]
+    assert reason in result["fix_blocked"], result["fix_blocked"]
+    assert result["review_only"] is True and result["fixes"] == []
+    assert result["unfixed"] == ["t1"]
+    assert [f["title"] for f in result["verified"]] == ["t1"]
 
 
 @pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
@@ -929,11 +1040,13 @@ def test_comprehensive_review_verify_and_fix_agents_carry_agent_and_skills():
     finding = {"title": "t1", "severity": "HIGH", "location": "src/a.py:10", "description": "d"}
     stubs = {
         "wave-1": {"findings": [finding]},
-        "verify": {"finding_title": "t1", "disposition": "CONFIRM"},
+        "verify": {"finding_title": "t1", "disposition": "AGREE"},
     }
-    rc, out = _run_harness(REVIEW, "unset", stubs=stubs)
+    rc, out = _run_harness(REVIEW, "2", args={"implement": True, "branch": "fix/review-1"}, stubs=stubs)
     assert rc == 0 and not out["errors"], out["errors"]
-    agents = out["traces"]["unset"]["agents"]
+    result = out["traces"]["2"]["result"]
+    assert result["fix_blocked"] is None and result["branch"] == "fix/review-1"
+    agents = out["traces"]["2"]["agents"]
     verify = [a for a in agents if a["phase"] == "verify"]
     fix = [a for a in agents if a["phase"] == "fix"]
     assert len(verify) == 1 and len(fix) == 1, [(a["phase"], a["agentType"]) for a in agents]
@@ -941,5 +1054,7 @@ def test_comprehensive_review_verify_and_fix_agents_carry_agent_and_skills():
     assert verify[0]["skills"] == ["assessment", "testing"]
     assert fix[0]["agentType"] == "python-general-engineer"
     assert fix[0]["skills"] == ["programming", "testing"]
+    assert "git branch --show-current" in fix[0]["prompt"] and "`fix/review-1`" in fix[0]["prompt"]
+    assert "never commit or push" in fix[0]["prompt"]
     assert "Operating standards (injected)" in verify[0]["prompt"]
     assert "Operating standards (injected)" in fix[0]["prompt"]

@@ -745,9 +745,11 @@ def record_governance(
     - session_id extracted from event or environment
     - payload with hook name and redacted command head
     - dedup across processes: an identical event (same session, event type, tool,
-      hook, command head, and blocked flag) in the same ``_GOV_DEDUP_WINDOW_S``
-      window maps to one row. A different session, hook, or command is a
-      different event and is always recorded.
+      hook, command head, target file, and blocked flag) in the same
+      ``_GOV_DEDUP_WINDOW_S`` window maps to one row. A different session,
+      hook, command, or target file is a different event and is always
+      recorded. The target file comes from the event's ``tool_input``; without
+      it, two blocked edits of different files in one window were one row.
 
     Never raises. Returns the event id, or None on failure. A duplicate caught
     in this process returns None; one caught by the database returns the id of
@@ -768,6 +770,12 @@ def record_governance(
         if command:
             payload["command_head"] = _redact_command_head(command)
 
+        # Edit-style tools carry no command: the file is what tells two apart.
+        target = ""
+        tool_input = event.get("tool_input") if isinstance(event, dict) else None
+        if isinstance(tool_input, dict):
+            target = str(tool_input.get("file_path") or tool_input.get("notebook_path") or "")
+
         now = time.time()
         window = int(now // _GOV_DEDUP_WINDOW_S)
         event_id = _governance_event_id(
@@ -779,6 +787,7 @@ def record_governance(
             severity,
             hook_name,
             payload.get("command_head", ""),
+            target,
             int(bool(blocked)),
         )
         if _GOV_DEDUP.get(event_id) is not None:

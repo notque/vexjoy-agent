@@ -201,6 +201,13 @@ def test_composition_tier4():
     assert comp["agent_estimate"] == 27
 
 
+@pytest.mark.parametrize("tier,native", [(1, 4), (2, 4), (3, 7), (4, 13)])
+def test_composition_native_estimate(tier, native):
+    # The native script's roster sizes; test_validate_workflow_conformance.py
+    # checks the script dispatches exactly these.
+    assert rsr.composition_for_tier(tier)["native_agent_estimate"] == native
+
+
 # --- CLI contract -----------------------------------------------------------
 
 
@@ -228,6 +235,24 @@ def test_cli_includes_recommended_and_field_scope_tier():
     assert data["tier"] == 2
     assert "recommended" in data
     assert data["FILE_SCOPE_TIER"] == 2
+
+
+def test_cli_real_scope_carries_a_tier_signal_and_both_estimates():
+    data = json.loads(_run("--files", "60", "--packages", "6").stdout)
+    assert data["tier"] == 4 and data["tier_signal"] is True
+    assert data["agent_estimate"] == 27 and data["native_agent_estimate"] == 13
+
+
+def test_cli_no_changed_files_is_not_a_tier_signal():
+    # An empty diff or a git error must not shrink a comprehensive review.
+    data = json.loads(_run("--files", "0").stdout)
+    assert data["tier_signal"] is False
+    assert "pass no tier" in data["recommended"]
+
+
+def test_cli_git_error_is_not_a_tier_signal():
+    data = json.loads(_run("--base", "no-such-ref-for-right-size-test").stdout)
+    assert data["file_count"] == 0 and data["tier_signal"] is False
 
 
 # --- Findings banner emission (ADR: review-tier-roi) ------------------------
@@ -268,3 +293,51 @@ def test_no_banner_without_findings_flag():
     proc = _run("--files", "15", "--packages", "4")
     assert _banner_line(proc.stdout) is None
     assert json.loads(proc.stdout)["tier"] == 3
+
+
+# --- Docs agree with the script ------------------------------------------------
+
+_REPO = SCRIPT.parents[1]
+_REVIEW_MD = _REPO / "skills" / "process" / "workflow" / "references" / "comprehensive-review.md"
+_REVIEW_DOCS = [_REVIEW_MD, *sorted((_REVIEW_MD.parent / "comprehensive-review" / "references").glob("*.md"))]
+_DISPATCH_MD = _REPO / "skills" / "meta" / "do" / "references" / "workflow-dispatch.md"
+_TOOLKIT_MD = _REVIEW_MD.parent / "toolkit-improvement.md"
+
+
+@pytest.mark.parametrize("doc", _REVIEW_DOCS, ids=lambda p: p.name)
+def test_review_docs_name_only_real_reviewer_agents(doc):
+    import re
+
+    named = set(re.findall(r"`(reviewer-[a-z0-9-]+)`", doc.read_text()))
+    missing = sorted(n for n in named if not (_REPO / "agents" / f"{n}.md").is_file())
+    assert not missing, f"{doc.name} names agents that do not exist: {missing}"
+
+
+def test_review_doc_states_both_roster_paths_per_tier():
+    text = _REVIEW_MD.read_text()
+    rows = {
+        int(line.split("|")[1].split(",")[0]): line
+        for line in text.splitlines()
+        if line[:3] in ("| 1", "| 2", "| 3", "| 4")
+    }
+    for tier in (1, 2, 3, 4):
+        comp = rsr.composition_for_tier(tier)
+        cells = [c.strip() for c in rows[tier].split("|")]
+        assert str(comp["agent_estimate"]) in cells[4], rows[tier]
+        assert str(comp["native_agent_estimate"]) in cells[5], rows[tier]
+    assert "no tier" in rows[4]
+
+
+def test_no_tier_means_full_review_in_the_roster_rule():
+    text = _DISPATCH_MD.read_text()
+    assert "tierOrSmallest" not in text and "tierOrFull" in text
+    assert "Comprehensive review is no longer comprehensive with 1 wave" in text
+
+
+def test_toolkit_improvement_doc_cites_a_live_philosophy_heading():
+    import re
+
+    headings = set(re.findall(r"^## (.+)$", (_REPO / "docs" / "PHILOSOPHY.md").read_text(), re.M))
+    cited = re.findall(r'`docs/PHILOSOPHY\.md`, "([^"]+)"', _TOOLKIT_MD.read_text())
+    assert cited and all(c in headings for c in cited), cited
+    assert "Tokens Are Expensive" not in _TOOLKIT_MD.read_text()

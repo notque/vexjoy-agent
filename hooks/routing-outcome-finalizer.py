@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.0
+# hook-version: 1.2.1
 """
 UserPromptSubmit Hook: Routing Outcome Finalizer (next-turn resolution)
 
@@ -493,6 +493,10 @@ def main() -> None:
             except (TypeError, ValueError):
                 return None
 
+        # The take above already cleared `pending` from state. An entry that
+        # is not a dict, or whose key is not a string, is dropped here: it must
+        # not raise and lose every other entry of the turn.
+        pending = [it for it in pending if isinstance(it, dict) and isinstance(it.get("key"), str)]
         live = [
             it
             for it in pending

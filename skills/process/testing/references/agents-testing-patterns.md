@@ -17,7 +17,7 @@ Task(
       return db.execute(f"SELECT * FROM users WHERE id = {id}")
   ```
   """,
-  subagent_type="reviewer-security"
+  subagent_type="reviewer-system"
 )
 
 # 2. Capture output verbatim
@@ -37,7 +37,7 @@ Task(
   prompt="""
   Review this code.
   """,
-  subagent_type="reviewer-security"
+  subagent_type="reviewer-system"
 )
 
 # Expected: Agent should request more context or handle gracefully

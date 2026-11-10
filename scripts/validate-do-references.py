@@ -63,6 +63,12 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# scripts/lib holds the shared helper; append so it shadows nothing.
+sys.path.append(str(REPO_ROOT / "scripts" / "lib"))
+
+from index_freshness import ensure_fresh_indexes
+
 SKILL_FILE = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 
 # (region name, start anchor, end anchor). Matched as line prefixes after strip.
@@ -94,6 +100,7 @@ PROSE_TERMS = frozenset(
         "fan-out",  # "plus `agents` for fan-out" (combination doctrine)
         "force-route",  # "force-route triggers"
         "near-matches",  # "check INDEX files for near-matches"
+        "next-turn",  # "The next-turn finalizer scores acceptance" (routing-telemetry.md)
         "non-negotiable",  # "HARD — non-negotiable"
         "real-diff",  # "the real-diff row wins"
         "re-dispatch",  # "lazy re-dispatch" (route-failure triggers)
@@ -164,6 +171,13 @@ def main() -> int:
 
     root = args.repo_root
     gen_hint = "generated file; run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py"
+    # Regenerate a missing or stale index first: a stale one reports a renamed
+    # or removed component as still resolvable.
+    try:
+        ensure_fresh_indexes(root)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc} — {gen_hint}")
+        return 1
     skills = load_index(root / "skills" / "INDEX.json", "skills", gen_hint)
     agents = load_index(root / "agents" / "INDEX.json", "agents", gen_hint)
     pipelines = load_index(

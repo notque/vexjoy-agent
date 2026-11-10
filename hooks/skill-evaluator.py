@@ -79,7 +79,7 @@ SKILL_ROUTING = {
     "pr-miner": "Mine PR comments for coding standards",
     "pr-mining-coordinator": "Coordinate PR mining operations",
     # Process
-    "workflow-orchestrator": "Multi-step tasks, brainstorming, planning",
+    "workflow": "Multi-step tasks, brainstorming, planning",
     "verification-before-completion": "Multiple validation layers before done",
     "read-only-ops": "Exploration and reporting without modifications",
     # skill-composer: demoted to workflow
@@ -158,7 +158,7 @@ def get_evaluation_prompt(complexity: str) -> str:
 - Code Review: systematic-code-review, systematic-debugging, systematic-refactoring
 - Quality Gates: go-patterns, python-quality-gate, universal-quality-gate
 - Git: pr-workflow (umbrella: commit, codex-review, sync, status, fix, cleanup, miner, branch-name, ci-check)
-- Process: workflow-orchestrator, verification-before-completion, test-driven-development
+- Process: workflow, verification-before-completion, test-driven-development
 - Analysis: codebase-overview, agent-evaluation
 - Cleanup: code-cleanup, comment-quality, code-linting"""
 

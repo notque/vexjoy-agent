@@ -49,11 +49,12 @@ PreToolUse:pretool-private-name-leak-gate.py matcher=run_command failure=closed
 PreToolUse:security-review-hook.py matcher=run_command failure=closed
 PreToolUse:pretool-unified-gate.py matcher=run_command failure=closed
 
-# PreToolUse edit_file|write_file -> Edit|Write enforcement (10)
+# PreToolUse edit_file|write_file -> Edit|Write enforcement (11)
 PreToolUse:pretool-routing-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:suggest-compact.py matcher=edit_file|write_file failure=open
 PreToolUse:pretool-unified-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-worktree-edit-guard.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-config-protection.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-synthesis-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-plan-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-prompt-injection-scanner.py matcher=edit_file|write_file failure=closed

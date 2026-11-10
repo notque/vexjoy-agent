@@ -685,8 +685,22 @@ def check_skill_calls(root: Path = REPO_ROOT) -> list[str]:
 
 
 def run_check_skill_calls(json_output: bool) -> int:
-    """Run --check-skill-calls and return the exit code."""
-    failures = check_skill_calls()
+    """Run --check-skill-calls and return the exit code.
+
+    Regenerates a missing or stale skills or agents index first, so a renamed
+    or removed component does not resolve through an old index.
+    """
+    lib = str(REPO_ROOT / "scripts" / "lib")
+    if lib not in sys.path:
+        sys.path.append(lib)
+    from index_freshness import ensure_fresh_indexes
+
+    try:
+        ensure_fresh_indexes(REPO_ROOT)
+    except RuntimeError as exc:
+        failures = [f"index not current: {exc}"]
+    else:
+        failures = check_skill_calls()
     if json_output:
         print(json.dumps({"failures": failures, "exit_code": 1 if failures else 0}, indent=2))
     else:

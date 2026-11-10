@@ -1894,8 +1894,10 @@ def update_evidence_route_outcome(
     Row choice, first match wins:
 
     1. ``decision_id``, when given and present: the exact dispatch.
-    2. The oldest matching row with no outcome yet. N dispatches of one key in
-       one session then fill N rows in dispatch order.
+    2. With a ``session_id``: the oldest matching row with no outcome yet. N
+       dispatches of one key in one session then fill N rows in dispatch
+       order. Without one, this step is skipped: the oldest open row of the
+       key could belong to any session.
     3. The newest matching row: a later signal overwrites an earlier one.
 
     Matching by newest row alone wrote every outcome of a repeated key to the
@@ -1915,7 +1917,7 @@ def update_evidence_route_outcome(
                 "SELECT decision_id FROM evidence_route_decisions WHERE decision_id = ?",
                 (_bounded_text(decision_id, 160),),
             ).fetchone()
-        if not row:
+        if not row and session_id:
             row = conn.execute(
                 f"SELECT decision_id FROM evidence_route_decisions WHERE {where} AND outcome IS NULL ORDER BY id ASC LIMIT 1",  # security-review: ignore (fixed clauses; user values bound as ?)
                 params,

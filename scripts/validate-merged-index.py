@@ -24,6 +24,16 @@ indexes (merge logic shared via routing_index_merge.py):
                       (snapshot of categories in use; consolidation is a
                       future owner decision). Skipped if the registry is absent.
 
+Private-overlay entries (an `owner` of `overlay:<id>`, or a name only in
+INDEX.local.json) live outside this repo, and the public registry cannot list
+their categories. For them a missing `category` is a WARN, like an unregistered
+one, so neither fails --strict. Every other check is the same for both. A
+public entry with no `category` stays an ERROR.
+
+main() first regenerates a missing or stale tracked index
+(scripts/lib/index_freshness.py). A --repo-root with no generator keeps its
+index as it is.
+
 Output: one line per finding, `LEVEL CLASS name — detail`, sorted by
 severity, class, name. Then a summary count.
 
@@ -50,7 +60,12 @@ from pathlib import Path
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-from routing_index_merge import load_index_items
+from routing_index_merge import is_overlay_item, load_index_items
+
+# scripts/lib holds the shared helper; append so it shadows nothing.
+sys.path.append(str(_SCRIPTS_DIR / "lib"))
+
+from index_freshness import ensure_fresh_indexes
 
 # Harness-provided agents outside agents/INDEX.json (same set as
 # validate-do-references.py).
@@ -89,6 +104,13 @@ def load_merged(tracked: Path, key: str) -> dict:
     return merged
 
 
+def private_names(tracked: Path, key: str, merged: dict) -> set[str]:
+    """Names of private-overlay entries in ``merged``: an ``owner`` of
+    ``overlay:<id>``, or absent from the tracked (public) index."""
+    public: dict = load_index_items(tracked, None, key)
+    return {name for name, entry in merged.items() if is_overlay_item(entry) or name not in public}
+
+
 def load_registry(repo_root: Path) -> set[str] | None:
     """Category registry, or None (check skipped) when absent/unreadable."""
     path = repo_root / "scripts" / "category-registry.json"
@@ -122,9 +144,11 @@ def check_entry(
     claude_dir: Path,
     agent_names: set[str] | None,
     registry: set[str] | None,
+    private: bool = False,
 ) -> list[Finding]:
     """All checks for one merged-index entry. `agent_names` is None for
-    agent entries (they carry no `agent` field)."""
+    agent entries (they carry no `agent` field). `private` marks a
+    private-overlay entry: its missing `category` is a WARN, not an ERROR."""
     findings: list[Finding] = []
 
     file_field = entry.get("file", "")
@@ -158,7 +182,10 @@ def check_entry(
 
     category = entry.get("category")
     if not category:
-        findings.append(Finding("ERROR", "MISSING-FIELD", name, f"{kind} entry has no 'category'"))
+        if private:
+            findings.append(Finding("WARN", "MISSING-FIELD", name, f"private-overlay {kind} entry has no 'category'"))
+        else:
+            findings.append(Finding("ERROR", "MISSING-FIELD", name, f"{kind} entry has no 'category'"))
     elif registry is not None and category not in registry:
         findings.append(
             Finding(
@@ -188,18 +215,28 @@ def check_entry(
 
 def validate(repo_root: Path, claude_dir: Path) -> list[Finding]:
     """Run every check over the merged skills and agents indexes."""
-    skills = load_merged(repo_root / "skills" / "INDEX.json", "skills")
-    agents = load_merged(repo_root / "agents" / "INDEX.json", "agents")
+    skills_index = repo_root / "skills" / "INDEX.json"
+    agents_index = repo_root / "agents" / "INDEX.json"
+    skills = load_merged(skills_index, "skills")
+    agents = load_merged(agents_index, "agents")
     registry = load_registry(repo_root)
     agent_names = known_agents(agents, repo_root)
+    private_skills = private_names(skills_index, "skills", skills)
+    private_agents = private_names(agents_index, "agents", agents)
 
     findings: list[Finding] = []
     for name, entry in skills.items():
         if isinstance(entry, dict):
-            findings.extend(check_entry(name, entry, "skill", repo_root, claude_dir, agent_names, registry))
+            findings.extend(
+                check_entry(
+                    name, entry, "skill", repo_root, claude_dir, agent_names, registry, private=name in private_skills
+                )
+            )
     for name, entry in agents.items():
         if isinstance(entry, dict):
-            findings.extend(check_entry(name, entry, "agent", repo_root, claude_dir, None, registry))
+            findings.extend(
+                check_entry(name, entry, "agent", repo_root, claude_dir, None, registry, private=name in private_agents)
+            )
     return sorted(findings, key=Finding.sort_key)
 
 
@@ -214,6 +251,12 @@ def main() -> int:
         help="Deployed-layout fallback for file resolution (default: ~/.claude)",
     )
     args = parser.parse_args()
+
+    try:
+        ensure_fresh_indexes(args.repo_root)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
 
     findings = validate(args.repo_root, args.claude_dir)
 

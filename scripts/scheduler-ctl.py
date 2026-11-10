@@ -34,6 +34,9 @@ from typing import Any
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_CONFIG = _REPO_ROOT / "schedules.json"
+# Model for a job that names none; keep equal to agent-scheduler.py. Owner order
+# 2026-11-01: Sonnet is no default.
+_DEFAULT_MODEL = "opus"
 _DB_DIR = Path.home() / ".claude" / "learning"
 _DB_PATH = _DB_DIR / "scheduler-results.db"
 _PID_FILE = Path("/tmp/agent-scheduler.pid")
@@ -73,7 +76,7 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
     data = json.loads(path.read_text())
     defaults = data.get("defaults", {})
     for job in data.get("jobs", []):
-        job.setdefault("model", defaults.get("model", "sonnet"))
+        job.setdefault("model", defaults.get("model", _DEFAULT_MODEL))
         job.setdefault("timeout_seconds", defaults.get("timeout_seconds", 120))
         job.setdefault("enabled", defaults.get("enabled", True))
         job.setdefault("cost_limit_usd", 1.0)
@@ -148,7 +151,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"Error: Job '{args.job_name}' not found", file=sys.stderr)
         return 1
 
-    model = job.get("model", "sonnet")
+    model = job.get("model", _DEFAULT_MODEL)
     timeout = job.get("timeout_seconds", 120)
     prompt = job["prompt"]
     allowed_tools: list[str] = job.get("allowed_tools", [])

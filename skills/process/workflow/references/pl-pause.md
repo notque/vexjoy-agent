@@ -72,4 +72,4 @@ Common errors (not in a git repository, cannot determine session work, no decisi
 
 ### Related Intents
 - `resume` (planning umbrella) — Consumes handoff artifacts to restore session state
-- `workflow-orchestrator` — For complex multi-phase tasks that benefit from handoff between phases
+- `workflow` — For complex multi-phase tasks that benefit from handoff between phases

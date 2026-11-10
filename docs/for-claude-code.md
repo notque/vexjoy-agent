@@ -58,7 +58,10 @@ python3 scripts/routing-manifest.py --json      # all agents, skills, pipelines 
 python3 scripts/routing-manifest.py --compact    # compact text manifest for LLM context
 python3 scripts/generate-agent-index.py          # regenerate agents/INDEX.json
 python3 scripts/generate-skill-index.py          # regenerate skills/INDEX.json
+python3 scripts/validate-skill-frontmatter.py    # skill frontmatter; agent descriptions (300-byte cap, no <example>)
 ```
+
+Both indexes are generated and untracked. A script that reads one calls `ensure_fresh_indexes` in `scripts/lib/index_freshness.py` first, which regenerates an index that is missing or older than its sources.
 
 ---
 
@@ -99,6 +102,7 @@ These are the events `.claude/settings.json` registers hooks on.
 | `SubagentStop` | A subagent finishes | Yes: exit 2 or `"decision": "block"` keeps it working |
 | `Stop` | Claude finishes responding | Yes: exit 2 or `"decision": "block"` keeps it working |
 | `StopFailure` | A turn ends on an error | No |
+| `SessionEnd` | The session ends | No: resolves every routing outcome still pending |
 
 No toolkit Stop or SubagentStop hook blocks. `subagent-completion-guard` prints a PreToolUse-style deny on exit 0, which SubagentStop ignores. The hooks that block, and what they block: [start-here.md](start-here.md#gates-in-every-repo).
 
@@ -130,7 +134,7 @@ No toolkit Stop or SubagentStop hook blocks. `subagent-completion-guard` prints 
 
 1. **Decide**: `/do` picks an agent and skill and stamps a `[do-route]` marker into the dispatch prompt
 2. **Record**: `routing-decision-recorder.py` writes one decision row per marker on PostToolUse
-3. **Resolve**: `routing-outcome-finalizer.py` scores the outcome on the user's next prompt; the SubagentStop recorder and the Stop fallback catch the rest
+3. **Resolve**: `routing-outcome-finalizer.py` scores the outcome on the user's next prompt; the SubagentStop recorder validates pending entries, the Stop fallback scores errored and stale (over 6 hours) ones, and the same hook resolves the rest on SessionEnd
 4. **Report**: `learning-db.py route-health` prints the loop's correctness metrics
 
 The same database also holds the governance event log written by the safety gates and the voice corpus written by `prompt-capture.py`. Each subsystem owns its own topic.

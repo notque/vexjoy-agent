@@ -2595,6 +2595,14 @@ class TestEvidenceRowTargeting:
             ldb.update_evidence_route_outcome(route_key=self.KEY, session_id="rows", outcome=outcome, outcome_basis="b")
         assert _evidence_outcomes(self.KEY) == {"r-0": ("neutral", "b"), "r-1": ("success", "b")}
 
+    def test_without_a_session_the_newest_row_is_scored_not_an_old_open_one(self, db_env):
+        import learning_db_v2 as ldb
+
+        _seed_evidence(self.KEY, "old-session", "r-old")
+        _seed_evidence(self.KEY, "rows", "r-new")
+        ldb.update_evidence_route_outcome(route_key=self.KEY, session_id="", outcome="success", outcome_basis="b")
+        assert _evidence_outcomes(self.KEY) == {"r-old": (None, None), "r-new": ("success", "b")}
+
     def test_unknown_decision_id_falls_back_to_the_key(self, db_env):
         import learning_db_v2 as ldb
 
@@ -3287,3 +3295,221 @@ def test_recorder_fails_soft_when_scripts_lib_is_missing(tmp_path):
     assert [e["hook"] for e in entries] == ["routing-decision-recorder"]
     assert entries[0]["type"] in {"ImportError", "ModuleNotFoundError"}
     assert "route_types" in entries[0]["msg"]
+
+
+def _inject_pending(session: str, entries: list, *, first: bool = True) -> None:
+    """Write raw entries into one session's pending list, before or after the real ones."""
+    import routing_outcome_state as ros
+
+    path = ros._state_file(session)
+    with ros._state_lock(path):
+        data = ros._load(path)
+        data["pending"] = [*entries, *data["pending"]] if first else [*data["pending"], *entries]
+        ros._atomic_write(path, data)
+
+
+# Shapes a corrupt or hand-edited state file can hold. Each resolver clears the
+# pending list BEFORE its loop, so a crash on one of these loses every entry.
+_MALFORMED_PENDING = [
+    "a-string",
+    None,
+    7,
+    ["a", "list"],
+    {"key": ["unhashable"], "errors": True, "attempts": 0, "created": 1.0},
+    {"key": {"a": 1}, "errors": True, "attempts": 0},
+    {"key": 12, "errors": True, "attempts": 0},
+    {"errors": True},
+]
+
+
+class TestMalformedPendingEntries:
+    """A malformed pending entry is dropped alone; its valid siblings still resolve."""
+
+    def test_stop_fallback_scores_the_valid_sibling_and_writes_history(self, db_env):
+        import routing_outcome_state as ros
+
+        key = _seed_decision("python-general-engineer:stop-sibling")
+        session = "stop-malformed"
+        ros.append_pending_outcome(session, key, errors=True)
+        _inject_pending(session, _MALFORMED_PENDING)
+
+        _fire(STOP_PATH, "stop_malformed", {"hook_event_name": "SessionEnd", "session_id": session})
+
+        assert _routing_row(db_env, key)["failure_count"] == 1
+        assert _basis_counts(db_env) == {"tool_errors_only": 1}
+        assert ros.get_outcome_history(session) == {key: "failure"}
+        assert ros.peek_pending_outcomes(session) == []
+
+    def test_stop_fallback_counts_only_scored_entries(self, db_env):
+        import routing_outcome_state as ros
+
+        key = _seed_decision("python-general-engineer:stop-count")
+        session = "stop-count"
+        ros.append_pending_outcome(session, key, errors=True)
+        _inject_pending(session, _MALFORMED_PENDING, first=False)
+
+        stop = _load(STOP_PATH, "stop_count")
+
+        assert stop.finalize_routing_outcomes(session, session_end=True) == 1
+
+    def test_stop_fallback_failure_reaches_history_when_a_later_entry_raises(self, db_env, monkeypatch):
+        """A failure resolved before a crash must still block the next weak boost."""
+        import routing_outcome_score as score
+        import routing_outcome_state as ros
+
+        first = _seed_decision("python-general-engineer:stop-first")
+        second = _seed_decision("python-general-engineer:stop-second")
+        third = _seed_decision("python-general-engineer:stop-third")
+        session = "stop-raise"
+        for key in (first, second, third):
+            ros.append_pending_outcome(session, key, errors=True)
+        real = score.record_resolved_outcome
+
+        def flaky(**kwargs):
+            if kwargs["key"] == second:
+                raise RuntimeError("db busy")
+            return real(**kwargs)
+
+        monkeypatch.setattr(score, "record_resolved_outcome", flaky)
+        stop = _load(STOP_PATH, "stop_raise")
+
+        assert stop.finalize_routing_outcomes(session, session_end=True) == 2
+        # The entry that raised is not in history; the ones around it are.
+        assert ros.get_outcome_history(session) == {first: "failure", third: "failure"}
+        assert _routing_row(db_env, third)["failure_count"] == 1
+
+    def test_stop_fallback_writes_history_when_the_loop_itself_dies(self, db_env, monkeypatch):
+        import routing_outcome_score as score
+        import routing_outcome_state as ros
+
+        first = _seed_decision("python-general-engineer:stop-die-first")
+        second = _seed_decision("python-general-engineer:stop-die-second")
+        session = "stop-die"
+        for key in (first, second):
+            ros.append_pending_outcome(session, key, errors=True)
+        real = score.record_resolved_outcome
+
+        def dies(**kwargs):
+            if kwargs["key"] == second:
+                raise KeyboardInterrupt  # not an Exception: skips the per-entry guard
+            return real(**kwargs)
+
+        monkeypatch.setattr(score, "record_resolved_outcome", dies)
+        stop = _load(STOP_PATH, "stop_die")
+
+        with pytest.raises(KeyboardInterrupt):
+            stop.finalize_routing_outcomes(session, session_end=True)
+        assert ros.get_outcome_history(session) == {first: "failure"}
+
+    def test_finalizer_scores_the_valid_sibling(self, db_env):
+        import routing_outcome_state as ros
+
+        key = _seed_decision("python-general-engineer:fin-sibling")
+        session = "fin-malformed-shapes"
+        ros.append_pending_outcome(session, key, errors=False)
+        _inject_pending(session, _MALFORMED_PENDING)
+
+        _fire(F_PATH, "fin_shapes", _prompt_event("thanks, that worked", session=session))
+
+        # One live route key: the acceptance is attributable and boosts it.
+        assert _routing_row(db_env, key)["success_count"] == 1
+        assert _basis_counts(db_env) == {"acceptance_detected": 1}
+        assert ros.get_outcome_history(session) == {key: "success"}
+
+    def test_subagent_stop_keeps_the_valid_sibling_pending(self, db_env):
+        import routing_outcome_state as ros
+
+        key = _seed_decision("python-general-engineer:rec-sibling")
+        session = "rec-malformed"
+        ros.append_pending_outcome(session, key, errors=False)
+        _inject_pending(session, _MALFORMED_PENDING)
+
+        _fire(B_PATH, "rec_malformed", {"hook_event_name": "SubagentStop", "session_id": session})
+
+        assert [p["key"] for p in ros.peek_pending_outcomes(session)] == [key]
+
+
+def _rightsizing_rows(db_env) -> dict[str, int]:
+    """rightsizing key -> observation_count."""
+    return {
+        r["key"]: int(r["observation_count"]) for r in _query_routing(db_env) if r["key"].startswith("rightsizing:")
+    }
+
+
+class TestBackgroundRightsizing:
+    """A background review returns a launch receipt at PostToolUse:Agent, so its
+    rightsizing banner is first readable at SubagentStop."""
+
+    BANNER: ClassVar[str] = (
+        "rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M tokens=84000 wall_clock_s=312"
+    )
+
+    def test_launch_receipt_records_no_rightsizing(self, db_env):
+        _fire(A_PATH, "bgr_launch", _async_agent_event(skill="review"))
+
+        assert _rightsizing_rows(db_env) == {}
+
+    def test_banner_at_subagent_stop_is_recorded_with_its_fields(self, db_env):
+        _fire(A_PATH, "bgr_a", _async_agent_event(skill="review"))
+
+        _fire(B_PATH, "bgr_b", _subagent_stop(last_assistant_message=f"Review done.\n{self.BANNER}\nroute-fit: ok"))
+
+        assert _rightsizing_rows(db_env) == {"rightsizing:tier3": 1}
+        row = _routing_row(db_env, "rightsizing:tier3")
+        assert "sum_critical: 2" in row["value"] and "sum_tokens: 84000" in row["value"]
+        assert row["source"] == "hook:routing-outcome-recorder"
+        assert _basis_counts(db_env) == {"route_fit:ok": 1}
+
+    def test_banner_without_route_fit_is_still_recorded(self, db_env):
+        _fire(A_PATH, "bgr_only_a", _async_agent_event(skill="review"))
+
+        _fire(B_PATH, "bgr_only_b", _subagent_stop(last_assistant_message=f"done. {self.BANNER}"))
+
+        assert _rightsizing_rows(db_env) == {"rightsizing:tier3": 1}
+        assert _basis_counts(db_env) == {}
+
+    def test_banner_is_read_from_the_agent_transcript(self, db_env, tmp_path):
+        _fire(A_PATH, "bgr_tr_a", _async_agent_event(skill="review"))
+        transcript = tmp_path / "agent.jsonl"
+        line = {"type": "assistant", "message": {"content": [{"type": "text", "text": self.BANNER}]}}
+        transcript.write_text(json.dumps(line) + "\n", encoding="utf-8")
+
+        _fire(B_PATH, "bgr_tr_b", _subagent_stop(agent_transcript_path=str(transcript)))
+
+        assert _rightsizing_rows(db_env) == {"rightsizing:tier3": 1}
+
+    def test_redelivered_subagent_stop_records_once(self, db_env):
+        _fire(A_PATH, "bgr_dup_a", _async_agent_event(skill="review"))
+        stop = _subagent_stop(last_assistant_message=self.BANNER)
+
+        _fire(B_PATH, "bgr_dup_b1", stop)
+        _fire(B_PATH, "bgr_dup_b2", stop)
+
+        assert _rightsizing_rows(db_env) == {"rightsizing:tier3": 1}
+
+    def test_foreground_review_is_not_recorded_again_at_subagent_stop(self, db_env):
+        _fire(A_PATH, "bgr_fg_a", _agent_event(skill="review", session="bg1", output=f"done. {self.BANNER}"))
+
+        _fire(B_PATH, "bgr_fg_b", _subagent_stop(last_assistant_message=f"done. {self.BANNER}"))
+
+        assert _rightsizing_rows(db_env) == {"rightsizing:tier3": 1}
+
+    def test_unregistered_agent_records_nothing(self, db_env):
+        _fire(A_PATH, "bgr_other_a", _async_agent_event(skill="review"))
+
+        _fire(B_PATH, "bgr_other_b", _subagent_stop(agent_id="someone-else", last_assistant_message=self.BANNER))
+
+        assert _rightsizing_rows(db_env) == {}
+
+    def test_rightsizing_failure_does_not_cost_the_route_fit_verdict(self, db_env, monkeypatch):
+        import rightsizing_banner
+
+        def _boom(*_a, **_k):
+            raise RuntimeError("db busy")
+
+        monkeypatch.setattr(rightsizing_banner, "record_rightsizing", _boom)
+        _fire(A_PATH, "bgr_boom_a", _async_agent_event(skill="review"))
+
+        _fire(B_PATH, "bgr_boom_b", _subagent_stop(last_assistant_message=f"{self.BANNER}\nroute-fit: wrong-skill"))
+
+        assert _basis_counts(db_env) == {"route_fit:wrong-skill": 1}

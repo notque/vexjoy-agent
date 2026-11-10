@@ -204,15 +204,19 @@ OPENAI_AUTO_POLICIES = {
 }
 # Anthropic lane: owner policy, 2026-11-01, with the effort ladder from
 # Anthropic's 2026-11-09 model guide (skills/meta/d/references/model-task-fit.md).
-# Opus does all code, edits, debugging, deciding reviews, and decisions: start
-# at medium, then high. Haiku does read-only gathering that an Opus thread
-# judges. Sonnet is no tier's default (owner: Sonnet code work needed redo).
+# Opus does all code, edits, debugging, deciding reviews, and decisions. Haiku
+# does read-only gathering that an Opus thread judges. Sonnet is no tier's
+# default (owner: Sonnet code work needed redo).
+# Owner, verbatim, 2026-11-09: "Also I prefer opus 5.5 medium over high". Opus runs at
+# medium on every tier, high-risk included. opus/high is no tier's default: it
+# is an explicit pick (model=opus, model_effort=high, no model_policy) and the
+# escalation step after a failed opus/medium attempt.
 # Past opus/high, go up a model at a lower effort instead of raising effort:
 # haiku -> opus/medium -> opus/high -> fable/medium -> fable/high.
 ANTHROPIC_AUTO_POLICIES = {
     "low-risk": ("haiku", "low"),  # read-only gathering only
     "standard": ("opus", "medium"),
-    "high-risk": ("opus", "high"),
+    "high-risk": ("opus", "medium"),  # owner 2026-11-09: medium over high
     "max-power": ("fable", "high"),  # explicit only
 }
 # Explicit <model>/max needs manual_model_override=true: the top effort is an
@@ -389,10 +393,12 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
 
     Harness-aware: ``provider`` selects the automatic policy table.
     Anthropic lane defaults map low-risk to haiku (read-only gathering),
-    standard to opus/medium, high-risk to opus/high, and max-power to
-    fable/high (owner policy 2026-11-01, effort ladder 2026-11-09). Explicit
-    haiku, sonnet, opus, and fable need no override, except opus/xhigh and
-    opus/max or fable/max.
+    standard and high-risk to opus/medium, and max-power to fable/high
+    (owner policy 2026-11-01; owner 2026-11-09: "Also I prefer opus 5.5
+    medium over high"). opus/high is no tier's default: pick it explicitly
+    (model=opus, model_effort=high, no model_policy) to escalate after a
+    failed opus/medium attempt. Explicit haiku, sonnet, opus, and fable
+    need no override, except opus/xhigh and opus/max or fable/max.
     OpenAI lane defaults select GPT-5.6 Sol/Terra.  Effort is recorded in
     the marker for all models; for Claude lanes it is advisory (the harness
     Agent tool does not accept per-call effort).
@@ -433,9 +439,16 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
             raise InputError("model_policy='max-power' requires manual_model_override=true")
         if (model is not None and model != expected_model) or (effort is not None and effort != expected_effort):
             if not manual:
+                hint = ""
+                if provider == "anthropic" and (model or expected_model) == "opus" and effort == "high":
+                    hint = (
+                        ". opus/high is no tier's default (owner 2026-11-09: opus medium over high); "
+                        "to escalate after a failed opus/medium attempt, pass model='opus' with "
+                        "model_effort='high' and no model_policy"
+                    )
                 raise InputError(
                     f"model_policy={policy!r} selects {expected_model}/{expected_effort}; "
-                    "use manual_model_override=true for another choice"
+                    f"use manual_model_override=true for another choice{hint}"
                 )
             override_model = model or expected_model
             if provider == "openai" and override_model not in GPT_56_MODELS:

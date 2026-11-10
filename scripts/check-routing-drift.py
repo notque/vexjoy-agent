@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Routing-manifest drift check.
 
 Verifies that every skill in skills/INDEX.json and every agent in
