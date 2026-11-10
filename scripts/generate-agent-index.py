@@ -29,6 +29,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scripts.lib.atomic_io import atomic_write_text
 from scripts.lib.frontmatter import extract_frontmatter_block
 
 
@@ -264,8 +265,7 @@ def main() -> int:
             index["agents"].update(private_index["agents"])
 
     # Write index file
-    with open(output_path, "w") as f:
-        json.dump(index, f, indent=2)
+    atomic_write_text(output_path, json.dumps(index, indent=2))
 
     # Summary
     print(f"Generated {output_path}")

@@ -61,10 +61,11 @@ def _make_repo(tmp_path: Path) -> Path:
     (repo / "scripts" / "generate-agent-index.py").write_text(real_gen.read_text(encoding="utf-8"), encoding="utf-8")
     (repo / "scripts" / "check-index-colocation.py").write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
 
-    # generate-agent-index.py imports the shared frontmatter parser; copy it
-    # (and the package marker) so the isolated fixture repo can resolve it.
+    # generate-agent-index.py imports the shared frontmatter parser and
+    # atomic writer; copy them (and the package marker) so the isolated
+    # fixture repo can resolve them.
     lib_dir = SCRIPT.parent / "lib"
-    for lib_file in ("__init__.py", "frontmatter.py"):
+    for lib_file in ("__init__.py", "frontmatter.py", "atomic_io.py"):
         (repo / "scripts" / "lib" / lib_file).write_text(
             (lib_dir / lib_file).read_text(encoding="utf-8"), encoding="utf-8"
         )

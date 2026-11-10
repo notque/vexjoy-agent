@@ -30,6 +30,7 @@ Exit codes:
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -40,6 +41,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scripts.lib.atomic_io import atomic_write_text
 from scripts.lib.frontmatter import extract_frontmatter_block
 
 # Phase header regex: matches "## Phase 1:" or "### Phase 1:", "### Phase 0.5:", "### Phase 4b:", etc.
@@ -554,7 +556,7 @@ def write_index(index: dict, output_path: Path) -> bool:
         True on success, False on error (error printed to stderr).
     """
     try:
-        output_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+        atomic_write_text(output_path, json.dumps(index, indent=2) + "\n")
         return True
     except PermissionError:
         print(f"Error: Permission denied writing to {output_path}", file=sys.stderr)
@@ -800,7 +802,9 @@ def main() -> int:
     # Only runs for the default output (skills/INDEX.json); skips local override indexes.
     # check-routing-drift.py checks this script's own checkout and regenerates its
     # index when missing, so skip it when --repo-root targets another tree.
-    if args.output is None and repo_root == script_dir.parent.resolve():
+    # Also skip when a consumer (ensure_fresh_indexes) started this run to
+    # avoid an unbounded regeneration cycle.
+    if args.output is None and repo_root == script_dir.parent.resolve() and not os.environ.get("VEXJOY_INDEX_REGEN"):
         drift_script = Path(__file__).parent / "check-routing-drift.py"
         if drift_script.exists():
             drift_result = subprocess.run(

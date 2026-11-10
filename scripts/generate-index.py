@@ -32,6 +32,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scripts.lib.atomic_io import atomic_write_text
 from scripts.lib.frontmatter import extract_frontmatter_block
 
 # ---------------------------------------------------------------------------
@@ -552,7 +553,7 @@ def main() -> int:
 
     # Write mode
     for label, (idx, path) in indexes.items():
-        path.write_text(json.dumps(idx, indent=2) + "\n", encoding="utf-8")
+        atomic_write_text(path, json.dumps(idx, indent=2) + "\n")
 
     # Summary
     parts = []
