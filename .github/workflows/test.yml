@@ -21,7 +21,7 @@ jobs:
       # ruff pinned: 0.16.0 started reformatting markdown code blocks, failing
       # every PR on pre-existing .md files. Bump deliberately with a repo-wide
       # reformat, not via an unpinned install.
-      - run: pip install ruff==0.15.12 pyyaml
+      - run: pip install ruff==0.15.12 pyyaml==6.0.3
       # INDEX.json is generated (untracked); build it before validators read it.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       # Agent companion tables are generated from routing.pairs_with plus the indexes.
@@ -134,7 +134,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install pyyaml
+      - run: pip install pyyaml==6.0.3
       # INDEX.json is generated (untracked); the benchmark reads it.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/routing-benchmark.py --verbose
@@ -146,7 +146,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install pyyaml
+      - run: pip install pyyaml==6.0.3
       # INDEX.json is generated (untracked); the drift check reads both indexes.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/check-routing-drift.py --verbose
@@ -158,7 +158,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install pyyaml pytest
+      - run: pip install pyyaml==6.0.3 pytest
       # Composite router check: manifest, merged index (--strict), replay
       # corpus, and drift. It regenerates the untracked INDEX.json files.
       - run: python scripts/router-self-audit.py
@@ -181,7 +181,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install pyyaml
+      - run: pip install pyyaml==6.0.3
       # Static checks (dormancy, schema, mirror, allowlist) read the repo
       # directly, and matcher-liveness seeds its own throwaway HOME. The smoke
       # test + register-hook validate read ~/.claude, so deploy hooks, scripts and
@@ -238,7 +238,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install pyyaml
+      - run: pip install pyyaml==6.0.3
       # INDEX.json is generated (untracked); the audit reads it.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/audit-trigger-ambiguity.py
@@ -255,5 +255,5 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install pyyaml
+      - run: pip install pyyaml==6.0.3
       - run: python scripts/check-index-colocation.py --base origin/main --head HEAD --json || true
