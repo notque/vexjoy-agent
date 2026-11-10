@@ -2424,6 +2424,14 @@
       "routing_tier": "pre_route_negative",
       "forbid_force_route_to": "game-dev",
       "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
+    },
+    {
+      "request": "improve this repo: audit it and write handoff plans another agent can execute",
+      "expected_agent": null,
+      "expected_skill": "improve",
+      "category": "meta-tooling",
+      "routing_tier": "candidate",
+      "notes": "Advisor route: audit, rank, and write plans; improve should appear in the top candidates. A findings report with a verdict and no plans goes to review."
     }
   ]
 }
