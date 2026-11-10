@@ -7,7 +7,6 @@ Uses signal.alarm on Unix. Returns empty string on timeout so hooks exit cleanly
 ADR: adr/070-prompt-injection-defense-layer.md
 """
 
-import platform
 import signal
 import sys
 
@@ -25,7 +24,9 @@ def read_stdin(timeout: int = 10) -> str:
     Returns:
         The stdin content as a string, or empty string on timeout/error.
     """
-    if platform.system() == "Windows":
+    if (
+        sys.platform == "win32"
+    ):  # same check as platform.system(), without importing platform (it loads subprocess on Python 3.10)
         try:
             return sys.stdin.read()
         except OSError:
