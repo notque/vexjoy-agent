@@ -153,3 +153,22 @@ def test_output_result_hides_credentials(capsys: pytest.CaptureFixture[str]) -> 
     captured = capsys.readouterr()
     assert FAKE_TOKEN not in captured.out
     assert FAKE_KEY not in captured.out
+
+
+# -- Case 8: Truncation boundary does not leak a credential prefix ------
+
+
+def test_truncation_boundary_redacts_before_cut(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A credential straddling the 300-char boundary must be scrubbed before truncation."""
+    mod = _load_mod()
+    # Place FAKE_TOKEN so it starts at position 290 and extends past 300
+    filler = "X" * 290
+    body = filler + FAKE_TOKEN + " tail"
+    mock_resp = MagicMock()
+    mock_resp.status_code = 500
+    mock_resp.text = body
+    monkeypatch.setattr(mod.requests, "post", lambda *_a, **_kw: mock_resp)
+    result = mod.submit_baidu(TEST_URL, TEST_SITE, FAKE_TOKEN, dry_run=False)
+    # Neither the full token nor its leading 8-char prefix should appear
+    assert FAKE_TOKEN not in result["error"]
+    assert FAKE_TOKEN[:8] not in result["error"]

@@ -221,7 +221,7 @@ def submit_indexnow(url: str, host: str, indexnow_key: str, dry_run: bool = Fals
             return {
                 "status": "error",
                 "response_code": response.status_code,
-                "error": _scrub(response.text[:300], indexnow_key, "api-key"),
+                "error": _scrub(response.text, indexnow_key, "api-key")[:300],
             }
 
     except requests.exceptions.RequestException as e:
@@ -270,7 +270,7 @@ def submit_baidu(url: str, site_url: str, push_token: str, dry_run: bool = False
             return {
                 "status": "error",
                 "response_code": response.status_code,
-                "error": _scrub(response.text[:300], push_token, "token"),
+                "error": _scrub(response.text, push_token, "token")[:300],
             }
 
     except requests.exceptions.RequestException as e:
