@@ -177,40 +177,69 @@ def test_ensure_fresh_passes_regen_env_var(tmp_path: Path) -> None:
     assert marker.read_text(encoding="utf-8") == "1"
 
 
-def test_atomic_write_does_not_create_loop(tmp_path: Path) -> None:
-    """After a generator writes through atomic_write_text, newer_source returns None."""
-    from scripts.lib.atomic_io import atomic_write_text
-
+def _make_repo_with_atomic_generator(tmp_path: Path, surface: str = "agents") -> Path:
+    """Build a repo whose stub generator writes through atomic_write_text."""
     repo = tmp_path / "repo"
-    (repo / "agents").mkdir(parents=True)
-    (repo / "agents" / "a.md").write_text("---\nname: a\n---\n", encoding="utf-8")
+    (repo / surface).mkdir(parents=True)
+    (repo / surface / "a.md").write_text("---\nname: a\n---\n", encoding="utf-8")
     (repo / "scripts").mkdir()
-    (repo / "scripts" / fresh._GENERATORS["agents"]).write_text("pass\n", encoding="utf-8")
+    (repo / "scripts" / fresh._GENERATORS[surface]).write_text(
+        _GENERATOR_ATOMIC.format(surface=surface, repo_root=str(_REPO_ROOT)),
+        encoding="utf-8",
+    )
     (repo / "scripts" / "lib").mkdir(parents=True)
     (repo / "scripts" / "lib" / "frontmatter.py").write_text("", encoding="utf-8")
     for path in sorted(repo.rglob("*")):
         os.utime(path, OLD)
-    # Write the index through atomic_write_text (as the real generators now do).
-    atomic_write_text(repo / "agents" / "INDEX.json", '{"agents": {"a": {}}}')
+    return repo
+
+
+def test_atomic_write_does_not_create_loop(tmp_path: Path) -> None:
+    """After ensure_fresh_indexes runs a generator that uses atomic_write_text, newer_source returns None."""
+    repo = _make_repo_with_atomic_generator(tmp_path, "agents")
+    # Index is missing, so ensure_fresh_indexes runs the stub generator.
+    fresh.ensure_fresh_indexes(repo, ["agents"])
     assert fresh.newer_source(repo, "agents") is None
 
 
-def test_drift_gate_skipped_when_regen_env_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """generate-skill-index.py skips the drift gate when VEXJOY_INDEX_REGEN is set."""
+def _load_gsi():
+    """Load generate-skill-index.py as a module."""
     import importlib.util
 
-    # The gate condition checks os.environ.get("VEXJOY_INDEX_REGEN").
-    # We monkeypatch the env var and verify the condition evaluates to skip.
-    monkeypatch.setenv("VEXJOY_INDEX_REGEN", "1")
-
-    spec = importlib.util.spec_from_file_location(
-        "generate_skill_index",
-        _REPO_ROOT / "scripts" / "generate-skill-index.py",
-    )
+    script = _REPO_ROOT / "scripts" / "generate-skill-index.py"
+    spec = importlib.util.spec_from_file_location("generate_skill_index", script)
     mod = importlib.util.module_from_spec(spec)
-    # Don't exec the module (it runs main); just read its source to check
-    # the condition is present.
-    source = (_REPO_ROOT / "scripts" / "generate-skill-index.py").read_text(encoding="utf-8")
-    assert 'os.environ.get("VEXJOY_INDEX_REGEN")' in source
-    # Verify the env var is set and would make the condition falsy.
-    assert os.environ.get("VEXJOY_INDEX_REGEN")
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class TestShouldRunDriftGate:
+    """Tests for the extracted _should_run_drift_gate function."""
+
+    def test_default_case_returns_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Default args (no --output, same repo root, no env var) returns True."""
+        monkeypatch.delenv("VEXJOY_INDEX_REGEN", raising=False)
+        mod = _load_gsi()
+        script_dir = _REPO_ROOT / "scripts"
+        assert mod._should_run_drift_gate(None, script_dir.parent.resolve(), script_dir) is True
+
+    def test_regen_env_var_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """VEXJOY_INDEX_REGEN=1 makes the gate return False."""
+        monkeypatch.setenv("VEXJOY_INDEX_REGEN", "1")
+        mod = _load_gsi()
+        script_dir = _REPO_ROOT / "scripts"
+        assert mod._should_run_drift_gate(None, script_dir.parent.resolve(), script_dir) is False
+
+    def test_custom_output_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A non-None output path makes the gate return False."""
+        monkeypatch.delenv("VEXJOY_INDEX_REGEN", raising=False)
+        mod = _load_gsi()
+        script_dir = _REPO_ROOT / "scripts"
+        assert mod._should_run_drift_gate("/tmp/custom.json", script_dir.parent.resolve(), script_dir) is False
+
+    def test_different_repo_root_returns_false(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """A repo_root that differs from the script's own checkout returns False."""
+        monkeypatch.delenv("VEXJOY_INDEX_REGEN", raising=False)
+        mod = _load_gsi()
+        script_dir = _REPO_ROOT / "scripts"
+        assert mod._should_run_drift_gate(None, tmp_path, script_dir) is False
