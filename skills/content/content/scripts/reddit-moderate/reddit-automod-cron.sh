@@ -91,7 +91,7 @@ claude -p "$PROMPT" \
     --permission-mode auto \
     --max-budget-usd "$MAX_BUDGET" \
     --no-session-persistence \
-    --model sonnet \
+    --model opus \
     2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
 
 EXIT_CODE=${PIPESTATUS[0]}

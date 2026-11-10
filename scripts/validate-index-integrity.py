@@ -36,6 +36,11 @@ import re
 import sys
 from pathlib import Path
 
+# scripts/lib holds the shared helper; append so it shadows nothing.
+sys.path.append(str(Path(__file__).resolve().parent / "lib"))
+
+from index_freshness import ensure_fresh_indexes
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -355,11 +360,21 @@ def check_pinned_triggers(
 
 def main() -> int:
     """Run all integrity checks and report results. Returns exit code."""
-    script_dir = Path(__file__).parent
+    script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parent
 
     skills_index_path = repo_root / "skills" / "INDEX.json"
     agents_index_path = repo_root / "agents" / "INDEX.json"
+
+    # Both indexes are generated and untracked: regenerate a missing or stale
+    # one so the checks read what the sources say now.
+    try:
+        regenerated = ensure_fresh_indexes(repo_root)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}")
+        return 1
+    if regenerated:
+        print(f"Regenerated stale index: {', '.join(regenerated)}")
 
     print("Loading index files...")
     # Merge tracked + local overlay (same merge routing_index_merge uses)

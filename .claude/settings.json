@@ -236,6 +236,17 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-config-protection.py\"",
+            "description": "Config protection: blocks edits to linter/formatter config files so the source gets fixed instead of the rule (ADR-115; CONFIG_PROTECTION_BYPASS=1 to allow)",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

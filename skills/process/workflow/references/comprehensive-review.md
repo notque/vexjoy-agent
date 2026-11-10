@@ -42,10 +42,10 @@ routing:
 
 # Comprehensive Code Review v4 — Four-Wave Hybrid Architecture
 
-Four-wave review with per-package deep analysis and adversarial challenge. Wave 0 auto-discovers packages and dispatches one language-specialist agent per package to read ALL code in that package. Wave 1 (12 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. Wave 3 (4-5 adversarial agents) challenges Wave 1+2 consensus. All findings are aggregated with wave-agreement labels, deduplicated, and auto-fixed.
+Four-wave review with per-package deep analysis and adversarial challenge. Wave 0 auto-discovers packages and dispatches one language engineer per package (`golang-general-engineer`, `python-general-engineer`, or `typescript-frontend-engineer`) to read ALL code in that package. Wave 1 (12 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. Wave 3 (4 adversarial agents, 5 with the SAPCC reviewer) challenges Wave 1+2 consensus. A wave "agent" is one dispatch of a real agent (`reviewer-system`, `reviewer-domain`, `reviewer-code`, `reviewer-perspectives`, or a language engineer) with one lens; the rosters live in `references/wave-*.md`. All findings are aggregated with wave-agreement labels, deduplicated, and auto-fixed.
 
 **vs `/parallel-code-review`**: 3 agents (security, business, arch) — report only
-**vs `/comprehensive-review`**: 25+ agents in 4 waves — per-package + cross-cutting + adversarial AND fix everything
+**vs `/comprehensive-review`**: 26-27 agents in Waves 1-3, plus one per package in Wave 0 — per-package + cross-cutting + adversarial AND fix everything
 
 ---
 
@@ -56,7 +56,7 @@ Four-wave review with per-package deep analysis and adversarial challenge. Wave 
 - **--wave1-only**: Run only Wave 1 (12 agents), skip Wave 0, Wave 2, and Wave 3
 - **--focus [files]**: Review only specified files instead of full diff
 - **--severity [critical|high|medium|all]**: Only report/fix findings at or above severity
-- **--org-conventions**: Pass organization-specific convention flags to reviewer-language-specialist
+- **--org-conventions**: Pass organization-specific convention flags to the Wave 1 `reviewer-code` (language-specialist lens) dispatch
 
 ---
 
@@ -137,9 +137,9 @@ git diff --name-only HEAD~1
 REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only 2>/dev/null || echo "personal")
 ```
 
-If the repo belongs to a protected organization: set convention flags for the rest of this review. Wave 1 Agent 9 (`reviewer-language-specialist`) gets organization-specific flags appended. Log: "Organization conventions detected."
+If the repo belongs to a protected organization: set convention flags for the rest of this review. Wave 1 Agent 9 (`reviewer-code`, language-specialist lens) gets organization-specific flags appended. Log: "Organization conventions detected."
 
-**Step 2b: Compute the review tier (work-proportional sizing)** — scale agents to diff scope, because a 3-file change does not earn a 27-agent four-wave review.
+**Step 2b: Compute the review tier (work-proportional sizing)** — scale agents to diff scope, because a 3-file change does not earn a 27-agent four-wave review. Only a tier computed from a real diff, or one the caller names, shrinks the review.
 
 ```bash
 FILES=$(git diff --name-only | grep -c . || echo 0)
@@ -147,18 +147,20 @@ PKGS=$(git diff --name-only | sed 's#/[^/]*$##;s#^[^/]*$#.#' | sort -u | grep -c
 python3 scripts/right-size-review.py --files "$FILES" --packages "$PKGS"
 ```
 
-The script returns `{tier, waves, agent_estimate, wave3_on_critical}`. Tier governs which waves run:
+The script returns `{tier, tier_signal, waves, agent_estimate, native_agent_estimate, wave3_on_critical}`. Tier governs which waves run. The two agent columns are the same waves on two paths: **prose** is this markdown flow (one dispatch per lens, rosters in `references/wave-*.md`), and **native** is `comprehensive-review-workflow.js` (the same lenses folded into fewer dispatches of the four reviewer agents). `agent_estimate` is the prose number and `native_agent_estimate` is the native number.
 
-| Tier | Scope | Waves run | Agents |
-|------|-------|-----------|--------|
-| 1 | 1-5 files, 1 pkg | none here — use `/parallel-code-review` (3 agents) | 3 |
-| 2 | 6-20 files, 1-2 pkg | Wave 1 only | 12 |
-| 3 | 21-50 files, 3-5 pkg | Wave 1 + Wave 2 subset (5 of 10); Wave 3 only if a CRITICAL is found | 17 (+Wave 3 on CRITICAL) |
-| 4 | 50+ files, 5+ pkg | Wave 1 + Wave 2 + Wave 3 (full) | 27 |
+| Tier | Scope | Waves run | Agents, prose path | Agents, native path |
+|------|-------|-----------|--------------------|---------------------|
+| 1 | 1-5 files, 1 pkg | none here — use `/parallel-code-review` (3 agents) | 3 | 4 (Wave 1; the script has no smaller run) |
+| 2 | 6-20 files, 1-2 pkg | Wave 1 only | 12 | 4 |
+| 3 | 21-50 files, 3-5 pkg | Wave 1 + Wave 2 subset; Wave 3 only if a CRITICAL is found | 12 + 5 = 17 (+Wave 3 on CRITICAL) | 4 + 3 = 7 (+4 on CRITICAL) |
+| 4, or no tier | 50+ files, 5+ pkg | Wave 1 + Wave 2 + Wave 3 (full) | 12 + 10 + 5 = 27 (Wave 3 is 4 without the SAPCC reviewer: 26) | 4 + 5 + 4 = 13 |
+
+Neither column counts Wave 0 (one agent per package, prose path only), the per-finding verify pass (native path only), or fix agents.
 
 The larger of the file-tier and package-tier wins (a few files across many packages is still a wide change). **Escalate one tier on any CRITICAL finding**: if any wave surfaces a CRITICAL, run the next-higher tier's waves before finalizing — Tier 2 adds Wave 2; Tier 3 adds Wave 3. This is the safety valve: sizing reduces spend on small diffs without capping depth when a real risk appears.
 
-When `--severity` or `--focus` flags are set, or no tier signal is computable, fall back to the full four-wave behavior (backwards-compatible default).
+**No tier means every wave.** Run the full four-wave review when `--severity` or `--focus` is set, when the script returns `tier_signal: false` (no changed file: an empty diff or a git error), or when no tier was computed at all. Never treat a missing tier as Tier 1 or Tier 2. Owner, 2026-11-09: "Comprehensive review is no longer comprehensive with 1 wave".
 
 **Step 3: Initialize findings directory** — critical for surviving context compaction between waves
 
@@ -383,7 +385,7 @@ fi
 **ALL Wave 3 agent dispatches MUST be in ONE message.**
 
 Read `${CLAUDE_SKILL_DIR}/references/wave-3-adversarial.md` for:
-- Complete agent roster (4-5 agents with adversarial roles)
+- Complete agent roster (4 agents with adversarial roles, 5 with the SAPCC reviewer)
 - SAPCC conditional detection script
 - Standard adversarial prompt template (with Wave 0+1+2 context injection)
 - Agent-specific challenge focus instructions
@@ -491,7 +493,7 @@ If missing, rebuild: `cat "$REVIEW_DIR/wave0-findings.md" "$REVIEW_DIR/wave1-fin
 | MAJORITY | Fix, include Wave 3 challenge as code comment if challenge has merit |
 | CONTESTED | Fix only if user approved during Phase 3d. Follow per-finding decisions. |
 
-**Step 1: Create branch**
+**Step 1: Create branch** — never edit on `main`, `master`, or `trunk`. Run `git branch --show-current` before the first edit, and stop if it prints a default branch.
 
 ```bash
 git checkout -b review-fixes/$(date +%Y%m%d-%H%M%S)
@@ -521,7 +523,7 @@ npx tsc --noEmit && npx vitest run
 make check 2>/dev/null || make test 2>/dev/null
 ```
 
-**Step 3**: Apply simplifications (run `reviewer-code-simplifier` on already-fixed files) and docs fixes LAST — docs should reflect final code state.
+**Step 3**: Apply simplifications (run `reviewer-code` with a code-simplifier lens on already-fixed files) and docs fixes LAST — docs should reflect final code state.
 
 **Step 4: If a fix breaks tests**:
 1. Revert the specific fix
@@ -588,7 +590,7 @@ Review findings persisted at: $REVIEW_DIR/
 |-----------|----------|
 | Any PR, any language, full review+fix+challenge | `/comprehensive-review` (4 waves) |
 | Fast review, skip per-package | `/comprehensive-review --skip-wave0` (3 waves: 1+2+3) |
-| Quick review, 12 agents only | `/comprehensive-review --wave1-only` |
+| Quick review, Wave 1 only (12 agents prose, 4 native) | `/comprehensive-review --wave1-only` |
 | Quick 3-reviewer check, no fix | `/parallel-code-review` |
 | PR comment validation | `/pr-review-address-feedback` |
 | Sequential deep dive | `systematic-code-review` skill |
@@ -599,4 +601,14 @@ Review findings persisted at: $REVIEW_DIR/
 
 `comprehensive-review-workflow.js` (this directory) implements the same four waves as a deterministic native Workflow script. It is an **option, not a replacement** — this markdown flow remains the documented fallback and works without the Workflow tool.
 
-Prefer the JS variant when tier >= 3 (or 5+ files / 2+ review categories). It scales waves to the right-sizing tier, returns schema-validated typed findings per wave (reusing the shapes in `skills/shared-patterns/schemas/`), passes Wave 1 findings to Wave 2 in-memory via `pipeline()`/`parallel()` instead of `$REVIEW_DIR/*.md` round-trips, runs a per-finding adversarial verify before synthesis, and bounds the Phase 4 fix loop by the native token `budget`. Use this markdown flow at lower tiers or when the Workflow tool is unavailable.
+Prefer the JS variant when tier >= 3 (or 5+ files / 2+ review categories). Run args:
+
+| Arg | Effect |
+|-----|--------|
+| none | Every wave (tier 4): 4 + 5 + 4 = 13 reviewers, then one verifier per finding. Reports the verified findings. No file is edited. |
+| `tier: N` | Shrinks the review. Pass it only from `right-size-review.py` with `tier_signal: true`, or when the caller names a tier. Tier 1-2: Wave 1 (4). Tier 3: Waves 1-2 (7). A CRITICAL finding still adds Wave 3. A value that is not a number fails the run before any dispatch. |
+| `implement: true` + `branch: "<work-branch>"` | Runs the fix loop. Pass both only after the operator asks for fixes. `main`, `master`, and `trunk` are refused, and each fix agent checks `git branch --show-current` first and never commits or pushes. Without both, the result carries `fix_blocked` and lists the findings under `unfixed`. |
+| `reviewOnly: true` | Stops after verify even when `implement` is set (the `--review-only` flag). |
+| `modelOverride: "<model>"` | Runs every agent on the model the operator named. |
+
+It scales waves to the right-sizing tier, returns schema-validated typed findings per wave (reusing the shapes in `skills/shared-patterns/schemas/`), passes Wave 1 findings to Wave 2 in-memory via `pipeline()`/`parallel()` instead of `$REVIEW_DIR/*.md` round-trips, runs a per-finding adversarial verify before synthesis, and bounds the Phase 4 fix loop by the native token `budget`. Use this markdown flow at lower tiers or when the Workflow tool is unavailable.

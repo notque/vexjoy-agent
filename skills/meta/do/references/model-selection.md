@@ -4,15 +4,17 @@ Task-to-model choice lives in `skills/meta/d/references/model-task-fit.md`. Use 
 
 ## Anthropic policy (2026-11-09)
 
-Owner order 2026-11-01 plus the effort ladder from Anthropic's model guide (2026-11-09). `scripts/build-dispatch.py` enforces this table for `provider="anthropic"`, the default.
+Owner order 2026-11-01 plus the effort ladder from Anthropic's model guide (2026-11-09). Owner, verbatim, 2026-11-09: "Also I prefer opus 5.5 medium over high". Opus runs at medium on every tier, high-risk included. `scripts/build-dispatch.py` enforces this table for `provider="anthropic"`, the default.
 
 | `model_policy` | Selection | Use for |
 |---|---|---|
 | deterministic | no LLM | Run the script directly. |
 | low-risk | `haiku` / `low` | Read-only gathering only (locate, lookup, cite lines, excerpts, research fetch, log reading). An Opus thread judges the result. |
 | standard | `opus` / `medium` | Code writing and edits, debugging, features, deciding reviews, decisions, and any task no other row fits. Start at medium, then high. |
-| high-risk | `opus` / `high` | Auth, data, security, concurrency, irreversible changes. |
+| high-risk | `opus` / `medium` | Auth, data, security, concurrency, irreversible changes. Start at medium, then high. |
 | max-power | `fable` / `high` | Major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, a long unattended run, or Opus at high fell short. Requires `manual_model_override=true`; state the justification in task_spec intent. Start an explicit `fable` pick at medium, then high. |
+
+`opus`/`high` is no tier's default. It stays valid as an explicit pick and as the escalation step after a failed `opus`/`medium` attempt: pass `model: "opus"` with `model_effort: "high"` and no `model_policy`.
 
 Sonnet is no tier's default. Anthropic suggests Sonnet for well-scoped coding, documents, chat, and repeated agent tasks; the owner's experience (2026-11-01: Sonnet code work needed redo) supersedes that. Re-measure with the loop in `skills/meta/d/references/model-task-fit.md` before changing it.
 
@@ -42,7 +44,7 @@ Anthropic list price in USD per 1M tokens, 2026-11-09. Every model has a 1M-toke
 
 - **Owner per-task override:** when the owner names a model for the task ("use fable for everything"), pass that `model` with `manual_model_override=true` on every dispatch. The builder accepts it for every model, `inherit` included, and records the model in the route marker.
 - `max-power` requires `manual_model_override=true`.
-- A model or effort different from a named policy's choice requires `manual_model_override=true`. A different model also requires an explicit `model_effort`.
+- A model or effort different from a named policy's choice requires `manual_model_override=true`. A different model also requires an explicit `model_effort`. So `model_policy: "high-risk"` with `model_effort: "high"` is rejected without the override; the error names the explicit `opus`/`high` pick.
 - Explicit `haiku`, `sonnet`, `opus`, and `fable` need no override, with two exceptions. `opus`/`xhigh` requires `manual_model_override=true`: test `fable` at high first. `opus`/`max` and `fable`/`max` require `manual_model_override=true`.
 - `inherit` takes no `model_policy` and no `model_effort`.
 - Explicit GPT-5.6 choices require effort and manual override. GPT-5.5 requires manual override.
@@ -58,11 +60,10 @@ Measurement cells: Pass@1 / average USD per task / output tokens / steps. Higher
 
 | Variant | max | xhigh | high | medium | low |
 |---|---|---|---|---|---|
-| Opus-5 (stale label: never measured; the current model is Opus 5.5) | n/a | n/a | n/a | n/a | n/a |
 | Opus-4.8 (prior measurement) | 59 / 13.22 / 135k / 120 | 54 / 8.01 / 86k / 95 | 52 / 4.28 / 50k / 73 | 49 / 3.44 / 41k / 66 | 41 / 2.29 / 29k / 54 |
 | Sonnet-5 (prior measurement) | 54 / 26.40 / 214k / 268 | 50 / 11.89 / 121k / 186 | 48 / 7.43 / 87k / 147 | 40 / 4.08 / 57k / 108 | 31 / 2.19 / 36k / 77 |
 
-Superseded Anthropic tiers (2026-11-01 to 2026-11-09): standard was `opus`/`high` and max-power was `opus`/`xhigh`. The current table is under "Anthropic policy" above.
+Superseded Anthropic tiers: under the owner order of 2026-11-01, standard and high-risk were `opus`/`high` and max-power was `opus`/`xhigh`. The current table is under "Anthropic policy" above; the tier history is in `skills/meta/d/references/model-task-fit.md`.
 
 | Variant | max | xhigh | high | medium | low |
 |---|---|---|---|---|---|

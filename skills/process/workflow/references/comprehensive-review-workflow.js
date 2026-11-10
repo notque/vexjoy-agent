@@ -8,7 +8,11 @@
 // schema-validated typed agent() returns, real barriers (parallel) and
 // item-streaming (pipeline), and a token-budget-bounded fix loop.
 //
-// Runtime contract (see ../../../dynamic-workflows-vs-vexjoy-diff.md):
+// Safety default: the run reports and edits nothing. The fix loop runs only
+// when the caller passes `implement: true` and a non-default work `branch`
+// (editBlocker in workflow-helpers.js). Every fix agent checks the branch.
+//
+// Runtime contract (see docs/dynamic-workflows-vs-vexjoy-diff.md):
 //   - meta is a pure object literal (name + description) parsed before the body.
 //   - parallel(thunks) is a hard barrier; a failed agent resolves to null.
 //   - pipeline(items, ...stages) streams items through stages without a barrier.
@@ -21,18 +25,20 @@
 //     bit-stable across replay. This script uses neither.
 
 import {
+  branchRule,
+  editBlocker,
   engineerForPath,
   mandatoryInjections,
   modelFor,
   skillDirectives,
-  tierOrSmallest,
+  tierOrFull,
   validateModelOverride,
 } from "./workflow-helpers.js";
 
 export const meta = {
   name: "comprehensive-review-workflow",
   description:
-    "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. Each reviewer attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
+    "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. With no tier the run covers every wave; an explicit tier shrinks it. Report-only by default: the fix loop runs only with implement: true plus a non-default work branch. Each reviewer attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stages 0-1). This is the declared dispatch shape the conformance gate
@@ -258,15 +264,31 @@ function enterPhase(title) {
 //   tier <= 2 -> Wave 1 only; tier 3 -> Wave 1 + Wave 2 subset (Wave 3 only on a
 //   CRITICAL); tier 4 -> Wave 1 + Wave 2 full + Wave 3. Wave 3 also runs at any
 //   tier once a CRITICAL surfaces (the escalation safety valve). An unset tier
-//   is the smallest tier (Wave 1 only); the caller asks for more with a tier.
+//   runs every wave (tier 4): 4 + 5 + 4 = 13 reviewers. Only an explicit tier
+//   shrinks the review (owner, 2026-11-09: "Comprehensive review is no longer
+//   comprehensive with 1 wave").
+// `implement` + `branch` clear the fix gate: `implement: true` and a work branch
+// that is not main, master, or trunk. Pass both only after the operator asks
+// for fixes. Otherwise the run stops after verify and returns `fix_blocked`.
+// `reviewOnly: true` stops after verify even when `implement` is set (the prose
+// --review-only flag).
 // `modelOverride` is a model the owner named for this task. When set, every
 // agent runs on it. Unset: every agent runs the `work` model, because reviewers
 // and verifiers return findings that decide and the fix loop edits files.
 
-export default async function run({ scope, tier, fixThreshold, modelOverride } = {}) {
+export default async function run({
+  scope,
+  tier,
+  fixThreshold,
+  modelOverride,
+  implement,
+  branch,
+  reviewOnly,
+} = {}) {
   // Reject a bad model name before any dispatch.
   validateModelOverride(modelOverride);
-  const effectiveTier = tierOrSmallest(tier);
+  const effectiveTier = tierOrFull(tier);
+  const fixBlocked = reviewOnly === true ? "reviewOnly is set" : editBlocker(implement, branch);
   const minBudgetPerFix = typeof fixThreshold === "number" ? fixThreshold : 8000;
 
   // Wave 1: foundation. Hard barrier — every foundation agent completes before
@@ -352,9 +374,30 @@ export default async function run({ scope, tier, fixThreshold, modelOverride } =
   );
   const verified = findings.filter((f) => !dismissed.has(f.title));
 
+  // The fix gate: stop before any edit unless the caller passed implement: true
+  // with a non-default work branch. The verified findings are the report.
+  if (fixBlocked != null) {
+    return {
+      tier: effectiveTier,
+      wave3_ran: wave3Required,
+      total_findings: findings.length,
+      verified_findings: verified.length,
+      verified,
+      dismissed: [...dismissed],
+      review_only: true,
+      implement_requested: implement === true,
+      fix_blocked: fixBlocked,
+      fixes: [],
+      unfixed: verified.map((f) => f.title),
+      deferred_for_budget: [],
+      budget_remaining: budget.remaining(),
+    };
+  }
+
   // Phase 4 fix loop, bounded by the native token budget. CRITICAL first.
   // The loop stops when findings are exhausted OR the run-wide budget can no
-  // longer afford another fix agent — a hard, replayable spend ceiling.
+  // longer afford another fix agent — a hard, replayable spend ceiling. Every
+  // fix agent gets the branch rule: edit only on the caller's work branch.
   enterPhase("fix");
   const queue = verified.slice();
   const fixes = [];
@@ -369,7 +412,9 @@ export default async function run({ scope, tier, fixThreshold, modelOverride } =
       prompt:
         `Apply the fix for this verified review finding, then confirm it ` +
         `compiles and relevant tests pass. If the fix breaks tests and an ` +
-        `alternative also breaks tests, return outcome BLOCKED.` +
+        `alternative also breaks tests, return outcome BLOCKED. On a branch ` +
+        `mismatch return outcome BLOCKED.` +
+        branchRule(branch) +
         skillDirectives(FIX_SKILLS) +
         `\nFinding:\n${JSON.stringify(f)}` +
         mandatoryInjections(),
@@ -388,6 +433,10 @@ export default async function run({ scope, tier, fixThreshold, modelOverride } =
     total_findings: findings.length,
     verified_findings: verified.length,
     dismissed: [...dismissed],
+    review_only: false,
+    implement_requested: true,
+    fix_blocked: null,
+    branch,
     fixes,
     deferred_for_budget: deferred.map((f) => f.title),
     budget_remaining: budget.remaining(),

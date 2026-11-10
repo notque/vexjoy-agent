@@ -16,14 +16,14 @@ PHASE 7: OUTPUT    → Final content with validation report
 
 ## Available Pipelines
 
-Pipelines live in `skills/workflow/references/*.md`. Each pipeline's frontmatter contains its
-description and phase count. Run `ls skills/workflow/references/` for the current inventory.
+Most pipelines live in `skills/process/workflow/references/*.md`. Each pipeline's frontmatter
+contains its description. `skills/process/workflow/references/pipeline-index.json` is the
+inventory: it maps each pipeline name to its file, including the few that live in another skill.
 
 Key pipelines referenced elsewhere in this document:
-- `workflow-orchestrator`: Task orchestration (BRAINSTORM → WRITE-PLAN → VALIDATE-PLAN → EXECUTE-PLAN)
-- `pr-pipeline`: Pull request lifecycle (Stage → Commit → Push → Create → Verify)
+- `workflow-orchestrator`: Task orchestration (BRAINSTORM → WRITE-PLAN → VALIDATE-PLAN → EXECUTE-PLAN). A pipeline, not a skill: load it through the `workflow` skill.
+- `pr-pipeline`: Pull request lifecycle (Classify Repo → Stage → Review → Commit → Push → Review-Fix Loop → Create → Verify), in `skills/process/pr-workflow/references/pipeline.md`
 - `explore-pipeline`: Systematic codebase exploration
-- `research-to-article`: Multi-agent research to voice content generation
 
 ## Pipeline Principles
 

@@ -903,11 +903,11 @@ SUPPLIED_CLAUDE_POINTS = {
     [
         ("low-risk", "haiku", "low"),
         ("standard", "opus", "medium"),
-        ("high-risk", "opus", "high"),
+        ("high-risk", "opus", "medium"),
     ],
 )
 def test_anthropic_policy_maps_tiers_to_measured_models(task_class, model, effort):
-    """Policy 2026-11-09: low-risk haiku (read-only), standard opus/medium, high-risk opus/high."""
+    """Policy 2026-11-09: low-risk haiku (read-only); standard and high-risk opus/medium (owner: medium over high)."""
     decision = _decision(model=None, model_policy=task_class, provider="anthropic")
     marker = bd.build_marker(decision)
 
@@ -935,9 +935,47 @@ def test_anthropic_policy_sonnet_is_no_tier_default():
     assert tiers == {
         "low-risk": ("haiku", "low"),
         "standard": ("opus", "medium"),
-        "high-risk": ("opus", "high"),
+        "high-risk": ("opus", "medium"),
         "max-power": ("fable", "high"),
     }
+
+
+def test_anthropic_policy_runs_opus_at_medium_on_every_tier():
+    """Owner, 2026-11-09: "Also I prefer opus 5.5 medium over high". opus/high is no tier's default."""
+    opus_tiers = {tier: effort for tier, (model, effort) in bd.ANTHROPIC_AUTO_POLICIES.items() if model == "opus"}
+    assert opus_tiers == {"standard": "medium", "high-risk": "medium"}
+
+
+def test_explicit_opus_high_needs_no_override():
+    """opus/high stays a valid explicit pick: the escalation step after a failed opus/medium attempt."""
+    marker = bd.build_marker(_decision(model="opus", model_effort="high"))
+    assert "model=opus" in marker and "effort=high" in marker
+
+
+@pytest.mark.parametrize("policy", ("standard", "high-risk"))
+@pytest.mark.parametrize("model", (None, "opus"))
+def test_opus_high_under_a_named_tier_is_rejected_with_the_escalation_hint(policy, model):
+    """A tier never yields opus/high by itself; the error names the explicit pick and the owner order."""
+    decision = _decision(model=model, model_policy=policy, model_effort="high")
+    with pytest.raises(bd.InputError) as excinfo:
+        bd.build_marker(decision)
+    message = str(excinfo.value)
+    assert "selects opus/medium" in message
+    assert "opus medium over high" in message
+    assert "model='opus' with model_effort='high' and no model_policy" in message
+    marker = bd.build_marker({**decision, "manual_model_override": True})
+    assert "model=opus" in marker and "effort=high" in marker
+
+
+def test_escalation_hint_stays_off_other_mismatches():
+    """The opus/high hint is for that one pick; other mismatches keep the short message."""
+    for extra in ({"model_effort": "low"}, {"model": "fable", "model_effort": "high"}):
+        with pytest.raises(bd.InputError) as excinfo:
+            bd.build_marker(_decision(**{"model": None, "model_policy": "high-risk", **extra}))
+        assert "no model_policy" not in str(excinfo.value)
+    with pytest.raises(bd.InputError) as excinfo:
+        bd.build_marker(_decision(model=None, model_policy="high-risk", model_effort="high", provider="openai"))
+    assert "no model_policy" not in str(excinfo.value)
 
 
 def test_anthropic_policy_never_raises_opus_past_high():

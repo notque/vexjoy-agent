@@ -89,7 +89,7 @@ on the answer.
 
 **Token cost**: High and intentional. Multi-wave parallel dispatch is expensive. The cost
 is justified because shallow single-pass evaluation misses the issues that matter most.
-See PHILOSOPHY.md: "Tokens Are Expensive, Use Progressive Context."
+See `docs/PHILOSOPHY.md`, "Keep knowledge that changes decisions": every phase must justify its upkeep.
 
 ---
 
@@ -98,8 +98,9 @@ See PHILOSOPHY.md: "Tokens Are Expensive, Use Progressive Context."
 - **Evaluate-only is the default.** A request to evaluate, audit, or health-check the
   toolkit runs Phases 1-5 and stops. Run Phases 6-10 only when the operator asks for
   implementation and approves at the Phase 5 and Phase 6 gates.
-- **Start with Wave 1.** Run Waves 2 and 3 only when the operator asks for a deep, full,
-  or adversarial evaluation, or `/do` passes tier 3 or 4. The roster rule lives in
+- **Run all three waves.** With no tier, the evaluation covers every dimension: Wave 1
+  (10), Wave 2 (10), and Wave 3 (5). Shrink it only when the operator asks for a quick or
+  Wave-1-only pass, or `/do` passes an explicit tier below 4. The roster rule lives in
   `skills/meta/do/references/workflow-dispatch.md`.
 - **Never edit on the default branch.** Phase 7 and Phase 9 edit only on a work branch.
 
@@ -107,8 +108,9 @@ Native variant (`toolkit-improvement.js`) run args that carry the same rules:
 
 | Arg | Effect |
 |-----|--------|
-| none | Wave 1, then Phases 2-5. Stops after REPORT. No file is edited. |
-| `tier: 3` / `tier: 4` / `depth: "deep"` | Adds Wave 2 / Waves 2 and 3 / all three waves. |
+| none | Waves 1-3 (25 evaluators), then Phases 2-5: 29 agents. Stops after REPORT. No file is edited. |
+| `tier: 1` or `tier: 2` / `tier: 3` | Shrinks the evaluation to Wave 1 (14 agents) / Waves 1 and 2 (24 agents). A value that is not a number fails the run before any dispatch. |
+| `depth: "deep"` | Forces all three waves even with a lower tier. |
 | `implement: true` + `branch: "<work-branch>"` | Runs Phases 6-10. Pass both only after the operator approves implementation. `main`, `master`, and `trunk` are refused, and each editing agent checks `git branch --show-current` first. A cluster gets an ADR only when the critique confirms, downgrades, or elevates it by cluster id. The result lists the rest under `unreviewed_clusters`, and a run with no critique stops after REPORT. |
 | `evaluateOnly: true` | Stops after REPORT even when `implement` is set. |
 | `maxAgents: N` | Caps agents for the run (default 40). The result lists what the cap dropped. |
@@ -151,7 +153,7 @@ echo "Resuming from: $IMPROVE_DIR"
 ## Phase 1: EVALUATE — Multi-Wave Agent Dispatch
 
 **Goal**: Cover the evaluation dimensions of the toolkit using parallel specialized
-agents organized into up to three waves. Run Wave 1 by default; add Waves 2 and 3 per
+agents organized into three waves. Run all three by default; drop Waves 2 and 3 only per
 "Defaults" above. Each agent reads actual source files — not summaries.
 
 Read `references/agent-roster.md` for the complete agent personas, their focus areas,

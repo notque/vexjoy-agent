@@ -26,7 +26,7 @@ QUESTIONS = {"ok": {"type": "noul", "instructions": "Is this a test?"}}
 JEV_ANSWER = {"answers": {"ok": {"type": "noul", "noul": 0.9}}, "_meta": {"transport": "vercel-ai-gateway"}}
 ALT_ANSWER = {
     "answers": {"ok": {"type": "noul", "noul": 0.2}},
-    "model": "claude-sonnet-4-6",
+    "model": "claude-opus-5-5",
     "_meta": {"is_jev": False, "source": "alt-model", "backend": "claude-cli"},
 }
 

@@ -27,5 +27,4 @@ pretool-voice-publish-gate.py              # superseded: writing pipeline phases
 
 # --- Dormant hooks with tests removed in test-suite reduction ---
 mcp-health-check.py                        # unregistered: MCP health check runs on demand, not as a hook event; test removed in test-suite reduction
-pretool-config-protection.py               # unregistered: its linter/formatter config protection (ADR-115) is in no registered hook, pretool-unified-gate.py included, so nothing enforces it; restoring or retiring it is the owner's decision
 pretool-subagent-warmstart.py              # unregistered: warmstart logic moved to subagent-start event handler; standalone file kept for reference

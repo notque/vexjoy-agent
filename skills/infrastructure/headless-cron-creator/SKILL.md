@@ -96,7 +96,7 @@ Verify the generated script meets cron best practices.
    bash -n scripts/{name}-cron.sh  # syntax check
    ```
 
-2. Run `cron-job-auditor` checks:
+2. Check the script by hand (no auditor skill exists):
    - [ ] Error handling (`set -e`)
    - [ ] Lock file (`flock`)
    - [ ] Logging (`tee`, `LOG_DIR`)

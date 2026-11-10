@@ -75,7 +75,7 @@ CLAIM = re.compile(
     re.IGNORECASE,
 )
 
-# "Codex runs 61 of the 75 hook registrations; 14 are unsupported." Checked only on
+# "Codex runs 62 of the 76 hook registrations; 14 are unsupported." Checked only on
 # lines that mention Codex, against scripts/codex-hooks-allowlist.txt.
 CODEX_LINE = re.compile(r"\bCodex\b", re.IGNORECASE)
 CODEX_SUPPORT = re.compile(r"\b(\d{1,4}) of (?:the )?(\d{1,4}) hook registrations\b", re.IGNORECASE)

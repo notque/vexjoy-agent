@@ -25,7 +25,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.lib.frontmatter import parse_frontmatter as _parse_frontmatter
 
-# Role classifications and their allowed tools
+# Role classifications and their allowed tools. Every role lists Skill: an
+# agent loads its paired skills through the Skill tool.
 ROLE_TOOLS = {
     "reviewer-readonly": [
         "Read",
@@ -34,6 +35,7 @@ ROLE_TOOLS = {
         "Agent",
         "WebFetch",
         "WebSearch",
+        "Skill",
     ],
     "reviewer-with-fix": [
         "Read",
@@ -43,6 +45,7 @@ ROLE_TOOLS = {
         "Grep",
         "Bash",
         "Agent",
+        "Skill",
     ],
     "research": [
         "Read",
@@ -51,6 +54,7 @@ ROLE_TOOLS = {
         "WebFetch",
         "WebSearch",
         "Agent",
+        "Skill",
     ],
     "orchestrator": [
         "Read",
@@ -58,6 +62,7 @@ ROLE_TOOLS = {
         "Grep",
         "Agent",
         "Bash",
+        "Skill",
     ],
     "code-modifier": [
         "Read",
@@ -67,6 +72,7 @@ ROLE_TOOLS = {
         "Glob",
         "Grep",
         "Agent",
+        "Skill",
     ],
     "documentation": [
         "Read",
@@ -75,6 +81,7 @@ ROLE_TOOLS = {
         "Grep",
         "WebFetch",
         "WebSearch",
+        "Skill",
     ],
 }
 
@@ -120,7 +127,6 @@ AGENT_ROLES = {
     "react-portfolio-engineer": "code-modifier",
     "rive-skeletal-animator": "code-modifier",
     "rust-general-engineer": "code-modifier",
-    "skill-creator": "code-modifier",
     "sqlite-peewee-engineer": "code-modifier",
     "swift-general-engineer": "code-modifier",
     "testing-automation-engineer": "code-modifier",

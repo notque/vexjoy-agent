@@ -38,7 +38,8 @@ import jev_redact
 import jev_router_common
 
 SOURCE = "alt-model"
-ALT_MODEL = os.environ.get("JEV_ALT_MODEL", "claude-sonnet-4-6")
+# Owner model policy: decisions run on Opus; Sonnet is not a default for any task.
+ALT_MODEL = os.environ.get("JEV_ALT_MODEL", "claude-opus-5-5")
 ALT_MODEL_BASE_URL = os.environ.get("JEV_ALT_MODEL_BASE_URL", "https://api.anthropic.com").rstrip("/")
 # "api" (Anthropic Messages via urllib), "claude-cli" (`claude -p`, logged-in
 # CLI, no key needed), or "auto" (api when a key is set, else claude-cli).
@@ -51,10 +52,11 @@ DEFAULT_TIMEOUT_S = 60.0
 CLAUDE_CLI_TIMEOUT_S = 90.0
 # Output budget scales with question count (each Choice/Score answer carries
 # a probabilities entry per option/level); capped so one malformed request
-# cannot ask for an unbounded reply.
-_BASE_OUTPUT_TOKENS = 512
-_OUTPUT_TOKENS_PER_QUESTION = 256
-_MAX_OUTPUT_TOKENS = 4096
+# cannot ask for an unbounded reply. Opus 5.5 always thinks and thinking
+# counts against max_tokens, so the base leaves room for it.
+_BASE_OUTPUT_TOKENS = 4096
+_OUTPUT_TOKENS_PER_QUESTION = 512
+_MAX_OUTPUT_TOKENS = 16000
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):

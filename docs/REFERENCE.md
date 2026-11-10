@@ -148,10 +148,10 @@ The installer merges only `hooks` and `env` from the repo settings. Keys such as
 |------|----------------|
 | read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
 | code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
-| high-risk: auth, data, security, concurrency, irreversible | opus / high |
+| high-risk: auth, data, security, concurrency, irreversible | opus / medium, then high |
 | major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
-Sonnet is no task's default. Prices, effort trade-offs, and the evidence: [model task fit](../skills/meta/d/references/model-task-fit.md).
+Sonnet is no task's default. Opus starts at medium on every row, high-risk included (owner, 2026-11-09: "Also I prefer opus 5.5 medium over high"); high is the step after a failed medium attempt. Prices, effort trade-offs, and the evidence: [model task fit](../skills/meta/d/references/model-task-fit.md).
 
 ### Orchestration (optional)
 

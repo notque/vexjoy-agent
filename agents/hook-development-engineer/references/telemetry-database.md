@@ -11,7 +11,7 @@ Schema, API, and operations for the store the hooks write: routing telemetry, ag
 | Table | Written by | Carries |
 |---|---|---|
 | `evidence_route_decisions` | `routing-decision-recorder.py` (PostToolUse:Agent) | One row per dispatch: agent, skill, pipeline, stack, marker |
-| `routing_outcome_basis` | `routing-outcome-recorder.py` (SubagentStop), `routing-outcome-finalizer.py` (UserPromptSubmit), `routing-outcome-stop-fallback.py` (Stop) | How each outcome was scored, so a rate can be read against its basis |
+| `routing_outcome_basis` | `routing-outcome-recorder.py` (SubagentStop), `routing-outcome-finalizer.py` (UserPromptSubmit), `routing-outcome-stop-fallback.py` (Stop: errored and stale entries; SessionEnd: every entry still pending) | How each outcome was scored, so a rate can be read against its basis |
 | `evidence_events` / `evidence_sessions` | agent evidence hooks | Per-event success and failure records with target paths |
 | `telemetry_runs` | `record_telemetry_run` callers | Per-run token, step, and tool-error totals |
 | `governance_events` | ADR and creation-gate hooks | Gate decisions and their resolutions |

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.0
+# hook-version: 1.2.1
 """
 PreToolUse Hook: Unified Gate (ADR-068)
 
@@ -29,7 +29,8 @@ Creation-gate allowlist: see _CREATION_PATH_ALLOWLIST. Path shapes produced
 by named non-skill-creator skills (e.g. writing → skills/voice-*/SKILL.md)
 pass through. Without this, those skills had to bypass via /tmp + cp.
 
-Performance: <50ms. Early-exit for non-matching tools. Only gitignore bypass uses subprocess.
+Performance: target <50ms. Early-exit for non-matching tools. Patterns compile on
+first use and subprocess/hashlib import on first use (see _rx, _LAZY_MODULES).
 """
 
 import sys  # vexjoy-pyguard
@@ -51,18 +52,57 @@ if sys.version_info < (3, 10):  # vexjoy-pyguard gate
     )
     sys.exit(2)
 
-import hashlib
 import json
 import os
 import re
 import shlex
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import get_tool_input, hook_error, record_governance
 from stdin_timeout import read_stdin
+
+# Startup cost is paid on every tool call, so two things wait until first use:
+# the module-level patterns (_rx) and the imports only a few paths need
+# (subprocess, hashlib). No check is skipped; a pattern compiles when its
+# check first runs.
+_LAZY_MODULES = ("hashlib", "subprocess")
+
+
+def __getattr__(name: str):
+    """Serve the lazily imported modules as attributes, as when they were imported at the top."""
+    if name in _LAZY_MODULES:
+        import importlib
+
+        return importlib.import_module(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+class _rx:
+    """A module-level pattern that compiles on first use.
+
+    Takes the arguments of re.compile and forwards every attribute (search,
+    match, finditer, sub, pattern, flags) to the compiled pattern. Pass
+    `.compiled`, not the wrapper, to a function that needs a real re.Pattern.
+    """
+
+    __slots__ = ("_args", "_compiled")
+
+    def __init__(self, pattern: str, flags: int = 0) -> None:
+        self._args = (pattern, flags)
+        self._compiled: re.Pattern[str] | None = None
+
+    @property
+    def compiled(self) -> "re.Pattern[str]":
+        compiled = self._compiled
+        if compiled is None:
+            compiled = self._compiled = re.compile(*self._args)
+        return compiled
+
+    def __getattr__(self, name: str):
+        return getattr(self.compiled, name)
+
 
 # Module-level state set by main() so _block() can enrich governance events.
 _CURRENT_EVENT: dict | None = None
@@ -91,17 +131,17 @@ _GITIGNORE_BYPASS = "GITIGNORE_GUARD_BYPASS=1"
 
 _GIT_SUBMISSION_BYPASS = "CLAUDE_GATE_BYPASS=1"
 
-_GIT_PUSH_PATTERN = re.compile(r"^(?:\w+=\S+\s+)*git\s+push\b")
+_GIT_PUSH_PATTERN = _rx(r"^(?:\w+=\S+\s+)*git\s+push\b")
 
 _GIT_SUBMISSION_PATTERNS = [
     (_GIT_PUSH_PATTERN, "pr-workflow", "Push through the PR workflow (runs review loop first)"),
     (
-        re.compile(r"^(?:\w+=\S+\s+)*gh\s+pr\s+create\b"),
+        _rx(r"^(?:\w+=\S+\s+)*gh\s+pr\s+create\b"),
         "pr-workflow",
         "Create the PR through the PR workflow (runs review loop first)",
     ),
     (
-        re.compile(r"^(?:\w+=\S+\s+)*gh\s+pr\s+merge\b"),
+        _rx(r"^(?:\w+=\S+\s+)*gh\s+pr\s+merge\b"),
         "pr-workflow",
         "Merge through the PR workflow (requires review to pass first)",
     ),
@@ -126,24 +166,24 @@ _DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     # end-anchored, so `rm -rf / --no-preserve-root`, `rm -rf / # cleanup`,
     # `rm -rf -- /`, `rm -rf //`, `rm -rf $HOME`, and `rm -rf /etc` all passed.
     # Database destruction
-    (re.compile(r"\bDROP\s+DATABASE\b", re.IGNORECASE), "database", "DROP DATABASE"),
-    (re.compile(r"\bDROP\s+SCHEMA\b", re.IGNORECASE), "database", "DROP SCHEMA"),
-    (re.compile(r"\bTRUNCATE\s+TABLE\b", re.IGNORECASE), "database", "TRUNCATE TABLE"),
+    (_rx(r"\bDROP\s+DATABASE\b", re.IGNORECASE), "database", "DROP DATABASE"),
+    (_rx(r"\bDROP\s+SCHEMA\b", re.IGNORECASE), "database", "DROP SCHEMA"),
+    (_rx(r"\bTRUNCATE\s+TABLE\b", re.IGNORECASE), "database", "TRUNCATE TABLE"),
     # Permission escalation
-    (re.compile(r"\bchmod\s+(-R\s+)?777\b"), "permissions", "chmod 777"),
+    (_rx(r"\bchmod\s+(-R\s+)?777\b"), "permissions", "chmod 777"),
     # Force-push to protected branches moved to _force_push_protected (audit
     # S2): the old regexes hardcoded flag-before-branch order, so `git push
     # origin main --force` and the `+main` force refspec both passed.
     # Container mass-kill
-    (re.compile(r"\bdocker\s+system\s+prune\s+-af\b"), "container", "docker system prune -af"),
-    (re.compile(r"\bkubectl\s+delete\s+namespace\b"), "container", "kubectl delete namespace"),
-    (re.compile(r"\bkubectl\s+delete\s+ns\b"), "container", "kubectl delete ns"),
+    (_rx(r"\bdocker\s+system\s+prune\s+-af\b"), "container", "docker system prune -af"),
+    (_rx(r"\bkubectl\s+delete\s+namespace\b"), "container", "kubectl delete namespace"),
+    (_rx(r"\bkubectl\s+delete\s+ns\b"), "container", "kubectl delete ns"),
     # System-level danger
-    (re.compile(r"\bmkfs\b"), "system", "mkfs (format disk)"),
-    (re.compile(r"\bdd\s+if="), "system", "dd (raw disk write)"),
+    (_rx(r"\bmkfs\b"), "system", "mkfs (format disk)"),
+    (_rx(r"\bdd\s+if="), "system", "dd (raw disk write)"),
     # Cloud destructive
-    (re.compile(r"\bterraform\s+destroy\b(?!.*-target)"), "cloud", "terraform destroy (no -target)"),
-    (re.compile(r"\baws\s+s3\s+rb\s+.*--force\b"), "cloud", "aws s3 rb --force"),
+    (_rx(r"\bterraform\s+destroy\b(?!.*-target)"), "cloud", "terraform destroy (no -target)"),
+    (_rx(r"\baws\s+s3\s+rb\s+.*--force\b"), "cloud", "aws s3 rb --force"),
 ]
 
 # ── rm destructive-target walk (audit S2) ────────────────────────
@@ -158,14 +198,14 @@ _DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
 
 # `rm` as a word anywhere in the text: covers `xargs rm`, `env rm`, `\rm`,
 # `/bin/rm` (the preceding char is a non-word char in all of them).
-_RM_WORD_RE = re.compile(r"\brm(?=\s)")
+_RM_WORD_RE = _rx(r"\brm(?=\s)")
 
 # Cut an occurrence's argument slice at the first command separator so a later
 # command's arguments never attach to this `rm` (`rm -rf build; ls /` must not
 # see `/`). `#` cuts at a comment; quotes are NOT tracked — a separator inside
 # a quoted filename truncates the slice early, which can only under-collect
 # targets for exotic quoting while keeping every plain form exact.
-_RM_ARGS_STOP_RE = re.compile(r"[;&|\n`)#]")
+_RM_ARGS_STOP_RE = _rx(r"[;&|\n`)#]")
 
 # Top-level directories whose recursive removal is unrecoverable system damage.
 _TOP_LEVEL_SYSTEM_DIRS = frozenset(
@@ -188,8 +228,8 @@ _TOP_LEVEL_SYSTEM_DIRS = frozenset(
     }
 )
 
-_HOME_VAR_RE = re.compile(r"^\$(?:HOME|\{HOME\})/?$")
-_PROJECT_VAR_RE = re.compile(r"^\$(?:CLAUDE_PROJECT_DIR|\{CLAUDE_PROJECT_DIR\})/?$")
+_HOME_VAR_RE = _rx(r"^\$(?:HOME|\{HOME\})/?$")
+_PROJECT_VAR_RE = _rx(r"^\$(?:CLAUDE_PROJECT_DIR|\{CLAUDE_PROJECT_DIR\})/?$")
 
 
 def _protected_rm_target(tok: str) -> str | None:
@@ -278,8 +318,8 @@ def _rm_destructive_target(command: str) -> str | None:
 
 # ── force-push walk (audit S2) ───────────────────────────────────
 
-_GIT_PUSH_WORD_RE = re.compile(r"\bgit\s+push\b")
-_PROTECTED_REF_RE = re.compile(r"\b(?:main|master)\b")
+_GIT_PUSH_WORD_RE = _rx(r"\bgit\s+push\b")
+_PROTECTED_REF_RE = _rx(r"\b(?:main|master)\b")
 
 
 def _force_push_protected(command: str) -> str | None:
@@ -589,6 +629,8 @@ def _persistent_git_alias_payload(
     key = (lookup_cwd, name.lower())
     if key in cache:
         return cache[key] or ""
+    import subprocess  # lazy: see _LAZY_MODULES
+
     try:
         result = subprocess.run(
             ["git", "config", "--get", f"alias.{name}"],
@@ -747,14 +789,14 @@ def _destructive_git_operation(
 # Still functional for unforeseen cases; every use is audit-logged to stderr.
 _CREATION_BYPASS_ENV = "CREATION_GATE_BYPASS"
 
-_AGENT_PATTERN = re.compile(r"/agents/[^/]+\.md$")
-_SKILL_PATTERN = re.compile(r"/(skills|pipelines)/(?:[^/]+/)?[^/]+/SKILL\.md$")
-_WORKFLOW_REF_PATTERN = re.compile(r"/skills/workflow/references/[^/]+\.md$")
+_AGENT_PATTERN = _rx(r"/agents/[^/]+\.md$")
+_SKILL_PATTERN = _rx(r"/(skills|pipelines)/(?:[^/]+/)?[^/]+/SKILL\.md$")
+_WORKFLOW_REF_PATTERN = _rx(r"/skills/workflow/references/[^/]+\.md$")
 
 # Component-name capture variants of the patterns above (kebab-case name).
-_AGENT_NAME_RE = re.compile(r"/agents/([^/]+)\.md$")
-_SKILL_NAME_RE = re.compile(r"/(?:skills|pipelines)/(?:[^/]+/)?([^/]+)/SKILL\.md$")
-_WORKFLOW_REF_NAME_RE = re.compile(r"/skills/workflow/references/([^/]+)\.md$")
+_AGENT_NAME_RE = _rx(r"/agents/([^/]+)\.md$")
+_SKILL_NAME_RE = _rx(r"/(?:skills|pipelines)/(?:[^/]+/)?([^/]+)/SKILL\.md$")
+_WORKFLOW_REF_NAME_RE = _rx(r"/skills/workflow/references/([^/]+)\.md$")
 
 # ADR-registration handshake (the worktree-observable creation path).
 #
@@ -801,7 +843,7 @@ _CREATION_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
     # cv-skill-generation.md). That mode is the canonical SOP for voice
     # profiles; it scaffolds skills/voice-{name}/SKILL.md, config.json, and
     # profile.json directly via Write.
-    (re.compile(r"/skills/(?:content/)?voice-[^/]+/SKILL\.md$"), "writing"),
+    (_rx(r"/skills/(?:content/)?voice-[^/]+/SKILL\.md$"), "writing"),
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -812,44 +854,44 @@ _SENSITIVE_BYPASS_ENV = "SENSITIVE_FILE_GUARD_BYPASS"
 
 _SENSITIVE_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     # Environment files (except .env.example)
-    (re.compile(r"/\.env$"), "env", ".env"),
-    (re.compile(r"/\.env\.(local|production|staging|development|dev|prod)$"), "env", ".env.*"),
+    (_rx(r"/\.env$"), "env", ".env"),
+    (_rx(r"/\.env\.(local|production|staging|development|dev|prod)$"), "env", ".env.*"),
     # Credential files
-    (re.compile(r"/credentials\.(json|yml|yaml)$"), "credentials", "credentials file"),
-    (re.compile(r"/service-account[^/]*\.json$"), "credentials", "service account JSON"),
+    (_rx(r"/credentials\.(json|yml|yaml)$"), "credentials", "credentials file"),
+    (_rx(r"/service-account[^/]*\.json$"), "credentials", "service account JSON"),
     # SSH keys
-    (re.compile(r"/\.ssh/"), "ssh", "SSH directory"),
-    (re.compile(r"/id_(rsa|ed25519|ecdsa|dsa)$"), "ssh", "SSH private key"),
+    (_rx(r"/\.ssh/"), "ssh", "SSH directory"),
+    (_rx(r"/id_(rsa|ed25519|ecdsa|dsa)$"), "ssh", "SSH private key"),
     # Private key / certificate files
-    (re.compile(r"\.p12$"), "certificate", ".p12 certificate"),
-    (re.compile(r"\.pfx$"), "certificate", ".pfx certificate"),
-    (re.compile(r"\.key$"), "certificate", ".key private key"),
-    (re.compile(r"\.pem$"), "certificate", ".pem private key"),
+    (_rx(r"\.p12$"), "certificate", ".p12 certificate"),
+    (_rx(r"\.pfx$"), "certificate", ".pfx certificate"),
+    (_rx(r"\.key$"), "certificate", ".key private key"),
+    (_rx(r"\.pem$"), "certificate", ".pem private key"),
     # Cloud configs
-    (re.compile(r"\.aws/credentials$"), "cloud", "AWS credentials"),
-    (re.compile(r"\.kube/config$"), "cloud", "kubeconfig"),
-    (re.compile(r"\.gcloud/"), "cloud", "gcloud config directory"),
+    (_rx(r"\.aws/credentials$"), "cloud", "AWS credentials"),
+    (_rx(r"\.kube/config$"), "cloud", "kubeconfig"),
+    (_rx(r"\.gcloud/"), "cloud", "gcloud config directory"),
     # Token files
-    (re.compile(r"/token\.json$"), "token", "token.json"),
-    (re.compile(r"/\.tokens$"), "token", ".tokens file"),
+    (_rx(r"/token\.json$"), "token", "token.json"),
+    (_rx(r"/\.tokens$"), "token", ".tokens file"),
     # Guard control plane (audit S1): .guard-whitelist/.guard-patterns configure
     # THIS gate's dangerous/sensitive checks — writing one IS the disarm act, and
     # no agent flow legitimately writes them (owner-authored config only).
-    (re.compile(r"/\.guard-(?:whitelist|patterns)$"), "guard-config", ".guard-* guard config"),
+    (_rx(r"/\.guard-(?:whitelist|patterns)$"), "guard-config", ".guard-* guard config"),
     # Credential stores the home CLAUDE.md names but the list above missed
     # (audit S4). Each holds a live credential in plaintext.
-    (re.compile(r"/\.git-credentials$"), "credentials", ".git-credentials"),
-    (re.compile(r"/\.netrc$"), "credentials", ".netrc"),
-    (re.compile(r"/\.config/gh/hosts\.yml$"), "token", "gh CLI hosts.yml (auth token)"),
-    (re.compile(r"/\.envrc$"), "env", ".envrc (direnv)"),
+    (_rx(r"/\.git-credentials$"), "credentials", ".git-credentials"),
+    (_rx(r"/\.netrc$"), "credentials", ".netrc"),
+    (_rx(r"/\.config/gh/hosts\.yml$"), "token", "gh CLI hosts.yml (auth token)"),
+    (_rx(r"/\.envrc$"), "env", ".envrc (direnv)"),
 ]
 
 # Suffix exceptions: safe ANYWHERE. These name a file that by convention holds
 # placeholders, not secrets, so their location does not change the risk.
 _SENSITIVE_EXCEPTIONS: list[re.Pattern[str]] = [
-    re.compile(r"\.env\.example$"),
-    re.compile(r"\.env\.sample$"),
-    re.compile(r"\.env\.template$"),
+    _rx(r"\.env\.example$"),
+    _rx(r"\.env\.sample$"),
+    _rx(r"\.env\.template$"),
 ]
 
 # Directory exceptions: safe ONLY inside the repo worktree (audit S4). These say
@@ -857,10 +899,10 @@ _SENSITIVE_EXCEPTIONS: list[re.Pattern[str]] = [
 # anywhere, `/fixtures/` excused `/home/feedgen/fixtures/.env` — a real
 # credential file in the home directory — from every sensitive-file check.
 _SENSITIVE_DIR_EXCEPTIONS: list[re.Pattern[str]] = [
-    re.compile(r"/testdata/"),
-    re.compile(r"/fixtures/"),
-    re.compile(r"/__fixtures__/"),
-    re.compile(r"/test_?data/"),
+    _rx(r"/testdata/"),
+    _rx(r"/fixtures/"),
+    _rx(r"/__fixtures__/"),
+    _rx(r"/test_?data/"),
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -904,7 +946,7 @@ _PY_HTTP_SERVER_MODULES = frozenset({"http.server", "simplehttpserver"})
 # `FOO=bar` env-assignment prefix (transparent: the real executable follows).
 # Tokenized via shlex, so the value (quotes already removed) may contain spaces;
 # match the assignment prefix and accept any value content.
-_ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+_ENV_ASSIGN_RE = _rx(r"^[A-Za-z_][A-Za-z0-9_]*=")
 
 # Transparent command wrappers — the real executable is the next NON-OPTION token.
 # Their own option flags (e.g. `sudo -u nobody`, `env -i`) are stripped so they do
@@ -1266,12 +1308,12 @@ _NODE_RUNNERS = frozenset({"npm", "pnpm", "yarn", "bun"})
 
 # Explicit bind flag value on a python http.server invocation (http.server uses
 # --bind/-b). Captures bracketed IPv6 too: --bind [::1].
-_PY_BIND_RE = re.compile(r"(?:--bind(?:\s+|=)|(?<![\w-])-b\s+)['\"]?(\[[^\]]+\]|[^\s'\"]+)")
+_PY_BIND_RE = _rx(r"(?:--bind(?:\s+|=)|(?<![\w-])-b\s+)['\"]?(\[[^\]]+\]|[^\s'\"]+)")
 
 # Long-form public-bind/host flags used by node/JS/go/python dev servers:
 #   --bind/--host/--listen/--address <value>. Supports `=` form. Always scanned —
 #   long flags do not collide with common non-server short flags.
-_HOST_FLAG_RE = re.compile(r"(?:--(?:bind|host|listen|address)(?:\s+|=))['\"]?(\[[^\]]+\]|[^\s'\"]+)")
+_HOST_FLAG_RE = _rx(r"(?:--(?:bind|host|listen|address)(?:\s+|=))['\"]?(\[[^\]]+\]|[^\s'\"]+)")
 
 # Value-less `--host` / `-H` on a JS dev server (#720). In Vite/Nuxt/Next a bare
 # `--host` (or `-H`) with no value — i.e. end of segment, or the next token is
@@ -1279,7 +1321,7 @@ _HOST_FLAG_RE = re.compile(r"(?:--(?:bind|host|listen|address)(?:\s+|=))['\"]?(\
 # (equivalent to 0.0.0.0). The host-flag scans above require a value token, so
 # this slips through unless detected explicitly. Captures: `--host` / `-H` /
 # `--host=` with nothing after, OR followed by a flag, OR end of string.
-_VALUELESS_HOST_FLAG_RE = re.compile(r"(?:--host|(?<![\w-])-H)(?:=\s*)?(?=\s*$|\s+-)")
+_VALUELESS_HOST_FLAG_RE = _rx(r"(?:--host|(?<![\w-])-H)(?:=\s*)?(?=\s*$|\s+-)")
 
 
 # Per-server SHORT bind/host flags. Each server uses a DIFFERENT short letter, and
@@ -1304,11 +1346,11 @@ _SERVER_SHORT_FLAGS: dict[str, re.Pattern[str]] = {
 }
 
 # php -S <host>:<port>  (built-in PHP dev server; binds exactly the given host).
-_PHP_SERVER_RE = re.compile(r"\bphp\b[^|;&]*?\s-S\s+['\"]?(\[[^\]]+\]|[^\s'\":]+)")
+_PHP_SERVER_RE = _rx(r"\bphp\b[^|;&]*?\s-S\s+['\"]?(\[[^\]]+\]|[^\s'\":]+)")
 
 # `php artisan serve` (Laravel dev server). Only THIS php subcommand exposes a
 # server via --host; a plain `php script.php --host …` is an ordinary CLI script.
-_PHP_ARTISAN_SERVE_RE = re.compile(r"\bartisan\s+serve\b")
+_PHP_ARTISAN_SERVE_RE = _rx(r"\bartisan\s+serve\b")
 
 # Client-side JS/static dev servers whose --host flag exposes the server publicly,
 # matched as the COMMAND token (not a free-floating word).
@@ -1341,11 +1383,11 @@ _PY_WEB_SERVERS = frozenset({"flask", "uvicorn", "gunicorn"})
 
 
 # A `scheme://` prefix on a bind value (`serve -l tcp://0.0.0.0:3000`).
-_HOST_SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*://")
+_HOST_SCHEME_RE = _rx(r"^[a-z][a-z0-9+.-]*://")
 # A trailing `:port` on an unbracketed host (`0.0.0.0:3000`). Not applied to a
 # bare IPv6 address (`::`, `fe80::1`), which is why bracketing is required for
 # IPv6-with-port and why a multi-colon value is left alone.
-_HOST_PORT_RE = re.compile(r"^([^:]+):\d+$")
+_HOST_PORT_RE = _rx(r"^([^:]+):\d+$")
 
 
 def _normalize_host_value(low: str) -> str:
@@ -1556,7 +1598,7 @@ def _emit_advisories() -> None:
 
 
 # A shell redirection token (`>`, `>>`, `2>`, `2>&1`, `&>`, `<`, `>file`).
-_REDIRECT_TOKEN_RE = re.compile(r"^\d*(?:>|<|&>)")
+_REDIRECT_TOKEN_RE = _rx(r"^\d*(?:>|<|&>)")
 
 
 def _git_force_add_paths(command: str) -> list[str]:
@@ -1619,6 +1661,8 @@ def check_gitignore_bypass(command: str) -> None:
         return
 
     # Check which paths are gitignored
+    import subprocess  # lazy: see _LAZY_MODULES
+
     try:
         result = subprocess.run(
             ["git", "check-ignore"] + paths,
@@ -1660,6 +1704,8 @@ def _extract_effective_cwd(command: str, default_cwd: str | None = None) -> str 
 
 def _is_worktree_on_feature_branch(cwd: str) -> bool:
     """Return True if cwd is a worktree directory on a non-protected branch."""
+    import subprocess  # lazy: see _LAZY_MODULES
+
     try:
         result = subprocess.run(
             ["git", "branch", "--show-current"],
@@ -1829,6 +1875,8 @@ def _adr_registration_allows(component: str, file_path: str, cwd: str) -> str | 
         derived = stem[len("pipeline-") :] if stem.startswith("pipeline-") else stem
         if derived != component:
             continue
+        import hashlib  # lazy: see _LAZY_MODULES
+
         try:
             digest = "sha256:" + hashlib.sha256(adr_path.read_bytes()).hexdigest()
         except OSError:
@@ -2009,7 +2057,7 @@ _SENSITIVE_READ_VERBS = frozenset(
 
 # An output redirect target (`> path`, `>> path`, `2> path`). Writing here
 # creates or truncates the named file, so it is a write regardless of verb.
-_REDIRECT_TARGET_RE = re.compile(r"(?<!<)>>?\s*['\"]?([^\s'\"|;&<>]+)")
+_REDIRECT_TARGET_RE = _rx(r"(?<!<)>>?\s*['\"]?([^\s'\"|;&<>]+)")
 
 
 def _sensitive_bash_paths(segment: str) -> tuple[list[str], list[str]]:
@@ -2186,9 +2234,7 @@ _PUBLIC_SERVER_DENY_MSG = (
 # Commands that merely DISPLAY or SEARCH text — a server string in their args is
 # data, not an executed invocation. Used to suppress false positives like
 # `echo 'python3 -m http.server'` and `grep -r 'vite --host 0.0.0.0' .`.
-_DISPLAY_CMD_RE = re.compile(
-    r"^(?:#|:|echo\b|printf\b|grep\b|egrep\b|fgrep\b|rg\b|cat\b|less\b|more\b|head\b|tail\b|comm\b)"
-)
+_DISPLAY_CMD_RE = _rx(r"^(?:#|:|echo\b|printf\b|grep\b|egrep\b|fgrep\b|rg\b|cat\b|less\b|more\b|head\b|tail\b|comm\b)")
 
 # Shell separators that start a new command segment. Splitting on these lets us
 # evaluate each segment independently: `echo foo && python3 -m http.server`
@@ -2197,14 +2243,14 @@ _DISPLAY_CMD_RE = re.compile(
 # args contain literal newlines that must stay attached to their leading command
 # (e.g. `printf '%s\n' '...'`, `cat <<'EOF' ... EOF`) — splitting them produced
 # false positives (codex-found). Chaining is still caught via ; && || | &.
-_SEGMENT_SPLIT_RE = re.compile(r"(?:&&|\|\||[;|&])")
+_SEGMENT_SPLIT_RE = _rx(r"(?:&&|\|\||[;|&])")
 
 # Command-substitution bodies: $(...), `...`, and <(...) / >(...) process subs.
 # A server launched inside a substitution is a real invocation even when the
 # outer command is a display command (`echo $(python3 -m http.server)`), so the
 # body is evaluated independently before display-command suppression. Single
 # level (no recursive $( $( ) ) nesting) — an accepted regex-on-text residual.
-_SUBSTITUTION_RE = re.compile(r"\$\((?P<dollar>[^()]*)\)|`(?P<back>[^`]*)`|[<>]\((?P<proc>[^()]*)\)")
+_SUBSTITUTION_RE = _rx(r"\$\((?P<dollar>[^()]*)\)|`(?P<back>[^`]*)`|[<>]\((?P<proc>[^()]*)\)")
 
 
 def _single_quoted_spans(text: str) -> list[tuple[int, int]]:
@@ -2657,7 +2703,7 @@ _SAFE_PIPE_SINKS = frozenset(
 # `curl`/`wget` followed by a pipe. The sink is resolved from the text after the
 # pipe by the normal command-token walk, so wrappers (`sudo`, `env -i`, `xargs`)
 # and path-qualified names (`/usr/bin/python3`) resolve correctly.
-_REMOTE_FETCH_PIPE_RE = re.compile(r"\b(?:curl|wget)\b[^|;&\n]*\|")
+_REMOTE_FETCH_PIPE_RE = _rx(r"\b(?:curl|wget)\b[^|;&\n]*\|")
 
 
 # Data-only python sinks. `curl … | python3 -c '<code>'` passes only when the
@@ -2782,7 +2828,7 @@ _SYSADMIN_WHOLELINE_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
         #   sh <(curl …)           process substitution (and `sh < <(curl …)`)
         #   source <(curl …)       source/`.` of a downloaded script
         #   sh -c "$(curl …)"      the Homebrew-installer shape (codex round-11)
-        re.compile(
+        _rx(
             r"(?:\b(?:curl|wget)\b[^|]*\|\s*(?:(?:/\S*/)?(?:sudo|env|command|exec|nohup|setsid|time|nice|stdbuf|ionice|doas|timeout)\s+(?:-\S+\s+|\w+=\S+\s+|\d\S*\s+|[a-z][\w.-]*\s+(?=-|\w|/))*)*(?:/\S*/)?(?:ba|z|d|a|k)?sh\b)"
             r"|(?:(?:sudo|env|command|exec)\s+)*(?:(?:/\S*/)?(?:ba|z|d|a|k)?sh\b|source\b|\.(?=\s))\s+(?:<\s*)?<\(\s*(?:curl|wget)\b"
             r"|(?:(?:/\S*/)?(?:ba|z|d|a|k)?sh\b[^|;&]*-c\b|\beval\b)[^|;&]*\$\(\s*(?:curl|wget)\b",
@@ -2798,7 +2844,7 @@ _SYSADMIN_WHOLELINE_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
         # `nc`/`ncat`/`netcat` on the line (both the `… | sh | nc …` and the
         # `sh </fifo | nc … >/fifo` one-pipe forms, codex round-19), since the named
         # FIFO is the shared signal — benign `mkfifo` use rarely pairs with nc+sh.
-        re.compile(
+        _rx(
             r"(?:>\s*&?\s*/dev/(?:tcp|udp)/)"
             r"|(?:\b(?:nc|ncat|netcat)\b[^|;&]*\s-e\b)"
             r"|(?:\bsocat\b[^|;&]*\bEXEC:)"
@@ -2819,7 +2865,7 @@ _SYSADMIN_WHOLELINE_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
 # OWNER-ONLY tier — private keys, secrets, .env, .aws/credentials. Correct mode is
 # owner-only (600/400/700); ANY group OR other access is a leak (SSH rejects a
 # group-readable key, secrets must not be group-readable).
-_SYSADMIN_OWNER_ONLY_TARGET_RE = re.compile(
+_SYSADMIN_OWNER_ONLY_TARGET_RE = _rx(
     r"(?:\.ssh/id_[a-z0-9]+(?!\.pub)\b"  # private keys; exclude `.pub`. authorized_keys
     # is intentionally NOT here — it is public-key material and 0644 is a common valid
     # mode; SSH only rejects it when group/world-WRITABLE (codex round-16 FP).
@@ -2833,14 +2879,14 @@ _SYSADMIN_OWNER_ONLY_TARGET_RE = re.compile(
 # WORLD access (other bit set) or world-writable is a footgun here. The system paths
 # are root-anchored `(?<![\w/.])` so a fixture path like `./fixtures/etc/sudoers`
 # does not match the live system file (codex round-19 FP).
-_SYSADMIN_GROUP_OK_TARGET_RE = re.compile(
+_SYSADMIN_GROUP_OK_TARGET_RE = _rx(
     r"(?<![\w/.])(?:/etc/(?:shadow|gshadow|sudoers)\b|/etc/sudoers\.d/"
     r"|/var/run/docker\.sock\b|/run/docker\.sock\b)",
 )
 
 # Loosen test for OWNER-ONLY targets: symbolic g/o/a grant, bare +r/+w, OR an octal
 # with a non-zero GROUP or OTHER digit. (600/400/700 → no match → allowed.)
-_SYSADMIN_CHMOD_LOOSEN_OWNER_RE = re.compile(
+_SYSADMIN_CHMOD_LOOSEN_OWNER_RE = _rx(
     r"(?:[ugoa]*[goa][ugoa]*[+=][rwxstugo]"  # g+r, o=r, go=rw, a+r
     r"|(?<![\w-])\+[rw]"  # bare +r/+w
     r"|(?<![\w-])[0-7]?[0-7][1-7][0-7]\b"  # non-zero GROUP digit (640, 660, 750)
@@ -2848,7 +2894,7 @@ _SYSADMIN_CHMOD_LOOSEN_OWNER_RE = re.compile(
 )
 # Loosen test for GROUP-OK targets: only WORLD access — symbolic `o+`/`o=`/`a+`,
 # bare +r/+w, OR an octal with a non-zero OTHER (last) digit. (640/440 → allowed.)
-_SYSADMIN_CHMOD_LOOSEN_WORLD_RE = re.compile(
+_SYSADMIN_CHMOD_LOOSEN_WORLD_RE = _rx(
     r"(?:[ugoa]*[oa][ugoa]*[+=][rwxstugo]"  # o+r, o=rw, a+r (world grant)
     r"|(?<![\w-])\+[rw]"  # bare +r/+w (applies to all incl. other)
     r"|(?<![\w-])[0-7]?[0-7][0-7][1-7]\b)"  # non-zero OTHER digit (646, 666, 777)
@@ -2856,7 +2902,7 @@ _SYSADMIN_CHMOD_LOOSEN_WORLD_RE = re.compile(
 # A real `chmod` command verb (word-boundaried). Required to fire OUTSIDE quotes
 # alongside the target+mode so the secret-chmod rule only triggers on an actual
 # chmod invocation, not chmod TEXT inside a quoted argument of another command.
-_CHMOD_VERB_RE = re.compile(r"\bchmod\b")
+_CHMOD_VERB_RE = _rx(r"\bchmod\b")
 
 # redis is handled by a dedicated helper (_redis_is_unsafe) rather than a single
 # regex: `--protected-mode no` is only a footgun WITHOUT a `--requirepass` and
@@ -2871,7 +2917,7 @@ _CHMOD_VERB_RE = re.compile(r"\bchmod\b")
 # a launcher (`systemd-run redis-server …`, `sudo redis-server …`) is still caught
 # (a pure `_command_token=="redis-server"` test would miss those launchers). Command
 # position = start of segment OR right after a shell op / launcher boundary (space).
-_REDIS_SERVER_CMD_RE = re.compile(r"(?:^|[\s;&|])(?:[^\s'\"]*/)?redis-server\b")
+_REDIS_SERVER_CMD_RE = _rx(r"(?:^|[\s;&|])(?:[^\s'\"]*/)?redis-server\b")
 # Each flag tolerates an OPTIONAL quote on its VALUE (`--bind "0.0.0.0"`,
 # `--protected-mode 'no'`): bash strips those quotes before redis sees argv, so a
 # quoted value is a REAL footgun. The FLAG-position guard in `_redis_is_unsafe`
@@ -2879,12 +2925,10 @@ _REDIS_SERVER_CMD_RE = re.compile(r"(?:^|[\s;&|])(?:[^\s'\"]*/)?redis-server\b")
 # keyword buried INSIDE a quoted value (`--logfile "--bind 0.0.0.0"` → flag start is
 # inside the quote → ignored). `\s+` after the flag also matches across the opening
 # quote position since the value may be `["']`-prefixed.
-_REDIS_PUBLIC_BIND_RE = re.compile(
-    r"--bind(?:\s+|=)['\"]?(?:0\.0\.0\.0\b|::(?![0-9a-fA-F])|\[::\]|\*|0(?=['\"]?(?:\s|$)))"
-)
-_REDIS_LOOPBACK_BIND_RE = re.compile(r"--bind(?:\s+|=)['\"]?(?:127\.|localhost|::1|\[::1\])")
-_REDIS_PROTECTED_OFF_RE = re.compile(r"--protected-mode(?:\s+|=)['\"]?no\b")
-_REDIS_REQUIREPASS_RE = re.compile(r"--requirepass(?:\s+|=)['\"]?\S")
+_REDIS_PUBLIC_BIND_RE = _rx(r"--bind(?:\s+|=)['\"]?(?:0\.0\.0\.0\b|::(?![0-9a-fA-F])|\[::\]|\*|0(?=['\"]?(?:\s|$)))")
+_REDIS_LOOPBACK_BIND_RE = _rx(r"--bind(?:\s+|=)['\"]?(?:127\.|localhost|::1|\[::1\])")
+_REDIS_PROTECTED_OFF_RE = _rx(r"--protected-mode(?:\s+|=)['\"]?no\b")
+_REDIS_REQUIREPASS_RE = _rx(r"--requirepass(?:\s+|=)['\"]?\S")
 _SYSADMIN_REDIS_MSG = (
     "Binding redis to 0.0.0.0 (or protected-mode off with no password) publishes "
     "your data unauthenticated — these get ransomware-scanned within minutes. Bind "
@@ -2932,7 +2976,7 @@ def _redis_is_unsafe(seg: str) -> bool:
 _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (
         # mongod with auth disabled.
-        re.compile(r"\bmongod\b(?=[^|;&]*--noauth\b)"),
+        _rx(r"\bmongod\b(?=[^|;&]*--noauth\b)"),
         "mongod-noauth",
         "`mongod --noauth` disables all authentication. Run with auth enabled and "
         "bind loopback:\n  mongod --bind_ip 127.0.0.1 --auth\n"
@@ -2940,7 +2984,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     ),
     (
         # mysqld / mariadbd / mysqld_safe with the grant-tables auth check bypassed.
-        re.compile(r"\b(?:mysqld_safe|mysqld|mariadbd)\b(?=[^|;&]*--skip-grant-tables\b)"),
+        _rx(r"\b(?:mysqld_safe|mysqld|mariadbd)\b(?=[^|;&]*--skip-grant-tables\b)"),
         "mysql-skip-grant",
         "`--skip-grant-tables` disables MySQL/MariaDB privilege checks — anyone who "
         "connects is root. Use it only offline for password recovery, never on a "
@@ -2949,7 +2993,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     ),
     (
         # docker/podman run with isolation removed.
-        re.compile(
+        _rx(
             r"\b(?:docker|podman)\b[^|;&]*\brun\b"
             r"(?=[^|;&]*(?:--privileged\b|--cap-add[= ]ALL\b|--security-opt[= ]\S*(?:seccomp|apparmor)=unconfined))",
         ),
@@ -2961,7 +3005,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (
         # docker/podman run mounting the docker socket or host root, via the
         # `-v/--volume host:container` form OR the `--mount type=bind,src=…` form.
-        re.compile(
+        _rx(
             r"\b(?:docker|podman)\b[^|;&]*\brun\b"
             r"(?=[^|;&]*(?:"
             r"(?:-v|--volume)(?:[= ]\s*|)(?:/var/run/docker\.sock|/run/docker\.sock|/):"  # -v host:ctr (incl. attached -v/:/…)
@@ -2976,7 +3020,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     ),
     (
         # iptables flush / default-ACCEPT (`-P` or `--policy`), or nft flush ruleset.
-        re.compile(
+        _rx(
             # `-F`/`--flush` blocks when it flushes everything or a built-in chain:
             # bare (`-F` then end/another flag like `-t nat` = whole-table flush) or
             # `-F INPUT|FORWARD|OUTPUT`. Flushing ONE custom chain (`-F DOCKER-USER`,
@@ -2994,7 +3038,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     ),
     (
         # ufw disable (allow intervening flags like `ufw --force disable`).
-        re.compile(r"\bufw\b(?:\s+--?\S+)*\s+disable\b"),
+        _rx(r"\bufw\b(?:\s+--?\S+)*\s+disable\b"),
         "ufw-disable",
         "`ufw disable` turns the whole host firewall off. Keep it on and open only "
         "the port you need:\n  sudo ufw allow 443/tcp",
@@ -3002,7 +3046,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (
         # stop/disable/mask firewalld — both `systemctl stop firewalld` (action-first)
         # and the SysV `service firewalld stop` (unit-first) forms.
-        re.compile(
+        _rx(
             r"\bsystemctl\b[^|;&]*\b(?:stop|disable|mask)\b[^|;&]*\bfirewalld\b"
             r"|\bservice\b[^|;&]*\bfirewalld\b[^|;&]*\b(?:stop|disable)\b"
             r"|\bsystemctl\b[^|;&]*\bfirewalld\b[^|;&]*\b(?:stop|disable|mask)\b"
@@ -3014,7 +3058,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     ),
     (
         # backdoor uid-0 account, or password removal.
-        re.compile(
+        _rx(
             r"\buseradd\b[^|;&]*-o\b[^|;&]*-u\s*0\b|\buseradd\b[^|;&]*-u\s*0\b[^|;&]*-o\b"
             r"|\busermod\b[^|;&]*-u\s*0\b"
             r"|\bpasswd\b\s+-d\b|\busermod\b[^|;&]*-p\s*(?:''|\"\")",
@@ -3029,7 +3073,7 @@ _SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
 # Recursive chown/chmod targeting bare `/` — extends (does not duplicate) the
 # existing bare `chmod -R 777` rule by catching `chown -R user /`. Anchored so
 # `chown -R me:me ./build` and `chmod -R 755 /srv/app` do NOT match.
-_SYSADMIN_RECURSIVE_ROOT_RE = re.compile(
+_SYSADMIN_RECURSIVE_ROOT_RE = _rx(
     r"\b(?:chown|chmod)\b[^|;&]*\s(?:-[a-zA-Z]*R[a-zA-Z]*|--recursive)\b[^|;&]*?\s/(?=\s|$)"
 )
 _SYSADMIN_RECURSIVE_ROOT_MSG = (
@@ -3055,7 +3099,7 @@ _SYSADMIN_RECURSIVE_ROOT_MSG = (
 # secrets (`*.env`, `.env.*`, `config/.env.*`, `*.pem`, `id_rsa*` — codex round-22).
 # A trailing `*`/`.*` glob or a leading `*` is permitted. Template suffixes
 # (.example/.sample/.template/.dist) are still exempt.
-_SYSADMIN_GIT_SECRET_TOKEN_RE = re.compile(
+_SYSADMIN_GIT_SECRET_TOKEN_RE = _rx(
     r"(?:^|/)\*?"  # optional path prefix and a leading glob (`*.env`)
     r"(?!.*\.(?:example|sample|template|dist)$)"  # exempt ANY *.example/.sample/.template/.dist
     r"(?:"
@@ -3150,7 +3194,7 @@ _SYSADMIN_GIT_SECRET_MSG = (
 # display-suppressed: here `echo`/`printf`/`tee` is the WRITE vector (the string is
 # redirected/piped INTO /etc/sudoers), so it is action, not mere display. Requires
 # both the literal `NOPASSWD:ALL` and a sudoers target on the line.
-_SYSADMIN_NOPASSWD_SUDOERS_RE = re.compile(
+_SYSADMIN_NOPASSWD_SUDOERS_RE = _rx(
     r"NOPASSWD\s*:\s*ALL\b.*?(?:/etc/sudoers|sudoers\.d)|(?:/etc/sudoers|sudoers\.d)\S*.*?\bNOPASSWD\s*:\s*ALL\b",
     re.DOTALL,
 )
@@ -3168,7 +3212,7 @@ _SYSADMIN_NOPASSWD_SUDOERS_RE = re.compile(
 # Only the ABSOLUTE system path counts — a bare relative `sudoers.d/me` in a repo or
 # fixtures dir is NOT the live system file (codex round-23 FP).
 _SUDOERS_PATH = r"(?<![\w/])/etc/sudoers(?:\.d/\S*)?\b"
-_SYSADMIN_SUDOERS_WRITE_RE = re.compile(
+_SYSADMIN_SUDOERS_WRITE_RE = _rx(
     rf">>?\s*(?:{_SUDOERS_PATH})"  # redirect into a sudoers path
     rf"|\b(?:tee|dd|install)\b[^|;&]*(?:{_SUDOERS_PATH})"  # tee/dd/install writing a sudoers path
     rf"|\bsed\b[^|;&]*-i[^|;&]*(?:{_SUDOERS_PATH})"  # in-place sed on sudoers
@@ -3193,7 +3237,7 @@ _SYSADMIN_CHMOD_SECRET_MSG = (
 # common legitimate uses — too noisy to block, so teach without obstructing.
 _SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (
-        re.compile(
+        _rx(
             r"\blisten_addresses\s*=\s*['\"]?\*|--bind-address\s*=\s*0\.0\.0\.0"
             r"|\bnetwork\.host\s*=\s*0\.0\.0\.0|\bmongod\b[^|;&]*(?:--bind_ip_all|--bind_ip\s+0\.0\.0\.0)",
         ),
@@ -3202,13 +3246,13 @@ _SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
         "and restrict with firewall rules.",
     ),
     (
-        re.compile(r"\bPermitRootLogin\s+yes\b|\bPasswordAuthentication\s+yes\b|\bPubkeyAuthentication\s+no\b"),
+        _rx(r"\bPermitRootLogin\s+yes\b|\bPasswordAuthentication\s+yes\b|\bPubkeyAuthentication\s+no\b"),
         "Root login / password auth are the first brute-force targets. Prefer a "
         "named sudo user with PermitRootLogin no, PasswordAuthentication no, and "
         "key-only auth.",
     ),
     (
-        re.compile(r"\bStrictHostKeyChecking[= ]no\b|\bUserKnownHostsFile[= ]/dev/null\b"),
+        _rx(r"\bStrictHostKeyChecking[= ]no\b|\bUserKnownHostsFile[= ]/dev/null\b"),
         "Disabling host-key checks removes server-identity verification (MITM risk). "
         "Enroll the key once: `ssh-keyscan host >> ~/.ssh/known_hosts`, then connect "
         "normally.",
@@ -3218,7 +3262,7 @@ _SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
         # mariadb, redis-cli, mongosh) — NOT for `ssh -p2222` / `tar -pxf` where `-p`
         # is a port/preserve flag (codex round-20 warn-noise). Plus explicit
         # `--password=`, a `user:pass@` creds URL, and inline secret env exports.
-        re.compile(
+        _rx(
             r"\b(?:mysql|mariadb|redis-cli|mongosh)\b[^|;&]*(?<![\w-])-p\S"
             r"|--password[= ]\S"
             r"|://\w+:[^@\s/]+@"
@@ -3230,13 +3274,13 @@ _SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
         "store.",
     ),
     (
-        re.compile(r"\b(?:usermod|gpasswd)\b[^|;&]*(?:-aG\s+docker\b|-a\s+docker\b)"),
+        _rx(r"\b(?:usermod|gpasswd)\b[^|;&]*(?:-aG\s+docker\b|-a\s+docker\b)"),
         "The `docker` group is root-equivalent on the host. Add a user only if they "
         "should have root-equivalent control; otherwise use rootless Docker or "
         "scoped sudo.",
     ),
     (
-        re.compile(
+        _rx(
             r"\bsysctl\b[^|;&]*(?:kernel\.randomize_va_space\s*=\s*0|kernel\.kptr_restrict\s*=\s*0|fs\.protected_(?:hardlinks|symlinks)\s*=\s*0)"
         ),
         "These sysctls turn off kernel hardening (ASLR, kptr restriction, symlink "
@@ -3244,12 +3288,12 @@ _SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
         "restore immediately.",
     ),
     (
-        re.compile(r"\bsshpass\s+-p\S"),
+        _rx(r"\bsshpass\s+-p\S"),
         "`sshpass -p <pw>` leaks the password to history and `ps`. Use key auth, or "
         "at minimum `sshpass -f <file>` / the SSHPASS env var.",
     ),
     (
-        re.compile(
+        _rx(
             r"\bsetenforce\s+0\b|\baa-disable\b|\b(?:systemctl|service)\b[^|;&]*\b(?:stop|disable|mask)\b[^|;&]*\bapparmor\b|\bapparmor_parser\s+-R\b|SELINUX\s*=\s*disabled"
         ),
         "Disabling SELinux/AppArmor removes a system-wide containment layer. Put the "
@@ -3259,7 +3303,7 @@ _SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-_HEREDOC_START_RE = re.compile(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?")
+_HEREDOC_START_RE = _rx(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?")
 
 
 def _strip_unquoted_comment(line: str) -> str:

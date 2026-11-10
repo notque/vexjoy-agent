@@ -122,6 +122,41 @@ class TestConfigOperations:
         assert reloaded["jobs"][0]["enabled"] is False
 
 
+class TestDefaultModel:
+    """Owner order 2026-11-01: Sonnet is no default."""
+
+    def test_job_with_no_model_anywhere_defaults_to_opus(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        path = tmp_path / "schedules.json"
+        path.write_text(json.dumps({"jobs": [{"name": "bare", "prompt": "do the thing"}]}))
+        monkeypatch.setattr(scheduler_ctl, "_DEFAULT_CONFIG", path)
+        assert scheduler_ctl._DEFAULT_MODEL == "opus"
+        assert scheduler_ctl.load_config()["jobs"][0]["model"] == "opus"
+
+    def test_no_sonnet_fallback_in_scheduler_sources(self) -> None:
+        scripts = Path(__file__).resolve().parent.parent
+        for name in ("agent-scheduler.py", "scheduler-ctl.py"):
+            assert '"model", "sonnet"' not in (scripts / name).read_text(), name
+
+    def test_cron_scripts_pass_no_sonnet_model(self) -> None:
+        repo = Path(__file__).resolve().parent.parent.parent
+        cron_scripts = sorted(
+            [
+                *(repo / "scripts").glob("*-cron.sh"),
+                repo / "skills/kb/scripts/kb-compile-cron.sh",
+                repo / "skills/content/content/scripts/reddit-moderate/reddit-automod-cron.sh",
+            ]
+        )
+        assert len(cron_scripts) >= 5
+        models = [
+            (path.name, line.split("--model", 1)[1].split()[0])
+            for path in cron_scripts
+            for line in path.read_text().splitlines()
+            if "--model" in line and not line.lstrip().startswith("#")
+        ]
+        assert len(models) == 6
+        assert [m for m in models if m[1] != "opus"] == []
+
+
 # ---------------------------------------------------------------------------
 # cmd_list
 # ---------------------------------------------------------------------------

@@ -95,7 +95,7 @@ Standardized output patterns for different agent types. Agents SHOULD use the ap
 - **NEEDS_CHANGES**: Issues found but not blocking, request changes
 - **BLOCK**: Critical issues, do not merge until resolved
 
-**Used by:** reviewer-security, reviewer-business-logic, review skill, all roaster agents
+**Used by:** reviewer-system, reviewer-domain, review skill, all roaster agents
 
 ---
 
@@ -183,6 +183,6 @@ Domain-specific agents may extend base schemas:
 [Additional content for this domain]
 ```
 
-For example, `reviewer-security` extends Reviewer Schema with:
+For example, `reviewer-system` extends Reviewer Schema with:
 - OWASP Top 10 Coverage
 - Compliance Status

@@ -67,3 +67,22 @@ def test_fix_adds_tools_for_a_known_role_and_leaves_an_unknown_agent(tmp_path: P
 
 def test_every_repo_agent_passes_the_audit() -> None:
     assert audit.audit(REPO_AGENTS) == 0
+
+
+def test_every_role_lists_the_skill_tool() -> None:
+    # Agents load their paired skills through the Skill tool, so --fix must add it.
+    assert [role for role, tools in audit.ROLE_TOOLS.items() if "Skill" not in tools] == []
+
+
+def test_fix_adds_the_skill_tool(tmp_path: Path) -> None:
+    agent = write_agent(tmp_path, "golang-general-engineer", tools=False)
+
+    assert audit.audit(tmp_path, fix=True) == 1
+    assert "  - Skill\n" in agent.read_text(encoding="utf-8")
+
+
+def test_role_table_names_only_agents_on_disk_and_known_roles() -> None:
+    on_disk = {path.stem for path in REPO_AGENTS.glob("*.md")}
+
+    assert sorted(set(audit.AGENT_ROLES) - on_disk) == []
+    assert sorted(set(audit.AGENT_ROLES.values()) - set(audit.ROLE_TOOLS)) == []

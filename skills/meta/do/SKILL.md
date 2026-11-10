@@ -118,7 +118,7 @@ PIPELINE-SELECTION RULE: pick a pipeline whenever the work has REAL PHASES. The 
 (3) Phase 1 classified the request Complex.
 The user saying the word "pipeline" is one signal among these, never the gate. Examples:
 - "write an article in vexjoy voice about X" → writing ✓ | "write structured docs for X from the source" → doc-pipeline ✓
-- "comprehensive review of these 8 files" → comprehensive-review ✓ (outranked by `right-size-review.py` when a real diff exists)
+- "comprehensive review of these 8 files" → comprehensive-review ✓ (outranked by `right-size-review.py` when a real diff exists: `tier_signal: true`)
 - "add caching to the API and update the docs" → quality-loop ✓ (implement → review → document; nobody said "pipeline")
 - "help me understand how auth works across this repo" → explore-pipeline ✓ (parallel exploration; a plain pipeline earns the pick on shape, no FORCE flag needed)
 Return null when the whole job is one step for one agent: "fix the typo on line 42 of foo.py", "debug this failing test", "review this 10-line function".
@@ -149,7 +149,7 @@ Composition rules:
 - A pipeline names the phases; the agent and skill still fill their slots and run inside those phases. Picking a pipeline replaces neither.
 - Stack always composes: anti-rationalization-core rides every route, and Phase 3 adds the rest.
 - A FORCE skill and a FORCE pipeline matching together is legal — different slots, both get filled.
-- Contradictory pairs, keep one: `quick` with any pipeline (quick means one step — drop the pipeline); comprehensive-review with `right-size-review.py` (a real diff wins); `workflow` as fallback beside a real domain skill (the fallback yields); two pipelines (pick the outer one, nest the other through Step 1c).
+- Contradictory pairs, keep one: `quick` with any pipeline (quick means one step — drop the pipeline); comprehensive-review with `right-size-review.py` (a real diff, `tier_signal: true`, wins); `workflow` as fallback beside a real domain skill (the fallback yields); two pipelines (pick the outer one, nest the other through Step 1c).
 
 **Step 0b: Apply the routing decision**
 
@@ -249,7 +249,7 @@ Stack on signals.
 | "with tests"/"production ready" | testing |
 | "research needed"/"investigate first" | research-coordinator-engineer |
 | Comprehensive/thorough/full review or 5+ files, no diff | review (Security, BizLogic, Arch) |
-| Multi-file review, real diff | `right-size-review.py`; T1→3,T2→12,T3→17,T4→27. CRITICAL+1. Outranks comprehensive-review. |
+| Multi-file review, real diff | `right-size-review.py`; pass its tier only when `tier_signal: true` (else pass no tier: every wave). Prose T1→3,T2→12,T3→17,T4→27; native 4/4/7/13. CRITICAL+1. Outranks comprehensive-review. |
 | Complex implementation | Offer process |
 | "local only"/"no push"/"keep it local"/"stay local" | Inject `shared-patterns/local-only.md` |
 | Voice profile (e.g. voice-example-profile) | Stack `writing`; voice-*=profile |
@@ -350,16 +350,16 @@ rm -f "$DISPATCH_JSON"
 |---|---|
 | read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
 | code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
-| high-risk: auth, data, security, concurrency, irreversible | opus / high |
+| high-risk: auth, data, security, concurrency, irreversible | opus / medium, then high |
 | major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
 Sonnet is no row's default. When the owner names a model for the task ("use fable for everything"), pass that model on every dispatch with `manual_model_override=true`.
 
-Tiers (`model_policy`): low-risk = haiku/low (read-only gathering only), standard = opus/medium, high-risk = opus/high, max-power = fable/high. `max-power`, fable/max, opus/max, and explicit opus/xhigh need `manual_model_override=true`; test fable at high before opus/xhigh. Use `inherit` only when no row or tier fits and the session model is acceptable.
+Tiers (`model_policy`): low-risk = haiku/low (read-only gathering only), standard = opus/medium, high-risk = opus/medium, max-power = fable/high. Owner, 2026-11-09: "Also I prefer opus 5.5 medium over high". Opus starts at medium on every row and tier, high-risk included. opus/high is no tier's default: reach it as an explicit pick (`model: "opus"`, `model_effort: "high"`, no `model_policy`) or as the step after a failed opus/medium attempt. `max-power`, fable/max, opus/max, and explicit opus/xhigh need `manual_model_override=true`; test fable at high before opus/xhigh. Use `inherit` only when no row or tier fits and the session model is acceptable.
 
 Escalate on a miss, when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6. In order: (1) give the agent a way to verify (test, build, script); (2) raise effort one level, up to high; (3) move to the next model up at a lower effort: haiku → opus/medium → opus/high → fable/medium → fable/high. Never raise opus past high before trying fable.
 
-Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 override, which wins where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
+Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 and 2026-11-09 orders, which win where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
 **Antigravity CLI (`agy`) & Google AI (Argon):** When `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`. Set `provider="google"` in `build-dispatch.py` (`low-risk` = `gemini-3.8-flash` / `low`, `standard` = `gemini-4-argon` / `medium`, `high-risk` = `gemini-4-argon-high` / `high`, `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`). For all Simple+ tasks (Simple, Medium, Complex), dispatch subagents via native Antigravity primitives (register specialist via `define_subagent` from `agents/*.md` if not already defined, dispatch via `invoke_subagent` with `Workspace="inherit"` for single-agent tasks, `Workspace="branch"|"share"` for parallel code isolation, `send_message` for stateful continuation, `manage_subagents` for 3-strike circuit breaking) or Python `run_workflow` (`skills/process/workflow/references/fan-out-workflow.py`). The MULTI-AGENT RULE (Phase 2) applies. Escalation order: `gemini-3.8-flash` → `gemini-4-argon` → `gemini-4-argon-high`. On Antigravity, only Trivial tasks execute directly in the main thread; the Anthropic-lane main-thread rule for Simple tasks does not apply here. For deep autonomous work (`/goal`), enforce Phase 4.5 verification before emitting `<!-- GOAL_COMPLETE -->`.
 

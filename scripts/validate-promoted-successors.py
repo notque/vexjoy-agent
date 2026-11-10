@@ -60,6 +60,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.lib.frontmatter import parse_frontmatter
+from scripts.lib.index_freshness import ensure_fresh_indexes
 
 # P3 scans the trees an agent reads or runs at runtime. Tests and generated
 # indexes are skipped: a fixture may name a husk path on purpose.
@@ -227,6 +228,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--verbose", action="store_true", help="Show every promoted skill checked")
     args = parser.parse_args()
+
+    # P2 reads skills/INDEX.json: regenerate a missing or stale one first.
+    try:
+        ensure_fresh_indexes(REPO_ROOT, ("skills",))
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}")
+        return 1
 
     print("Checking promoted_to successors...")
     failures = check(REPO_ROOT, verbose=args.verbose)

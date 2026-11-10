@@ -333,7 +333,7 @@ def finalize_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
     """Atomically read-AND-clear all still-pending outcomes for resolution.
 
     Used by the single resolution point on each turn (UserPromptSubmit) and by
-    the session-end fallback (Stop). Returns the pending entries; the caller is
+    the session-end fallback (SessionEnd). Returns the pending entries; the caller is
     responsible for applying boost/decay exactly once. Entries older than
     ``MAX_PENDING_AGE_SEC`` are dropped (returned but the caller skips scoring
     via the age check) — handled here by simply clearing them so abandoned

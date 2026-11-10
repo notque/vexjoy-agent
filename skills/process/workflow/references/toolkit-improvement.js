@@ -26,7 +26,8 @@
 //     passes `implement: true` and a non-default work `branch`. These two args
 //     carry the operator approval that the prose Phase 5 and Phase 6 gates ask
 //     for; a request to "evaluate" never edits files.
-//   - An unset tier is the smallest tier: the foundation wave only.
+//   - An unset tier runs all three evaluation waves (tier 4). Only an explicit
+//     tier shrinks the evaluation.
 //   - `maxAgents` caps the agents one run dispatches. The run logs and returns
 //     what the cap dropped.
 //   - Models come from modelFor(role, modelOverride) in workflow-helpers.js.
@@ -38,10 +39,12 @@
 // remaining() bounds the tail. No Date.now()/Math.random()/new Date().
 
 import {
+  branchRule,
+  editBlocker,
   mandatoryInjections,
   modelFor,
   skillDirectives,
-  tierOrSmallest,
+  tierOrFull,
   validateAgentName,
   validateModelOverride,
 } from "./workflow-helpers.js";
@@ -49,7 +52,7 @@ import {
 export const meta = {
   name: "toolkit-improvement",
   description:
-    "Toolkit continuous-improvement pipeline as a deterministic native Workflow: EVALUATE -> RESEARCH -> SYNTHESIZE -> CRITIQUE -> REPORT -> ADR -> IMPLEMENT -> VALIDATE -> REMEDIATE -> RECORD. Evaluate-only by default: the run stops after REPORT, and ADR through RECORD run only with implement: true plus a non-default work branch. EVALUATE is a mandatory parallel barrier of 10 research-subagent-executor foundation evaluators (distinct dimensions); deep-dive + adversarial waves run only on an explicit tier or depth. The research-coordinator-engineer then researches ecosystem practice, synthesizes + de-dupes findings, applies skeptical critique, and reports the decision surface. With implement set, it writes one ADR per cluster the critique kept, domain engineers implement each ADR on the work branch, the governance engineer validates and remediates, and the coordinator records the reusable patterns. maxAgents caps total dispatch. Each agent attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors toolkit-improvement.md; that markdown flow stays the cross-harness floor.",
+    "Toolkit continuous-improvement pipeline as a deterministic native Workflow: EVALUATE -> RESEARCH -> SYNTHESIZE -> CRITIQUE -> REPORT -> ADR -> IMPLEMENT -> VALIDATE -> REMEDIATE -> RECORD. Evaluate-only by default: the run stops after REPORT, and ADR through RECORD run only with implement: true plus a non-default work branch. EVALUATE is a mandatory parallel barrier of 10 research-subagent-executor foundation evaluators (distinct dimensions); deep-dive + adversarial waves follow and run by default; an explicit tier below 4 drops them. The research-coordinator-engineer then researches ecosystem practice, synthesizes + de-dupes findings, applies skeptical critique, and reports the decision surface. With implement set, it writes one ADR per cluster the critique kept, domain engineers implement each ADR on the work branch, the governance engineer validates and remediates, and the coordinator records the reusable patterns. maxAgents caps total dispatch. Each agent attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors toolkit-improvement.md; that markdown flow stays the cross-harness floor.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stage 3). STATIC validation pins the phases + the FIXED 10-agent EVALUATE
@@ -139,9 +142,6 @@ const PYTHON_AGENT = "python-general-engineer";
 const DEFAULT_MAX_AGENTS = 40;
 // Widest parallel() barrier for the data-driven ADR and IMPLEMENT fan-outs.
 const MAX_PARALLEL = 10;
-// IMPLEMENT refuses these work-branch names.
-const DEFAULT_BRANCHES = ["main", "master", "trunk"];
-const BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 
 // The prose Wave 1 foundation dimensions (agent-roster.md). One distinct
 // evaluation lens per EVALUATE agent; the fixed-10 barrier covers all of them.
@@ -474,27 +474,10 @@ function makeAgentCap(maxAgents) {
 }
 
 // Return why IMPLEMENT must not run, or null when the caller cleared the gate.
+// editBlocker (workflow-helpers.js) owns the implement + branch rule.
 function implementBlocker(implement, evaluateOnly, branch) {
   if (evaluateOnly === true) return "evaluateOnly is set";
-  if (implement !== true) return "implement is not set; evaluate-only is the default";
-  if (typeof branch !== "string" || !BRANCH_RE.test(branch)) {
-    return "implement needs `branch`: the non-default work branch to edit on";
-  }
-  if (DEFAULT_BRANCHES.includes(branch)) {
-    return `implement refuses the default branch ${branch}`;
-  }
-  return null;
-}
-
-// The rule every editing agent gets: edit only on the caller's work branch.
-function branchRule(branch) {
-  return (
-    `\nBranch rule: before any edit, run \`git branch --show-current\`. Edit only ` +
-    `when it prints \`${branch}\`. If it prints anything else, including ` +
-    `${DEFAULT_BRANCHES.join(", ")}, make no edit and report every task as ` +
-    `blocked, naming the branch you found. Never switch, create, or reset a ` +
-    `branch, and never commit or push.\n`
-  );
+  return editBlocker(implement, branch);
 }
 
 // Pick the engineer that implements one ADR from the components it touches:
@@ -555,8 +538,9 @@ function splitClusters(synthesis, critique) {
 //
 // run({scope, tier, depth, implement, branch, evaluateOnly, maxAgents, modelOverride}):
 //   - scope: the toolkit evaluation descriptor (target dirs + focus).
-//   - tier: right-size tier from /do. Unset or tier <= 2 -> foundation wave only;
-//     tier 3 adds the deep-dive wave; tier 4 adds the adversarial wave.
+//   - tier: right-size tier from /do. Unset -> all three evaluation waves
+//     (tier 4). An explicit tier shrinks the run: tier <= 2 -> foundation wave
+//     only; tier 3 -> foundation + deep-dive.
 //   - depth: explicit override — "deep" forces all three evaluation waves.
 //   - implement: `true` runs ADR -> RECORD after REPORT. Pass it only when the
 //     operator asked for implementation. Any other value stops after REPORT.
@@ -583,7 +567,7 @@ export default async function run({
 } = {}) {
   // Reject a bad model name before any dispatch.
   validateModelOverride(modelOverride);
-  const effectiveTier = tierOrSmallest(tier);
+  const effectiveTier = tierOrFull(tier);
   const runDeepDive = depth === "deep" || effectiveTier >= 3;
   const runAdversarial = depth === "deep" || effectiveTier >= 4;
   const implementBlocked = implementBlocker(implement, evaluateOnly, branch);

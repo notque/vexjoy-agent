@@ -10,6 +10,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 START = "Set `model` from the task type, not `inherit`."
+# Owner, verbatim, 2026-11-09. Every file that states the policy quotes it with the date.
+OWNER_MEDIUM_ORDER = '2026-11-09: "Also I prefer opus 5.5 medium over high"'
+POLICY_FILES = (
+    "skills/meta/do/SKILL.md",
+    "skills/meta/d/SKILL.md",
+    "skills/meta/do/references/model-selection.md",
+    "skills/meta/d/references/model-task-fit.md",
+    "docs/REFERENCE.md",
+    "scripts/build-dispatch.py",
+)
 END = "`skills/meta/d/references/model-task-fit.md`."
 
 
@@ -29,7 +39,9 @@ def test_model_choice_block_states_the_decided_tiers_and_ladder() -> None:
     for required in (
         "low-risk = haiku/low",
         "standard = opus/medium",
-        "high-risk = opus/high",
+        "high-risk = opus/medium",
+        OWNER_MEDIUM_ORDER,
+        "opus/high is no tier's default",
         "max-power = fable/high",
         "haiku → opus/medium → opus/high → fable/medium → fable/high",
         "Sonnet is no row's default.",
@@ -43,7 +55,7 @@ def _task_rows(text: str) -> list[str]:
     return [line for line in text.splitlines() if line.startswith("| ") and line.rstrip(" |").endswith(MODEL_CELLS)]
 
 
-MODEL_CELLS = ("| haiku", "| opus / medium, then high", "| opus / high", "| fable / medium, then high")
+MODEL_CELLS = ("| haiku", "| opus / medium, then high", "| fable / medium, then high")
 
 
 def test_reference_doc_table_copies_the_skill_rows() -> None:
@@ -53,6 +65,32 @@ def test_reference_doc_table_copies_the_skill_rows() -> None:
     assert len(skill_rows) == 4
     reference = (REPO_ROOT / "docs" / "REFERENCE.md").read_text(encoding="utf-8")
     assert _task_rows(reference) == skill_rows
+
+
+def test_every_opus_row_starts_at_medium() -> None:
+    """Owner 2026-11-09: no task row starts Opus at high, the high-risk row included."""
+    for path in ("skills/meta/do/SKILL.md", "docs/REFERENCE.md", "skills/meta/d/references/model-task-fit.md"):
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+        rows = [line for line in text.splitlines() if line.lower().startswith("| high-risk")]
+        assert rows, f"{path}: high-risk row missing"
+        current = [row.split("|")[2].strip() for row in rows if row.split("|")[2].strip().startswith("opus /")]
+        assert current, f"{path}: no current high-risk row"
+        for cell in current:
+            assert cell.startswith("opus / medium"), f"{path}: high-risk starts at {cell!r}"
+
+
+def test_every_policy_file_quotes_the_owner_order_with_its_date() -> None:
+    for path in POLICY_FILES:
+        text = " ".join((REPO_ROOT / path).read_text(encoding="utf-8").replace("#", " ").split())
+        assert OWNER_MEDIUM_ORDER in text, f"{path} states the policy without the owner's 2026-11-09 words"
+
+
+def test_no_policy_file_names_opus_high_as_a_tier() -> None:
+    for path in POLICY_FILES[:5]:
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+        assert "high-risk = opus/high" not in text, path
+        assert "| high-risk | `opus` / `high`" not in text, path
+        assert "| high-risk | opus / high |" not in text, path
 
 
 def test_wave_references_send_no_review_agent_to_sonnet() -> None:

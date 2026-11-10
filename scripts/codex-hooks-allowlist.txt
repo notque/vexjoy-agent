@@ -12,8 +12,8 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   75 registrations = 61 mirrored here + 14 unsupported.
-#   62 entries = 32 native + 30 adapted: pretool-unified-gate.py has one Claude
+#   76 registrations = 62 mirrored here + 14 unsupported.
+#   63 entries = 32 native + 31 adapted: pretool-unified-gate.py has one Claude
 #   registration (Bash|Write|Edit|Read) and two entries here, Bash and apply_patch.
 
 # Native SessionStart (15)
@@ -56,10 +56,11 @@ PreToolUse:pretool-private-name-leak-gate.py matcher=Bash class=native mode=nati
 PreToolUse:security-review-hook.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:pretool-unified-gate.py matcher=Bash class=native mode=native failure=closed
 
-# Adapted PreToolUse apply_patch/Edit|Write (9)
+# Adapted PreToolUse apply_patch/Edit|Write (10)
 PreToolUse:suggest-compact.py matcher=Edit|Write class=adapted mode=patch failure=open
 PreToolUse:pretool-unified-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
 PreToolUse:pretool-worktree-edit-guard.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:pretool-config-protection.py matcher=Edit|Write class=adapted mode=patch failure=closed
 PreToolUse:pretool-synthesis-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
 PreToolUse:pretool-plan-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
 PreToolUse:pretool-prompt-injection-scanner.py matcher=Edit|Write class=adapted mode=patch failure=closed

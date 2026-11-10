@@ -78,12 +78,52 @@ export function modelFor(role, override) {
 }
 
 // --- Roster size --------------------------------------------------------------
-// An unset tier means the smallest roster. A caller asks for more with an
-// explicit tier. Rule owner: skills/meta/do/references/workflow-dispatch.md.
-export const SMALLEST_TIER = 1;
+// A named full-coverage pipeline (comprehensive-review, toolkit-improvement)
+// given no tier runs every wave. Only an explicit tier shrinks it: the tier
+// scripts/right-size-review.py computed from a real diff, or one the caller
+// names. Owner, 2026-11-09: "Comprehensive review is no longer comprehensive
+// with 1 wave". Rule owner: skills/meta/do/references/workflow-dispatch.md.
+export const FULL_TIER = 4;
 
-export function tierOrSmallest(tier) {
-  return typeof tier === "number" && Number.isFinite(tier) ? tier : SMALLEST_TIER;
+// Return the caller's tier, or FULL_TIER when none is set. Throws on a value
+// that is not a finite number, so a mistyped tier never picks a roster
+// silently. Call it at the top of run(), before any dispatch.
+export function tierOrFull(tier) {
+  if (tier === undefined || tier === null) return FULL_TIER;
+  if (typeof tier !== "number" || !Number.isFinite(tier)) {
+    throw new TypeError(`tier: expected a number, got ${JSON.stringify(tier)}.`);
+  }
+  return tier;
+}
+
+// --- Edit gate ----------------------------------------------------------------
+// A workflow edits files only when the caller passes `implement: true` and a
+// non-default work `branch`. The two args carry the operator's approval; a
+// request to review or evaluate never edits.
+export const DEFAULT_BRANCHES = ["main", "master", "trunk"];
+const BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+
+// Return why editing must not run, or null when the caller cleared the gate.
+export function editBlocker(implement, branch) {
+  if (implement !== true) return "implement is not set; no file is edited by default";
+  if (typeof branch !== "string" || !BRANCH_RE.test(branch)) {
+    return "implement needs `branch`: the non-default work branch to edit on";
+  }
+  if (DEFAULT_BRANCHES.includes(branch)) {
+    return `implement refuses the default branch ${branch}`;
+  }
+  return null;
+}
+
+// The rule every editing agent gets: edit only on the caller's work branch.
+export function branchRule(branch) {
+  return (
+    `\nBranch rule: before any edit, run \`git branch --show-current\`. Edit only ` +
+    `when it prints \`${branch}\`. If it prints anything else, including ` +
+    `${DEFAULT_BRANCHES.join(", ")}, make no edit and report every task as ` +
+    `blocked, naming the branch you found. Never switch, create, or reset a ` +
+    `branch, and never commit or push.\n`
+  );
 }
 
 // --- Engineer selection -------------------------------------------------------
