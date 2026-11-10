@@ -2613,14 +2613,18 @@ class TestLazyStartup:
         probe = (
             "import io, json, runpy, sys\n"
             "sys.stdin = io.StringIO(json.dumps({'tool_name': 'Bash', 'tool_input': {'command': 'ls -la'}}))\n"
+            # Some interpreters load these through runpy or site (Python 3.10 on CI
+            # does), so count only what the hook itself adds.
+            "before = {m for m in ('subprocess', 'hashlib') if m in sys.modules}\n"
             "try:\n"
             f"    runpy.run_path({str(HOOK_PATH)!r}, run_name='__main__')\n"
             "except SystemExit as e:\n"
             "    code = e.code or 0\n"
             "else:\n"
             "    code = 0\n"
-            "print(json.dumps({'code': code, 'subprocess': 'subprocess' in sys.modules,"
-            " 'hashlib': 'hashlib' in sys.modules}), file=sys.stderr)\n"
+            "print(json.dumps({'code': code,"
+            " 'subprocess': 'subprocess' in sys.modules and 'subprocess' not in before,"
+            " 'hashlib': 'hashlib' in sys.modules and 'hashlib' not in before}), file=sys.stderr)\n"
         )
         env = {**os.environ, "HOME": str(tmp_path), "CLAUDE_LEARNING_DIR": str(tmp_path / "learning")}
         result = subprocess.run(
