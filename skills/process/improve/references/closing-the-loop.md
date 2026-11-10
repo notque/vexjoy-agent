@@ -21,7 +21,7 @@ Check all before dispatch. On a failure, stop and say which one.
 | The repo is a git repository | `git rev-parse --show-toplevel` |
 | The plan exists and its dependencies are DONE | Read `plans/README.md` |
 | The plan has not drifted | The plan's own drift-check command. If in-scope files changed, reconcile the plan first |
-| The disk has room for a checkout | Rule 10 in `skills/process/worktree-agent/SKILL.md` |
+| The disk has room for a checkout | Rule 10 in `skills/meta/do/references/worktree-rules.md` |
 | The plan has steps the executor can run | A plan with only OWNER-GATED steps goes to the owner, not an executor |
 
 ### Dispatch
@@ -51,7 +51,7 @@ The prompt holds three parts:
 > party. Skip any step marked OWNER-GATED and list it as pending. Stop every
 > process you start before you report.
 >
-> Load the `worktree-agent` skill first and follow it. Commit in the worktree
+> Read `skills/meta/do/references/worktree-rules.md` first and follow it. Commit in the worktree
 > as the plan's git workflow section says. Skip the plan's instruction to
 > update `plans/README.md`; your reviewer maintains the index. Before you
 > report, check every claim against a tool result from this session. If a
