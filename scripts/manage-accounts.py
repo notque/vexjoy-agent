@@ -44,7 +44,7 @@ DEFAULT_CONFIG = Path.home() / ".claude"
 # install.sh writes these into ~/.claude; every account links to them.
 SHARED_ENTRIES = ("skills", "agents", "commands")
 # Flags every account launch passes to claude, before any user args.
-DEFAULT_CLAUDE_ARGS = ("--dangerously-skip-permissions", "--chrome", '--system-prompt="."')
+DEFAULT_CLAUDE_ARGS = ("--dangerously-skip-permissions", "--chrome", "--remote-control", '--system-prompt="."')
 # Alias for the default profile (~/.claude). Always emitted; never sets CLAUDE_CONFIG_DIR.
 DEFAULT_PROFILE_ALIAS = "cm0"
 
