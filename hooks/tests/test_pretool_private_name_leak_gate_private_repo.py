@@ -148,7 +148,9 @@ def test_push_checks_only_the_named_remote(world):
 def test_push_to_unknown_name_blocks(world):
     world.remote("origin", "git@github.com:someone/closed.git")
     world.answers = {"someone/closed": "private"}
-    assert world.denied(f"git push elsewhere main # {PRIVATE_NAME}")
+    # Owner, 2026-11-13: private repos skip the gate; a name that is no remote
+    # or GitHub URL cannot reach a public GitHub repo.
+    assert not world.denied(f"git push elsewhere main # {PRIVATE_NAME}")
 
 
 def test_commit_and_push_chain_checks_all_remotes(world):
@@ -336,30 +338,44 @@ PUB = "https://github.com/someone/open.git"
     [
         # Unquoted delimiter: the body expands.
         HEREDOC_MSG.format(name=PRIVATE_NAME).replace("'EOF'", "EOF"),
+        # Other substitutions and backticks.
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " && git status $(true)",
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " `true`",
+        f'git commit -m "{PRIVATE_NAME}\n$(true)"',
+        f'git commit -m "{PRIVATE_NAME}\n`true`"',
+        f"bash -c 'git commit -am {PRIVATE_NAME}' && git push origin HEAD",
+    ],
+)
+def test_unreadable_shapes_allow_inside_private_repo(closed_only, command):
+    """Owner, 2026-11-13: "Private repos don't do the private names gate"."""
+    assert not closed_only.denied(command)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
         # Text between the delimiter line and `)`.
         f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ncd /elsewhere && git push\n)\"",
         # An earlier delimiter line closes the heredoc; the rest runs.
         f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ngit push {PUB} main\nEOF\n)\"",
-        # A second substitution elsewhere.
-        HEREDOC_MSG.format(name=PRIVATE_NAME) + " && git status $(true)",
-        # Backticks outside the body.
-        HEREDOC_MSG.format(name=PRIVATE_NAME) + " `true`",
-        # Multi-line double quotes that expand.
-        f'git commit -m "{PRIVATE_NAME}\n$(true)"',
-        f'git commit -m "{PRIVATE_NAME}\n`true`"',
-        # A flattened message cannot hide a later push to a public remote.
+        # A readable or unreadable command that names a public target.
         f'git commit -m "{PRIVATE_NAME}\nbody" && git push {PUB} main',
         f"git commit -m '{PRIVATE_NAME}\nbody' && cd /elsewhere && git push",
-        # Flattened text run as code by a shell is still unreadable.
         f"git commit -m '{PRIVATE_NAME}' && bash -c 'cd /elsewhere\ngit push'",
         f"git commit -m '{PRIVATE_NAME}' && sh -c 'cd /elsewhere\ngit push'",
         f'git commit -m "{PRIVATE_NAME}" && eval "cd /elsewhere\ngit push"',
         f"bash -c 'git commit -am {PRIVATE_NAME}\ngit push {PUB} main'",
         f"git -C '/elsewhere\n' commit -m '{PRIVATE_NAME}'",
         f"git push '{PUB}\n' main # {PRIVATE_NAME}",
+        f"$(true) && git --git-dir=/elsewhere/.git push # {PRIVATE_NAME}",
+        f"$(true) && git push https://gitlab.com/someone/open.git # {PRIVATE_NAME}",
+        f"$(true) && git push git@example.org:someone/open.git # {PRIVATE_NAME}",
+        f'$(true) && gh pr comment 1 --repo someone/open --body "{PRIVATE_NAME}"',
+        f'$(true) && GH_REPO=someone/open gh pr create --body "{PRIVATE_NAME}"',
+        f"$(true) && pushd /elsewhere && git push # {PRIVATE_NAME}",
     ],
 )
-def test_message_flattening_keeps_fail_closed(closed_only, command):
+def test_private_repo_still_blocks_other_targets(closed_only, command):
     assert closed_only.denied(command.replace("/elsewhere", str(closed_only.other)))
 
 

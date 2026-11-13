@@ -73,6 +73,12 @@ Allow-through conditions:
   `pushd` or `env` before a gated command, a git global option other
   than `-C <same dir>`, or any GIT_*/GH_* prefix or redirecting env var.
   gh keeps GH_TOKEN/GITHUB_TOKEN so a token-only login can answer.
+  Owner, 2026-11-13: "Private repos don't do the private names gate".
+  When the exact parser cannot read a command, a fallback still exempts it
+  if the cwd repo's remotes and every repo URL or --repo value in the text
+  are private on GitHub. It blocks on a cd, pushd, -C, --git-dir or
+  --work-tree to another path, an inline GIT_*/GH_* variable, or a git URL
+  that is not a GitHub repo.
   Limit: an exempted commit's file contents are not re-scanned if that
   history is later pushed to a public remote (push scans only commit
   messages). Run scripts/private-term-audit.py before publishing a repo.
@@ -999,6 +1005,66 @@ def _gh_visibility(slug: tuple[str, str, str], deadline: float) -> str:
     return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
+# Fallback for commands the exact parser cannot read (owner, 2026-11-13:
+# "Private repos don't do the private names gate"). Inside a private repo any
+# command shape passes, unless its text points somewhere else.
+_DIR_CHANGE_RE = re.compile(
+    r"(?:(?<![\w-])(?:cd|pushd)\s+|(?<![\w-])-C\s*|--git-dir[=\s]\s*|--work-tree[=\s]\s*)(['\"]?)([^\s'\";&|)]+)\1"
+)
+_INLINE_REDIRECT_RE = re.compile(r"(?<![\w-])(?:GIT_|GH_|GITHUB_)\w*=")
+_REMOTE_TEXT_RE = re.compile(r"[a-z][a-z0-9+.-]*://[^\s'\"`)]+|(?<![\w/])[\w.-]+@[\w.-]+:[^\s'\"`)]+", re.IGNORECASE)
+_REPO_FLAG_TEXT_RE = re.compile(r"(?:--repo[=\s]|(?<![\w-])-R\s*=?)\s*['\"]?([^\s'\"]+)")
+
+
+def _looks_like_remote(text: str) -> bool:
+    """A git remote rather than a web link such as a session URL in a message.
+
+    scp-style and non-http schemes always count. An http(s) URL counts when
+    its host is a git forge or its path ends in `.git`.
+    """
+    if not re.match(r"https?://", text, re.IGNORECASE):
+        return True
+    host = re.sub(r"^https?://(?:[^@/]+@)?", "", text, flags=re.IGNORECASE).split("/", 1)[0].lower()
+    return any(f in host for f in ("github", "gitlab", "bitbucket", "codeberg", "gitea")) or text.endswith(".git")
+
+
+def _fallback_slugs(command: str, cwd: str | None, deadline: float) -> set[tuple[str, str, str]]:
+    """The cwd repo's remotes plus every repo the raw text names; _Unknown if it leaves cwd.
+
+    Used only when _target_slugs cannot read the command. Any directory
+    change to another path, inline git/gh redirect variable, or URL that is
+    not a GitHub repo raises _Unknown, so the gate still blocks.
+    """
+    if any(k.startswith(("GIT_DIR", "GIT_WORK_TREE", "GIT_CONFIG", "GH_REPO", "GH_HOST")) for k in os.environ):
+        raise _Unknown
+    if _INLINE_REDIRECT_RE.search(command.replace(f"{_BYPASS_ENV}=", "")):
+        raise _Unknown
+    for m in _DIR_CHANGE_RE.finditer(command):
+        if not _same_dir(m.group(2), cwd):
+            raise _Unknown
+    slugs: set[tuple[str, str, str]] = set()
+    for url in _all_remote_urls(cwd, deadline):
+        slug = _parse_slug(url)
+        if slug is None:
+            raise _Unknown
+        slugs.add(slug)
+    for m in _REMOTE_TEXT_RE.finditer(command):
+        text = m.group(0).rstrip(".,")
+        if not _looks_like_remote(text):
+            continue
+        pr = _PR_URL_RE.match(text)
+        slug = (pr.group(1).lower(), pr.group(2), pr.group(3)) if pr else _parse_slug(text)
+        if slug is None:
+            raise _Unknown
+        slugs.add(slug)
+    for m in _REPO_FLAG_TEXT_RE.finditer(command):
+        slug = _parse_repo_flag(m.group(1))
+        if slug is None:
+            raise _Unknown
+        slugs.add(slug)
+    return slugs
+
+
 def _targets_all_private(command: str, cwd: str | None) -> bool:
     """True only when every repo the command can reach reports visibility "private".
 
@@ -1007,8 +1073,11 @@ def _targets_all_private(command: str, cwd: str | None) -> bool:
     """
     deadline = time.monotonic() + _EXEMPTION_BUDGET
     try:
-        slugs = _target_slugs(command, cwd, deadline)
-        if len(slugs) > _MAX_VISIBILITY_LOOKUPS:
+        try:
+            slugs = _target_slugs(command, cwd, deadline)
+        except _Unknown:
+            slugs = _fallback_slugs(command, cwd, deadline)
+        if not slugs or len(slugs) > _MAX_VISIBILITY_LOOKUPS:
             return False
         with ThreadPoolExecutor(max_workers=len(slugs)) as pool:
             answers = list(pool.map(lambda s: _gh_visibility(s, deadline), sorted(slugs)))
