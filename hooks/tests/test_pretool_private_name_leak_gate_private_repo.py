@@ -26,6 +26,8 @@ FAKE_GH = r"""#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["FAKE_GH_LOG"], "a") as log:
     log.write(" ".join(sys.argv[1:]) + "\n")
+if os.environ.get("FAKE_GH_NEED_TOKEN") and not os.environ.get("GH_TOKEN"):
+    sys.exit(4)
 answers = json.loads(os.environ.get("FAKE_GH_MAP", "{}"))
 slug = next((a[len("repos/"):] for a in sys.argv if a.startswith("repos/")), "")
 if slug not in answers:
@@ -275,3 +277,71 @@ def test_git_global_options_are_still_gated(world, command):
     world.remote("origin", "https://github.com/someone/open")
     world.answers = {"someone/open": "public"}
     assert world.denied(command.replace("{repo}", str(world.repo)))
+
+
+HEREDOC_MSG = (
+    "git commit -m \"$(cat <<'EOF'\nadd {name} fixtures\n\nClaude-Session: https://example.invalid/s\nEOF\n)\""
+)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        HEREDOC_MSG.format(name=PRIVATE_NAME),
+        HEREDOC_MSG.format(name=PRIVATE_NAME).replace("'EOF'", '"EOF"'),
+        f'git add a.json && git commit -m "add {PRIVATE_NAME}\n\nClaude-Session: x"',
+        f"git commit -m 'add {PRIVATE_NAME}\n\nbody'",
+        f'git commit -m "first line" -m "{PRIVATE_NAME}\nsecond"',
+    ],
+)
+def test_claude_commit_message_shapes_allow_on_private(world, command):
+    """Owner, 2026-11-13: the private-name gate is not for private repos."""
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private"}
+    assert not world.denied(command)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        HEREDOC_MSG.format(name=PRIVATE_NAME),
+        f'git commit -m "add {PRIVATE_NAME}\n\nbody"',
+    ],
+)
+def test_claude_commit_message_shapes_still_block_on_public(world, command):
+    world.remote("origin", "https://github.com/someone/open.git")
+    world.answers = {"someone/open": "public"}
+    assert world.denied(command)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        # Unquoted delimiter: the body expands.
+        HEREDOC_MSG.format(name=PRIVATE_NAME).replace("'EOF'", "EOF"),
+        # Text between the delimiter line and `)`.
+        f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ncd /elsewhere && git push\n)\"",
+        # An earlier delimiter line closes the heredoc; the rest runs.
+        f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ngit push pub main\nEOF\n)\"",
+        # A second substitution elsewhere.
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " && git push pub main $(true)",
+        # Backticks outside the body.
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " `git push pub main`",
+        # Multi-line double quotes that expand.
+        f'git commit -m "{PRIVATE_NAME}\n$(git push pub main)"',
+        f'git commit -m "{PRIVATE_NAME}\n`git push pub main`"',
+        # A flattened message still cannot hide a later push to a public remote.
+        f'git commit -m "{PRIVATE_NAME}\nbody" && git push pub main',
+        f"git commit -m '{PRIVATE_NAME}\nbody' && cd /elsewhere && git push",
+    ],
+)
+def test_message_flattening_keeps_fail_closed(mixed, command):
+    assert mixed.denied(command.replace("/elsewhere", str(mixed.other)))
+
+
+def test_gh_token_reaches_gh(world):
+    """A token-only gh login must still answer the visibility lookup."""
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private"}
+    assert not world.denied(LEAK, GH_TOKEN="fake-token", FAKE_GH_NEED_TOKEN="1")
+    assert world.denied(LEAK, FAKE_GH_NEED_TOKEN="1")

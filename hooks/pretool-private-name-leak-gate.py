@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.4.0
+# hook-version: 1.5.0
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
@@ -67,9 +67,12 @@ Allow-through conditions:
   "internal" does not count. Anything the parser does not fully
   understand counts as public and the gate still blocks: no remote, a
   non-GitHub URL, more than _MAX_VISIBILITY_LOOKUPS repos, a gh error or
-  timeout (one 5 s budget), subshells, `$(...)`, backticks, a `cd`,
+  timeout (one 5 s budget), subshells, `$(...)` (except a commit message
+  written as `"$(cat <<'EOF' ... EOF)"` with a quoted delimiter; multi-line
+  quoted messages are read too), backticks, a `cd`,
   `pushd` or `env` before a gated command, a git global option other
   than `-C <same dir>`, or any GIT_*/GH_* prefix or redirecting env var.
+  gh keeps GH_TOKEN/GITHUB_TOKEN so a token-only login can answer.
   Limit: an exempted commit's file contents are not re-scanned if that
   history is later pushed to a public remote (push scans only commit
   messages). Run scripts/private-term-audit.py before publishing a repo.
@@ -613,6 +616,13 @@ _REDIRECT_RE = re.compile(r"[<>]+&?|&>>?")
 _PUSH_VALUE_OPTS = {"-o", "--push-option", "--receive-pack", "--exec"}
 # Environment that redirects git or gh to another repo or config.
 _REDIRECT_ENV_RE = re.compile(r"^(GIT_|GH_|GITHUB_)")
+# Auth-only variables kept for gh. A token sets who asks, not which repo is
+# asked about, so it cannot make a public repo answer "private". Without it a
+# token-only gh login fails every lookup and the exemption never applies.
+_AUTH_ENV = frozenset({"GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"})
+# `"$(cat <<'EOF'` ... `EOF` `)"`: a quoted delimiter keeps the body literal,
+# so the substitution yields only message text.
+_CAT_HEREDOC_RE = re.compile(r"\"\$\(cat <<(['\"])([A-Za-z_]\w*)\1\n((?:.*\n)*?)\2\n[ \t]*\)\"")
 
 
 def _parse_slug(url: str) -> tuple[str, str, str] | None:
@@ -682,12 +692,57 @@ def _strip_heredoc_bodies(command: str) -> str:
     return "\n".join(out)
 
 
+def _flatten_messages(command: str) -> str:
+    """Replace multi-line literal message text with a one-line placeholder.
+
+    Replaces only text the shell cannot run: a multi-line single-quoted
+    string, a multi-line double-quoted string with no `$`, backtick or
+    backslash, or a whole `"$(cat <<'EOF' ... EOF\\n)"` whose first
+    delimiter line closes it. Returns the command unchanged when it has an
+    unquoted heredoc, comment, backslash or `$'...'`, so the stricter checks
+    after this still judge it.
+    """
+    out: list[str] = []
+    i, n = 0, len(command)
+    while i < n:
+        c = command[i]
+        if c == "'":
+            j = command.find("'", i + 1)
+            if j < 0:
+                return command
+            out.append("'msg'" if "\n" in command[i:j] else command[i : j + 1])
+            i = j + 1
+        elif c == '"':
+            m = _CAT_HEREDOC_RE.match(command, i)
+            if m and m.group(2) not in m.group(3).splitlines():
+                out.append('"msg"')
+                i = m.end()
+                continue
+            j = i + 1
+            while j < n and command[j] != '"':
+                j += 2 if command[j] == "\\" else 1
+            if j >= n:
+                return command
+            body = command[i + 1 : j]
+            literal = "\n" in body and not re.search(r"[$`\\]", body)
+            out.append('"msg"' if literal else command[i : j + 1])
+            i = j + 1
+        elif c in "\\#" or command.startswith(("<<", "$'"), i):
+            return command
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
 def _segments(command: str) -> list[list[str]]:
     """Shell-split command segments, or _Unknown for anything opaque.
 
     Splits on every list and pipe operator so each gated command is checked
     on its own. Subshells, substitutions and unknown operators are _Unknown.
+    Multi-line literal messages are flattened first (_flatten_messages).
     """
+    command = _flatten_messages(command)
     if _OPAQUE_RE.search(command):
         raise _Unknown
     command = _strip_heredoc_bodies(command)
@@ -745,8 +800,8 @@ def _git_out(args: list[str], cwd: str | None, deadline: float) -> str:
 
 
 def _clean_env() -> dict[str, str]:
-    """Hook environment without variables that redirect git or gh."""
-    return {k: v for k, v in os.environ.items() if not _REDIRECT_ENV_RE.match(k)}
+    """Hook environment without variables that redirect git or gh; auth tokens stay."""
+    return {k: v for k, v in os.environ.items() if k in _AUTH_ENV or not _REDIRECT_ENV_RE.match(k)}
 
 
 def _remote_names(cwd: str | None, deadline: float) -> list[str]:
