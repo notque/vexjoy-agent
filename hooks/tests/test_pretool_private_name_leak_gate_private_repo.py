@@ -314,6 +314,23 @@ def test_claude_commit_message_shapes_still_block_on_public(world, command):
     assert world.denied(command)
 
 
+@pytest.fixture
+def closed_only(world, tmp_path):
+    """Only a private origin, so a deny here comes from the shape, not a public remote."""
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private", "someone/open": "public"}
+    other = tmp_path / "other"
+    (other / "agents").mkdir(parents=True)
+    (other / "skills").mkdir()
+    _git(other, "init", "-q", "-b", "main")
+    _git(other, "remote", "add", "origin", "https://github.com/someone/open")
+    world.other = other
+    return world
+
+
+PUB = "https://github.com/someone/open.git"
+
+
 @pytest.mark.parametrize(
     "command",
     [
@@ -322,21 +339,34 @@ def test_claude_commit_message_shapes_still_block_on_public(world, command):
         # Text between the delimiter line and `)`.
         f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ncd /elsewhere && git push\n)\"",
         # An earlier delimiter line closes the heredoc; the rest runs.
-        f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ngit push pub main\nEOF\n)\"",
+        f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ngit push {PUB} main\nEOF\n)\"",
         # A second substitution elsewhere.
-        HEREDOC_MSG.format(name=PRIVATE_NAME) + " && git push pub main $(true)",
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " && git status $(true)",
         # Backticks outside the body.
-        HEREDOC_MSG.format(name=PRIVATE_NAME) + " `git push pub main`",
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " `true`",
         # Multi-line double quotes that expand.
-        f'git commit -m "{PRIVATE_NAME}\n$(git push pub main)"',
-        f'git commit -m "{PRIVATE_NAME}\n`git push pub main`"',
-        # A flattened message still cannot hide a later push to a public remote.
-        f'git commit -m "{PRIVATE_NAME}\nbody" && git push pub main',
+        f'git commit -m "{PRIVATE_NAME}\n$(true)"',
+        f'git commit -m "{PRIVATE_NAME}\n`true`"',
+        # A flattened message cannot hide a later push to a public remote.
+        f'git commit -m "{PRIVATE_NAME}\nbody" && git push {PUB} main',
         f"git commit -m '{PRIVATE_NAME}\nbody' && cd /elsewhere && git push",
+        # Flattened text run as code by a shell is still unreadable.
+        f"git commit -m '{PRIVATE_NAME}' && bash -c 'cd /elsewhere\ngit push'",
+        f"git commit -m '{PRIVATE_NAME}' && sh -c 'cd /elsewhere\ngit push'",
+        f'git commit -m "{PRIVATE_NAME}" && eval "cd /elsewhere\ngit push"',
+        f"bash -c 'git commit -am {PRIVATE_NAME}\ngit push {PUB} main'",
+        f"git -C '/elsewhere\n' commit -m '{PRIVATE_NAME}'",
+        f"git push '{PUB}\n' main # {PRIVATE_NAME}",
     ],
 )
-def test_message_flattening_keeps_fail_closed(mixed, command):
-    assert mixed.denied(command.replace("/elsewhere", str(mixed.other)))
+def test_message_flattening_keeps_fail_closed(closed_only, command):
+    assert closed_only.denied(command.replace("/elsewhere", str(closed_only.other)))
+
+
+def test_closed_only_allows_plain_shapes(closed_only):
+    """Control for the fail-closed cases: the same fixture allows the readable forms."""
+    assert not closed_only.denied(HEREDOC_MSG.format(name=PRIVATE_NAME))
+    assert not closed_only.denied(f"git commit -m '{PRIVATE_NAME}\nbody' && git push origin HEAD")
 
 
 def test_gh_token_reaches_gh(world):
