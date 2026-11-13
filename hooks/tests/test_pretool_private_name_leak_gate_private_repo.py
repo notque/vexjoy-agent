@@ -26,6 +26,8 @@ FAKE_GH = r"""#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["FAKE_GH_LOG"], "a") as log:
     log.write(" ".join(sys.argv[1:]) + "\n")
+if os.environ.get("FAKE_GH_NEED_TOKEN") and not os.environ.get("GH_TOKEN"):
+    sys.exit(4)
 answers = json.loads(os.environ.get("FAKE_GH_MAP", "{}"))
 slug = next((a[len("repos/"):] for a in sys.argv if a.startswith("repos/")), "")
 if slug not in answers:
@@ -146,7 +148,9 @@ def test_push_checks_only_the_named_remote(world):
 def test_push_to_unknown_name_blocks(world):
     world.remote("origin", "git@github.com:someone/closed.git")
     world.answers = {"someone/closed": "private"}
-    assert world.denied(f"git push elsewhere main # {PRIVATE_NAME}")
+    # Owner, 2026-11-13: private repos skip the gate; a name that is no remote
+    # or GitHub URL cannot reach a public GitHub repo.
+    assert not world.denied(f"git push elsewhere main # {PRIVATE_NAME}")
 
 
 def test_commit_and_push_chain_checks_all_remotes(world):
@@ -275,3 +279,115 @@ def test_git_global_options_are_still_gated(world, command):
     world.remote("origin", "https://github.com/someone/open")
     world.answers = {"someone/open": "public"}
     assert world.denied(command.replace("{repo}", str(world.repo)))
+
+
+HEREDOC_MSG = (
+    "git commit -m \"$(cat <<'EOF'\nadd {name} fixtures\n\nClaude-Session: https://example.invalid/s\nEOF\n)\""
+)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        HEREDOC_MSG.format(name=PRIVATE_NAME),
+        HEREDOC_MSG.format(name=PRIVATE_NAME).replace("'EOF'", '"EOF"'),
+        f'git add a.json && git commit -m "add {PRIVATE_NAME}\n\nClaude-Session: x"',
+        f"git commit -m 'add {PRIVATE_NAME}\n\nbody'",
+        f'git commit -m "first line" -m "{PRIVATE_NAME}\nsecond"',
+    ],
+)
+def test_claude_commit_message_shapes_allow_on_private(world, command):
+    """Owner, 2026-11-13: the private-name gate is not for private repos."""
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private"}
+    assert not world.denied(command)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        HEREDOC_MSG.format(name=PRIVATE_NAME),
+        f'git commit -m "add {PRIVATE_NAME}\n\nbody"',
+    ],
+)
+def test_claude_commit_message_shapes_still_block_on_public(world, command):
+    world.remote("origin", "https://github.com/someone/open.git")
+    world.answers = {"someone/open": "public"}
+    assert world.denied(command)
+
+
+@pytest.fixture
+def closed_only(world, tmp_path):
+    """Only a private origin, so a deny here comes from the shape, not a public remote."""
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private", "someone/open": "public"}
+    other = tmp_path / "other"
+    (other / "agents").mkdir(parents=True)
+    (other / "skills").mkdir()
+    _git(other, "init", "-q", "-b", "main")
+    _git(other, "remote", "add", "origin", "https://github.com/someone/open")
+    world.other = other
+    return world
+
+
+PUB = "https://github.com/someone/open.git"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        # Unquoted delimiter: the body expands.
+        HEREDOC_MSG.format(name=PRIVATE_NAME).replace("'EOF'", "EOF"),
+        # Other substitutions and backticks.
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " && git status $(true)",
+        HEREDOC_MSG.format(name=PRIVATE_NAME) + " `true`",
+        f'git commit -m "{PRIVATE_NAME}\n$(true)"',
+        f'git commit -m "{PRIVATE_NAME}\n`true`"',
+        f"bash -c 'git commit -am {PRIVATE_NAME}' && git push origin HEAD",
+    ],
+)
+def test_unreadable_shapes_allow_inside_private_repo(closed_only, command):
+    """Owner, 2026-11-13: "Private repos don't do the private names gate"."""
+    assert not closed_only.denied(command)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        # Text between the delimiter line and `)`.
+        f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ncd /elsewhere && git push\n)\"",
+        # An earlier delimiter line closes the heredoc; the rest runs.
+        f"git commit -m \"$(cat <<'EOF'\n{PRIVATE_NAME}\nEOF\ngit push {PUB} main\nEOF\n)\"",
+        # A readable or unreadable command that names a public target.
+        f'git commit -m "{PRIVATE_NAME}\nbody" && git push {PUB} main',
+        f"git commit -m '{PRIVATE_NAME}\nbody' && cd /elsewhere && git push",
+        f"git commit -m '{PRIVATE_NAME}' && bash -c 'cd /elsewhere\ngit push'",
+        f"git commit -m '{PRIVATE_NAME}' && sh -c 'cd /elsewhere\ngit push'",
+        f'git commit -m "{PRIVATE_NAME}" && eval "cd /elsewhere\ngit push"',
+        f"bash -c 'git commit -am {PRIVATE_NAME}\ngit push {PUB} main'",
+        f"git -C '/elsewhere\n' commit -m '{PRIVATE_NAME}'",
+        f"git push '{PUB}\n' main # {PRIVATE_NAME}",
+        f"$(true) && git --git-dir=/elsewhere/.git push # {PRIVATE_NAME}",
+        f"$(true) && git push https://gitlab.com/someone/open.git # {PRIVATE_NAME}",
+        f"$(true) && git push git@example.org:someone/open.git # {PRIVATE_NAME}",
+        f'$(true) && gh pr comment 1 --repo someone/open --body "{PRIVATE_NAME}"',
+        f'$(true) && GH_REPO=someone/open gh pr create --body "{PRIVATE_NAME}"',
+        f"$(true) && pushd /elsewhere && git push # {PRIVATE_NAME}",
+    ],
+)
+def test_private_repo_still_blocks_other_targets(closed_only, command):
+    assert closed_only.denied(command.replace("/elsewhere", str(closed_only.other)))
+
+
+def test_closed_only_allows_plain_shapes(closed_only):
+    """Control for the fail-closed cases: the same fixture allows the readable forms."""
+    assert not closed_only.denied(HEREDOC_MSG.format(name=PRIVATE_NAME))
+    assert not closed_only.denied(f"git commit -m '{PRIVATE_NAME}\nbody' && git push origin HEAD")
+
+
+def test_gh_token_reaches_gh(world):
+    """A token-only gh login must still answer the visibility lookup."""
+    world.remote("origin", "git@github.com:someone/closed.git")
+    world.answers = {"someone/closed": "private"}
+    assert not world.denied(LEAK, GH_TOKEN="fake-token", FAKE_GH_NEED_TOKEN="1")
+    assert world.denied(LEAK, FAKE_GH_NEED_TOKEN="1")

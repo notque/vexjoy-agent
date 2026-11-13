@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.4.0
+# hook-version: 1.5.0
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
@@ -67,9 +67,18 @@ Allow-through conditions:
   "internal" does not count. Anything the parser does not fully
   understand counts as public and the gate still blocks: no remote, a
   non-GitHub URL, more than _MAX_VISIBILITY_LOOKUPS repos, a gh error or
-  timeout (one 5 s budget), subshells, `$(...)`, backticks, a `cd`,
+  timeout (one 5 s budget), subshells, `$(...)` (except a commit message
+  written as `"$(cat <<'EOF' ... EOF)"` with a quoted delimiter; multi-line
+  quoted messages are read too), backticks, a `cd`,
   `pushd` or `env` before a gated command, a git global option other
   than `-C <same dir>`, or any GIT_*/GH_* prefix or redirecting env var.
+  gh keeps GH_TOKEN/GITHUB_TOKEN so a token-only login can answer.
+  Owner, 2026-11-13: "Private repos don't do the private names gate".
+  When the exact parser cannot read a command, a fallback still exempts it
+  if the cwd repo's remotes and every repo URL or --repo value in the text
+  are private on GitHub. It blocks on a cd, pushd, -C, --git-dir or
+  --work-tree to another path, an inline GIT_*/GH_* variable, or a git URL
+  that is not a GitHub repo.
   Limit: an exempted commit's file contents are not re-scanned if that
   history is later pushed to a public remote (push scans only commit
   messages). Run scripts/private-term-audit.py before publishing a repo.
@@ -613,6 +622,13 @@ _REDIRECT_RE = re.compile(r"[<>]+&?|&>>?")
 _PUSH_VALUE_OPTS = {"-o", "--push-option", "--receive-pack", "--exec"}
 # Environment that redirects git or gh to another repo or config.
 _REDIRECT_ENV_RE = re.compile(r"^(GIT_|GH_|GITHUB_)")
+# Auth-only variables kept for gh. A token sets who asks, not which repo is
+# asked about, so it cannot make a public repo answer "private". Without it a
+# token-only gh login fails every lookup and the exemption never applies.
+_AUTH_ENV = frozenset({"GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"})
+# `"$(cat <<'EOF'` ... `EOF` `)"`: a quoted delimiter keeps the body literal,
+# so the substitution yields only message text.
+_CAT_HEREDOC_RE = re.compile(r"\"\$\(cat <<(['\"])([A-Za-z_]\w*)\1\n((?:.*\n)*?)\2\n[ \t]*\)\"")
 
 
 def _parse_slug(url: str) -> tuple[str, str, str] | None:
@@ -682,12 +698,57 @@ def _strip_heredoc_bodies(command: str) -> str:
     return "\n".join(out)
 
 
+def _flatten_messages(command: str) -> str:
+    """Replace multi-line literal message text with a one-line placeholder.
+
+    Replaces only text the shell cannot run: a multi-line single-quoted
+    string, a multi-line double-quoted string with no `$`, backtick or
+    backslash, or a whole `"$(cat <<'EOF' ... EOF\\n)"` whose first
+    delimiter line closes it. Returns the command unchanged when it has an
+    unquoted heredoc, comment, backslash or `$'...'`, so the stricter checks
+    after this still judge it.
+    """
+    out: list[str] = []
+    i, n = 0, len(command)
+    while i < n:
+        c = command[i]
+        if c == "'":
+            j = command.find("'", i + 1)
+            if j < 0:
+                return command
+            out.append("'msg'" if "\n" in command[i:j] else command[i : j + 1])
+            i = j + 1
+        elif c == '"':
+            m = _CAT_HEREDOC_RE.match(command, i)
+            if m and m.group(2) not in m.group(3).splitlines():
+                out.append('"msg"')
+                i = m.end()
+                continue
+            j = i + 1
+            while j < n and command[j] != '"':
+                j += 2 if command[j] == "\\" else 1
+            if j >= n:
+                return command
+            body = command[i + 1 : j]
+            literal = "\n" in body and not re.search(r"[$`\\]", body)
+            out.append('"msg"' if literal else command[i : j + 1])
+            i = j + 1
+        elif c in "\\#" or command.startswith(("<<", "$'"), i):
+            return command
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
 def _segments(command: str) -> list[list[str]]:
     """Shell-split command segments, or _Unknown for anything opaque.
 
     Splits on every list and pipe operator so each gated command is checked
     on its own. Subshells, substitutions and unknown operators are _Unknown.
+    Multi-line literal messages are flattened first (_flatten_messages).
     """
+    command = _flatten_messages(command)
     if _OPAQUE_RE.search(command):
         raise _Unknown
     command = _strip_heredoc_bodies(command)
@@ -745,8 +806,8 @@ def _git_out(args: list[str], cwd: str | None, deadline: float) -> str:
 
 
 def _clean_env() -> dict[str, str]:
-    """Hook environment without variables that redirect git or gh."""
-    return {k: v for k, v in os.environ.items() if not _REDIRECT_ENV_RE.match(k)}
+    """Hook environment without variables that redirect git or gh; auth tokens stay."""
+    return {k: v for k, v in os.environ.items() if k in _AUTH_ENV or not _REDIRECT_ENV_RE.match(k)}
 
 
 def _remote_names(cwd: str | None, deadline: float) -> list[str]:
@@ -944,6 +1005,66 @@ def _gh_visibility(slug: tuple[str, str, str], deadline: float) -> str:
     return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
+# Fallback for commands the exact parser cannot read (owner, 2026-11-13:
+# "Private repos don't do the private names gate"). Inside a private repo any
+# command shape passes, unless its text points somewhere else.
+_DIR_CHANGE_RE = re.compile(
+    r"(?:(?<![\w-])(?:cd|pushd)\s+|(?<![\w-])-C\s*|--git-dir[=\s]\s*|--work-tree[=\s]\s*)(['\"]?)([^\s'\";&|)]+)\1"
+)
+_INLINE_REDIRECT_RE = re.compile(r"(?<![\w-])(?:GIT_|GH_|GITHUB_)\w*=")
+_REMOTE_TEXT_RE = re.compile(r"[a-z][a-z0-9+.-]*://[^\s'\"`)]+|(?<![\w/])[\w.-]+@[\w.-]+:[^\s'\"`)]+", re.IGNORECASE)
+_REPO_FLAG_TEXT_RE = re.compile(r"(?:--repo[=\s]|(?<![\w-])-R\s*=?)\s*['\"]?([^\s'\"]+)")
+
+
+def _looks_like_remote(text: str) -> bool:
+    """A git remote rather than a web link such as a session URL in a message.
+
+    scp-style and non-http schemes always count. An http(s) URL counts when
+    its host is a git forge or its path ends in `.git`.
+    """
+    if not re.match(r"https?://", text, re.IGNORECASE):
+        return True
+    host = re.sub(r"^https?://(?:[^@/]+@)?", "", text, flags=re.IGNORECASE).split("/", 1)[0].lower()
+    return any(f in host for f in ("github", "gitlab", "bitbucket", "codeberg", "gitea")) or text.endswith(".git")
+
+
+def _fallback_slugs(command: str, cwd: str | None, deadline: float) -> set[tuple[str, str, str]]:
+    """The cwd repo's remotes plus every repo the raw text names; _Unknown if it leaves cwd.
+
+    Used only when _target_slugs cannot read the command. Any directory
+    change to another path, inline git/gh redirect variable, or URL that is
+    not a GitHub repo raises _Unknown, so the gate still blocks.
+    """
+    if any(k.startswith(("GIT_DIR", "GIT_WORK_TREE", "GIT_CONFIG", "GH_REPO", "GH_HOST")) for k in os.environ):
+        raise _Unknown
+    if _INLINE_REDIRECT_RE.search(command.replace(f"{_BYPASS_ENV}=", "")):
+        raise _Unknown
+    for m in _DIR_CHANGE_RE.finditer(command):
+        if not _same_dir(m.group(2), cwd):
+            raise _Unknown
+    slugs: set[tuple[str, str, str]] = set()
+    for url in _all_remote_urls(cwd, deadline):
+        slug = _parse_slug(url)
+        if slug is None:
+            raise _Unknown
+        slugs.add(slug)
+    for m in _REMOTE_TEXT_RE.finditer(command):
+        text = m.group(0).rstrip(".,")
+        if not _looks_like_remote(text):
+            continue
+        pr = _PR_URL_RE.match(text)
+        slug = (pr.group(1).lower(), pr.group(2), pr.group(3)) if pr else _parse_slug(text)
+        if slug is None:
+            raise _Unknown
+        slugs.add(slug)
+    for m in _REPO_FLAG_TEXT_RE.finditer(command):
+        slug = _parse_repo_flag(m.group(1))
+        if slug is None:
+            raise _Unknown
+        slugs.add(slug)
+    return slugs
+
+
 def _targets_all_private(command: str, cwd: str | None) -> bool:
     """True only when every repo the command can reach reports visibility "private".
 
@@ -952,8 +1073,11 @@ def _targets_all_private(command: str, cwd: str | None) -> bool:
     """
     deadline = time.monotonic() + _EXEMPTION_BUDGET
     try:
-        slugs = _target_slugs(command, cwd, deadline)
-        if len(slugs) > _MAX_VISIBILITY_LOOKUPS:
+        try:
+            slugs = _target_slugs(command, cwd, deadline)
+        except _Unknown:
+            slugs = _fallback_slugs(command, cwd, deadline)
+        if not slugs or len(slugs) > _MAX_VISIBILITY_LOOKUPS:
             return False
         with ThreadPoolExecutor(max_workers=len(slugs)) as pool:
             answers = list(pool.map(lambda s: _gh_visibility(s, deadline), sorted(slugs)))
