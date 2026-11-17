@@ -441,6 +441,29 @@ def find_gated_command_in_transcript(transcript_path: str) -> str | None:
     return None
 
 
+# Git subcommands that add commits to the checked-out branch.
+_COMMIT_MAKING_RE = re.compile(r"\bgit\b[^\n;|&]*?\b(commit|merge|cherry-pick|revert|am|rebase|pull)\b")
+
+
+def subagent_made_commits(transcript_path: str) -> bool:
+    """True when the subagent's own transcript holds a command that can add commits.
+
+    The branch-safety check sees only the repo state: the default branch is
+    ahead of its upstream. Those commits may be the owner's or another
+    session's. Blocking is fair only when this subagent ran a commit-making
+    command. No transcript means no evidence, so the answer is False.
+    """
+    if not transcript_path:
+        return False
+    for tool_name, tool_input in _iter_tool_uses(transcript_path):
+        if tool_name.lower() != "bash":
+            continue
+        command = tool_input.get("command", "")
+        if isinstance(command, str) and _COMMIT_MAKING_RE.search(command):
+            return True
+    return False
+
+
 def check_protected_org_workflow(cwd: str, transcript_path: str) -> str | None:
     """
     Check for auto-execution of gated git operations in protected-org repos.
@@ -514,10 +537,19 @@ def main() -> None:
         # Run all three tiers — collect violations
         violations = []
 
-        # Tier 1: Branch safety (always active)
+        # Tier 1: Branch safety. Block only a subagent that ran a commit-making
+        # command itself; commits already on the branch belong to someone else,
+        # and telling a subagent to move them would rewrite the owner's work.
         v1 = check_branch_safety(cwd)
         if v1:
-            violations.append(v1)
+            if subagent_made_commits(transcript_path):
+                violations.append(v1)
+            else:
+                print(
+                    "[subagent-guard] default branch is ahead of its upstream, but this subagent "
+                    "ran no commit-making command; not blocking",
+                    file=sys.stderr,
+                )
 
         # Tier 2: READ-ONLY violation (reviewer-* agents only)
         v2 = check_readonly_violation(agent_type, transcript_path)

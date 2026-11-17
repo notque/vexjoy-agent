@@ -14,6 +14,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # Import the module under test
 # ---------------------------------------------------------------------------
@@ -962,3 +964,88 @@ class TestMainTranscriptSelection:
         assert result.returncode == 0
         assert result.stdout.strip() == ""
         assert "[readonly-guard]" not in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# main(): branch safety blocks only a subagent that made commits itself
+# ---------------------------------------------------------------------------
+
+
+def _repo_with_main_ahead(tmp_path: Path) -> Path:
+    """A clone whose main holds one commit its origin does not have."""
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.com",
+    }
+
+    def git(cwd: Path, *args: str) -> None:
+        subprocess.run(["git", *args], cwd=cwd, env=env, check=True, capture_output=True, timeout=30)
+
+    origin = tmp_path / "origin.git"
+    work = tmp_path / "work"
+    origin.mkdir()
+    git(origin, "init", "--bare", "-b", "main")
+    git(tmp_path, "clone", str(origin), str(work))
+    git(work, "checkout", "-B", "main")
+    (work / "a.txt").write_text("one\n")
+    git(work, "add", "a.txt")
+    git(work, "commit", "-m", "first")
+    git(work, "push", "-u", "origin", "main")
+    (work / "a.txt").write_text("two\n")
+    git(work, "commit", "-am", "local only")
+    return work
+
+
+class TestBranchSafetyAttribution:
+    def test_reader_subagent_on_ahead_main_is_not_blocked(self, tmp_path):
+        work = _repo_with_main_ahead(tmp_path)
+        agent = _make_transcript([_assistant_tool_use("Bash", {"command": "git status"}, "toolu_01")])
+        result = _run_hook(_stop_event(work, "Explore", agent_transcript_path=agent), work)
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+        assert "not blocking" in result.stderr
+
+    def test_missing_transcript_on_ahead_main_is_not_blocked(self, tmp_path):
+        work = _repo_with_main_ahead(tmp_path)
+        result = _run_hook(_stop_event(work, "general-purpose"), work)
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+
+    def test_subagent_that_committed_on_main_is_blocked(self, tmp_path):
+        work = _repo_with_main_ahead(tmp_path)
+        agent = _make_transcript([_assistant_tool_use("Bash", {"command": 'git commit -am "local only"'}, "toolu_01")])
+        result = _run_hook(_stop_event(work, "general-purpose", agent_transcript_path=agent), work)
+        assert result.returncode == 0
+        out = json.loads(result.stdout)
+        assert out["decision"] == "block"
+        assert "committed directly to main" in out["reason"]
+
+    def test_feature_branch_subagent_that_committed_is_not_blocked(self, tmp_path):
+        work = _repo_with_main_ahead(tmp_path)
+        subprocess.run(["git", "checkout", "-b", "feature/x"], cwd=work, check=True, capture_output=True, timeout=30)
+        agent = _make_transcript([_assistant_tool_use("Bash", {"command": 'git commit -am "x"'}, "toolu_01")])
+        result = _run_hook(_stop_event(work, "general-purpose", agent_transcript_path=agent), work)
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+
+    @pytest.mark.parametrize(
+        ("command", "expected"),
+        [
+            ('git commit -m "x"', True),
+            ("git -C /repo merge feature", True),
+            ("git cherry-pick abc123", True),
+            ("git pull --rebase", True),
+            ("git status && git log --oneline", False),
+            ("git diff HEAD~1", False),
+            ('echo "commit later"', False),
+        ],
+    )
+    def test_subagent_made_commits(self, command, expected):
+        path = _make_transcript([_assistant_tool_use("Bash", {"command": command}, "toolu_01")])
+        assert mod.subagent_made_commits(path) is expected
+
+    def test_subagent_made_commits_without_transcript(self):
+        assert mod.subagent_made_commits("") is False
