@@ -874,12 +874,15 @@ def cmd_worktree(args: argparse.Namespace) -> int:
             cwd=str(root),
         )
         if not result.stdout.strip():
-            subprocess.run(
+            branch_result = subprocess.run(
                 ["git", "branch", branch],
                 capture_output=True,
                 text=True,
                 cwd=str(root),
             )
+            if branch_result.returncode != 0:
+                output_error(f"Failed to create branch '{branch}': {branch_result.stderr.strip()}")
+                return 1
 
         # Create worktree
         worktree_path.parent.mkdir(parents=True, exist_ok=True)
