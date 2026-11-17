@@ -928,8 +928,17 @@ class TestMainTranscriptSelection:
         result = _run_hook(_stop_event(tmp_path, "reviewer-code", agent_transcript_path=agent), tmp_path)
         assert result.returncode == 0
         out = json.loads(result.stdout)
-        assert out["permissionDecision"] == "deny"
-        assert "Edit(/repo/src/app.py)" in out["permissionDecisionReason"]
+        assert out["decision"] == "block"
+        assert "Edit(/repo/src/app.py)" in out["reason"]
+
+    def test_stop_hook_active_reports_without_blocking(self, tmp_path):
+        agent = _make_transcript(_reviewer_wrote_transcript())
+        event = _stop_event(tmp_path, "reviewer-code", agent_transcript_path=agent)
+        event["stop_hook_active"] = True
+        result = _run_hook(event, tmp_path)
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+        assert "Edit(/repo/src/app.py)" in result.stderr
 
     def test_parent_transcript_writes_not_charged_to_reviewer(self, tmp_path):
         """transcript_path is the parent session on SubagentStop; its writes are not the reviewer's."""
