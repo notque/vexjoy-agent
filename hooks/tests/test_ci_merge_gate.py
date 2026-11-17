@@ -275,3 +275,50 @@ class TestCIStatusGate:
         reason = out["hookSpecificOutput"]["permissionDecisionReason"]
         assert "CI checks are failing" in reason  # denial is from the CI gate
         assert "--admin" not in reason
+
+
+class TestFlagInQuotedText:
+    """Flags inside quoted text (body, echo, etc.) must not trigger a block."""
+
+    def test_admin_in_echo_not_blocked(self, tmp_path):
+        r = run_hook('echo "--admin" && gh pr merge 12 --squash', tmp_path=tmp_path)
+        assert r.returncode == 0
+        stdout = r.stdout.strip()
+        if stdout:
+            for line in stdout.split("\n"):
+                if line.strip().startswith("{"):
+                    data = json.loads(line)
+                    reason = data.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+                    assert "--admin" not in reason, "echo text must not trigger the --admin block"
+
+    def test_admin_in_body_flag_not_blocked(self, tmp_path):
+        r = run_hook('gh pr merge 12 --squash --body "--admin override"', tmp_path=tmp_path)
+        assert r.returncode == 0
+        stdout = r.stdout.strip()
+        if stdout:
+            for line in stdout.split("\n"):
+                if line.strip().startswith("{"):
+                    data = json.loads(line)
+                    reason = data.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+                    assert "--admin" not in reason, "--body value must not trigger the --admin block"
+
+    def test_real_admin_still_blocked(self, tmp_path):
+        r = run_hook("gh pr merge 12 --admin", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_admin_in_chained_merge_blocked(self, tmp_path):
+        r = run_hook("gh pr merge 10 --squash && gh pr merge 11 --admin", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_bash_c_admin_still_blocked(self, tmp_path):
+        r = run_hook('bash -c "gh pr merge --admin 12"', tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]

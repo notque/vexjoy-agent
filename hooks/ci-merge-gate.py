@@ -100,6 +100,42 @@ def extract_pr_number(command: str) -> str | None:
 _BYPASS_ENV = "CI_MERGE_GATE_BYPASS"
 
 
+def _merge_segment_flags(command: str) -> set[str]:
+    """Return the set of flag tokens found in every ``gh pr merge`` segment.
+
+    Parses each segment with shlex so that a flag inside quoted text (the value
+    of ``--body``, ``--subject``, etc.) is not mistaken for a real flag.  On a
+    parse error (unbalanced quotes, ``bash -c "..."``), falls back to
+    ``command.split()`` so that every currently blocked case stays blocked.
+    """
+    flags: set[str] = set()
+    for m in _MERGE_RE.finditer(command):
+        rest = command[m.end():]
+        lex = shlex.shlex(rest, posix=True, punctuation_chars=True)
+        lex.whitespace_split = True
+        lex.commenters = ""
+        try:
+            tokens = list(lex)
+        except ValueError:
+            # Unbalanced quotes — fall back to the broad split to stay safe.
+            return {t for t in command.split() if t.startswith("--")}
+        skip_next = False
+        for tok in tokens:
+            if tok in _SEGMENT_END or tok[:1] in "<>" or tok.startswith(("&", "|", ";")):
+                break
+            if skip_next:
+                skip_next = False
+                continue
+            if tok.startswith("--"):
+                if tok in _VALUE_FLAGS:
+                    skip_next = True
+                else:
+                    flags.add(tok)
+            elif tok.startswith("-") and tok in _VALUE_FLAGS:
+                skip_next = True
+    return flags
+
+
 def main() -> None:
     if os.environ.get(_BYPASS_ENV) == "1":
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
@@ -117,10 +153,10 @@ def main() -> None:
     if "gh pr merge" not in command and "gh pr merge" not in command.replace("  ", " "):
         return
 
-    parts = command.split()
+    merge_flags = _merge_segment_flags(command)
 
     # --- Block --admin before any CI check ---
-    if "--admin" in parts:
+    if "--admin" in merge_flags:
         if os.environ.get("ALLOW_ADMIN_MERGE") == "1":
             print("[ci-merge-gate] WARNING: --admin override allowed via ALLOW_ADMIN_MERGE=1", file=sys.stderr)
         else:
@@ -129,7 +165,7 @@ def main() -> None:
             sys.exit(0)
 
     # --- Block --force before any CI check ---
-    if "--force" in parts:
+    if "--force" in merge_flags:
         if os.environ.get("ALLOW_FORCE_MERGE") == "1":
             print("[ci-merge-gate] WARNING: --force override allowed via ALLOW_FORCE_MERGE=1", file=sys.stderr)
         else:
