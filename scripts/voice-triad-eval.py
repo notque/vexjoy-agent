@@ -5,7 +5,7 @@ Splits a writing corpus into train and holdout sets, builds brief-extraction
 and pairwise-judge job files, and scores returned judgments with order-swap
 consistency.  Calls no model and no network.
 
-Design record: ADR-voice-triad-eval (local-only).
+Design record: the voice-triad-eval ADR, which is local-only.
 
 Usage:
     python3 scripts/voice-triad-eval.py split --corpus DIR --out FILE [--json]
