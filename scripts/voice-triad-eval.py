@@ -8,7 +8,7 @@ consistency.  Calls no model and no network.
 Design record: ADR-voice-triad-eval (local-only).
 
 Usage:
-    python3 scripts/voice-triad-eval.py split --corpus DIR --out FILE
+    python3 scripts/voice-triad-eval.py split --corpus DIR --out FILE [--json]
     python3 scripts/voice-triad-eval.py brief-jobs --manifest FILE --corpus DIR --out DIR
     python3 scripts/voice-triad-eval.py judge-jobs --manifest FILE --corpus DIR \\
         --drafts DIR --arms A B --out DIR
@@ -70,6 +70,31 @@ _JUDGE_PROMPT_TEMPLATE = (
 # ---------------------------------------------------------------------------
 
 
+def _require_file(path: Path, label: str) -> int | None:
+    """Print an error and return 2 if *path* is not an existing file."""
+    if not path.is_file():
+        print(f"error: {label} not found: {path}", file=sys.stderr)
+        return 2
+    return None
+
+
+def _require_dir(path: Path, label: str) -> int | None:
+    """Print an error and return 2 if *path* is not an existing directory."""
+    if not path.is_dir():
+        print(f"error: {label} not found: {path}", file=sys.stderr)
+        return 2
+    return None
+
+
+def _load_json_file(path: Path, label: str) -> dict | list | None:
+    """Load and parse a JSON file, printing an error on failure."""
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"error: {label} is not valid JSON: {exc}", file=sys.stderr)
+        return None
+
+
 def _sha256(path: Path) -> str:
     """Return the hex sha256 digest of a file."""
     h = hashlib.sha256()
@@ -108,9 +133,8 @@ def _piece_id(path: Path) -> str:
 def cmd_split(args: argparse.Namespace) -> int:
     """Split a corpus into train and holdout sets."""
     corpus = Path(args.corpus).resolve()
-    if not corpus.is_dir():
-        print(f"error: corpus directory does not exist: {corpus}", file=sys.stderr)
-        return 1
+    if err := _require_dir(corpus, "corpus directory"):
+        return err
 
     pieces = _collect_pieces(corpus)
     count = len(pieces)
@@ -160,7 +184,16 @@ def cmd_split(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"wrote {out}: {len(train_paths)} train, {len(holdout_paths)} holdout")
+
+    summary = {
+        "path": str(out),
+        "train": len(train_paths),
+        "holdout": len(holdout_paths),
+    }
+    if args.json:
+        print(json.dumps(summary, indent=2))
+    else:
+        print(f"wrote {out}: {len(train_paths)} train, {len(holdout_paths)} holdout")
     return 0
 
 
@@ -171,8 +204,15 @@ def cmd_split(args: argparse.Namespace) -> int:
 
 def cmd_brief_jobs(args: argparse.Namespace) -> int:
     """Write one brief-extraction job per piece."""
-    manifest = json.loads(Path(args.manifest).read_text())
+    manifest_path = Path(args.manifest)
+    if err := _require_file(manifest_path, "manifest file"):
+        return err
+    manifest = _load_json_file(manifest_path, "manifest file")
+    if manifest is None:
+        return 2
     corpus = Path(args.corpus).resolve()
+    if err := _require_dir(corpus, "corpus directory"):
+        return err
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -203,9 +243,18 @@ def cmd_brief_jobs(args: argparse.Namespace) -> int:
 
 def cmd_judge_jobs(args: argparse.Namespace) -> int:
     """Write two judge jobs per holdout piece (one per presentation order)."""
-    manifest = json.loads(Path(args.manifest).read_text())
+    manifest_path = Path(args.manifest)
+    if err := _require_file(manifest_path, "manifest file"):
+        return err
+    manifest = _load_json_file(manifest_path, "manifest file")
+    if manifest is None:
+        return 2
     corpus = Path(args.corpus).resolve()
+    if err := _require_dir(corpus, "corpus directory"):
+        return err
     drafts_dir = Path(args.drafts).resolve()
+    if err := _require_dir(drafts_dir, "drafts directory"):
+        return err
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     arm_a, arm_b = args.arms
@@ -279,22 +328,35 @@ def cmd_judge_jobs(args: argparse.Namespace) -> int:
 def cmd_score(args: argparse.Namespace) -> int:
     """Score judgments against job files and report consistency."""
     jobs_dir = Path(args.jobs)
+    if err := _require_dir(jobs_dir, "jobs directory"):
+        return err
     judgments_path = Path(args.judgments)
+    if err := _require_file(judgments_path, "judgments file"):
+        return err
 
     # Load all judge jobs.
     jobs: dict[str, dict] = {}
     for p in sorted(jobs_dir.iterdir()):
         if p.name.startswith("judge-") and p.suffix == ".json":
-            job = json.loads(p.read_text())
+            job = _load_json_file(p, f"job file {p.name}")
+            if job is None:
+                return 2
             jobs[job["id"]] = job
 
     # Load judgments.
     judgments: dict[str, dict] = {}
-    for line in judgments_path.read_text().splitlines():
+    for line_num, line in enumerate(judgments_path.read_text().splitlines(), 1):
         line = line.strip()
         if not line:
             continue
-        j = json.loads(line)
+        try:
+            j = json.loads(line)
+        except (json.JSONDecodeError, ValueError) as exc:
+            print(
+                f"error: malformed JSON on line {line_num} of {judgments_path}: {exc}",
+                file=sys.stderr,
+            )
+            return 2
         judgments[j["id"]] = j
 
     # Check completeness.
@@ -406,7 +468,11 @@ def cmd_score(args: argparse.Namespace) -> int:
 def cmd_distill(args: argparse.Namespace) -> int:
     """Report distillation ratios for brief/final pairs."""
     briefs_dir = Path(args.briefs)
+    if err := _require_dir(briefs_dir, "briefs directory"):
+        return err
     finals_dir = Path(args.finals)
+    if err := _require_dir(finals_dir, "finals directory"):
+        return err
 
     brief_files = {p.stem: p for p in briefs_dir.iterdir() if p.suffix in (".md", ".txt")}
     final_files = {p.stem: p for p in finals_dir.iterdir() if p.suffix in (".md", ".txt")}
@@ -466,6 +532,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Put newest files in holdout instead of random selection.",
     )
     sp.add_argument("--seed", type=int, default=0, help="Random seed (default 0).")
+    sp.add_argument("--json", action="store_true", help="Output summary as JSON.")
 
     # brief-jobs
     bp = subs.add_parser("brief-jobs", help="Write brief-extraction jobs.")

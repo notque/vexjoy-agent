@@ -461,3 +461,101 @@ class TestDistill:
         assert len(rows) == 1
         assert rows[0]["flagged"] is False
         assert rows[0]["ratio"] > 1.0
+
+
+# ---------------------------------------------------------------------------
+# input validation: missing paths and malformed JSON
+# ---------------------------------------------------------------------------
+
+
+class TestInputValidation:
+    """Tests for missing-path and malformed-JSON error handling."""
+
+    def test_missing_manifest_exits_2(self, tmp_path: Path, capsys) -> None:
+        """brief-jobs with a nonexistent manifest prints error and exits 2."""
+        code = MOD.main(
+            [
+                "brief-jobs",
+                "--manifest",
+                str(tmp_path / "nonexistent.json"),
+                "--corpus",
+                str(tmp_path),
+                "--out",
+                str(tmp_path / "out"),
+            ]
+        )
+        assert code == 2
+        captured = capsys.readouterr()
+        assert "error:" in captured.err
+        assert "Traceback" not in captured.err
+
+    def test_missing_jobs_dir_exits_2(self, tmp_path: Path, capsys) -> None:
+        """score with a nonexistent jobs directory prints error and exits 2."""
+        jfile = tmp_path / "j.jsonl"
+        jfile.write_text("")
+        code = MOD.main(
+            [
+                "score",
+                "--jobs",
+                str(tmp_path / "no-such-dir"),
+                "--judgments",
+                str(jfile),
+            ]
+        )
+        assert code == 2
+        captured = capsys.readouterr()
+        assert "error:" in captured.err
+        assert "Traceback" not in captured.err
+
+    def test_malformed_judgments_line_exits_2(self, tmp_path: Path, capsys) -> None:
+        """score with a malformed JSONL line prints error and exits 2."""
+        jobs_dir = tmp_path / "jobs"
+        jobs_dir.mkdir()
+        job = {"id": "judge-x-AB", "piece_id": "x", "order": "AB", "first_arm": "A", "second_arm": "B", "prompt": "..."}
+        (jobs_dir / "judge-x-AB.json").write_text(json.dumps(job) + "\n")
+
+        jfile = tmp_path / "judgments.jsonl"
+        jfile.write_text("this is not json\n")
+
+        code = MOD.main(["score", "--jobs", str(jobs_dir), "--judgments", str(jfile)])
+        assert code == 2
+        captured = capsys.readouterr()
+        assert "error:" in captured.err
+        assert "Traceback" not in captured.err
+
+
+# ---------------------------------------------------------------------------
+# split --json
+# ---------------------------------------------------------------------------
+
+
+class TestSplitJson:
+    """Tests for the split --json flag."""
+
+    def test_split_json_output_parses(self, tmp_path: Path) -> None:
+        """split --json prints valid JSON with train and holdout counts."""
+        import io
+        from contextlib import redirect_stdout
+
+        corpus = _make_corpus(tmp_path, 12)
+        manifest = tmp_path / "out" / "manifest.json"
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = MOD.main(
+                [
+                    "split",
+                    "--corpus",
+                    str(corpus),
+                    "--out",
+                    str(manifest),
+                    "--json",
+                ]
+            )
+        assert code == 0
+        result = json.loads(buf.getvalue())
+        assert "train" in result
+        assert "holdout" in result
+        assert isinstance(result["train"], int)
+        assert isinstance(result["holdout"], int)
+        assert result["train"] + result["holdout"] == 12
