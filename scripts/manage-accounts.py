@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -47,6 +48,25 @@ SHARED_ENTRIES = ("skills", "agents", "commands")
 DEFAULT_CLAUDE_ARGS = ("--dangerously-skip-permissions", "--chrome", "--remote-control", '--system-prompt="."')
 # Alias for the default profile (~/.claude). Always emitted; never sets CLAUDE_CONFIG_DIR.
 DEFAULT_PROFILE_ALIAS = "cm0"
+
+# Names and aliases are written into shell startup files, so they are limited
+# to characters no shell treats as syntax.
+_SAFE_IDENT_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}")
+
+_UNSAFE_PATH_CHARS = frozenset("\"'`$\\\n\r;")
+
+
+def _is_safe_ident(value: str) -> bool:
+    """Return True when *value* is a safe shell identifier (letters, digits, '-', '_')."""
+    return bool(_SAFE_IDENT_RE.fullmatch(value))
+
+
+def _shell_safe_entry(alias: str, cfg: str) -> bool:
+    """Return True when a registry entry can be written into a shell file as is."""
+    if _is_safe_ident(alias) and not (_UNSAFE_PATH_CHARS & set(cfg)):
+        return True
+    print(f"warning: skipped account alias {alias!r}: unsafe characters in alias or config_dir", file=sys.stderr)
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +106,7 @@ def config_dir(name: str) -> Path:
 def cmd_add(args: argparse.Namespace) -> int:
     """Register a new account and create its config directory."""
     name = args.name.strip()
-    if not name or "/" in name or name.startswith("."):
+    if not _is_safe_ident(name):
         print(f"error: invalid account name '{name}'", file=sys.stderr)
         return 1
 
@@ -97,6 +117,9 @@ def cmd_add(args: argparse.Namespace) -> int:
 
     # Validate alias uniqueness
     alias = args.alias or _default_alias(accounts)
+    if not _is_safe_ident(alias):
+        print(f"error: invalid alias '{alias}' (letters, digits, '-' and '_' only)", file=sys.stderr)
+        return 1
     if alias == DEFAULT_PROFILE_ALIAS:
         print(f"error: alias '{alias}' is reserved for the default profile", file=sys.stderr)
         return 1
@@ -326,6 +349,8 @@ def _fish_alias_block(accounts: dict[str, dict]) -> str:
     for name, info in sorted(accounts.items(), key=lambda kv: kv[1].get("alias", kv[0])):
         alias = info.get("alias", f"c_{name}")
         cfg = info.get("config_dir", str(config_dir(name)))
+        if not _shell_safe_entry(alias, cfg):
+            continue
         # Fish: function-based alias so CLAUDE_CONFIG_DIR is set for the subprocess
         lines.append(f"function {alias}")
         lines.append(f'    set -lx CLAUDE_CONFIG_DIR "{cfg}"')
@@ -341,6 +366,8 @@ def _bash_alias_block(accounts: dict[str, dict]) -> str:
     for name, info in sorted(accounts.items(), key=lambda kv: kv[1].get("alias", kv[0])):
         alias = info.get("alias", f"c_{name}")
         cfg = info.get("config_dir", str(config_dir(name)))
+        if not _shell_safe_entry(alias, cfg):
+            continue
         lines.append(f"alias {alias}='CLAUDE_CONFIG_DIR=\"{cfg}\" claude {' '.join(DEFAULT_CLAUDE_ARGS)}'")
     lines.append(_BASH_ALIAS_FOOTER)
     return "\n".join(lines) + "\n"

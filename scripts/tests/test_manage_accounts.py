@@ -402,3 +402,95 @@ def test_cmd_link_all_accounts_and_check(tmp_path, monkeypatch):
     assert ma.cmd_link(_make_args(name=None)) == 0
     assert ma.cmd_check(_make_args()) == 0
     assert ma.cmd_link(_make_args(name="nope")) == 1
+
+
+# ---------------------------------------------------------------------------
+# _is_safe_ident / name and alias validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad_name",
+    ["has space", "semi;colon", "dollar$(cmd)", "single'quote", "1startsdigit"],
+    ids=["space", "semicolon", "dollar-subshell", "single-quote", "leading-digit"],
+)
+def test_cmd_add_rejects_unsafe_names(tmp_path, monkeypatch, bad_name):
+    monkeypatch.setattr(ma, "ACCOUNTS_ROOT", tmp_path)
+    monkeypatch.setattr(ma, "REGISTRY", tmp_path / "accounts.json")
+    monkeypatch.setattr(ma, "_do_install_aliases", lambda *_a, **_kw: 0)
+
+    rc = ma.cmd_add(_make_args(name=bad_name, alias=None))
+    assert rc == 1
+    reg_file = tmp_path / "accounts.json"
+    assert not reg_file.exists() or bad_name not in json.loads(reg_file.read_text())
+
+
+@pytest.mark.parametrize(
+    "bad_alias",
+    ["back`tick", "single'quote"],
+    ids=["backtick", "single-quote"],
+)
+def test_cmd_add_rejects_unsafe_aliases(tmp_path, monkeypatch, bad_alias):
+    monkeypatch.setattr(ma, "ACCOUNTS_ROOT", tmp_path)
+    monkeypatch.setattr(ma, "REGISTRY", tmp_path / "accounts.json")
+    monkeypatch.setattr(ma, "_do_install_aliases", lambda *_a, **_kw: 0)
+
+    rc = ma.cmd_add(_make_args(name="ok", alias=bad_alias))
+    assert rc == 1
+
+
+@pytest.mark.parametrize("good_name", ["work-2", "team_b"])
+def test_cmd_add_accepts_safe_names(tmp_path, monkeypatch, good_name):
+    monkeypatch.setattr(ma, "ACCOUNTS_ROOT", tmp_path)
+    monkeypatch.setattr(ma, "REGISTRY", tmp_path / "accounts.json")
+    monkeypatch.setattr(ma, "_do_install_aliases", lambda *_a, **_kw: 0)
+
+    rc = ma.cmd_add(_make_args(name=good_name, alias="cm9"))
+    assert rc == 0
+    reg = json.loads((tmp_path / "accounts.json").read_text())
+    assert good_name in reg
+
+
+def test_cmd_add_accepts_safe_alias(tmp_path, monkeypatch):
+    monkeypatch.setattr(ma, "ACCOUNTS_ROOT", tmp_path)
+    monkeypatch.setattr(ma, "REGISTRY", tmp_path / "accounts.json")
+    monkeypatch.setattr(ma, "_do_install_aliases", lambda *_a, **_kw: 0)
+
+    rc = ma.cmd_add(_make_args(name="work", alias="cm9"))
+    assert rc == 0
+    reg = json.loads((tmp_path / "accounts.json").read_text())
+    assert reg["work"]["alias"] == "cm9"
+
+
+# ---------------------------------------------------------------------------
+# _shell_safe_entry: alias writers skip unsafe stored entries
+# ---------------------------------------------------------------------------
+
+
+def _unsafe_registry(safe_alias: str, safe_cfg: str) -> dict:
+    """Build a registry with one safe and one unsafe entry."""
+    return {
+        "good": {"alias": safe_alias, "config_dir": safe_cfg},
+        "bad": {"alias": "semi;colon", "config_dir": "/tmp/bad"},
+    }
+
+
+@pytest.mark.parametrize("builder", ["_fish_alias_block", "_bash_alias_block"])
+def test_alias_writer_skips_unsafe_alias(builder, capsys):
+    reg = _unsafe_registry("cg", "/tmp/good")
+    block = getattr(ma, builder)(reg)
+    assert "cg" in block
+    assert "semi;colon" not in block
+    assert "warning:" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("builder", ["_fish_alias_block", "_bash_alias_block"])
+def test_alias_writer_skips_unsafe_config_dir(builder, capsys):
+    reg = {
+        "good": {"alias": "cg", "config_dir": "/tmp/good"},
+        "bad": {"alias": "cb", "config_dir": '/tmp/bad"quote'},
+    }
+    block = getattr(ma, builder)(reg)
+    assert "cg" in block
+    assert "cb" not in block
+    assert "warning:" in capsys.readouterr().err
