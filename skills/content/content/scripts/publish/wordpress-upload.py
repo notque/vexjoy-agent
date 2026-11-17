@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import html as html_mod
 import json
 import os
 import re
@@ -470,6 +471,30 @@ def resolve_taxonomy_ids(
 # ---------------------------------------------------------------------------
 
 
+_ALLOWED_URL_SCHEMES = ("http://", "https://", "mailto:")
+
+
+def _safe_url(url: str) -> str | None:
+    """Attribute-safe URL, or None when its scheme is not allowed.
+
+    Relative targets (/path, #anchor, ./x, ../x) pass. Everything else needs
+    an allowed scheme. The result is HTML-escaped for use inside a
+    double-quoted attribute.
+
+    Args:
+        url: Raw URL from markdown.
+
+    Returns:
+        Escaped URL string, or None if the scheme is disallowed.
+    """
+    url = url.strip()
+    lowered = url.lower()
+    relative = lowered.startswith(("/", "#", "./", "../"))
+    if not relative and not lowered.startswith(_ALLOWED_URL_SCHEMES):
+        return None
+    return html_mod.escape(url, quote=True)
+
+
 def _apply_inline_formatting(text: str) -> str:
     """Apply inline markdown formatting (bold, italic, images, links).
 
@@ -481,8 +506,18 @@ def _apply_inline_formatting(text: str) -> str:
     """
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
-    text = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r'<img src="\2" alt="\1"/>', text)
-    text = re.sub(r"\[(.+?)\]\((.+?)\)", r'<a href="\2">\1</a>', text)
+
+    def _image(match: re.Match[str]) -> str:
+        url = _safe_url(match.group(2))
+        alt = html_mod.escape(match.group(1), quote=True)
+        return f'<img src="{url}" alt="{alt}"/>' if url else alt
+
+    def _link(match: re.Match[str]) -> str:
+        url = _safe_url(match.group(2))
+        return f'<a href="{url}">{match.group(1)}</a>' if url else match.group(1)
+
+    text = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", _image, text)
+    text = re.sub(r"\[(.+?)\]\((.+?)\)", _link, text)
     return text
 
 
@@ -743,10 +778,19 @@ def markdown_to_classic_html(markdown_content: str) -> str:
     html = re.sub(r"\*(.+?)\*", r"<em>\1</em>", html)
 
     # Images (before links, since ![alt](url) would match link pattern)
-    html = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r'<img src="\2" alt="\1" class="aligncenter size-full" />', html)
+    def _classic_image(match: re.Match[str]) -> str:
+        url = _safe_url(match.group(2))
+        alt = html_mod.escape(match.group(1), quote=True)
+        return f'<img src="{url}" alt="{alt}" class="aligncenter size-full" />' if url else alt
+
+    html = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", _classic_image, html)
 
     # Links
-    html = re.sub(r"\[(.+?)\]\((.+?)\)", r'<a href="\2">\1</a>', html)
+    def _classic_link(match: re.Match[str]) -> str:
+        url = _safe_url(match.group(2))
+        return f'<a href="{url}">{match.group(1)}</a>' if url else match.group(1)
+
+    html = re.sub(r"\[(.+?)\]\((.+?)\)", _classic_link, html)
 
     # Horizontal rules
     html = re.sub(r"^---+$", r"<hr>", html, flags=re.MULTILINE)
