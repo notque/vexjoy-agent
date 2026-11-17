@@ -39,6 +39,7 @@ import requests
 
 _last_request_time: float = 0.0
 RATE_LIMIT_SECONDS: float = 1.0
+MAX_IMAGE_BYTES: int = 25 * 1024 * 1024
 
 
 def _rate_limited_get(url: str, params: dict[str, Any] | None = None, timeout: int = 30) -> requests.Response:
@@ -382,6 +383,16 @@ def download_image(url: str, output_dir: Path, human: bool = False) -> str | Non
     try:
         response = _rate_limited_get(url, timeout=30)
         if response.status_code == 200:
+            # Check Content-Length header first, then actual body size.
+            content_length = response.headers.get("Content-Length")
+            if content_length is not None and int(content_length) > MAX_IMAGE_BYTES:
+                if human:
+                    print(f"    Skipped (too large: {content_length} bytes): {url}", file=sys.stderr)
+                return None
+            if len(response.content) > MAX_IMAGE_BYTES:
+                if human:
+                    print(f"    Skipped (too large: {len(response.content)} bytes): {url}", file=sys.stderr)
+                return None
             local_path.write_bytes(response.content)
             if human:
                 print(f"    Downloaded: {local_path.name}", file=sys.stderr)
@@ -520,6 +531,9 @@ def build_frontmatter(post: dict[str, Any], source_url: str) -> str:
         YAML frontmatter string including opening/closing --- delimiters.
     """
     title = unescape(post.get("title", "Untitled"))
+    # Collapse control characters (CR, LF, tabs, etc.) to a single space so
+    # a crafted title cannot inject extra YAML keys.
+    title = re.sub(r"[\x00-\x1f\x7f]+", " ", title)
     # Escape quotes in title for YAML safety
     title = title.replace('"', '\\"')
 
