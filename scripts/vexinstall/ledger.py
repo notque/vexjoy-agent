@@ -42,6 +42,8 @@ class Ledger:
     settings: dict[str, list[str]] = field(default_factory=dict)
     # target -> UTC time of the uninstall that removed it; sync skips these until apply.
     uninstalled: dict[str, str] = field(default_factory=dict)
+    # Earlier source roots (``--adopt-source`` re-points). Links into them are toolkit links.
+    past_roots: list[str] = field(default_factory=list)
 
     def for_target(self, target: str) -> dict[str, LedgerEntry]:
         """Entries of one target keyed by dest."""
@@ -58,6 +60,7 @@ class Ledger:
             "entries": [asdict(e) for e in sorted(self.entries.values(), key=lambda e: (e.target, e.dest))],
             "settings": {k: sorted(v) for k, v in sorted(self.settings.items())},
             "uninstalled": dict(sorted(self.uninstalled.items())),
+            "past_roots": list(self.past_roots),
         }
 
 
@@ -100,6 +103,9 @@ def parse(data: object) -> Ledger:
     uninstalled = data.get("uninstalled", {})
     if not isinstance(uninstalled, dict):
         raise LedgerCorrupt("bad uninstalled")
+    past_roots = data.get("past_roots", [])
+    if not isinstance(past_roots, list):
+        raise LedgerCorrupt("bad past_roots")
     return Ledger(
         schema=SCHEMA_VERSION,
         source_root=data.get("source_root"),
@@ -109,7 +115,17 @@ def parse(data: object) -> Ledger:
         entries=entries,
         settings={str(k): list(v) for k, v in settings.items()},
         uninstalled={str(k): str(v) for k, v in uninstalled.items()},
+        past_roots=[str(r) for r in past_roots],
     )
+
+
+def note_source(ledger: Ledger, source_root: str) -> None:
+    """Set *source_root*; an earlier, different root joins ``past_roots`` (newest last, at most 10)."""
+    old = ledger.source_root
+    if old and os.path.normpath(old) != os.path.normpath(source_root):
+        roots = [r for r in ledger.past_roots if os.path.normpath(r) != os.path.normpath(old)]
+        ledger.past_roots = [*roots, old][-10:]
+    ledger.source_root = source_root
 
 
 def save(path: Path, ledger: Ledger, guard: Guard) -> None:

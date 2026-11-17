@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -49,6 +50,7 @@ class AccountPlan:
     merge: settings_mod.MergeResult | None = None
     keys: settings_mod.RepoKeysResult | None = None
     settings_error: str | None = None
+    not_registered: list[str] = field(default_factory=list)
 
     @property
     def settings_path(self) -> Path:
@@ -96,6 +98,7 @@ class AccountPlan:
             "env_removed": list(k.env_removed) if k else [],
             "attribution_added": k.attribution_added if k else False,
             "settings_error": self.settings_error,
+            "not_registered": list(self.not_registered),
         }
 
 
@@ -151,14 +154,32 @@ def _plan_links(home: Path, cfg: Path, plan: AccountPlan) -> None:
             plan.links_add.append(entry)
 
 
-def plan_account(ctx: Context, name: str, cfg: Path, desired: dict | None, *, links: bool = True) -> AccountPlan:
-    """Read-only plan for one profile. *desired* None means the repo's registrations."""
+Deployed = Callable[[Path], bool]
+
+
+def plan_account(
+    ctx: Context,
+    name: str,
+    cfg: Path,
+    desired: dict | None,
+    *,
+    links: bool = True,
+    deployed: Deployed | None = None,
+) -> AccountPlan:
+    """Read-only plan for one profile. *desired* None means the repo's registrations.
+
+    Registrations whose ``~/.claude/hooks`` file is not deployed are left out (and an existing
+    one is removed). *deployed* checks a file; the default also accepts one the source ships,
+    which a plan will install. An apply passes ``os.path.exists``, as its entries are placed.
+    """
     plan = AccountPlan(name=name, config_dir=cfg)
     if links:
         _plan_links(ctx.home, cfg, plan)
     install = desired is None
     if install:
         desired = filter_settings_hooks(settings_mod.desired_from_repo(ctx.source_root), ctx.profile)
+        check = deployed or settings_mod.deployed_by_plan(ctx.home, ctx.source_root)
+        desired, plan.not_registered = settings_mod.drop_undeployed(desired, ctx.home, check)
     try:
         current = settings_mod.read_settings(plan.settings_path)
     except ValueError as exc:
@@ -175,9 +196,11 @@ def plan_account(ctx: Context, name: str, cfg: Path, desired: dict | None, *, li
     return plan
 
 
-def plan_all(ctx: Context, desired: dict | None = None, *, links: bool = True) -> list[AccountPlan]:
+def plan_all(
+    ctx: Context, desired: dict | None = None, *, links: bool = True, deployed: Deployed | None = None
+) -> list[AccountPlan]:
     """Plans for every registered profile."""
-    return [plan_account(ctx, n, c, desired, links=links) for n, c in registry(ctx.home).items()]
+    return [plan_account(ctx, n, c, desired, links=links, deployed=deployed) for n, c in registry(ctx.home).items()]
 
 
 def _backup(plan: AccountPlan, backups: Path, guard: Guard) -> str | None:
@@ -205,10 +228,12 @@ def apply_account(ctx: Context, plan: AccountPlan, guard: Guard) -> dict:
     return report
 
 
-def apply_all(ctx: Context, guard: Guard, desired: dict | None = None, *, links: bool = True) -> list[dict]:
+def apply_all(
+    ctx: Context, guard: Guard, desired: dict | None = None, *, links: bool = True, deployed: Deployed | None = None
+) -> list[dict]:
     """Plan and write every profile. A profile that fails with an OS error is reported, not fatal."""
     out = []
-    for plan in plan_all(ctx, desired, links=links):
+    for plan in plan_all(ctx, desired, links=links, deployed=deployed):
         try:
             out.append(apply_account(ctx, plan, guard))
         except (OSError, ValueError) as exc:

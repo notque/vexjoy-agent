@@ -9,7 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from . import accounts as accounts_mod
-from . import external, interp
+from . import external, gitutil, interp
 from . import index as index_mod
 from . import ledger as ledger_mod
 from . import rollback as rollback_mod
@@ -17,9 +17,7 @@ from . import settings as settings_mod
 from .adapters import ADAPTERS, resolve_targets
 from .common import (
     APPLY_LOCK_TIMEOUT_S,
-    DATA_DIRS,
     SETTINGS_BACKUPS_KEEP,
-    SUPPORT_DIRS,
     TARGET_NAMES,
     TRASH_RETENTION_DAYS,
     ExitCode,
@@ -59,6 +57,7 @@ from .plan import (
     TargetPlan,
     build_plan,
     dir_of_adoptable_links,
+    is_category_entry,
     link_points_into,
     source_refusal,
 )
@@ -81,6 +80,54 @@ def repo_root_refusal(ctx: Context, targets: list[str]) -> str | None:
             if is_inside(rp, prot):
                 return f"guard: {label} root {root} resolves inside {prot}; refusing (is HOME set to the repo?)"
     return None
+
+
+def stale_source_line(ctx: Context) -> str | None:
+    """One warning line when the ledger's source clone is behind, with the command that fixes it."""
+    old = ctx.ledger.source_root
+    if not old or not os.path.isdir(old):
+        return None
+    why = gitutil.stale_source(Path(old), ctx.source_root)
+    if why is None:
+        return None
+    return f"installed source {old} is {why}; update it: git -C {old} pull --ff-only && {old}/install.sh"
+
+
+def settings_files(ctx: Context) -> list[Path]:
+    """Every settings.json whose hooks Claude Code runs: ~/.claude, each profile, the source's project file."""
+    paths = [ctx.home / ".claude" / "settings.json"]
+    paths.extend(cfg / "settings.json" for cfg in accounts_mod.registry(ctx.home).values())
+    paths.append(ctx.source_root / ".claude" / "settings.json")
+    return paths
+
+
+def registered_missing_hooks(ctx: Context) -> list[tuple[Path, str]]:
+    """(settings file, ``event: path``) for each registered ``~/.claude/hooks`` file not on disk."""
+    out: list[tuple[Path, str]] = []
+    for path in settings_files(ctx):
+        try:
+            data = settings_mod.read_settings(path)
+        except (OSError, ValueError):
+            continue
+        out.extend((path, label) for label in settings_mod.missing_hook_files(data, ctx.home))
+    return out
+
+
+def _health_lines(ctx: Context, label: str) -> list[str]:
+    """Sync warnings that say how to repair an install a session cannot repair itself (stdout)."""
+    lines = []
+    stale = stale_source_line(ctx)
+    if stale:
+        lines.append(f"[{label}] warning: {stale}")
+    missing = registered_missing_hooks(ctx)
+    if missing:
+        first_file, first = missing[0]
+        root = ctx.ledger.source_root or str(ctx.source_root)
+        lines.append(
+            f"[{label}] warning: {len(missing)} registered hook file(s) not deployed (first: {first} in {first_file});"
+            f" they exit 1 and are skipped until you run git -C {root} pull --ff-only && {root}/install.sh"
+        )
+    return lines
 
 
 def _plan_lines(plan: Plan) -> list[str]:
@@ -115,7 +162,7 @@ def run_plan(opts: Options) -> Result:
     guard_msg = repo_root_refusal(ctx, targets)
     if guard_msg:
         return Result(code=int(ExitCode.GUARD), err=[f"[plan] {guard_msg}"])
-    plan = build_plan(ctx, targets, full_adoption=ctx.ledger_state != "ok", takeover=opts.takeover)
+    plan = build_plan(ctx, targets, full_adoption=ctx.ledger_state != "ok", takeover=opts.takeover, legacy_dirs=True)
     refusal = source_refusal(ctx, opts.adopt_source)
     if refusal:
         plan.notes.append(f"apply/sync would refuse: {refusal}")
@@ -309,7 +356,7 @@ def _save_ledger(path: Path, ledger: Ledger, ctx: Context, guard: Guard) -> None
     Without that save, an entry replaced before the failure keeps its old hash, reads as a
     user edit after the next source change, and stops updating.
     """
-    ledger.source_root = str(ctx.source_root)
+    ledger_mod.note_source(ledger, str(ctx.source_root))
     ledger.mode = ctx.mode
     ledger.overlays_mtime = ctx.overlays.mtime
     ledger_mod.save(path, ledger, guard)
@@ -331,6 +378,8 @@ def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict 
         if not repo_settings.is_file():
             return {"skipped": "repo .claude/settings.json missing"}
         desired = filter_settings_hooks(settings_mod.desired_from_repo(ctx.source_root), ctx.profile)
+    # Runs after the entries are placed, so the disk says which hook files this apply deployed.
+    desired, not_deployed = settings_mod.drop_undeployed(desired, home, os.path.exists)
     try:
         current = settings_mod.read_settings(spath)
     except ValueError as exc:
@@ -355,6 +404,7 @@ def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict 
         "env_removed": keys.env_removed if keys else [],
         "attribution_added": keys.attribution_added if keys else False,
         "unmanaged_in_repo": res.unmanaged,
+        "not_registered": not_deployed,
         "backup": backup_ts,
     }
 
@@ -426,7 +476,10 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     refusal = source_refusal(ctx, opts.adopt_source)
     if refusal:
         if sync:
-            return Result(code=0, out=[f"[sync] skipped: {refusal} (pass --adopt-source to re-point)"])
+            return Result(
+                code=0,
+                out=[f"[sync] skipped: {refusal} (pass --adopt-source to re-point)", *_health_lines(ctx, label)],
+            )
         return Result(code=int(ExitCode.SOURCE_REFUSED), err=[f"[apply] refused: {refusal}; pass --adopt-source"])
     targets = resolve_targets(opts.target, ctx.home)
     if sync:
@@ -444,7 +497,9 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
         # index would publish an empty catalog that shadows the repo fallback.
         written = _write_indexes(ctx, ledger, [t for t in targets if ledger.for_target(t)], guard)
         return Result(code=0, out=[] if sync else [f"[{label}] indexes: {len(written)} written"])
-    plan = build_plan(ctx, targets, full_adoption=state != "ok", takeover=opts.takeover and not sync)
+    plan = build_plan(
+        ctx, targets, full_adoption=state != "ok", takeover=opts.takeover and not sync, legacy_dirs=not sync
+    )
     skip: set[str] = set()
     if plan.collisions or ctx.public.duplicate_skill_names():
         lines = [f"collision: {c.describe()}" for c in plan.collisions] + [f"collision: {n}" for n in plan.notes]
@@ -524,7 +579,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             # exits 2 (python on a missing script) blocks the tool call.
             if "claude" in targets and "claude" not in held_back:
                 report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
-                report["accounts"] = accounts_mod.apply_all(ctx, guard)
+                report["accounts"] = accounts_mod.apply_all(ctx, guard, deployed=os.path.exists)
             ext: list[external.ExternalFile] = []
             for t in targets:
                 if t not in held_back:
@@ -574,6 +629,23 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     res.data = report
     line = summary_line(label, plan, ledger)
     res.out.append(line)
+    cleaned = [d for tp in report["diff"].values() for d in tp.get("cleaned", []) if not os.path.lexists(d["dest"])]
+    if cleaned:
+        res.out.append(
+            f"[{label}] cleaned {len(cleaned)} leftover(s) of older installs (dangling links, legacy category"
+            f" entries); undo with restore-trash {ts}"
+        )
+    not_registered = list((report.get("settings") or {}).get("not_registered", []))
+    for a in report.get("accounts", []):
+        not_registered.extend(f"{a['name']}: {x}" for x in a.get("not_registered", []))
+    if not_registered:
+        res.err.append(
+            f"[{label}] warning: {len(not_registered)} hook registration(s) left out because the hook file is not"
+            f" deployed (first: {not_registered[0]})"
+        )
+    if sync:
+        # stdout: the SessionStart hook passes it into the session, so the model can tell the user.
+        res.out.extend(_health_lines(ctx, label))
     py = report.get("python", {})
     if py.get("changed") and not sync:
         how = " (script pin: this host refuses symlinks)" if py.get("kind") == "script" else ""
@@ -750,18 +822,6 @@ def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
                 elif (os.path.islink(path) and link_points_into(path, roots)) or dir_of_adoptable_links(path, roots):
                     out.append((str(path), "legacy toolkit entry"))
     return out
-
-
-def is_category_entry(path: Path) -> bool:
-    """A skills-root entry without SKILL.md that holds nested skills (not a support dir)."""
-    if path.name in SUPPORT_DIRS or path.name in DATA_DIRS or not path.is_dir():
-        return False
-    if skill_md_of(path) is not None:
-        return False
-    try:
-        return any(skill_md_of(child) is not None for child in path.iterdir() if child.is_dir())
-    except OSError:
-        return False
 
 
 def run_prune(opts: Options) -> Result:

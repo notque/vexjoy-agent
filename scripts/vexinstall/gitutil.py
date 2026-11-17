@@ -126,3 +126,53 @@ def checkout_head(root: Path, rel: str) -> bool:
 def clear_cache() -> None:
     """Drop cached listings (tests mutate fixture repos)."""
     _ls_files_cached.cache_clear()
+
+
+def _git_rc(root: Path, *args: str) -> int | None:
+    """Exit code of a git command, or None when git cannot run."""
+    try:
+        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=10).returncode
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def head(root: Path) -> str | None:
+    """Commit id of HEAD, or None."""
+    out = _git(root, "rev-parse", "--verify", "-q", "HEAD")
+    return out.strip() if out else None
+
+
+def behind_upstream(root: Path) -> int | None:
+    """Commits the local tracking ref of HEAD's upstream has that HEAD lacks. Never fetches.
+
+    None when there is no upstream or git fails.
+    """
+    out = _git(root, "rev-list", "--count", "HEAD..@{upstream}")
+    try:
+        return int(out.strip()) if out else None
+    except ValueError:
+        return None
+
+
+def is_ancestor(root: Path, older: str, newer: str) -> bool:
+    """True when commit *older* is an ancestor of *newer* in the repo at *root*."""
+    return _git_rc(root, "merge-base", "--is-ancestor", older, newer) == 0
+
+
+def stale_source(ledger_root: Path, session_root: Path | None) -> str | None:
+    """Why the installed source clone is out of date, or None. Local refs only: no fetch.
+
+    Behind: its upstream tracking ref has commits HEAD lacks, or its HEAD is an older commit of
+    the session's checkout (a separate clone the user pulled). Never raises.
+    """
+    if not is_git_checkout(ledger_root):
+        return None
+    n = behind_upstream(ledger_root)
+    if n:
+        return f"{n} commit(s) behind its upstream"
+    if session_root is None or realpath(session_root) == realpath(ledger_root) or not is_git_checkout(session_root):
+        return None
+    old, new = head(ledger_root), head(session_root)
+    if old and new and old != new and is_ancestor(session_root, old, new):
+        return f"behind the checkout {session_root}"
+    return None

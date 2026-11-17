@@ -12,7 +12,7 @@ from . import githooks, gitutil, interp
 from . import index as index_mod
 from . import settings as settings_mod
 from .adapters import resolve_targets
-from .apply import is_category_entry
+from .apply import is_category_entry, registered_missing_hooks, stale_source_line
 from .common import DATA_DIRS, SUPPORT_DIRS, ExitCode, OverlayConfigError, is_dangling
 from .context import Options, Result, load_context
 from .leak import find_leaks
@@ -225,6 +225,20 @@ def _check_settings(ctx: Context, findings: list[Finding]) -> None:
             )
 
 
+def _check_hook_files(ctx: Context, findings: list[Finding]) -> None:
+    """A registered hook whose file is not deployed: pyrun.sh skips it (exit 1), so the hook never runs."""
+    root = ctx.ledger.source_root or str(ctx.source_root)
+    fix = f"not deployed; run git -C {root} pull --ff-only && {root}/install.sh"
+    for spath, label in registered_missing_hooks(ctx):
+        findings.append(Finding(ERROR, "hook-file-missing", "claude", str(spath), f"{label}: {fix}"))
+
+
+def _check_source_fresh(ctx: Context, findings: list[Finding]) -> None:
+    line = stale_source_line(ctx)
+    if line:
+        findings.append(Finding(WARN, "stale-source-root", "all", ctx.ledger.source_root or "", line))
+
+
 def _check_python(ctx: Context, findings: list[Finding]) -> None:
     """Interpreter drift: the hook python link is missing, dangling, or older than 3.10."""
     link = str(interp.link_path(ctx.home))
@@ -298,10 +312,12 @@ def run_doctor(opts: Options) -> Result:
     if "claude" in targets:
         _check_scan_roots(ctx, findings)
         _check_settings(ctx, findings)
+        _check_hook_files(ctx, findings)
         _check_python(ctx, findings)
         _check_accounts(ctx, findings)
     _check_repo(ctx, findings)
     _check_git_hooks(ctx, findings)
+    _check_source_fresh(ctx, findings)
     errors = sum(1 for f in findings if f.level == ERROR)
     warns = sum(1 for f in findings if f.level == WARN)
     out = [f"[doctor] {errors} error(s), {warns} warning(s) across {', '.join(targets)}"]

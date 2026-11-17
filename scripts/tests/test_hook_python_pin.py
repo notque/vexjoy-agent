@@ -333,6 +333,10 @@ def _fake_runner(path: Path, tag: str) -> Path:
     return path
 
 
+# pyrun.sh exits 1 on a hook file that is not there, so the probe names a hook that exists.
+PROBE_HOOK = "sync-to-user-claude.py"
+
+
 def _pyrun(home: Path, path_dirs: list[Path]) -> subprocess.CompletedProcess[str]:
     # Only sh on PATH besides the fakes: /usr/bin or /bin would expose the
     # runner's real python3.1x (Ubuntu ships /usr/bin/python3.12).
@@ -341,7 +345,7 @@ def _pyrun(home: Path, path_dirs: list[Path]) -> subprocess.CompletedProcess[str
     if not (tools / "sh").exists():
         os.symlink("/bin/sh", tools / "sh")
     env = {"HOME": str(home), "PATH": os.pathsep.join([*map(str, path_dirs), str(tools)])}
-    cmd = interp.hook_command("x.py")
+    cmd = interp.hook_command(PROBE_HOOK)
     return subprocess.run(["/bin/sh", "-c", cmd], capture_output=True, text=True, env=env, timeout=30)
 
 
@@ -353,7 +357,7 @@ def test_pyrun_runs_the_link_first(tmp_path: Path) -> None:
     other = _fake_runner(tmp_path / "bin" / "python3.12", "path312").parent
     proc = _pyrun(home, [other])
     assert proc.returncode == 0 and proc.stdout.startswith("pinned "), proc
-    assert proc.stdout.strip().endswith("/.claude/hooks/x.py")
+    assert proc.stdout.strip().endswith(f"/.claude/hooks/{PROBE_HOOK}")
 
 
 def test_pyrun_falls_back_to_python31x_when_the_link_dangles_and_skips_shims(tmp_path: Path) -> None:
@@ -379,7 +383,7 @@ def test_pyrun_runs_a_script_pin_whose_interpreter_exists(tmp_path: Path) -> Non
     _script_pin(home, _fake_runner(tmp_path / "pinned" / "python3", "pinned"))
     other = _fake_runner(tmp_path / "bin" / "python3.12", "path312").parent
     proc = _pyrun(home, [other])
-    assert proc.returncode == 0 and proc.stdout == f"pinned {home}/.claude/hooks/x.py\n", proc
+    assert proc.returncode == 0 and proc.stdout == f"pinned {home}/.claude/hooks/{PROBE_HOOK}\n", proc
 
 
 def test_pyrun_skips_a_script_pin_whose_interpreter_is_gone(tmp_path: Path) -> None:
@@ -388,7 +392,7 @@ def test_pyrun_skips_a_script_pin_whose_interpreter_is_gone(tmp_path: Path) -> N
     _script_pin(home, tmp_path / "gone" / "python3")
     real = _fake_runner(tmp_path / "bin" / "python3.11", "path311").parent
     proc = _pyrun(home, [real])
-    assert proc.returncode == 0 and proc.stdout == f"path311 {home}/.claude/hooks/x.py\n", proc
+    assert proc.returncode == 0 and proc.stdout == f"path311 {home}/.claude/hooks/{PROBE_HOOK}\n", proc
 
 
 def test_pyrun_execs_the_python_a_script_pin_names(tmp_path: Path) -> None:
@@ -401,7 +405,7 @@ def test_pyrun_execs_the_python_a_script_pin_names(tmp_path: Path) -> None:
     link.write_text(f'#!/bin/sh\n{interp.PIN_SCRIPT_MARK}\n{interp.PIN_SCRIPT_TARGET}{pinned}\nexec {gone} "$@"\n')
     link.chmod(0o755)
     proc = _pyrun(home, [_fake_runner(tmp_path / "bin" / "python3.11", "path311").parent])
-    assert proc.returncode == 0 and proc.stdout == f"pinned {home}/.claude/hooks/x.py\n", proc
+    assert proc.returncode == 0 and proc.stdout == f"pinned {home}/.claude/hooks/{PROBE_HOOK}\n", proc
 
 
 @pytest.mark.parametrize("named", [None, "bin/python3"], ids=["no-target-line", "relative-target"])
@@ -416,7 +420,7 @@ def test_pyrun_skips_a_pin_file_that_names_no_absolute_python(tmp_path: Path, na
     link.chmod(0o755)
     real = _fake_runner(tmp_path / "bin" / "python3.11", "path311").parent
     proc = _pyrun(home, [real])
-    assert proc.returncode == 0 and proc.stdout == f"path311 {home}/.claude/hooks/x.py\n", proc
+    assert proc.returncode == 0 and proc.stdout == f"path311 {home}/.claude/hooks/{PROBE_HOOK}\n", proc
 
 
 def test_link_missing_still_runs_the_hook_through_the_launcher(tmp_path: Path) -> None:
