@@ -4,13 +4,13 @@
 #
 # Usage:
 #   # Dry run (classify but don't act)
-#   ./skills/content/reddit-moderate/scripts/reddit-automod-cron.sh
+#   ./skills/content/content/scripts/reddit-moderate/reddit-automod-cron.sh
 #
 #   # Live mode (execute mod actions)
-#   ./skills/content/reddit-moderate/scripts/reddit-automod-cron.sh --execute
+#   ./skills/content/content/scripts/reddit-moderate/reddit-automod-cron.sh --execute
 #
 # Cron example (twice daily at 8am and 8pm):
-#   0 8,20 * * * /home/feedgen/vexjoy-agent/skills/content/reddit-moderate/scripts/reddit-automod-cron.sh --execute >> /home/feedgen/vexjoy-agent/reddit-data/sap/cron-log/cron.log 2>&1
+#   0 8,20 * * * /home/feedgen/vexjoy-agent/skills/content/content/scripts/reddit-moderate/reddit-automod-cron.sh --execute >> /home/feedgen/vexjoy-agent/reddit-data/sap/cron-log/cron.log 2>&1
 
 # Ensure claude CLI and venv python are in PATH (cron doesn't inherit user PATH)
 # Venv python first so `python3` resolves to the venv with praw installed
@@ -56,7 +56,7 @@ echo "Mode: $MODE | Subreddit: r/$SUBREDDIT | Since: ${SINCE_MINUTES}m | Budget:
 PROMPT="You are running automated Reddit moderation for r/$SUBREDDIT.
 
 Step 1: Run this command to fetch and build classification prompts:
-python3 skills/content/reddit-moderate/scripts/reddit-mod.py queue --auto --since-minutes $SINCE_MINUTES --json | python3 skills/content/reddit-moderate/scripts/reddit-mod.py classify
+python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py queue --auto --since-minutes $SINCE_MINUTES --json | python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py classify
 
 Step 2: If the queue is empty (count: 0), output 'Queue empty, no action needed.' and stop.
 
@@ -66,9 +66,9 @@ FALSE_REPORT, VALID_REPORT, MASS_REPORT_ABUSE, SPAM, BAN_RECOMMENDED, NEEDS_HUMA
 Assign confidence 0-100 and one-sentence reasoning.
 
 Step 4: Apply actions for items meeting confidence thresholds:
-- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: python3 skills/content/reddit-moderate/scripts/reddit-mod.py approve --id {id}
-- SPAM >= 90%: python3 skills/content/reddit-moderate/scripts/reddit-mod.py remove --id {id} --reason '{reason}' --spam
-- VALID_REPORT >= 90%: python3 skills/content/reddit-moderate/scripts/reddit-mod.py remove --id {id} --reason '{reason}'
+- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py approve --id {id}
+- SPAM >= 90%: python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py remove --id {id} --reason '{reason}' --spam
+- VALID_REPORT >= 90%: python3 skills/content/content/scripts/reddit-moderate/reddit-mod.py remove --id {id} --reason '{reason}'
 - BAN_RECOMMENDED: ALWAYS skip (never auto-ban)
 - Below threshold: skip (leave for human review)
 
