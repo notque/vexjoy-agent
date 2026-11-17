@@ -83,6 +83,21 @@ def validate_config(config: dict[str, str]) -> list[str]:
     return errors
 
 
+def _sanitize_header_filename(name: str) -> str:
+    """Strip characters unsafe in a Content-Disposition filename parameter.
+
+    Removes CR, LF, double quotes, and backslashes so the name cannot break
+    out of a quoted-string header value.
+
+    Args:
+        name: Raw file name.
+
+    Returns:
+        Sanitized name safe for use inside a double-quoted header value.
+    """
+    return name.translate({0x0D: None, 0x0A: None, 0x22: None, 0x5C: None})
+
+
 def upload_media(
     config: dict[str, str],
     file_path: Path,
@@ -126,7 +141,7 @@ def upload_media(
     headers = {
         "Authorization": f"Basic {token}",
         "Content-Type": content_type,
-        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Content-Disposition": f'attachment; filename="{_sanitize_header_filename(filename)}"',
     }
 
     try:
