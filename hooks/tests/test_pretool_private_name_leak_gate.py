@@ -558,6 +558,31 @@ class TestAuditScript:
 
 
 # ---------------------------------------------------------------------------
+# _run_git environment — GIT_DIR must not redirect the staged-diff read
+# ---------------------------------------------------------------------------
+
+
+class TestRunGitEnv:
+    def test_git_dir_env_does_not_redirect_staged_diff(self, private_dir, toolkit_repo, tmp_path):
+        """GIT_DIR in the environment must not redirect _run_git's staged-diff read."""
+        # Create a second repo with different staged content.
+        other = tmp_path / "other-repo"
+        other.mkdir()
+        _git(other, "init", "-q")
+        (other / "decoy.txt").write_text(f"decoy has {SYNTH} here\n")
+        _git(other, "add", "decoy.txt")
+
+        # Stage clean content in the toolkit repo.
+        (toolkit_repo / "clean.txt").write_text("nothing private\n")
+        _git(toolkit_repo, "add", "clean.txt")
+
+        payload = _event("git commit -m 'clean commit'", toolkit_repo)
+        # Run with GIT_DIR pointing at the other repo (which has the private name staged).
+        code, _, _, _ = _run_main(payload, env={"GIT_DIR": str(other / ".git")})
+        assert code == 0, "GIT_DIR must not redirect the staged-diff read to the other repo"
+
+
+# ---------------------------------------------------------------------------
 # Performance — repo benchmark budget (scripts/benchmark-hooks.py: 200ms)
 # ---------------------------------------------------------------------------
 

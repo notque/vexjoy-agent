@@ -15,6 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 HOOK = os.path.join(os.path.dirname(__file__), "..", "ci-merge-gate.py")
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -275,3 +277,182 @@ class TestCIStatusGate:
         reason = out["hookSpecificOutput"]["permissionDecisionReason"]
         assert "CI checks are failing" in reason  # denial is from the CI gate
         assert "--admin" not in reason
+
+
+class TestFlagInQuotedText:
+    """Flags inside quoted text (body, echo, etc.) must not trigger a block."""
+
+    def test_admin_in_echo_not_blocked(self, tmp_path):
+        r = run_hook('echo "--admin" && gh pr merge 12 --squash', tmp_path=tmp_path)
+        assert r.returncode == 0
+        stdout = r.stdout.strip()
+        if stdout:
+            for line in stdout.split("\n"):
+                if line.strip().startswith("{"):
+                    data = json.loads(line)
+                    reason = data.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+                    assert "--admin" not in reason, "echo text must not trigger the --admin block"
+
+    def test_admin_in_body_flag_not_blocked(self, tmp_path):
+        r = run_hook('gh pr merge 12 --squash --body "--admin override"', tmp_path=tmp_path)
+        assert r.returncode == 0
+        stdout = r.stdout.strip()
+        if stdout:
+            for line in stdout.split("\n"):
+                if line.strip().startswith("{"):
+                    data = json.loads(line)
+                    reason = data.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+                    assert "--admin" not in reason, "--body value must not trigger the --admin block"
+
+    def test_real_admin_still_blocked(self, tmp_path):
+        r = run_hook("gh pr merge 12 --admin", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_admin_in_chained_merge_blocked(self, tmp_path):
+        r = run_hook("gh pr merge 10 --squash && gh pr merge 11 --admin", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_bash_c_admin_still_blocked(self, tmp_path):
+        r = run_hook('bash -c "gh pr merge --admin 12"', tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+class TestRedirectDoesNotEndSegment:
+    """Flags after a redirect must still be caught."""
+
+    def test_admin_after_stderr_redirect(self, tmp_path):
+        r = run_hook("gh pr merge 12 2>&1 --admin", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_admin_after_stdout_redirect(self, tmp_path):
+        r = run_hook("gh pr merge 12 >/dev/null --admin", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_force_after_bare_redirect(self, tmp_path):
+        r = run_hook("gh pr merge 12 > out.txt --force", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--force" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_admin_after_stderr_file_redirect(self, tmp_path):
+        r = run_hook("gh pr merge 12 --squash 2>/dev/null --admin", tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_variable_expansion_fallback(self, tmp_path):
+        """Variable expansion in the merge segment triggers the fallback path."""
+        r = run_hook("gh pr merge 12 $EXTRA", tmp_path=tmp_path)
+        assert r.returncode == 0
+        # Must not crash; stdout is either empty or a CI-gate decision.
+        # The fallback path sees no --admin/--force in command.split(), so no flag block.
+
+    def test_echo_admin_still_not_blocked(self, tmp_path):
+        """Regression: the original not-blocked case stays not-blocked."""
+        r = run_hook('echo "--admin" && gh pr merge 12 --squash', tmp_path=tmp_path)
+        assert r.returncode == 0
+        stdout = r.stdout.strip()
+        if stdout:
+            for line in stdout.split("\n"):
+                if line.strip().startswith("{"):
+                    data = json.loads(line)
+                    reason = data.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+                    assert "--admin" not in reason
+
+
+# ---------------------------------------------------------------------------
+# Differential: every command the OLD implementation blocked must stay blocked.
+# ---------------------------------------------------------------------------
+
+# The old implementation used command.split() and checked `"--admin" in parts`
+# or `"--force" in parts`. Build the set of commands it would block and assert
+# the new implementation blocks every one of them.
+
+_OLD_BLOCKED_COMMANDS = [
+    # Plain flags
+    ("gh pr merge 12 --admin", "--admin"),
+    ("gh pr merge 12 --force", "--force"),
+    ("gh pr merge 55 --admin", "--admin"),
+    ("gh pr merge 55 --force", "--force"),
+    # Flags before PR number
+    ("gh pr merge --admin 12", "--admin"),
+    ("gh pr merge --force 12", "--force"),
+    # Flags with other options
+    ("gh pr merge 12 --squash --admin", "--admin"),
+    ("gh pr merge 12 --squash --force", "--force"),
+    ("gh pr merge 12 --delete-branch --admin", "--admin"),
+    ("gh pr merge 12 --merge --force", "--force"),
+    ("gh pr merge 12 --rebase --admin", "--admin"),
+    # Flags after redirects (the regression this fixes)
+    ("gh pr merge 12 2>&1 --admin", "--admin"),
+    ("gh pr merge 12 >/dev/null --admin", "--admin"),
+    ("gh pr merge 12 > out.txt --force", "--force"),
+    ("gh pr merge 12 2>/dev/null --admin", "--admin"),
+    ("gh pr merge 12 --squash 2>/dev/null --admin", "--admin"),
+    ("gh pr merge 12 2>/dev/null --force", "--force"),
+    ("gh pr merge 12 >> log.txt --admin", "--admin"),
+    ("gh pr merge 12 &> combined.log --admin", "--admin"),
+    # Chained commands
+    ("gh pr merge 10 --squash && gh pr merge 11 --admin", "--admin"),
+    ("sleep 1 && gh pr merge 12 --admin", "--admin"),
+    ("echo ok; gh pr merge 12 --force", "--force"),
+    ("true || gh pr merge 12 --admin", "--admin"),
+    # Tabs and extra whitespace
+    ("gh pr merge\t12\t--admin", "--admin"),
+    ("gh  pr  merge  12  --admin", "--admin"),
+    # Both flags
+    ("gh pr merge 12 --admin --force", "--admin"),
+    ("gh pr merge 12 --force --admin", "--admin"),
+    # Flags with body (body value is clean)
+    ("gh pr merge 12 --body 'clean text' --admin", "--admin"),
+    ("gh pr merge 12 -b 'clean text' --force", "--force"),
+    # Flags with subject
+    ("gh pr merge 12 --subject 'title' --admin", "--admin"),
+    ("gh pr merge 12 -t 'title' --force", "--force"),
+    # Flag after repo flag
+    ("gh pr merge 12 --repo owner/repo --admin", "--admin"),
+    ("gh pr merge 12 -R owner/repo --force", "--force"),
+    # Bash -c (fallback path)
+    ('bash -c "gh pr merge --admin 12"', "--admin"),
+    ('bash -c "gh pr merge --force 12"', "--force"),
+    # Eval (fallback path)
+    ("eval gh pr merge 12 --admin", "--admin"),
+    # Variable expansion (fallback path with actual flags)
+    ("gh pr merge 12 $EXTRA --admin", "--admin"),
+    # PR URL selector
+    ("gh pr merge https://github.com/o/r/pull/12 --admin", "--admin"),
+    # Flag at the very end
+    ("gh pr merge 12 --squash --delete-branch --admin", "--admin"),
+    ("gh pr merge 12 --squash --delete-branch --force", "--force"),
+]
+
+
+@pytest.mark.parametrize(
+    ("command", "flag"),
+    _OLD_BLOCKED_COMMANDS,
+    ids=[f"{i:02d}-{c[:50]}" for i, (c, _) in enumerate(_OLD_BLOCKED_COMMANDS)],
+)
+def test_old_blocked_still_blocked(command: str, flag: str, tmp_path) -> None:
+    """Every command the old split()-based check blocked must stay blocked."""
+    r = run_hook(command, tmp_path=tmp_path)
+    assert r.returncode == 0
+    out = json.loads(r.stdout.strip().split("\n")[-1])
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny", f"Expected deny for {flag!r} in: {command}"
+    assert flag in out["hookSpecificOutput"]["permissionDecisionReason"]

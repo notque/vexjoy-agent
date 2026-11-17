@@ -35,7 +35,7 @@ Design Principles:
   the older flat tool_name and top-level content shapes still parse
 - Non-blocking on hook errors (always exits 0 on internal failures)
 - Blocks ONLY on detected violations (never on uncertainty)
-- Uses exit 0 + JSON permissionDecision:deny to feed blocking message back to the subagent
+- Uses exit 0 + JSON decision:block to feed the violation back to the subagent, once per stop
 """
 
 import sys  # vexjoy-pyguard
@@ -533,12 +533,12 @@ def main() -> None:
             separator = "\n" + "=" * 60 + "\n"
             message = separator.join(violations)
             print(message, file=sys.stderr)
-            # SubagentStop uses top-level permissionDecision (not wrapped in hookSpecificOutput)
-            deny_output = {
-                "permissionDecision": "deny",
-                "permissionDecisionReason": message,
-            }
-            print(json.dumps(deny_output))
+            # A stop hook already blocked this stop once. Blocking again can
+            # loop a subagent that cannot fix the violation, so report only.
+            if event.get("stop_hook_active"):
+                sys.exit(0)
+            # SubagentStop is controlled by top-level decision/reason.
+            print(json.dumps({"decision": "block", "reason": message}))
             sys.exit(0)
 
         # All clear — allow subagent to stop

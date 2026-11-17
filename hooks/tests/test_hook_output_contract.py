@@ -149,11 +149,7 @@ _NOT_RUN = {
 
 # Known violations owned by other findings. Non-strict, so the fix landing in
 # another PR does not turn this suite red.
-_KNOWN = {
-    ("SubagentStop", "subagent-completion-guard.py"): (
-        "B-01: the guard prints a top-level permissionDecision, which SubagentStop ignores"
-    ),
-}
+_KNOWN = {}
 
 
 def _registrations() -> list:

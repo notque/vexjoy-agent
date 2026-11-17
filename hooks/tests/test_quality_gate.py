@@ -1,8 +1,18 @@
 """Regression tests for explicit quality-gate tool selection."""
 
 from pathlib import Path
+from unittest.mock import patch
 
+import pytest
 import quality_gate
+
+
+@pytest.fixture(autouse=True)
+def _clear_registry_cache():
+    """Reset the process-level registry cache between tests."""
+    quality_gate._registry_cache = None
+    yield
+    quality_gate._registry_cache = None
 
 
 def test_explicit_filter_does_not_run_builtin_for_skipped_optional_tool(tmp_path: Path, monkeypatch) -> None:
@@ -99,3 +109,26 @@ def test_unfiltered_gate_keeps_builtin_fallback(tmp_path: Path, monkeypatch) -> 
 
     assert builtin_calls == ["python"]
     assert any(result.tool_name == "builtin" for result in report.tool_results)
+
+
+def test_load_registry_reads_file_once(tmp_path: Path, monkeypatch):
+    """Two calls to load_registry parse the JSON file only once."""
+    registry_file = tmp_path / "language_registry.json"
+    registry_file.write_text('{"languages": {}, "fallback": {"tools": {}}, "global_patterns": {}}')
+    monkeypatch.setattr(quality_gate, "REGISTRY_PATH", registry_file)
+
+    read_count = 0
+    original_read_text = Path.read_text
+
+    def counting_read_text(self, *args, **kwargs):
+        nonlocal read_count
+        if self == registry_file:
+            read_count += 1
+        return original_read_text(self, *args, **kwargs)
+
+    with patch.object(Path, "read_text", counting_read_text):
+        result1 = quality_gate.load_registry()
+        result2 = quality_gate.load_registry()
+
+    assert read_count == 1
+    assert result1 is result2
