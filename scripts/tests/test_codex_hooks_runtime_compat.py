@@ -111,7 +111,6 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("PostToolUse", "context:[bash-injection-scan]", "posttool-bash-injection-scan.py")
     add("PostToolUse", "context:[rename-sweep]", "posttool-rename-sweep.py")
     add("PostToolUse", "context:[adr-enforcement] COMPLIANCE CHECK", "adr-enforcement.py")
-    add("PostToolUse", "context:[SECURITY-HINT]", "posttool-security-scan.py")
     add("PostToolUse", "context:[skill-frontmatter]", "posttool-skill-frontmatter-check.py")
     add("PostToolUse", "context:[joy-check]", "posttooluse-joy-check-warn.py")
     # Installer spec 7.3: the index hooks never write into a repo; with no
@@ -402,7 +401,7 @@ def _prepare_case(
             compliance.write_text("import json\nprint(json.dumps({'verdict': 'PASS'}))\n", encoding="utf-8")
             evidence["workspace_component"] = target
             env["ADR_ENFORCEMENT"] = "1"
-        elif filename in {"posttool-security-scan.py", "security-review-hook.py"}:
+        elif filename == "security-review-hook.py":
             content = "user_value = input()\neval(user_value)\n"
             (cwd / patch_path).write_text(content, encoding="utf-8")
         elif filename == "posttool-skill-frontmatter-check.py":
@@ -625,11 +624,11 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    # 64 entries for 63 Claude registrations: the unified gate runs on Bash and apply_patch.
-    assert len(REGISTRATIONS) == 64, "runtime matrix must execute every supported registration"
-    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 64
+    # 63 entries for 62 Claude registrations: the unified gate runs on Bash and apply_patch.
+    assert len(REGISTRATIONS) == 63, "runtime matrix must execute every supported registration"
+    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 63
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 63
+    assert len(registrations) == 62
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 

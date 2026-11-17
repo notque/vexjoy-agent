@@ -77,7 +77,6 @@ PostToolUse:posttool-session-reads.py matcher=Bash class=native mode=native fail
 
 # Adapted PostToolUse apply_patch/Edit|Write observers (8)
 PostToolUse:adr-enforcement.py matcher=Edit|Write class=adapted mode=patch failure=open
-PostToolUse:posttool-security-scan.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttool-skill-frontmatter-check.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttooluse-joy-check-warn.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttooluse-sync-skill-index.py matcher=Edit|Write class=adapted mode=patch failure=open

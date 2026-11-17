@@ -493,7 +493,7 @@ def _build_rules() -> list[dict]:
     )
 
     # The following SQL-injection forms are consolidated from the retired inline
-    # PostToolUse scanner (hooks/posttool-security-scan._build_patterns). They
+    # PostToolUse scanner (the removed hooks/posttool-security-scan.py). They
     # extend the three rules above so the canonical engine is a strict superset
     # of the inline scanner's SQL coverage — no true positive is lost on retire.
     # `_SQL_KW` is the broader keyword set the inline scanner used for the

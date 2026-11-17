@@ -55,7 +55,7 @@ Claude Code reads `timeout` in **seconds**, so `"timeout": 3000` means 50 minute
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttool-security-scan.py\"",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/security-review-hook.py\"",
             "description": "Scan edited files for security risks",
             "timeout": 5
           }
@@ -381,7 +381,7 @@ Deploy the hook Python file to `~/.claude/hooks/` first, verify it exists with `
 | Hook registration disappears after restart | Registered in `~/.claude/settings.json` (runtime copy) | Register in `.claude/settings.json` (repo) — see Two-File Architecture above |
 | Hook depends on nonexistent file | Script imports or shells to a file that was removed/never created | Verify all dependencies exist before registering |
 | Gate uses wrong `gh` API field | `gh pr checks --json conclusion` — `conclusion` is not a valid field | Use `bucket` field instead of `conclusion`; known case: `ci-merge-gate.py` |
-| Duplicate detection across hooks | Multiple hooks scan for the same vulnerability class | `posttool-security-scan.py` and `sql-injection-detector.py` both detect SQL injection; consolidate or scope non-overlapping |
+| Duplicate detection across hooks | Multiple hooks scan for the same vulnerability class | Keep one hook per scanner engine. Known case: `posttool-security-scan.py` duplicated the PostToolUse path of `security-review-hook.py` and was removed |
 | Gate uses exit(2) instead of JSON deny | Inconsistent blocking mechanism across gate hooks | Migrate to `{"permissionDecision": "deny", "permissionDecisionReason": "..."}` pattern; known case: `pipeline-phase-gate.py` |
 | error-learner captures non-error output | Hook stdout parsed as "error" by error-learner | Ensure non-error hooks output structured JSON (not plain text that matches error patterns), or scope error-learner's detection |
 

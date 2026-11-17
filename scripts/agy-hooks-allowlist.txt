@@ -76,7 +76,6 @@ PostToolUse:posttool-session-reads.py matcher=run_command failure=open
 
 # PostToolUse edit_file|write_file -> Edit|Write observers (8)
 PostToolUse:adr-enforcement.py matcher=edit_file|write_file failure=open
-PostToolUse:posttool-security-scan.py matcher=edit_file|write_file failure=open
 PostToolUse:posttool-skill-frontmatter-check.py matcher=edit_file|write_file failure=open
 PostToolUse:posttooluse-joy-check-warn.py matcher=edit_file|write_file failure=open
 PostToolUse:posttooluse-sync-skill-index.py matcher=edit_file|write_file failure=open

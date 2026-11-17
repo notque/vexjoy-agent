@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 46 skills, 72 hooks, 165 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+43 agents, 46 skills, 71 hooks, 165 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
 
@@ -178,7 +178,7 @@ Replaces generated compaction summaries with Jev-judged verbatim pruning after c
 <details>
 <summary><b>Codex CLI Parity</b></summary>
 
-Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ runs **63 of the 77 hook registrations; 14 are unsupported**. A registration is one hook file on one event, so these are not unique hook files. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`; `scripts/codex-hooks-allowlist.txt` lists each one.
+Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ runs **62 of the 76 hook registrations; 14 are unsupported**. A registration is one hook file on one event, so these are not unique hook files. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`; `scripts/codex-hooks-allowlist.txt` lists each one.
 
 The adapter converts `apply_patch` operations into the Write/Edit payload expected by existing guards. It cannot intercept writes through `unified_exec`, unmatched MCP tools, WebSearch, or other unsupported paths. PreCompact and Stop receive less telemetry than in Claude Code. This is expanded compatibility, not full parity.
 
@@ -230,7 +230,7 @@ Know the trade-off first. The default prompt also carries Claude Code's own guid
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 46 | Reusable guidance and methodology for recurring work. |
-| Hooks | 72 | Lifecycle checks, context injection, and telemetry. |
+| Hooks | 71 | Lifecycle checks, context injection, and telemetry. |
 | Scripts | 165 | Repeatable validation, orchestration, and plumbing. |
 
 The counts are active components: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and the Python scripts in `scripts/`.
