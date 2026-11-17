@@ -155,3 +155,15 @@ t.Skip("TODO: fix timing issue (2024-01-15)")
 - Inject fake clocks or time control: `time.Now()` should be mockable
 - Synchronize goroutines with channels or `sync.WaitGroup`, not timing
 - Tests must be deterministic: same input → same output, regardless of machine speed
+
+### Pattern 11: Flaky tests
+
+**What it looks like:** A test fails intermittently. The fix is `@pytest.mark.skip`, `time.sleep(2)`, or rerunning until green.
+
+**Why it's problematic:** Skipping hides the bug. Sleep masks it. Rerunning until green teaches the suite to lie. All three let the flaky condition reach production.
+
+**Fix:**
+- Find the root cause: a race, shared state, network dependency, or timing assumption
+- Fix the cause, not the symptom
+- If the cause cannot be found after a reasonable investigation, delete the test and write down why in the commit message
+- Replace `time.sleep` with explicit synchronization or condition waits
