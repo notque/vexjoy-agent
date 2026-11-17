@@ -24,6 +24,8 @@ dev = [
     "mypy>=1.13.0",
     "pytest>=8.0.0",
     "pytest-xdist>=3.5",
+    "pillow",
+    "numpy",
 ]
 # Local-only mutation testing (scripts/cosmic-ray-jev-*.toml). Not a CI
 # dependency: see skills/process/testing/SKILL.md, "Mutation testing".
