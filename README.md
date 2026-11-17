@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 46 skills, 71 hooks, 164 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+43 agents, 46 skills, 71 hooks, 165 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
 
@@ -231,7 +231,7 @@ Know the trade-off first. The default prompt also carries Claude Code's own guid
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 46 | Reusable guidance and methodology for recurring work. |
 | Hooks | 71 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 164 | Repeatable validation, orchestration, and plumbing. |
+| Scripts | 165 | Repeatable validation, orchestration, and plumbing. |
 
 The counts are active components: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and the Python scripts in `scripts/`.
 
@@ -289,7 +289,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 164 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 165 scripts.
 
 | Need | Use |
 |---|---|

@@ -29,6 +29,8 @@ The sections, in order of importance by line count. Target 400+ lines of samples
 
 **Total: 2000+ lines minimum. Most should be SAMPLES, not rules.** Keep the line count focused on useful samples rather than verbose padding; the goal is 2000+ lines of USEFUL content, primarily samples.
 
+**Caution:** quirks listed as things to always do produce caricature.  Prefer corrections drawn from judge notes on real misses (see `references/cv-triad-eval.md`).  A rule earns its place by a held-out win.
+
 ---
 
 ## SKILL.md Frontmatter
