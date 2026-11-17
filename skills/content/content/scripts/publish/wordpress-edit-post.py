@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import html as html_lib
 import json
 import os
 import re
@@ -64,7 +65,11 @@ def load_env_file(env_path: Path | None = None) -> dict[str, str]:
                 continue
             if "=" in line:
                 key, value = line.split("=", 1)
-                env_vars[key.strip()] = value.strip()
+                value = value.strip()
+                # Strip one pair of matching surrounding quotes.
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
+                env_vars[key.strip()] = value
 
     return env_vars
 
@@ -177,6 +182,30 @@ def strip_yaml_frontmatter(text: str) -> str:
     return body.lstrip("\n").lstrip("\r\n")
 
 
+_ALLOWED_URL_SCHEMES = ("http://", "https://", "mailto:")
+
+
+def _safe_url(url: str) -> str | None:
+    """Attribute-safe URL, or None when its scheme is not allowed.
+
+    Relative targets (/path, #anchor, ./x, ../x) pass. Everything else needs
+    an allowed scheme. The result is HTML-escaped for use inside a
+    double-quoted attribute.
+
+    Args:
+        url: Raw URL from markdown.
+
+    Returns:
+        Escaped URL string, or None if the scheme is disallowed.
+    """
+    url = url.strip()
+    lowered = url.lower()
+    relative = lowered.startswith(("/", "#", "./", "../"))
+    if not relative and not lowered.startswith(_ALLOWED_URL_SCHEMES):
+        return None
+    return html_lib.escape(url, quote=True)
+
+
 def markdown_to_html(markdown_content: str) -> str:
     """Convert markdown to HTML for content updates.
 
@@ -204,8 +233,17 @@ def markdown_to_html(markdown_content: str) -> str:
     html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
     html = re.sub(r"\*(.+?)\*", r"<em>\1</em>", html)
 
-    html = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r'<img src="\2" alt="\1" class="aligncenter size-full" />', html)
-    html = re.sub(r"\[(.+?)\]\((.+?)\)", r'<a href="\2">\1</a>', html)
+    def _image(match: re.Match[str]) -> str:
+        url = _safe_url(match.group(2))
+        alt = html_lib.escape(match.group(1), quote=True)
+        return f'<img src="{url}" alt="{alt}" class="aligncenter size-full" />' if url else alt
+
+    def _link(match: re.Match[str]) -> str:
+        url = _safe_url(match.group(2))
+        return f'<a href="{url}">{match.group(1)}</a>' if url else match.group(1)
+
+    html = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", _image, html)
+    html = re.sub(r"\[(.+?)\]\((.+?)\)", _link, html)
 
     html = re.sub(r"^---+$", r"<hr>", html, flags=re.MULTILINE)
     html = re.sub(r"^- (.+)$", r"<li>\1</li>", html, flags=re.MULTILINE)

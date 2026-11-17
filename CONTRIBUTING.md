@@ -82,7 +82,7 @@ Before submitting:
 pytest, with pytest-xdist for parallel runs. Tests live in `hooks/tests/`, `scripts/tests/`, `tests/`, and `skills/**/tests/`.
 
 ```bash
-pip install pytest pytest-xdist               # or: pip install -e ".[dev]"
+pip install pytest pytest-xdist pillow numpy   # or: pip install -e ".[dev]"
 pytest                                        # fast tier, parallel (what PR CI runs)
 pytest -m "not performance"                   # full tier minus timing budgets
 pytest -m performance -n 0                    # timing budgets; run serially

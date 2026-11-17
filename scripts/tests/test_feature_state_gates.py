@@ -170,3 +170,27 @@ def test_retro_candidates_matches_agent_topics(repo, monkeypatch, capsys, key):
 
     assert out["agent_topic_map"] == {"concurrency": ["go-agent"], "debugging": ["go-agent"]}
     assert out["candidates"][0]["matching_agents"] == ["go-agent"]
+
+
+# ---------------------------------------------------------------------------
+# cmd_worktree: branch creation error handling
+# ---------------------------------------------------------------------------
+
+
+def test_worktree_create_fails_when_branch_cannot_be_created(repo, monkeypatch, capsys):
+    """On a repo with no commits, git branch fails. cmd_worktree must return 1 with an error."""
+    # Init a feature so there is a state file
+    assert _main(monkeypatch, "init", "wt-test") == 0
+    capsys.readouterr()
+
+    rc = _main(monkeypatch, "worktree", "wt-test", "create")
+    assert rc == 1
+
+    err = capsys.readouterr().err
+    parsed = json.loads(err)
+    assert "error" in parsed
+    assert "branch" in parsed["error"].lower() or "fatal" in parsed["error"].lower()
+
+    # The worktree directory must not exist
+    worktree_dir = repo / ".feature" / "worktrees" / "wt-test"
+    assert not worktree_dir.exists()

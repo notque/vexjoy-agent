@@ -196,6 +196,14 @@ After push, identify the run with `gh run list --branch "$BRANCH" --commit "$HEA
 Retry if absent (GitHub can take 5-10s). Use `gh run view <id> --log-failed` for failures.
 Do not treat an earlier green run or "no checks reported" as success.
 
+### Commit verification trailer
+
+Every commit carries a `Verified-By:` trailer: `tests`, `ci-local`, `e2e`,
+`review`, `manual`, or `none (<reason>)`. Place it on its own line after a
+blank line, before any `Claude-Session:` trailer. The
+`pretool-commit-verification-gate` hook checks this in observe mode by default.
+To find unverified commits: `git log --grep='^Verified-By: none'`.
+
 ### Authorization Tiers
 
 Every PR task carries a tier. Act up to the last tier granted, then stop.

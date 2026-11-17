@@ -68,6 +68,7 @@ Five modes. Match the request to the correct mode and follow its section.
 | Voice creation: rules template | `references/cv-voice-rules-template.md` | Positive/contrastive identity, prohibitions |
 | Voice creation: iteration and authorship | `references/cv-iteration-guide.md` | Validation commands, authorship matching |
 | Voice creation: phase banners | `references/cv-phase-banners.md` | Progress reporting templates |
+| Voice creation: triad eval | `references/cv-triad-eval.md` | Held-out pairwise test, order-swap consistency, commands |
 | Translation modes, chunking | `references/tr-modes.md` | Quick/normal/refined, parallel dispatch |
 | Translation glossary | `references/tr-glossary-template.md` | Glossary format, term-preservation rules |
 
@@ -87,7 +88,7 @@ Set `VOICE_WRITER_ACTIVE=1` before dispatching any phase agent.
 
 3. **STATS-CHECKPOINT**: Extract target ranges from profile (sentence/paragraph length, pronoun density, contraction rate, banned patterns). Output: `.voice-phase/03-stats-baseline.json`.
 
-4. **GENERATE**: Write the full draft in target voice. Apply narrative structure guidance: let evidence speak, mix emotional registers, weave secondary threads, leave room for uncertainty, reference specifically, vary intensity, include one unpredicted event, acknowledge the reader, vary temporal structure, close with forward motion, subvert one expectation. Target 1200-2000 words. Output: `.voice-phase/04-draft.md`.
+4. **GENERATE**: Draft from a substance brief (thesis, facts, quotes, outline) so the model isolates style from substance. When only a topic is given, gather the substance into a brief first. Write the full draft in target voice. Apply narrative structure guidance: let evidence speak, mix emotional registers, weave secondary threads, leave room for uncertainty, reference specifically, vary intensity, include one unpredicted event, acknowledge the reader, vary temporal structure, close with forward motion, subvert one expectation. Target 1200-2000 words. Output: `.voice-phase/04-draft.md`.
 
 5. **HOOK-GATE**: Check opening for at least one concrete number, specific date, or unexpected detail. Score 1-10. If < 8, pull the most surprising finding from the body into the opening. Max 3 attempts. Output: `.voice-phase/05-hook-score.json`.
 
@@ -155,9 +156,13 @@ python3 ~/.claude/scripts/voice-validator.py check-banned \
 
 If validation flags natural imperfections as errors, adjust config.json thresholds, not the content. Max 3 iterations.
 
+**Triad eval (new or changed skill).** Run the voice triad eval against the held-out set with a no-skill baseline arm.  A skill that loses to no skill is worse than useless.  Load `references/cv-triad-eval.md` for the method and commands.  Keep the skill change only when it wins on held-out pieces; revert otherwise.
+
 ### Phase 7: ITERATE (Gate: 4/5 authorship match)
 
 Authorship matching: present hold-out samples mixed with generated samples to 5 roasters. Target: 4/5 say SAME AUTHOR. Load `references/cv-iteration-guide.md` for the full procedure. If failing, add more samples (not more rules). Max 3 iterations.
+
+**Re-run the triad eval** after each iteration that changes the skill.  Stop after three rounds without a kept change.
 
 ---
 

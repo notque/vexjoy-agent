@@ -107,7 +107,7 @@ Single-reviewer, 4-phase review of a named file, diff, or PR.
 
 ### Phase 1: UNDERSTAND
 
-Read repository instructions and the complete diff. Read surrounding code to understand each changed path and its consumers. When signatures change, find all callers and interface implementations. Trace parameters to their source: query params may hold any user string; tokens may be server-issued IDs; enums have bounded values. Check validation at each caller.
+Read the repo's diff-triggered checklist from the default branch (`git show origin/main:REVIEW.md`) and apply matching rows to the diff. Read repository instructions and the complete diff. Read surrounding code to understand each changed path and its consumers. When signatures change, find all callers and interface implementations. Trace parameters to their source: query params may hold any user string; tokens may be server-issued IDs; enums have bounded values. Check validation at each caller.
 
 **Gate:** Every changed path accounted for, callers traced where needed.
 

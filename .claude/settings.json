@@ -284,6 +284,12 @@
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/security-review-hook.py\"",
             "description": "Security review gate: blocks git commit when staged files have HIGH/CRITICAL findings (VEXJOY_SECURITY_REVIEW_SKIP=1 to override)",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-commit-verification-gate.py\"",
+            "description": "Commit verification gate: checks for Verified-By: trailer on git commit (starts in observe mode; COMMIT_VERIFY_GATE_MODE=enforce to block)",
+            "timeout": 10
           }
         ]
       },
@@ -387,12 +393,6 @@
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/adr-enforcement.py\"",
             "description": "Enforce ADR compliance after file writes during active pipeline sessions",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttool-security-scan.py\"",
-            "description": "Advisory scan for credentials, SQL injection, and command injection in Write/Edit output",
             "timeout": 5
           },
           {

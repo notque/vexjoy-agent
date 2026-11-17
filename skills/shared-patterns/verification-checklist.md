@@ -98,6 +98,13 @@ Blocker: Cannot run integration tests without database connection.
 How would you like to proceed?
 ```
 
+## Verification standards
+
+- Verification means running the change: run the app, service, hook, or CLI
+  end to end. Tests alone are not proof.
+- After three failed fix rounds on the same check, stop and bring in the user.
+- State the verification method in the commit's `Verified-By:` trailer.
+
 ## The "Would I Bet Money?" Test
 
 Before marking complete, ask:

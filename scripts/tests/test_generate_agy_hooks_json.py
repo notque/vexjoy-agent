@@ -73,7 +73,7 @@ def test_grouped_events_group_by_matcher():
         "PreToolUse:pretool-branch-safety.py matcher=run_command failure=closed\n"
         "PreToolUse:ci-merge-gate.py matcher=run_command failure=closed\n"
         "PreToolUse:pretool-unified-gate.py matcher=edit_file|write_file failure=closed\n"
-        "PostToolUse:posttool-security-scan.py matcher=edit_file|write_file failure=open\n"
+        "PostToolUse:posttool-rename-sweep.py matcher=edit_file|write_file failure=open\n"
     )
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, agy_hooks_dir="/fake/hooks")

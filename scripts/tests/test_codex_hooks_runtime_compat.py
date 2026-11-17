@@ -91,6 +91,7 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
         "allow",
         "pretool-branch-safety.py",
         "ci-merge-gate.py",
+        "pretool-commit-verification-gate.py",
         "pretool-review-before-push-gate.py",
         "pretool-ruff-format-gate.py",
         "pretool-private-name-leak-gate.py",
@@ -110,7 +111,6 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("PostToolUse", "context:[bash-injection-scan]", "posttool-bash-injection-scan.py")
     add("PostToolUse", "context:[rename-sweep]", "posttool-rename-sweep.py")
     add("PostToolUse", "context:[adr-enforcement] COMPLIANCE CHECK", "adr-enforcement.py")
-    add("PostToolUse", "context:[SECURITY-HINT]", "posttool-security-scan.py")
     add("PostToolUse", "context:[skill-frontmatter]", "posttool-skill-frontmatter-check.py")
     add("PostToolUse", "context:[joy-check]", "posttooluse-joy-check-warn.py")
     # Installer spec 7.3: the index hooks never write into a repo; with no
@@ -401,7 +401,7 @@ def _prepare_case(
             compliance.write_text("import json\nprint(json.dumps({'verdict': 'PASS'}))\n", encoding="utf-8")
             evidence["workspace_component"] = target
             env["ADR_ENFORCEMENT"] = "1"
-        elif filename in {"posttool-security-scan.py", "security-review-hook.py"}:
+        elif filename == "security-review-hook.py":
             content = "user_value = input()\neval(user_value)\n"
             (cwd / patch_path).write_text(content, encoding="utf-8")
         elif filename == "posttool-skill-frontmatter-check.py":

@@ -559,11 +559,14 @@ def _run_git(args: list[str], cwd: str | None) -> str:
             text=True,
             timeout=10,
             cwd=cwd or None,
+            env=_clean_env(),
         )
         if result.returncode == 0:
             return result.stdout
-    except (subprocess.TimeoutExpired, OSError):
-        pass
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[private-name-gate] git {' '.join(args)} exited {result.returncode}", file=sys.stderr)
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        print(f"[private-name-gate] git {' '.join(args)} failed: {type(exc).__name__}", file=sys.stderr)
     return ""
 
 

@@ -48,7 +48,11 @@ def load_env_file(env_path: Path | None = None) -> dict[str, str]:
                 continue
             if "=" in line:
                 key, value = line.split("=", 1)
-                env_vars[key.strip()] = value.strip()
+                value = value.strip()
+                # Strip one pair of matching surrounding quotes.
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
+                env_vars[key.strip()] = value
 
     return env_vars
 
@@ -81,6 +85,21 @@ def validate_config(config: dict[str, str]) -> list[str]:
         errors.append("WORDPRESS_SITE must use HTTPS for Application Passwords")
 
     return errors
+
+
+def _sanitize_header_filename(name: str) -> str:
+    """Strip characters unsafe in a Content-Disposition filename parameter.
+
+    Removes CR, LF, double quotes, and backslashes so the name cannot break
+    out of a quoted-string header value.
+
+    Args:
+        name: Raw file name.
+
+    Returns:
+        Sanitized name safe for use inside a double-quoted header value.
+    """
+    return name.translate({0x0D: None, 0x0A: None, 0x22: None, 0x5C: None})
 
 
 def upload_media(
@@ -126,7 +145,7 @@ def upload_media(
     headers = {
         "Authorization": f"Basic {token}",
         "Content-Type": content_type,
-        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Content-Disposition": f'attachment; filename="{_sanitize_header_filename(filename)}"',
     }
 
     try:

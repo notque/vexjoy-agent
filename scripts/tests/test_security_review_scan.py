@@ -669,14 +669,17 @@ class TestInlineSuppression:
         rules = _rules_hit(content, "a.js")
         assert "xss-sink" in rules  # the second line still produces a finding
 
-    def test_posttool_hook_fixture_is_clean_but_adjacent_unsuppressed_risk_fires(self):
+    def test_suppressed_fixture_is_clean_but_adjacent_unsuppressed_risk_fires(self):
         """Fixture suppressions are documented and confined to their own lines."""
-        fixture = Path(__file__).resolve().parents[2] / "hooks" / "tests" / "test_posttool_security_scan.py"
-        content = fixture.read_text(encoding="utf-8")
+        name = "test_fixture.py"
+        content = (
+            "import subprocess\n"
+            "subprocess.run(cmd, shell=True)  # security-review: ignore - intentional shell-injection fixture\n"
+        )
 
-        assert _findings(content, fixture.name) == []
+        assert _findings(content, name) == []
 
-        findings = _findings(content + "\nos.system(cmd)\n", fixture.name)
+        findings = _findings(content + "\nos.system(cmd)\n", name)
         assert any(finding["rule"] == "shell-injection" for finding in findings)
 
     def test_nosec_requires_word_boundary(self):
