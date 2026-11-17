@@ -187,6 +187,15 @@ class Context:
         roots.extend(os.path.normpath(str(o.root)) for o in self.overlays.overlays)
         return list(dict.fromkeys(roots))
 
+    def ledger_roots(self) -> list[str]:
+        """The source, the ledger source_root, and its past_roots (literal and real paths)."""
+        raw = [str(self.source_root), *([self.ledger.source_root] if self.ledger.source_root else [])]
+        raw.extend(self.ledger.past_roots)
+        out: list[str] = []
+        for r in raw:
+            out.extend((os.path.normpath(r), realpath(r)))
+        return list(dict.fromkeys(out))
+
 
 class _Hashes:
     def __init__(self) -> None:
@@ -250,35 +259,61 @@ def source_categories(source_root: Path) -> set[str]:
         return set()
 
 
-def _cleanup_reason(
-    dest: Path, *, in_skills: bool, roots: list[str], categories: set[str], legacy_dirs: bool
-) -> str | None:
+@dataclass
+class CleanupScope:
+    """What makes an unowned entry old-install debris.
+
+    *roots*: every known toolkit root plus the legacy patterns, used for dangling links only.
+    *ledger_roots*: the roots the ledger knows (source, ledger source_root, past_roots); a live
+    link is cleaned only when it points into one, so a deliberate link to another clone stays.
+    *source_skills*: the source's ``skills/``; a real category dir goes only when every file in
+    it is byte-identical to the same file under ``<source_skills>/<name>``.
+    """
+
+    roots: list[str]
+    ledger_roots: list[str]
+    source_skills: Path
+    categories: set[str]
+    legacy_dirs: bool
+
+
+def points_into_ledger_roots(path: Path, roots: list[str]) -> bool:
+    """True when the link text or its realpath lies inside one of *roots* (no legacy patterns)."""
+    try:
+        literal = _link_target(path)
+    except OSError:
+        return False
+    resolved = realpath(path)
+    return any(is_inside(literal, r) or is_inside(resolved, r) for r in roots)
+
+
+def _cleanup_reason(dest: Path, *, in_skills: bool, scope: CleanupScope) -> str | None:
     """Why an unowned, undesired entry is old-install debris to trash, or None to leave it.
 
-    A dangling link counts only when its target lies in a known toolkit root. A category link
-    must point into one too. A real category dir must carry a source category's name, and goes
-    only on ``apply`` (*legacy_dirs*): it may hold copies, so sync never moves it.
+    A dangling link counts when its target lies in a known toolkit root or a legacy toolkit
+    path. A live category link must point into a root the ledger knows. A real category dir
+    must carry a source category's name and match the source byte for byte, and goes only on
+    ``apply`` (*legacy_dirs*). Anything else (a user's own skill, an edited copy) stays; doctor
+    and ``prune --unowned`` still report it.
     """
     if os.path.islink(dest):
-        if not link_points_into(dest, roots):
-            return None
         if is_dangling(dest):
-            return DANGLING_REASON
-        return CATEGORY_LINK_REASON if in_skills and is_category_entry(dest) else None
-    if in_skills and legacy_dirs and dest.name in categories and is_category_entry(dest):
+            return DANGLING_REASON if link_points_into(dest, scope.roots) else None
+        if in_skills and points_into_ledger_roots(dest, scope.ledger_roots) and is_category_entry(dest):
+            return CATEGORY_LINK_REASON
+        return None
+    if (
+        in_skills
+        and scope.legacy_dirs
+        and dest.name in scope.categories
+        and is_category_entry(dest)
+        and copy_matches_source(dest, scope.source_skills / dest.name)
+    ):
         return CATEGORY_DIR_REASON
     return None
 
 
-def _cleanup_scan(
-    adapter: Adapter,
-    home: Path,
-    target: str,
-    taken: set[str],
-    roots: list[str],
-    categories: set[str],
-    legacy_dirs: bool,
-) -> list[Action]:
+def _cleanup_scan(adapter: Adapter, home: Path, target: str, taken: set[str], scope: CleanupScope) -> list[Action]:
     """Unowned dangling toolkit links and legacy category entries in the target's containers."""
     out: list[Action] = []
     containers = adapter.containers(home)
@@ -297,9 +332,7 @@ def _cleanup_scan(
             d = str(dest)
             if d in taken or any(is_inside(str(o), d) for o in containers):
                 continue
-            why = _cleanup_reason(
-                dest, in_skills=container == skills, roots=roots, categories=categories, legacy_dirs=legacy_dirs
-            )
+            why = _cleanup_reason(dest, in_skills=container == skills, scope=scope)
             if why:
                 kind = "symlink" if os.path.islink(dest) else "copy"
                 out.append(Action(op="remove", target=target, dest=d, kind="cleanup", mode=kind, reason=why))
@@ -668,24 +701,33 @@ def plan_target(
         adopted += sum(1 for a in tp.actions if a.op == "remove" and a.adopt)
 
     skills_dir = root / adapter.skills if adapter.skills else None
-    categories = source_categories(ctx.source_root)
+    scope = CleanupScope(
+        roots=roots,
+        ledger_roots=ctx.ledger_roots(),
+        source_skills=ctx.source_root / "skills",
+        categories=source_categories(ctx.source_root),
+        legacy_dirs=legacy_dirs,
+    )
     for a in tp.actions:
         # An adopted entry that is only debris (a broken link, an old category) is cleanup too.
+        # Adopt-scan removes it either way; the reason only takes it out of the cap.
         if a.op == "remove" and a.adopt and a.kind == "adopted":
             dest = Path(a.dest)
-            why = _cleanup_reason(
-                dest,
-                in_skills=dest.parent == skills_dir,
-                roots=roots,
-                categories=categories,
-                legacy_dirs=True,
-            )
-            if why is None and dest.parent == skills_dir and is_category_entry(dest):
-                why = CATEGORY_DIR_REASON  # a real dir of toolkit links: adoptable on sync already
+            in_skills = dest.parent == skills_dir
+            why = _cleanup_reason(dest, in_skills=in_skills, scope=scope)
+            if why == CATEGORY_DIR_REASON and not legacy_dirs:
+                why = None
+            if (
+                why is None
+                and in_skills
+                and is_category_entry(dest)
+                and dir_of_adoptable_links(dest, scope.ledger_roots)
+            ):
+                why = CATEGORY_DIR_REASON  # a real dir holding only links into a ledger root
             if why:
                 a.reason = why
     taken = {a.dest for a in tp.actions} | set(desire.entries) | set(led_entries) | replaced | collision_dests
-    tp.actions.extend(_cleanup_scan(adapter, home, target, taken, roots, categories, legacy_dirs))
+    tp.actions.extend(_cleanup_scan(adapter, home, target, taken, scope))
 
     tp.owned_before = len(led_entries) + adopted + sum(1 for a in tp.actions if a.op == "container" and a.adopt)
     # Fraction base: owned entries, or the desired count when larger (a first install

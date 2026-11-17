@@ -10,22 +10,22 @@ from pathlib import Path
 from .common import DEFAULT_EPHEMERAL, EPHEMERAL_ENV, is_inside, realpath
 
 
-def _git(root: Path, *args: str) -> str | None:
+def _git(root: Path, *args: str, timeout: float = 60) -> str | None:
     try:
         out = subprocess.run(
             ["git", "-C", str(root), *args],
             capture_output=True,
             check=True,
-            timeout=60,
+            timeout=timeout,
         )
     except (OSError, subprocess.SubprocessError):
         return None
     return out.stdout.decode("utf-8", "surrogateescape")
 
 
-def is_git_checkout(root: Path) -> bool:
+def is_git_checkout(root: Path, *, timeout: float = 60) -> bool:
     """True when *root* is the top of a git working tree."""
-    top = _git(root, "rev-parse", "--show-toplevel")
+    top = _git(root, "rev-parse", "--show-toplevel", timeout=timeout)
     return top is not None and realpath(top.strip()) == realpath(root)
 
 
@@ -128,17 +128,25 @@ def clear_cache() -> None:
     _ls_files_cached.cache_clear()
 
 
+# The stale-source check runs inside the SessionStart sync (20 s budget): each git call gets 3 s.
+_QUICK_S = 3
+
+
 def _git_rc(root: Path, *args: str) -> int | None:
-    """Exit code of a git command, or None when git cannot run."""
+    """Exit code of a quick git command, or None when git cannot run or times out."""
     try:
-        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=10).returncode
+        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=_QUICK_S).returncode
     except (OSError, subprocess.SubprocessError):
         return None
 
 
+def _quick(root: Path, *args: str) -> str | None:
+    return _git(root, *args, timeout=_QUICK_S)
+
+
 def head(root: Path) -> str | None:
     """Commit id of HEAD, or None."""
-    out = _git(root, "rev-parse", "--verify", "-q", "HEAD")
+    out = _quick(root, "rev-parse", "--verify", "-q", "HEAD")
     return out.strip() if out else None
 
 
@@ -147,7 +155,7 @@ def behind_upstream(root: Path) -> int | None:
 
     None when there is no upstream or git fails.
     """
-    out = _git(root, "rev-list", "--count", "HEAD..@{upstream}")
+    out = _quick(root, "rev-list", "--count", "HEAD..@{upstream}")
     try:
         return int(out.strip()) if out else None
     except ValueError:
@@ -163,16 +171,26 @@ def stale_source(ledger_root: Path, session_root: Path | None) -> str | None:
     """Why the installed source clone is out of date, or None. Local refs only: no fetch.
 
     Behind: its upstream tracking ref has commits HEAD lacks, or its HEAD is an older commit of
-    the session's checkout (a separate clone the user pulled). Never raises.
+    the session's checkout and that checkout's HEAD is merged: reachable from the checkout's
+    own copy of the clone's upstream ref (``origin/main``). Unmerged work on a feature branch or
+    worktree, pushed or not, never counts. Never raises.
     """
-    if not is_git_checkout(ledger_root):
+    if not is_git_checkout(ledger_root, timeout=_QUICK_S):
         return None
     n = behind_upstream(ledger_root)
     if n:
         return f"{n} commit(s) behind its upstream"
-    if session_root is None or realpath(session_root) == realpath(ledger_root) or not is_git_checkout(session_root):
+    if session_root is None or realpath(session_root) == realpath(ledger_root):
+        return None
+    if not is_git_checkout(session_root, timeout=_QUICK_S):
         return None
     old, new = head(ledger_root), head(session_root)
-    if old and new and old != new and is_ancestor(session_root, old, new):
+    if not old or not new or old == new:
+        return None
+    # Merged means: the checkout's HEAD is in its own copy of the branch the clone tracks
+    # (``origin/main``). A pushed feature branch has an upstream too, but is not merged.
+    up = _quick(ledger_root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+    up = up.strip() if up else ""
+    if up and is_ancestor(session_root, old, new) and is_ancestor(session_root, "HEAD", up):
         return f"behind the checkout {session_root}"
     return None

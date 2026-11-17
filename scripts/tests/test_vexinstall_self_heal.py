@@ -9,13 +9,24 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
-from vexinstall.context import Result
-from vexinstall.plan import CATEGORY_DIR_REASON, CATEGORY_LINK_REASON, DANGLING_REASON
+# vexinstall_support puts scripts/ on sys.path, so vexinstall comes through it, never imported first.
+from scripts.tests.vexinstall_support import (
+    GIT_ENV,
+    Env,
+    Result,
+    commit_all,
+    git,
+    plan,
+    world,
+)
 
-from scripts.tests.vexinstall_support import GIT_ENV, Env, commit_all, git, world
+CATEGORY_DIR_REASON = plan.CATEGORY_DIR_REASON
+CATEGORY_LINK_REASON = plan.CATEGORY_LINK_REASON
+DANGLING_REASON = plan.DANGLING_REASON
 
 GATE = "pretool-commit-verification-gate.py"
 GATE_CMD = f'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/{GATE}"'
@@ -208,18 +219,25 @@ def test_adopt_source_records_the_old_root(world: Env, tmp_path: Path) -> None:
 
 
 def _category_dir(root: Path, name: str, skill: str) -> Path:
+    """A user-authored skill inside a dir named *name*."""
     d = root / name / skill
     d.mkdir(parents=True)
-    (d / "SKILL.md").write_text(f"---\nname: {skill}\ndescription: june copy\n---\n")
+    (d / "SKILL.md").write_text(f"---\nname: {skill}\ndescription: my own skill\n---\n")
     return root / name
 
 
-def test_apply_removes_category_links_and_trashes_real_category_dirs(world: Env) -> None:
+def _source_copy(world: Env, root: Path, cat: str, skill: str) -> Path:
+    """A byte-identical copy of ``<repo>/skills/<cat>/<skill>`` at ``<root>/<cat>/<skill>``."""
+    shutil.copytree(world.repo / "skills" / cat / skill, root / cat / skill)
+    return root / cat
+
+
+def test_apply_removes_category_links_and_trashes_source_identical_category_dirs(world: Env) -> None:
     codex = world.skills("codex")
     codex.mkdir(parents=True)
     link = codex / "meta"
     os.symlink(world.repo / "skills" / "meta", link)
-    real = _category_dir(codex, "process", "gamma")
+    real = _source_copy(world, codex, "process", "gamma")
     user_dir = _category_dir(codex, "my-own-stuff", "mine")
 
     res = world.run("apply", "--target", "codex", "--takeover")
@@ -239,12 +257,54 @@ def test_apply_removes_category_links_and_trashes_real_category_dirs(world: Env)
     assert (real / "gamma" / "SKILL.md").is_file()
 
 
+def test_apply_keeps_a_user_skill_in_a_dir_named_like_a_category(world: Env) -> None:
+    """``content`` is a source category, but my-own-skill is not in the source: nothing moves."""
+    codex = world.skills("codex")
+    codex.mkdir(parents=True)
+    user_dir = _category_dir(codex, "content", "my-own-skill")
+    shutil.copytree(world.repo / "skills" / "content" / "epsilon", user_dir / "epsilon")
+
+    _ok(world.run("apply", "--target", "codex", "--takeover"))
+
+    assert (user_dir / "my-own-skill" / "SKILL.md").read_text().endswith("my own skill\n---\n")
+    assert (user_dir / "epsilon" / "SKILL.md").is_file()
+    assert str(user_dir) not in {i["original"] for i in _trash_items(world)}
+    prune = world.run("prune", "--unowned", "--target", "codex")
+    assert any(str(user_dir) in line for line in prune.out), "still reported for a manual prune"
+
+
+def test_apply_keeps_a_category_copy_with_one_modified_file(world: Env) -> None:
+    codex = world.skills("codex")
+    codex.mkdir(parents=True)
+    real = _source_copy(world, codex, "process", "delta")
+    ref = real / "delta" / "references" / "ref.md"
+    ref.write_text("my notes\n")
+
+    _ok(world.run("apply", "--target", "codex", "--takeover"))
+
+    assert ref.read_text() == "my notes\n"
+    assert str(real) not in {i["original"] for i in _trash_items(world)}
+
+
+def test_sync_keeps_a_live_category_link_into_another_clone(world: Env, tmp_path: Path) -> None:
+    """A deliberate link to a second dev clone matches the legacy pattern but no ledger root."""
+    other = _clone(world.repo, tmp_path / "dev2" / "vexjoy-agent")
+    _ok(world.run("apply", "--target", "codex"))
+    link = world.skills("codex") / "meta"
+    os.symlink(other / "skills" / "meta", link)
+
+    _ok(world.run("sync", "--target", "codex"))
+    _ok(world.run("apply", "--target", "codex"))
+
+    assert os.readlink(link) == str(other / "skills" / "meta")
+
+
 def test_sync_removes_category_links_but_leaves_real_category_dirs(world: Env) -> None:
     _ok(world.run("apply", "--target", "codex"))
     codex = world.skills("codex")
     link = codex / "meta"
     os.symlink(world.repo / "skills" / "meta", link)
-    real = _category_dir(codex, "process", "gamma")
+    real = _source_copy(world, codex, "process", "gamma")
 
     _ok(world.run("sync", "--target", "codex"))
 
@@ -270,17 +330,37 @@ def test_many_category_entries_do_not_trip_the_cap(world: Env) -> None:
 
 
 def test_sync_warns_when_the_ledger_clone_is_behind_the_session_checkout(world: Env, tmp_path: Path) -> None:
+    """The session checkout pulled merged work; the ledger clone did not."""
     clone = _clone(world.repo, tmp_path / "share" / "vexjoy-agent")
+    checkout = _clone(world.repo, tmp_path / "pgh" / "vexjoy-agent")
     _ok(world.run("apply", "--target", "claude", source=clone))
     (world.repo / "hooks" / "h4.py").write_text("# new\n")
     commit_all(world.repo, "new hook")
+    git(checkout, "pull", "-q", "--ff-only")
 
-    res = world.run("sync", "--target", "claude")
+    res = world.run("sync", "--target", "claude", source=checkout)
 
     assert any("skipped" in line and "ledger source_root" in line for line in res.out), res.out
     want = f"git -C {clone.resolve()} pull --ff-only && {clone.resolve()}/install.sh"
     stale = [line for line in res.out if "behind the checkout" in line]
     assert len(stale) == 1 and want in stale[0], res.out
+
+
+def test_no_stale_warning_for_a_feature_branch_ahead_of_a_current_clone(world: Env, tmp_path: Path) -> None:
+    """Unmerged work in a feature branch or worktree is not news the installed clone missed."""
+    clone = _clone(world.repo, tmp_path / "share" / "vexjoy-agent")
+    checkout = _clone(world.repo, tmp_path / "pgh" / "vexjoy-agent")
+    _ok(world.run("apply", "--target", "claude", source=clone))
+    git(checkout, "checkout", "-q", "-b", "feature")
+    (checkout / "hooks" / "h4.py").write_text("# wip\n")
+    commit_all(checkout, "wip")
+
+    res = world.run("sync", "--target", "claude", source=checkout)
+
+    assert not [line for line in res.out if "behind" in line], res.out
+    git(checkout, "push", "-q", "-u", "origin", "feature")  # pushed but not merged: still no warning
+    res = world.run("sync", "--target", "claude", source=checkout)
+    assert not [line for line in res.out if "behind" in line], res.out
 
 
 def test_sync_and_doctor_warn_when_the_ledger_clone_is_behind_its_upstream(world: Env, tmp_path: Path) -> None:

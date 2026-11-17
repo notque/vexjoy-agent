@@ -17,7 +17,7 @@
 if [ -n "$1" ] && [ ! -e "$1" ]; then
     root=$(sed -n 's/.*"source_root": *"\([^"]*\)".*/\1/p' "$HOME/.claude/vexjoy/ledger.json" 2>/dev/null | head -n 1)
     [ -n "$root" ] || root="<your vexjoy-agent clone>"
-    echo "[vexjoy] hook file $1 is missing (not deployed); skipped. Fix: git -C $root pull --ff-only && $root/install.sh" >&2
+    printf '%s\n' "[vexjoy] hook file $1 is missing (not deployed); skipped. Fix: git -C '$root' pull --ff-only && '$root/install.sh'" >&2
     exit 1
 fi
 

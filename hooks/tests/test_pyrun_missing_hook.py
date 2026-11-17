@@ -38,7 +38,7 @@ def test_missing_hook_file_exits_non_blocking_and_names_the_fix(tmp_path: Path) 
     lines = proc.stderr.strip().splitlines()
     assert len(lines) == 1, proc.stderr
     assert str(missing) in lines[0]
-    assert f"git -C {clone} pull --ff-only && {clone}/install.sh" in lines[0]
+    assert f"git -C '{clone}' pull --ff-only && '{clone}/install.sh'" in lines[0]
 
 
 def test_missing_hook_file_without_a_ledger_still_exits_1(tmp_path: Path) -> None:
@@ -47,6 +47,17 @@ def test_missing_hook_file_without_a_ledger_still_exits_1(tmp_path: Path) -> Non
     proc = _run(home, home / ".claude" / "hooks" / HOOK)
     assert proc.returncode == 1
     assert "install.sh" in proc.stderr
+
+
+def test_missing_hook_message_quotes_a_root_with_spaces(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    state = home / ".claude" / "vexjoy"
+    state.mkdir(parents=True)
+    clone = tmp_path / "my clones" / "vexjoy-agent"
+    (state / "ledger.json").write_text(json.dumps({"schema": 1, "source_root": str(clone)}, indent=2))
+    proc = _run(home, home / ".claude" / "hooks" / HOOK)
+    assert proc.returncode == 1
+    assert f"git -C '{clone}' pull --ff-only && '{clone}/install.sh'" in proc.stderr
 
 
 def test_present_hook_file_still_runs(tmp_path: Path) -> None:
