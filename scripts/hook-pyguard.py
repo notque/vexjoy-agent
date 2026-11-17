@@ -61,6 +61,7 @@ GATES = frozenset(
         "pretool-config-protection.py",
         "pretool-dispatch-spec-gate.py",
         "pretool-plan-gate.py",
+        "pretool-commit-verification-gate.py",
         "pretool-private-name-leak-gate.py",
         "pretool-review-before-push-gate.py",
         "pretool-routing-gate.py",

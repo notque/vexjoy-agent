@@ -284,6 +284,12 @@
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/security-review-hook.py\"",
             "description": "Security review gate: blocks git commit when staged files have HIGH/CRITICAL findings (VEXJOY_SECURITY_REVIEW_SKIP=1 to override)",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-commit-verification-gate.py\"",
+            "description": "Commit verification gate: checks for Verified-By: trailer on git commit (starts in observe mode; COMMIT_VERIFY_GATE_MODE=enforce to block)",
+            "timeout": 10
           }
         ]
       },

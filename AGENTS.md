@@ -161,6 +161,12 @@ type prefix such as `feat:`. Trailer lines such as `Claude-Session: <url>` may
 follow after a blank line. Co-author and "Generated with" lines stay out: the
 repo's `.claude/settings.json` sets `attribution` to empty strings.
 
+Every commit carries a `Verified-By:` trailer naming how the change was
+verified: `tests`, `ci-local`, `e2e`, `review`, `manual`, or
+`none (<reason>)`. The trailer goes on its own line after a blank line, before
+any `Claude-Session:` trailer. To find unverified commits:
+`git log --grep='^Verified-By: none'`.
+
 ## Merge gate
 
 Never merge a pull request until all GitHub Actions checks have passed. Do not

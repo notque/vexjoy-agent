@@ -12,8 +12,8 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   76 registrations = 62 mirrored here + 14 unsupported.
-#   63 entries = 32 native + 31 adapted: pretool-unified-gate.py has one Claude
+#   78 registrations = 64 mirrored here + 14 unsupported.
+#   64 entries = 33 native + 31 adapted: pretool-unified-gate.py has one Claude
 #   registration (Bash|Write|Edit|Read) and two entries here, Bash and apply_patch.
 
 # Native SessionStart (15)
@@ -47,13 +47,14 @@ UserPromptSubmit:pipeline-context-detector.py class=adapted mode=prompt failure=
 UserPromptSubmit:codex-auto-review.py class=adapted mode=prompt failure=open
 UserPromptSubmit:jev-route-injector-userprompt.py class=adapted mode=prompt failure=open
 
-# Native PreToolUse Bash enforcement (7)
+# Native PreToolUse Bash enforcement (8)
 PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:ci-merge-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:pretool-review-before-push-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:pretool-ruff-format-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:pretool-private-name-leak-gate.py matcher=Bash class=native mode=native failure=closed
 PreToolUse:security-review-hook.py matcher=Bash class=native mode=native failure=closed
+PreToolUse:pretool-commit-verification-gate.py matcher=Bash class=native mode=native failure=open
 PreToolUse:pretool-unified-gate.py matcher=Bash class=native mode=native failure=closed
 
 # Adapted PreToolUse apply_patch/Edit|Write (10)
