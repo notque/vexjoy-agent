@@ -100,6 +100,7 @@ def test_observe_allows_and_logs(tmp_path: Path) -> None:
     logs = _observe_log(tmp_path)
     assert len(logs) == 1
     assert logs[0]["reason"] == "missing Verified-By trailer"
+    assert set(logs[0].keys()) == {"ts", "repo", "reason"}
     assert "no trailer" not in json.dumps(logs[0])  # no message text in log
 
 
@@ -127,7 +128,8 @@ def test_enforce_denies_twice_then_allows(tmp_path: Path) -> None:
     # Third attempt: allowed (deadlock prevention).
     r3 = _run(msg, mode="enforce", session_id=sid, tmp_path=tmp_path)
     assert r3.returncode == 0
-    assert r3.stdout.strip() == ""  # no deny
+    assert r3.stdout.strip() == ""  # no deny — stdout must be empty
+    assert "Allowed after 2 prior blocks" in r3.stderr
 
 
 # --- Off mode writes nothing ---

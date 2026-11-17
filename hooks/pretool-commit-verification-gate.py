@@ -201,7 +201,6 @@ def _log_observe(session_id: str, repo_dir: str, reason: str) -> None:
     entry = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "repo": os.path.basename(repo_dir) if repo_dir else "",
-        "session_id": session_id[:64] if session_id else "",
         "reason": reason,
     }
     try:
