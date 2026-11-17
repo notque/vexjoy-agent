@@ -7,6 +7,7 @@ import json
 import os
 import re
 import shlex
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -130,6 +131,67 @@ def drop_repo_only(hooks: dict) -> dict:
         if kept_groups:
             out[event] = kept_groups
     return out
+
+
+def hook_file(entry: object, home: Path) -> Path | None:
+    """The file under ``<home>/.claude/hooks`` that a hook entry runs, or None for any other command."""
+    if not isinstance(entry, dict) or not isinstance(entry.get("command"), str):
+        return None
+    tok = first_path_token(entry["command"], home)
+    if tok is None:
+        return None
+    path = os.path.normpath(tok)
+    hooks = str(home / ".claude" / "hooks")
+    return Path(path) if is_inside(path, hooks) and path != hooks else None
+
+
+def deployed_by_plan(home: Path, source_root: Path) -> Callable[[Path], bool]:
+    """Check for plan and doctor: the file is on disk, or the source ships it (apply installs it)."""
+    hooks = home / ".claude" / "hooks"
+
+    def check(path: Path) -> bool:
+        return os.path.exists(path) or (source_root / "hooks" / os.path.relpath(path, hooks)).is_file()
+
+    return check
+
+
+def drop_undeployed(hooks: dict, home: Path, deployed: Callable[[Path], bool]) -> tuple[dict, list[str]]:
+    """*hooks* without entries whose ``~/.claude/hooks`` file is not deployed, and those labels.
+
+    A registration must never name a missing hook: pyrun.sh would run python on it, which exits
+    2, and Claude Code reads exit 2 from a PreToolUse hook as a block on every tool call.
+    """
+    dropped: list[str] = []
+    out: dict = {}
+    for event, groups in hooks.items():
+        if not isinstance(groups, list):
+            out[event] = groups
+            continue
+        kept_groups = []
+        for group in groups:
+            if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+                kept_groups.append(group)
+                continue
+            entries = []
+            for e in group["hooks"]:
+                path = hook_file(e, home)
+                if path is not None and not deployed(path):
+                    dropped.append(f"{event}: {path}")
+                    continue
+                entries.append(e)
+            if entries:
+                kept_groups.append({**group, "hooks": entries})
+        if kept_groups:
+            out[event] = kept_groups
+    return out, dropped
+
+
+def missing_hook_files(settings: dict, home: Path) -> list[str]:
+    """Registered ``~/.claude/hooks`` files that are not on disk, as ``event: path`` labels."""
+    hooks = settings.get("hooks") if isinstance(settings, dict) else None
+    if not isinstance(hooks, dict):
+        return []
+    return drop_undeployed(hooks, home, os.path.exists)[1]
 
 
 def desired_from_repo(source_root: Path) -> dict:

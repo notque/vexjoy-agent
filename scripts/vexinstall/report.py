@@ -7,7 +7,7 @@ from pathlib import Path
 from .common import REPORTS_KEEP
 from .fsops import Guard, atomic_write_json
 from .ledger import Ledger
-from .plan import Plan
+from .plan import CLEANUP_REASONS, Plan
 
 _BUCKETS = {
     "add": "added",
@@ -29,7 +29,10 @@ def plan_diff(plan: Plan) -> dict:
         buckets: dict[str, list] = {v: [] for v in dict.fromkeys(_BUCKETS.values())}
         buckets["adopted"] = []
         buckets["taken_over"] = []
+        buckets["cleaned"] = []
         for a in tp.actions:
+            if a.op == "remove" and a.reason in CLEANUP_REASONS:
+                buckets["cleaned"].append({"dest": a.dest, "reason": a.reason})
             if a.adopt:
                 buckets["adopted"].append(a.dest)
             if a.takeover:

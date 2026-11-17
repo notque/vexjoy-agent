@@ -13,7 +13,9 @@ from .common import (
     DATA_DIRS,
     MASS_REMOVE_FRACTION,
     MASS_REMOVE_MAX,
+    SUPPORT_DIRS,
     file_sha256,
+    is_dangling,
     is_ignored_name,
     is_inside,
     iter_tree_files,
@@ -23,7 +25,7 @@ from .common import (
 from .ledger import STATUS_STALE, Ledger, LedgerEntry
 from .legacy import is_legacy_repo_path
 from .profile import EMPTY, Profile
-from .sources import OverlayConfig, PublicSources, SourceItem
+from .sources import OverlayConfig, PublicSources, SourceItem, skill_md_of
 
 # Ops that change disk.
 WRITE_OPS = frozenset({"add", "replace", "remove", "container"})
@@ -32,6 +34,13 @@ COLLAPSE_REASON = "folded into whole-dir entry"
 SPLIT_REASON = "whole-dir entry became a container"
 LEFTOVER_REASON = "not installed per-entry"
 TAKEOVER_REASON = "takeover: unowned entry moved to trash and replaced"
+# Cleanup of what older installs left behind. Each goes to trash (restore-trash undoes it) and
+# none counts toward the mass-removal cap: a broken link or an old-layout category entry holds
+# nothing the install still uses.
+DANGLING_REASON = "cleanup: dangling link into a toolkit source"
+CATEGORY_LINK_REASON = "cleanup: legacy category link in flat skills root"
+CATEGORY_DIR_REASON = "cleanup: legacy category dir in flat skills root"
+CLEANUP_REASONS = frozenset({DANGLING_REASON, CATEGORY_LINK_REASON, CATEGORY_DIR_REASON})
 _WINDOWS = os.name == "nt"
 
 
@@ -171,9 +180,21 @@ class Context:
         if self.ledger.source_root:
             roots.append(os.path.normpath(self.ledger.source_root))
             roots.append(realpath(self.ledger.source_root))
+        for old in self.ledger.past_roots:
+            roots.append(os.path.normpath(old))
+            roots.append(realpath(old))
         roots.extend(realpath(o.root) for o in self.overlays.overlays)
         roots.extend(os.path.normpath(str(o.root)) for o in self.overlays.overlays)
         return list(dict.fromkeys(roots))
+
+    def ledger_roots(self) -> list[str]:
+        """The source, the ledger source_root, and its past_roots (literal and real paths)."""
+        raw = [str(self.source_root), *([self.ledger.source_root] if self.ledger.source_root else [])]
+        raw.extend(self.ledger.past_roots)
+        out: list[str] = []
+        for r in raw:
+            out.extend((os.path.normpath(r), realpath(r)))
+        return list(dict.fromkeys(out))
 
 
 class _Hashes:
@@ -215,6 +236,107 @@ def dir_of_adoptable_links(dest: Path, roots: list[str]) -> bool:
     except OSError:
         return False
     return bool(children) and all(os.path.islink(c) and link_points_into(c, roots) for c in children)
+
+
+def is_category_entry(path: Path) -> bool:
+    """A skills-root entry without SKILL.md that holds nested skills (not a support dir)."""
+    if path.name in SUPPORT_DIRS or path.name in DATA_DIRS or not path.is_dir():
+        return False
+    if skill_md_of(path) is not None:
+        return False
+    try:
+        return any(skill_md_of(child) is not None for child in path.iterdir() if child.is_dir())
+    except OSError:
+        return False
+
+
+def source_categories(source_root: Path) -> set[str]:
+    """Category dir names of the source's ``skills/`` (dirs that hold nested skills)."""
+    skills = source_root / "skills"
+    try:
+        return {c.name for c in skills.iterdir() if c.is_dir() and is_category_entry(c)}
+    except OSError:
+        return set()
+
+
+@dataclass
+class CleanupScope:
+    """What makes an unowned entry old-install debris.
+
+    *roots*: every known toolkit root plus the legacy patterns, used for dangling links only.
+    *ledger_roots*: the roots the ledger knows (source, ledger source_root, past_roots); a live
+    link is cleaned only when it points into one, so a deliberate link to another clone stays.
+    *source_skills*: the source's ``skills/``; a real category dir goes only when every file in
+    it is byte-identical to the same file under ``<source_skills>/<name>``.
+    """
+
+    roots: list[str]
+    ledger_roots: list[str]
+    source_skills: Path
+    categories: set[str]
+    legacy_dirs: bool
+
+
+def points_into_ledger_roots(path: Path, roots: list[str]) -> bool:
+    """True when the link text or its realpath lies inside one of *roots* (no legacy patterns)."""
+    try:
+        literal = _link_target(path)
+    except OSError:
+        return False
+    resolved = realpath(path)
+    return any(is_inside(literal, r) or is_inside(resolved, r) for r in roots)
+
+
+def _cleanup_reason(dest: Path, *, in_skills: bool, scope: CleanupScope) -> str | None:
+    """Why an unowned, undesired entry is old-install debris to trash, or None to leave it.
+
+    A dangling link counts when its target lies in a known toolkit root or a legacy toolkit
+    path. A live category link must point into a root the ledger knows. A real category dir
+    must carry a source category's name and match the source byte for byte, and goes only on
+    ``apply`` (*legacy_dirs*). Anything else (a user's own skill, an edited copy) stays; doctor
+    and ``prune --unowned`` still report it.
+    """
+    if os.path.islink(dest):
+        if is_dangling(dest):
+            return DANGLING_REASON if link_points_into(dest, scope.roots) else None
+        if in_skills and points_into_ledger_roots(dest, scope.ledger_roots) and is_category_entry(dest):
+            return CATEGORY_LINK_REASON
+        return None
+    if (
+        in_skills
+        and scope.legacy_dirs
+        and dest.name in scope.categories
+        and is_category_entry(dest)
+        and copy_matches_source(dest, scope.source_skills / dest.name)
+    ):
+        return CATEGORY_DIR_REASON
+    return None
+
+
+def _cleanup_scan(adapter: Adapter, home: Path, target: str, taken: set[str], scope: CleanupScope) -> list[Action]:
+    """Unowned dangling toolkit links and legacy category entries in the target's containers."""
+    out: list[Action] = []
+    containers = adapter.containers(home)
+    skills = adapter.root_path(home) / adapter.skills if adapter.skills else None
+    for container in containers:
+        if os.path.islink(container) or not os.path.isdir(container):
+            continue
+        try:
+            children = sorted(os.listdir(container))
+        except OSError:
+            continue
+        for child in children:
+            if child.startswith(".") or child in DATA_DIRS:
+                continue
+            dest = container / child
+            d = str(dest)
+            if d in taken or any(is_inside(str(o), d) for o in containers):
+                continue
+            why = _cleanup_reason(dest, in_skills=container == skills, scope=scope)
+            if why:
+                kind = "symlink" if os.path.islink(dest) else "copy"
+                out.append(Action(op="remove", target=target, dest=d, kind="cleanup", mode=kind, reason=why))
+    return out
 
 
 def copy_matches_source(dest: Path, src: Path) -> bool:
@@ -350,6 +472,7 @@ def plan_target(
     hashes: _Hashes | None = None,
     *,
     takeover: bool = False,
+    legacy_dirs: bool = False,
 ) -> TargetPlan:
     """Diff desired state for one target against disk and ledger.
 
@@ -361,6 +484,10 @@ def plan_target(
     An install profile that disables a hook turns whole-dir hooks per-entry, and
     clearing it turns them back. Either switch leaves every enabled hook in place
     until its new entry is placed (see the split and fold steps below).
+
+    Cleanup (apply and sync): unowned dangling links into a known toolkit root and legacy
+    category links in a flat skills root go to trash. *legacy_dirs* (apply only) adds real
+    category dirs. None of these counts toward the mass-removal cap.
     """
     hashes = hashes or _Hashes()
     adapter = ctx.adapter(target)
@@ -573,6 +700,35 @@ def plan_target(
         tp.actions.extend(_adopt_scan(adapter, home, skip, led_entries, replaced, adoptable, target))
         adopted += sum(1 for a in tp.actions if a.op == "remove" and a.adopt)
 
+    skills_dir = root / adapter.skills if adapter.skills else None
+    scope = CleanupScope(
+        roots=roots,
+        ledger_roots=ctx.ledger_roots(),
+        source_skills=ctx.source_root / "skills",
+        categories=source_categories(ctx.source_root),
+        legacy_dirs=legacy_dirs,
+    )
+    for a in tp.actions:
+        # An adopted entry that is only debris (a broken link, an old category) is cleanup too.
+        # Adopt-scan removes it either way; the reason only takes it out of the cap.
+        if a.op == "remove" and a.adopt and a.kind == "adopted":
+            dest = Path(a.dest)
+            in_skills = dest.parent == skills_dir
+            why = _cleanup_reason(dest, in_skills=in_skills, scope=scope)
+            if why == CATEGORY_DIR_REASON and not legacy_dirs:
+                why = None
+            if (
+                why is None
+                and in_skills
+                and is_category_entry(dest)
+                and dir_of_adoptable_links(dest, scope.ledger_roots)
+            ):
+                why = CATEGORY_DIR_REASON  # a real dir holding only links into a ledger root
+            if why:
+                a.reason = why
+    taken = {a.dest for a in tp.actions} | set(desire.entries) | set(led_entries) | replaced | collision_dests
+    tp.actions.extend(_cleanup_scan(adapter, home, target, taken, scope))
+
     tp.owned_before = len(led_entries) + adopted + sum(1 for a in tp.actions if a.op == "container" and a.adopt)
     # Fraction base: owned entries, or the desired count when larger (a first install
     # that fixes one legacy link is not a mass removal; a shrinking repo still is).
@@ -584,7 +740,10 @@ def plan_target(
         str(c) for c in ADAPTERS[target].containers(home)
     }
     tp.profile_removals = sum(
-        1 for a in tp.actions if a.op == "remove" and a.reason in (PROFILE_REASON, COLLAPSE_REASON, LEFTOVER_REASON)
+        1
+        for a in tp.actions
+        if a.op == "remove"
+        and (a.reason in (PROFILE_REASON, COLLAPSE_REASON, LEFTOVER_REASON) or a.reason in CLEANUP_REASONS)
     ) + sum(1 for a in tp.actions if a.op == "container" and a.dest in profile_containers)
     # Takeover swaps replace an entry in place; they are not removals.
     removals = tp.removals - tp.profile_removals - sum(1 for a in tp.actions if a.op == "container" and a.takeover)
@@ -686,8 +845,10 @@ def _adopt_scan(
     return out
 
 
-def build_plan(ctx: Context, targets: list[str], full_adoption: bool, *, takeover: bool = False) -> Plan:
-    """Plan every requested target."""
+def build_plan(
+    ctx: Context, targets: list[str], full_adoption: bool, *, takeover: bool = False, legacy_dirs: bool = False
+) -> Plan:
+    """Plan every requested target. *legacy_dirs* (apply only) trashes real legacy category dirs."""
     plan = Plan(
         source_root=str(ctx.source_root),
         mode=ctx.mode,
@@ -705,7 +866,7 @@ def build_plan(ctx: Context, targets: list[str], full_adoption: bool, *, takeove
         )
     hashes = _Hashes()
     for t in targets:
-        plan.targets[t] = plan_target(ctx, t, full_adoption, hashes, takeover=takeover)
+        plan.targets[t] = plan_target(ctx, t, full_adoption, hashes, takeover=takeover, legacy_dirs=legacy_dirs)
     for ov in ctx.overlays.overlays:
         if not ov.available:
             plan.notes.append(f"overlay '{ov.id}' root {ov.root} missing; its entries kept as {STATUS_STALE}")

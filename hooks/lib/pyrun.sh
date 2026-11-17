@@ -9,6 +9,17 @@
 # skipped: a pyenv shim for a missing version exits 127, which fails open. A
 # pick older than 3.10 still meets the guard at the top of every hook, which
 # re-execs under a python3.1x or blocks. Layout: docs/installer-layout.md.
+#
+# A missing hook file exits 1, never 2: python on a missing script exits 2, which Claude Code
+# reads as a PreToolUse block, so one hook registered ahead of its file stops every tool call,
+# including the install that would fix it.
+
+if [ -n "$1" ] && [ ! -e "$1" ]; then
+    root=$(sed -n 's/.*"source_root": *"\([^"]*\)".*/\1/p' "$HOME/.claude/vexjoy/ledger.json" 2>/dev/null | head -n 1)
+    [ -n "$root" ] || root="<your vexjoy-agent clone>"
+    printf '%s\n' "[vexjoy] hook file $1 is missing (not deployed); skipped. Fix: git -C '$root' pull --ff-only && '$root/install.sh'" >&2
+    exit 1
+fi
 
 p="$HOME/.claude/vexjoy/bin/python3"
 if [ -L "$p" ]; then
