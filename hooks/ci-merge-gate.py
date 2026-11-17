@@ -100,29 +100,63 @@ def extract_pr_number(command: str) -> str | None:
 _BYPASS_ENV = "CI_MERGE_GATE_BYPASS"
 
 
+_UNSAFE_SHELL_RE = re.compile(r"\$\(|`|(?<!\w)\$\w|\"\$|'\$|(?<!\w)eval\b|(?<!\w)bash\s+-c\b")
+
+_BARE_REDIRECTS = frozenset({">", ">>", "<", "2>", "2>>", "&>", ">&"})
+
+_REDIRECT_START_RE = re.compile(r"^(\d*[<>]|[<>]{2}|&>|>&)")
+
+
+def _is_redirect(tok: str) -> bool:
+    """True when *tok* is a shell redirection operator or a fused redirect+target."""
+    if tok in _BARE_REDIRECTS or tok in ("<<", "<<<"):
+        return True
+    # Fused forms: >file, >>file, 2>file, 2>&1, &>file, >&file, N>file
+    return bool(_REDIRECT_START_RE.match(tok))
+
+
 def _merge_segment_flags(command: str) -> set[str]:
     """Return the set of flag tokens found in every ``gh pr merge`` segment.
 
     Parses each segment with shlex so that a flag inside quoted text (the value
-    of ``--body``, ``--subject``, etc.) is not mistaken for a real flag.  On a
-    parse error (unbalanced quotes, ``bash -c "..."``), falls back to
-    ``command.split()`` so that every currently blocked case stays blocked.
+    of ``--body``, ``--subject``, etc.) is not mistaken for a real flag.
+    Redirect operators and their targets are skipped (they do not end the
+    segment).  On a parse error, or when the segment contains shell constructs
+    that could hide a flag (``$()``, backticks, ``eval``, ``bash -c``, variable
+    expansions), falls back to ``command.split()`` so that every currently
+    blocked case stays blocked.
     """
     flags: set[str] = set()
+    fallback = {t for t in command.split() if t.startswith("--")}
     for m in _MERGE_RE.finditer(command):
         rest = command[m.end() :]
+        # Isolate the segment up to the first real separator for the shell check.
+        segment_text = re.split(r"&&|\|\||;", rest, maxsplit=1)[0]
+        if _UNSAFE_SHELL_RE.search(segment_text):
+            return fallback
         lex = shlex.shlex(rest, posix=True, punctuation_chars=True)
         lex.whitespace_split = True
         lex.commenters = ""
         try:
             tokens = list(lex)
         except ValueError:
-            # Unbalanced quotes — fall back to the broad split to stay safe.
-            return {t for t in command.split() if t.startswith("--")}
+            # Unbalanced quotes -- fall back to the broad split to stay safe.
+            return fallback
         skip_next = False
+        skip_redirect_target = False
         for tok in tokens:
-            if tok in _SEGMENT_END or tok[:1] in "<>" or tok.startswith(("&", "|", ";")):
+            # Real command separators end the segment.
+            if tok in _SEGMENT_END:
                 break
+            # Redirect operators: skip them and their target (the filename).
+            if skip_redirect_target:
+                skip_redirect_target = False
+                continue
+            if _is_redirect(tok):
+                # A bare redirect like ">" or "2>" needs the next token as target.
+                if tok in _BARE_REDIRECTS:
+                    skip_redirect_target = True
+                continue
             if skip_next:
                 skip_next = False
                 continue
