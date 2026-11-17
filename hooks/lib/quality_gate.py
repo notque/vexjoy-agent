@@ -72,11 +72,19 @@ class QualityReport:
         }
 
 
+_registry_cache: dict | None = None
+
+
 def load_registry() -> dict:
-    """Load language registry configuration."""
+    """Load language registry configuration (cached for the process)."""
+    global _registry_cache
+    if _registry_cache is not None:
+        return _registry_cache
     if not REGISTRY_PATH.exists():
-        return {"languages": {}, "fallback": {"tools": {}}, "global_patterns": {}}
-    return json.loads(REGISTRY_PATH.read_text())
+        _registry_cache = {"languages": {}, "fallback": {"tools": {}}, "global_patterns": {}}
+    else:
+        _registry_cache = json.loads(REGISTRY_PATH.read_text())
+    return _registry_cache
 
 
 def detect_languages(project_path: Path) -> list[str]:
