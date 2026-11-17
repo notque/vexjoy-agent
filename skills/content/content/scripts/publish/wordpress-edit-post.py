@@ -65,7 +65,11 @@ def load_env_file(env_path: Path | None = None) -> dict[str, str]:
                 continue
             if "=" in line:
                 key, value = line.split("=", 1)
-                env_vars[key.strip()] = value.strip()
+                value = value.strip()
+                # Strip one pair of matching surrounding quotes.
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
+                env_vars[key.strip()] = value
 
     return env_vars
 
