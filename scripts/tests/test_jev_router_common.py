@@ -245,12 +245,16 @@ class TestCache:
         resp = {"answers": {"q": {"noul": 0.9}}}
         fake_urlopen, call_count = _fake_urlopen_factory(resp)
 
+        real_time = time.time
+        clock = {"now": real_time()}
+
         with (
-            patch.dict(os.environ, {"JEV_CACHE_TTL_S": "0.1"}),
+            patch.dict(os.environ, {"JEV_CACHE_TTL_S": "10"}),
+            patch.object(common.time, "time", side_effect=lambda: clock["now"]),
             patch.object(common, "_open_url", side_effect=fake_urlopen),
         ):
             common.call_jev({"state": {}, "questions": {"q": {}}}, "fk", timeout=5.0)
-            time.sleep(0.15)
+            clock["now"] += 11  # advance past the 10 s TTL
             common.call_jev({"state": {}, "questions": {"q": {}}}, "fk", timeout=5.0)
 
         assert call_count["n"] == 2
@@ -330,14 +334,18 @@ class TestCircuitBreaker:
             resp.__exit__.return_value = False
             return resp
 
+        real_time = time.time
+        clock = {"now": real_time()}
+
         with (
-            patch.dict(os.environ, {"JEV_CACHE_TTL_S": "0", "JEV_BREAKER_TTL_S": "0.1"}),
+            patch.dict(os.environ, {"JEV_CACHE_TTL_S": "0", "JEV_BREAKER_TTL_S": "10"}),
+            patch.object(common.time, "time", side_effect=lambda: clock["now"]),
             patch.object(common, "_open_url", side_effect=fake_urlopen),
         ):
             with pytest.raises(RuntimeError, match="HTTP 402"):
                 common.call_jev({"state": {}, "questions": {"q": {}}}, "fk", timeout=5.0)
 
-            time.sleep(0.15)
+            clock["now"] += 11  # advance past the 10 s breaker TTL
             common._jev_down = None  # clear in-process flag to test file TTL
 
             data, _ = common.call_jev({"state": {}, "questions": {"q": {}}}, "fk", timeout=5.0)
