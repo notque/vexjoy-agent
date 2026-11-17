@@ -52,16 +52,23 @@ def load_env():
             os.environ[key] = val
 
 
-load_env()
-
-FAL_KEY = os.environ.get("FAL_KEY")
-if not FAL_KEY:
-    print("Error: FAL_KEY not found in env or ~/.env", file=sys.stderr)
-    print("Get your key at fal.ai", file=sys.stderr)
-    sys.exit(1)
+FAL_KEY: str | None = None
 
 POLL_INTERVAL = 3  # seconds
 MAX_POLLS = 200  # 10 minutes
+
+
+def _ensure_fal_key() -> str:
+    """Load env, check for FAL_KEY, and return it. Exits on missing key."""
+    global FAL_KEY
+    load_env()
+    FAL_KEY = os.environ.get("FAL_KEY")
+    if not FAL_KEY:
+        print("Error: FAL_KEY not found in env or ~/.env", file=sys.stderr)
+        print("Get your key at fal.ai", file=sys.stderr)
+        sys.exit(1)
+    return FAL_KEY
+
 
 # ── HTTP helpers ─────────────────────────────────────────────────────────────
 
@@ -132,6 +139,8 @@ def remove_chroma_key(image_path: Path, tolerance: int = 60) -> None:
 
 
 def main():
+    _ensure_fal_key()
+
     parser = argparse.ArgumentParser(description="fal.ai queue-based image generation")
     parser.add_argument(
         "--model", default="fal-ai/nano-banana-2", help="Model endpoint (default: fal-ai/nano-banana-2)"
