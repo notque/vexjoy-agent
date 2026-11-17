@@ -110,7 +110,7 @@ def _merge_segment_flags(command: str) -> set[str]:
     """
     flags: set[str] = set()
     for m in _MERGE_RE.finditer(command):
-        rest = command[m.end():]
+        rest = command[m.end() :]
         lex = shlex.shlex(rest, posix=True, punctuation_chars=True)
         lex.whitespace_split = True
         lex.commenters = ""
