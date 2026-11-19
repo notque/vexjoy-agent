@@ -5,7 +5,7 @@ description: |
   Claude Code ships updates, user goals change, or retro learnings accumulate.
 version: 1.0.0
 route_to:
-  agent: system-upgrade-engineer
+  agent: general-purpose
   skill: system-upgrade
   enhancements:
     - agent-evaluation

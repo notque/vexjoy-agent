@@ -5,7 +5,7 @@ description: |
   hook scaffolding in parallel, then integrates into the routing system.
 version: 1.0.0
 route_to:
-  agent: pipeline-orchestrator-engineer
+  agent: general-purpose
   skill: workflow
   enhancements:
     - codebase-overview
@@ -56,7 +56,7 @@ Entry point command for the Pipeline Creator meta-pipeline.
 
 ## Routing
 
-This command routes to `pipeline-orchestrator-engineer` with the `workflow` skill. The `/do` router recognizes these triggers:
+This command routes to a `general-purpose` worker with the `workflow` skill and its `references/pipeline-orchestrator.md` reference. The `/do` router recognizes these triggers:
 
 - "create pipeline", "new pipeline", "scaffold pipeline"
 - "build a pipeline for", "pipeline for"

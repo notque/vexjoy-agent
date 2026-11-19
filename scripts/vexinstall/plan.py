@@ -40,8 +40,16 @@ TAKEOVER_REASON = "takeover: unowned entry moved to trash and replaced"
 DANGLING_REASON = "cleanup: dangling link into a toolkit source"
 CATEGORY_LINK_REASON = "cleanup: legacy category link in flat skills root"
 CATEGORY_DIR_REASON = "cleanup: legacy category dir in flat skills root"
-CLEANUP_REASONS = frozenset({DANGLING_REASON, CATEGORY_LINK_REASON, CATEGORY_DIR_REASON})
+RETIRED_REASON = "cleanup: dangling link to a retired agent"
+CLEANUP_REASONS = frozenset({DANGLING_REASON, CATEGORY_LINK_REASON, CATEGORY_DIR_REASON, RETIRED_REASON})
 _WINDOWS = os.name == "nt"
+
+
+def _retired_agent(dest: Path) -> bool:
+    """True when *dest* names an agent retired by plans/009 (`<name>.md` or the `<name>/` dir)."""
+    from routing_index_merge import RETIRED_AGENTS  # scripts/ is on sys.path for every vexinstall entry
+
+    return dest.name.removesuffix(".md") in RETIRED_AGENTS
 
 
 @dataclass
@@ -688,8 +696,13 @@ def plan_target(
             base.op, base.reason = "skip", "user-edited copy; not removed"
         elif d in desire.filtered:
             base.reason = PROFILE_REASON
+        elif os.path.islink(dest) and not os.path.exists(dest):
+            # A dangling link to a retired agent (plans/009) is cleanup, outside the cap. Any
+            # other source shrink still trips the cap, so a bad checkout cannot mass-remove.
+            retired = led.kind == "agent" and _retired_agent(dest) and link_points_into(dest, roots)
+            base.reason = RETIRED_REASON if retired else "dangling link"
         else:
-            base.reason = "dangling link" if os.path.islink(dest) and not os.path.exists(dest) else "no longer desired"
+            base.reason = "no longer desired"
         tp.actions.append(base)
 
     leftovers = [a for c in sorted(owned) for a in _leftovers(c, led_entries, desire, containers, collision_dests)]

@@ -2,7 +2,7 @@
 description: "Run the complete 34-stage implementation workflow for a large, multi-system, multi-wave, or CPU-delegated 5 Star Booker GM program."
 version: 1.0.0
 route_to:
-  agent: project-coordinator-engineer
+  agent: general-purpose
   skill: gm-brilliant-implementation
   pipeline: gm-brilliant-implementation
 trigger:
@@ -28,7 +28,7 @@ Invoke through `/do`:
 /do run gm-brilliant-implementation for a multi-system GM feature
 ```
 
-The route uses `project-coordinator-engineer` to execute the first-class
+The route uses a `general-purpose` worker with the `workflow` skill's `project-coordinator` reference to execute the first-class
 `gm-brilliant-implementation` skill and pipeline. It presents seven canonical
 operator phases while executing 34 validated runtime stages.
 

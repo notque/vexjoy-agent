@@ -4,7 +4,7 @@
 `github-profile-rules` — extract programming rules and coding conventions from a GitHub user's public profile via API.
 
 ## Agent
-`github-profile-rules-engineer` (new)
+Retired; a `general-purpose` worker loads `skills/meta/toolkit/references/github-profile-rules.md`
 - Triggers: github rules, profile analysis, coding style extraction, github conventions, programming rules
 - Category: meta
 - Complexity: Medium
@@ -37,7 +37,7 @@
 
 ## Component Graph
 ```
-github-profile-rules-engineer (agent)
+general-purpose worker + toolkit reference github-profile-rules.md
   ├── github-profile-rules (main skill)
   │     ├── references/rule-categories.md
   │     ├── invokes: scripts/github-api-fetcher.py

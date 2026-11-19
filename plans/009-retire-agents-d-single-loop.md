@@ -20,7 +20,7 @@ The agent body moves to `<skill>/references/<slug>.md`, and the agent's
 
 | Lane | Destination skill | Agents (slug = agent name without `-engineer`) |
 |---|---|---|
-| L1 | `skills/programming/programming` | golang-general, python-general, rust-general, kotlin-general, swift-general, php-general, typescript-debugging, python-openstack, mcp-local-docs |
+| L1 | `skills/programming/programming` | golang-general, python-general, rust-general, kotlin-general, swift-general, php-general, typescript-debugging, python-openstack, mcp-local-docs, nodejs-api (moved in cleanup) |
 | L2 | `skills/frontend/frontend` | typescript-frontend, ui-design, react-portfolio, nextjs-ecommerce, react-native, performance-optimization |
 | L2 | `skills/game/game-dev` | pixijs-combat-renderer, rive-skeletal-animator, combat-effects-upgrade |
 | L3 | `skills/infrastructure/kubernetes` | kubernetes-helm, ansible-automation, prometheus-grafana, opensearch-elasticsearch, rabbitmq-messaging, perses |
