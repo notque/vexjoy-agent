@@ -411,3 +411,69 @@ def test_router_metrics_counts_skips_and_verifier_followthrough() -> None:
     out = metrics.summarize(rows, {})["d"]
     assert out["verify"] == {"required": 2, "verified": 1, "rate": metrics._rate(1, 2)}
     assert out["intent_skipped_rate"] == metrics._rate(1, 4)
+
+
+# ------------------------------------------------------------------ verifier findings (PR review of the /d upgrade)
+
+
+@pytest.mark.parametrize(
+    "request_text",
+    [
+        "push",
+        "can you commit this",
+        "merge the PR",
+        "open a pull request",
+        "gh pr create",
+        "amend the last commit",
+        "rebase onto main",
+        "rotate the api key",
+        "deploy to prod",
+        "publish the branch",
+        "",
+    ],
+)
+def test_trivial_skip_refuses_git_release_secret_and_empty_requests(request_text: str) -> None:
+    trivial = {"router": "d", "skill": "-", "complexity": "trivial", "task_spec": {"request_verbatim": request_text}}
+    with pytest.raises(bd.InputError, match=r"jev-intent-align\.py|task_spec\.intent|request_verbatim"):
+        _preamble(trivial)
+
+
+def test_safety_guard_fails_closed_when_pre_route_breaks(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Broken:
+        returncode = 1
+        stdout = "not json"
+
+    monkeypatch.setattr(bd.subprocess, "run", lambda *_a, **_k: Broken())
+    assert bd._safety_forced("what is 2+2") is True
+    assert bd._safety_forced("") is True
+
+
+def test_scenario_paths_read_absolute_worktree_and_bare_dir_paths(tmp_path: Path) -> None:
+    assert d_gate.scenario_paths("/home/u/vexjoy-agent/.claude/worktrees/x/hooks/a.py", tmp_path) == ["hooks/a.py"]
+    assert d_gate.scenario_paths("/srv/other-clone/scripts/vexinstall/plan.py", tmp_path) == [
+        "scripts/vexinstall/plan.py"
+    ]
+    assert d_gate.scenario_paths("hooks scripts/vexinstall", tmp_path) == ["hooks", "scripts/vexinstall"]
+    inside = tmp_path / "hooks" / "b.py"
+    assert d_gate.scenario_paths(str(inside), tmp_path) == ["hooks/b.py"]
+    assert d_gate.scenario_paths("/srv/other/docs/readme.md", tmp_path) == []
+
+
+def test_context_budget_ignores_paths_outside_the_repo(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    for i in range(12):
+        (outside / f"f{i}.md").write_text("x", encoding="utf-8")
+    assert d_gate.measure_scope(["~", "/", "../outside", str(outside)], repo) == (0, 0)
+
+
+def test_context_budget_survives_unreadable_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "d").mkdir()
+
+    def boom(*_a, **_k):
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(Path, "rglob", boom)
+    assert d_gate.measure_scope(["d"], tmp_path) == (0, 0)

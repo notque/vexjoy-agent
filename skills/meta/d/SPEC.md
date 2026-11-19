@@ -100,9 +100,11 @@ unrequested scope expansion is the feature's primary value.
     `/d` mode: every `/d` rule is behind `"router": "d"`.
 12. A pipeline's phases run in order in the main loop; only an independent
     fan-out or verifier phase leaves it.
-13. A Trivial main-loop route with no skill, no pipeline, and no safety force
-    route (checked by `build-dispatch.py` on `request_verbatim`, failing closed)
-    skips the intent validator and carries `intent=skipped`. Every other route,
+13. A Trivial main-loop route with no skill, no pipeline, no safety force
+    route (pre-route run by `build-dispatch.py` on `request_verbatim`, failing
+    closed on any guard error), and a request naming no git, release, secret,
+    security, or destructive work (`d_gate.sensitive_request`) skips the
+    intent validator and carries `intent=skipped`. Every other route,
     force routes included, needs a receipt.
 14. A Medium or Complex main-loop route needs `task_spec.acceptance`, plus
     `task_spec.scenario` when `task_spec.files` touches the installer, hooks,

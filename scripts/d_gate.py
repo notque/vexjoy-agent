@@ -319,26 +319,48 @@ def split_paths(raw: object) -> list[str]:
     return out
 
 
+def _inside(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
 def measure_scope(raw: object, base: Path) -> tuple[int, int]:
-    """(file count, bytes) of the existing files and directories `raw` names, relative to `base`."""
-    count = size = 0
+    """(file count, bytes) of the existing files and dirs `raw` names, inside `base` only.
+
+    `base` is the repo root: a path that resolves outside it (`~`, `/`, `..`)
+    counts nothing, so the floor cannot be met by pointing at the home dir.
+    Every entry visited, skipped ones included, counts toward the walk cap.
+    """
+    root = base.resolve()
+    count = size = visited = 0
     seen: set[Path] = set()
     for name in split_paths(raw):
-        path = Path(name).expanduser()
-        path = path if path.is_absolute() else base / path
-        targets = [path] if path.is_file() else (p for p in path.rglob("*") if p.is_file()) if path.is_dir() else []
-        for target in targets:
-            if count >= _BUDGET_WALK_CAP:
-                return count, size
-            try:
-                real = target.resolve()
-                if real in seen or "/.git/" in str(real):
-                    continue
-                seen.add(real)
-                size += real.stat().st_size
-                count += 1
-            except OSError:
+        try:
+            path = Path(name)
+            path = (path if path.is_absolute() else root / path).resolve()
+            if not _inside(path, root):
                 continue
+            targets = [path] if path.is_file() else path.rglob("*") if path.is_dir() else []
+            for target in targets:
+                visited += 1
+                if visited > _BUDGET_WALK_CAP:
+                    return count, size
+                try:
+                    if not target.is_file():
+                        continue
+                    real = target.resolve()
+                    if real in seen or "/.git/" in str(real) or not _inside(real, root):
+                        continue
+                    seen.add(real)
+                    size += real.stat().st_size
+                    count += 1
+                except OSError:
+                    continue
+        except OSError:
+            continue
     return count, size
 
 
@@ -356,18 +378,38 @@ def check_budget(spec: dict, base: Path) -> str | None:
     )
 
 
-def scenario_paths(raw: object) -> list[str]:
-    """The named paths that need a real-scenario check (installer, hooks, routing scripts)."""
+def _scenario_hit(rel: str) -> bool:
+    rel = rel.strip("/")
+    if rel in SCENARIO_FILES or rel.startswith(SCENARIO_PREFIXES):
+        return True
+    return any(rel == p.rstrip("/") for p in SCENARIO_PREFIXES)
+
+
+def scenario_paths(raw: object, base: Path | None = None) -> list[str]:
+    """The named paths that need a real-scenario check (installer, hooks, routing scripts).
+
+    Relative paths are read from the repo root. An absolute path inside `base`
+    is made relative to it; one outside it (another checkout or worktree)
+    matches when any of its trailing segments does, erring toward a check.
+    """
+    root = (base or Path.cwd()).resolve()
     hits: list[str] = []
     for name in split_paths(raw):
-        rel = name.replace("\\", "/")
-        rel = rel.split("/vexjoy-agent/", 1)[-1] if "/vexjoy-agent/" in rel else rel.lstrip("./")
-        if rel in SCENARIO_FILES or rel.startswith(SCENARIO_PREFIXES):
-            hits.append(rel)
+        text = name.replace("\\", "/")
+        if text.startswith("/"):
+            try:
+                rel = str(Path(text).resolve().relative_to(root))
+            except (ValueError, OSError):
+                parts = [p for p in text.split("/") if p]
+                rel = next(("/".join(parts[i:]) for i in range(len(parts)) if _scenario_hit("/".join(parts[i:]))), text)
+        else:
+            rel = re.sub(r"^(\./)+", "", text)
+        if _scenario_hit(rel) and rel not in hits:
+            hits.append(rel.strip("/"))
     return hits
 
 
-def check_verify(complexity: str, spec: dict) -> str | None:
+def check_verify(complexity: str, spec: dict, base: Path | None = None) -> str | None:
     """Medium and Complex /d work names its acceptance up front; risky paths also name a real scenario."""
     if complexity not in VERIFY_COMPLEXITIES:
         return None
@@ -376,7 +418,7 @@ def check_verify(complexity: str, spec: dict) -> str | None:
             f"A {complexity} /d route needs task_spec.acceptance: the command or check that proves the work, "
             "which an independent verifier runs before you report done."
         )
-    hits = scenario_paths(spec.get("files"))
+    hits = scenario_paths(spec.get("files"), base)
     if hits and not str(spec.get("scenario") or "").strip():
         shown = ", ".join(hits[:5]) + (" ..." if len(hits) > 5 else "")
         return (
@@ -399,13 +441,35 @@ def verify_step(spec: dict) -> str:
     )
 
 
+# Words that keep a trivial request on the intent validator even when pre-route
+# finds no force route ("push", "rebase onto main", "rotate the api key").
+# Broad on purpose: a false refusal costs one validator call.
+_SENSITIVE_RE = re.compile(
+    r"\b(git|gh|push\w*|commit\w*|merg\w*|rebas\w*|squash\w*|amend\w*|revert\w*|cherry-pick|stash\w*|reset|"
+    r"pr|prs|pull requests?|branch\w*|tag\w*|releas\w*|publish\w*|deploy\w*|ship\w*|"
+    r"secrets?|keys?|tokens?|credentials?|passwords?|auth\w*|security|vuln\w*|audit\w*|"
+    r"delete\w*|drop|rm|chmod|chown|sudo|cron\w*|systemctl|nginx|firewall|ssh)\b",
+    re.IGNORECASE,
+)
+
+
+def sensitive_request(request: str) -> bool:
+    """True for an empty request or one naming git, release, secret, security, or destructive work."""
+    return not request.strip() or bool(_SENSITIVE_RE.search(request))
+
+
 def trivial_skip(decision: dict, forced: object) -> bool:
     """True when a /d route may skip the intent validator.
 
     Deterministic only: complexity trivial, main loop, no skill, no pipeline,
-    and no safety force route (git, PR, security) for the request.
+    no safety force route, and a request that names no git, release, secret,
+    security, or destructive work. Fails closed: an unknown guard result
+    (`forced` truthy) or an empty request keeps the validator.
     """
     if forced:
+        return False
+    spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
+    if sensitive_request(str(spec.get("request_verbatim") or "")):
         return False
     complexity = str(decision.get("complexity") or "").strip().lower()
     skill = str(decision.get("skill") or "-").strip().lower()

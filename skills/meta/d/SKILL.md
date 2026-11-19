@@ -116,8 +116,8 @@ cost into the work, instead of meeting the gate mid-commit.
 Trivial with no skill and no pipeline, and `JEV_RESULT.forced` null: skip
 Phase 2. Run `build-dispatch.py` with `"execution": "main", "skill": "-",
 "complexity": "trivial"` (Phase 5 shape); it checks the request against the
-safety force route itself, marks `intent=skipped`, and asks for a receipt when
-the request is git, PR, or security work. Otherwise run Phase 2 with
+safety force route and a git, release, secret, and security word list itself,
+marks `intent=skipped`, and asks for a receipt when either matches. Otherwise run Phase 2 with
 `{"complexity": "trivial"}` as the route file first. Show `Classification:
 Trivial`, then answer or do the one-line action. Skip Phases 3-4.
 

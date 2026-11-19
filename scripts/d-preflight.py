@@ -27,6 +27,8 @@ import time
 from pathlib import Path
 from types import ModuleType
 
+sys.dont_write_bytecode = True  # importing the hooks must not leave __pycache__ behind
+
 TIME_BUDGET_S = 20.0
 SCRIPTS = Path(__file__).resolve().parent
 

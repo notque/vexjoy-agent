@@ -92,3 +92,8 @@ def test_signals_fall_back_to_the_session_when_jev_gave_none() -> None:
         "jev",
     )
     assert jev_route._signals({"signals": None}, {}) == (None, "none")
+
+
+def test_session_signals_count_only_real_true() -> None:
+    signals, _ = jev_route._signals({"signals": None}, {"signals": {"tests_requested": "false", "local_only": True}})
+    assert signals == {"tests_requested": False, "local_only": True}

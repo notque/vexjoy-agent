@@ -814,21 +814,51 @@ def resolve_router(decision: dict) -> str:
 
 
 def _safety_forced(request: str) -> object:
-    """The /d safety force route (git, PR, security) for a request, from jev-route's deterministic guard.
+    """The /d safety force route (git, PR, security) for a request, from pre-route.py and jev-route's filter.
 
-    Never calls Jev. Unknown (the guard cannot load) counts as forced, so a
-    broken install never lets a route skip the intent validator.
+    Never calls Jev. Fails closed: an empty request, a pre-route run that
+    exits non-zero or prints no JSON, or a guard that cannot load counts as
+    forced, so a broken install never lets a route skip the intent validator.
     """
+    if not request.strip():
+        return True
     try:
         import importlib.util
+        import tempfile
 
-        path = Path(__file__).resolve().parent / "jev-route.py"
-        spec = importlib.util.spec_from_file_location("jev_route_guard", path)
+        here = Path(__file__).resolve().parent
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as tmp:
+            tmp.write(request)
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(here / "pre-route.py"), "--request-file", tmp.name, "--json-compact"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+        finally:
+            os.unlink(tmp.name)
+        pre_route = json.loads(proc.stdout)
+        if proc.returncode != 0 or not isinstance(pre_route, dict) or "matched" not in pre_route:
+            return True
+        spec = importlib.util.spec_from_file_location("jev_route_guard", here / "jev-route.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return module._forced(module._run_pre_route(request))
+        return module._forced(pre_route)
     except Exception:
         return True
+
+
+def _repo_top() -> Path:
+    """The git top level of the cwd (the repo the route works in), else the cwd."""
+    try:
+        top = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=5, check=False
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        top = ""
+    return Path(top) if top else Path.cwd()
 
 
 def d_intent_skipped(decision: dict) -> bool:
@@ -862,7 +892,7 @@ def check_d_route(decision: dict) -> list[str]:
     if resolve_execution(decision) == "main":
         if decision.get("dispatch_reason"):
             raise InputError("dispatch_reason applies only to execution='dispatch'; drop it for a main-loop route")
-        problem = d_gate.check_verify(str(decision.get("complexity") or "").strip().lower(), spec)
+        problem = d_gate.check_verify(str(decision.get("complexity") or "").strip().lower(), spec, _repo_top())
         if problem:
             raise InputError(problem)
         return []
@@ -870,7 +900,7 @@ def check_d_route(decision: dict) -> list[str]:
     if not skill or skill == "-":
         raise InputError("a /d dispatch needs a skill: the worker loads it and its reference")
     model, _effort = resolve_model_selection(decision, _resolve_provider(decision))
-    problem = d_gate.check_dispatch(decision, model, load_known_agents() - BUILTIN_AGENTS, Path.cwd())
+    problem = d_gate.check_dispatch(decision, model, load_known_agents() - BUILTIN_AGENTS, _repo_top())
     if problem:
         raise InputError(problem)
     reason = str(decision.get("dispatch_reason") or "").strip().lower()

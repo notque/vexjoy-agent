@@ -558,7 +558,7 @@ def _signals(prepared: dict, decision: dict) -> tuple[dict | None, str]:
         return jev, "jev"
     own = decision.get("signals")
     if isinstance(own, dict):
-        picked = {k: bool(own.get(k)) for k in SIGNAL_KEYS if k in own}
+        picked = {k: own.get(k) is True for k in SIGNAL_KEYS if k in own}
         if picked:
             return picked, "session"
     return None, "none"
