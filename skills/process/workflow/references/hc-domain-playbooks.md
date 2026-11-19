@@ -22,7 +22,7 @@ does not match the script, the script wins.
 | FIXTURE | One scene, one scripted input trace, fixed entity count, fixed seed, fixed viewport and device-pixel-ratio, same browser build. Prove it: checksum the input trace and the scene file; record the seed and the resolution in the ledger. Discard the first run — shader and texture warm-up is not steady state. |
 | FLOOR | Game boots, the scripted trace completes without an uncaught exception, and end-of-trace game state matches the baseline run (score, entity count, seed-derived positions). |
 | Typical hot spots | Per-frame allocation driving GC pauses; draw calls not batched (no sprite atlas, no `InstancedMesh`); physics bodies active off-screen; per-frame `getBoundingClientRect` or layout reads; particle counts scaling with no pool. |
-| Paired agent/skill | `phaser-gamedev` (2D), `threejs-builder` (3D), `performance-optimization-engineer` (browser runtime judgment). |
+| Paired skill/reference | `phaser-gamedev` (2D), `threejs-builder` (3D), `frontend` `performance-optimization.md` (browser runtime judgment). |
 
 ---
 
@@ -35,7 +35,7 @@ does not match the script, the script wins.
 | FIXTURE | Fixed request corpus (same bodies, same auth, same order or same seed), seeded database restored from a dump with a recorded checksum, fixed concurrency, warmed connection pool, no external network in the measured path — stub or record third-party calls. |
 | FLOOR | Contract and integration tests green; every benched request returns its baseline status code and response body shape. A latency win that changes a response is not a win. |
 | Typical hot spots | N+1 queries; missing index on the filter column; JSON serialization of over-fetched rows; synchronous third-party calls inside the request; per-request connection setup; unbounded response size. |
-| Paired agent/skill | `nodejs-api-engineer`, `database-engineer` (query and index work), `python-general-engineer` / `golang-general-engineer` by stack. |
+| Paired skill/reference | `programming` `nodejs-api.md`, `data` `database.md` (query and index work), `programming` `python-general.md` / `programming` `golang-general.md` by stack. |
 
 ---
 
@@ -48,7 +48,7 @@ does not match the script, the script wins.
 | FIXTURE | Same workflow file, same commit range shape, same runner class (`ubuntu-latest` vs a larger runner are different fixtures), same cache state — declare cold or warm and keep it. Prove it: record runner label and cache-hit lines from the log. |
 | FLOOR | The workflow still runs every job it ran at baseline, with the same test count and the same required checks. Deleting or skipping a job is a guardrail crossing, not an optimization. |
 | Typical hot spots | Serial `needs:` edges that carry no real dependency; cache miss on every run (wrong key); full-history `fetch-depth: 0` clones; dependency install repeated per job; a single long job nobody split. |
-| Paired agent/skill | `pr-workflow` (CI policy), `testing-automation-engineer` (job splitting), `kubernetes-helm-engineer` for self-hosted runner sizing. |
+| Paired skill/reference | `pr-workflow` (CI policy), `testing` `testing-automation.md` (job splitting), `kubernetes` `kubernetes-helm.md` for self-hosted runner sizing. |
 
 ---
 
@@ -61,7 +61,7 @@ does not match the script, the script wins.
 | FIXTURE | Same test selection (no `-k`, no new markers), same worker count, same database or container state, same seed for randomized ordering. Prove it: record the collected-test count and assert it is unchanged every iteration. |
 | FLOOR | Same number of tests collected, all passing, coverage not below baseline. Speedups that come from collecting fewer tests are the classic false win. |
 | Typical hot spots | Session fixtures rebuilt per test; real `sleep` instead of condition-based waiting; network or container startup inside tests; no parallelism (`-n auto`, `--pool=threads`); import-time work in test modules. |
-| Paired agent/skill | `testing-automation-engineer`, `condition-based-waiting` (sleep removal), `vitest-runner`, `python-quality-gate`. |
+| Paired skill/reference | `testing` `testing-automation.md`, `condition-based-waiting` (sleep removal), `vitest-runner`, `python-quality-gate`. |
 
 ---
 
@@ -74,7 +74,7 @@ does not match the script, the script wins.
 | FIXTURE | Pinned lockfile, pinned bundler version, same build mode and env vars, same target list. Prove it: checksum the lockfile; if two consecutive builds differ in bytes, fix the build before climbing. |
 | FLOOR | The app builds, the route renders, and the e2e smoke path passes. Dropping a polyfill or a locale is a behavior change, not a size win, unless the user accepts the dropped support. |
 | Typical hot spots | A date, icon, or lodash library imported whole; duplicate versions of one dependency; moment/luxon-style locale bundles; source maps or dev-only code shipped; no route-level code splitting. |
-| Paired agent/skill | `performance-optimization-engineer`, `typescript-frontend-engineer`. |
+| Paired skill/reference | `frontend` `performance-optimization.md`, `frontend` `typescript-frontend.md`. |
 
 ---
 
@@ -87,7 +87,7 @@ does not match the script, the script wins.
 | FIXTURE | Same workload size, same concurrency, same allocator and runtime version, same GC settings. Prove it: record the input row count and the runtime version; RSS is meaningless across a runtime upgrade. |
 | FLOOR | Full functional suite green, and no new latency or throughput regression beyond tolerance — memory is usually traded against speed, so name the speed bound as a floor condition. |
 | Typical hot spots | Whole result set loaded instead of streamed; unbounded cache or memo dict; retained listeners and closures; large intermediate copies in a transform chain; per-object overhead where a compact array would do. |
-| Paired agent/skill | `python-general-engineer`, `golang-general-engineer`, `database-engineer` for streaming query patterns. |
+| Paired skill/reference | `programming` `python-general.md`, `programming` `golang-general.md`, `data` `database.md` for streaming query patterns. |
 
 ---
 
@@ -100,7 +100,7 @@ does not match the script, the script wins.
 | FIXTURE | Frozen request corpus (n ≥ 30) with a recorded checksum, pinned model id, pinned temperature/seed where the API offers one, same tool set. Prove it: token counts vary run to run, so treat this as a sampled metric and take the baseline spread seriously. |
 | FLOOR | Task success rate on the corpus does not drop. Cheaper wrong answers are not an improvement — the floor is a scored eval, not a smoke test. |
 | Typical hot spots | Unbounded tool output pasted into context; a manifest duplicated in the system prompt and the harness listing; reference files loaded when the branch does not need them; full conversation history resent; retries on malformed output. |
-| Paired agent/skill | `toolkit` agent-comparison (corpus scoring), `toolkit-governance-engineer` (manifest and reference trimming). |
+| Paired skill/reference | `toolkit` agent-comparison (corpus scoring), `toolkit` governance reference `toolkit-governance.md` (manifest and reference trimming). |
 
 ---
 
@@ -126,7 +126,7 @@ it has no accept/revert rule. Bolt hill-climb on for that half.
 | FIXTURE | Pinned build commit, pinned player path and segment, pinned packet scope (which capabilities count toward the metric), and pinned packet text. A sweep that widens mid-loop lowers the count for free. Prove it: record the packet IDs and the build SHA in the ledger. |
 | FLOOR | Game builds and the affected player path completes; the harm guard the autonomous-improvement cycle defines for that change stays green (no confusion, abandonment, spend pressure, accessibility regression, or social-abuse surface introduced); the retention safety checks still pass. |
 | Typical hot spots | Dead steps before the first meaningful action; unclear goal or reward copy at a decision point; unrecoverable failure states; goal-density gaps mid-session; instrumentation that never measured player understanding. |
-| Paired agent/skill | `game-design` (owns the sweep and the queue), `phaser-gamedev` / `threejs-builder` (implementation), `joy-check` (framing of player-facing copy). |
+| Paired skill/reference | `game-design` (owns the sweep and the queue), `phaser-gamedev` / `threejs-builder` (implementation), `joy-check` (framing of player-facing copy). |
 
 Order of operations: run the autonomous-improvement cycle through step 3 first,
 so a real queue exists, then enter hill-climb at Phase 1 with the metric chosen

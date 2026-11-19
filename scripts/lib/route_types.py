@@ -24,7 +24,7 @@ from typing import Literal, TypedDict
 
 # /do (SKILL.md Phase 4 Step 2) prepends this line to every agent prompt IT
 # routes. Its presence is the SOLE signal that a dispatch came from /do:
-#   [do-route] agent=python-general-engineer skill=test-driven-development ...
+#   [do-route] agent=general-purpose skill=testing ...
 # skill may be empty, "-", or absent (agent-only routing). Sub-agent fan-out
 # (reviewer rosters, nested dispatches) carries no marker.
 #

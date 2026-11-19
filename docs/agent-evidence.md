@@ -28,10 +28,10 @@ returned as decoded JSON by the Python API and CLI JSON views.
 
 ```bash
 python3 scripts/learning-db.py evidence-recent --json --limit 20
-python3 scripts/learning-db.py evidence-route-context python-general-engineer:test-driven-development --json
+python3 scripts/learning-db.py evidence-route-context general-purpose:test-driven-development --json
 python3 scripts/learning-db.py evidence-file-history hooks/lib/learning_db_v2.py --json
 python3 scripts/learning-db.py evidence-failures --json
-python3 scripts/learning-db.py evidence-decide python-general-engineer:test-driven-development --json
+python3 scripts/learning-db.py evidence-decide general-purpose:test-driven-development --json
 ```
 
 The `evidence-decide` command returns an advisory value only:

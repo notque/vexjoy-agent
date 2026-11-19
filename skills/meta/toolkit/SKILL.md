@@ -2,7 +2,6 @@
 name: toolkit
 description: "Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md."
 user-invocable: true
-agent: toolkit-governance-engineer
 allowed-tools:
   - Read
   - Write
@@ -45,17 +44,53 @@ routing:
     - "weaker model"
     - "weak model uplift"
     - "improve skill for weaker models"
+    - "edit skill"
+    - "routing table governance"
+    - "ADR management"
+    - "toolkit maintenance"
+    - "check coverage"
+    - "skill compliance"
+    - "hook standardization"
+    - "cross-component consistency"
+    - "upgrade agents"
+    - "system upgrade"
+    - "claude update"
+    - "upgrade skills"
+    - "adapt workflow"
+    - "apply claude update"
+    - "apply update"
+    - "system health"
+    - "update system"
+    - "new claude version"
+    - "apply retro"
+    - "create hook"
+    - "hook development"
+    - "event handler"
+    - "PostToolUse"
+    - "PreToolUse"
+    - "SessionStart"
+    - "routing telemetry hook"
+    - "hook registration"
+    - "github rules"
+    - "profile analysis"
+    - "coding style extraction"
+    - "github conventions"
+    - "programming rules"
   category: meta-tooling
   pairs_with:
     - review
     - workflow
+    - assessment
+    - docs-sync-checker
+    - testing
+    - pr-workflow
 ---
 
 # Toolkit
 
-Nine modes covering the full toolkit lifecycle: creating and improving skills
+Thirteen modes covering the full toolkit lifecycle: creating and improving skills
 and agents; evaluating agents; maintaining routing tables; generating CLAUDE.md;
-composing multi-skill DAGs; and running the evolution loop. Classify the request
+composing multi-skill DAGs; running the evolution loop; governance; system upgrades; hook development; and GitHub profile rule extraction. Classify the request
 and follow the matching section.
 
 ## Mode Selection
@@ -71,6 +106,10 @@ and follow the matching section.
 | **Routing Tables** | update routing tables, sync routing, routing drift | Update Routing |
 | **Toolkit Evolution** | evolve toolkit, self-improve, discover gaps | Evolve Toolkit |
 | **Generate CLAUDE.md** | generate claude.md, create claude.md, init | Generate CLAUDE.md |
+| **Governance** | edit skill, routing governance, ADR lifecycle, hook standardization, consistency check | Load `references/toolkit-governance.md` |
+| **System Upgrade** | claude update, upgrade skills, apply update, apply retro | Load `references/system-upgrade.md` |
+| **Hook Development** | create hook, PreToolUse, PostToolUse, SessionStart, hook registration | Load `references/hook-development.md` |
+| **GitHub Profile Rules** | github rules, profile analysis, coding style extraction | Load `references/github-profile-rules.md` |
 
 ---
 
@@ -92,15 +131,19 @@ Scripts: `scripts/skill-creator/`
 
 ## Create Agent
 
+Repo agents are retired (plan 009). A request for a new agent in this repo produces a skill reference, or a new skill when no skill fits. Work runs in the main thread; when dispatch pays, a fresh `general-purpose` worker loads the skill and the reference.
+
 Phases: **DISCOVER -> DESIGN -> SCAFFOLD -> REGISTER -> VALIDATE**
 
-1. **Discover.** Check for domain overlap: `grep -i "<domain>" agents/*.md`. If an existing agent covers the domain, add a `references/` file instead.
-2. **Design.** Decide role type (reviewer/engineer/orchestrator), allowed tools, complexity, triggers (3-6 specific phrases), pairs_with (verify each exists), reference files, description (intent verb + domain + boundary clause), activation cases.
-3. **Scaffold.** Write the agent file using `references/agent-creator/agent-frontmatter-template.md`. Follow `docs/PHILOSOPHY.md` for operator context structure.
-4. **Register.** Run `python3 scripts/generate-agent-index.py`.
-5. **Validate.** Run `python3 scripts/validate-references.py` to check reference file integrity. Test activation with the 3+2+2 prompt set.
+1. **Discover.** Find the owning skill: `grep -ril "<domain>" skills/*/*/SKILL.md skills/*/*/references/`. If a skill reference already covers the domain, extend it instead of adding a new one.
+2. **Design.** Decide the owning skill (or a new skill), reference slug, the Reference Loading Table signals that load it (3-6 specific phrases), allowed tools for a worker that loads it, depth files under `references/<slug>/`, and activation cases.
+3. **Scaffold.** Write `skills/<category>/<skill>/references/<slug>.md` (depth in `references/<slug>/`) and add its row to the skill's Reference Loading Table. For a new skill, use Create Skill. Follow `docs/PHILOSOPHY.md` for structure.
+4. **Register.** Run `python3 scripts/generate-skill-index.py` when skill frontmatter changed.
+5. **Validate.** Run `python3 scripts/validate-references.py --check-placeholders`, `--check-size`, and `--check-skill-calls`. Test activation with the 3+2+2 prompt set against the loading-table signals.
 
-Load `references/agent-creator.md` for full phases. Deep references in `references/agent-creator/` cover design patterns, frontmatter template, eval design.
+**Private overlay agent (owner request only).** When the owner asks for an agent file, write it in `private-agents/`, use `references/agent-creator/agent-frontmatter-template.md`, index it into `agents/INDEX.local.json` with `python3 scripts/generate-agent-index.py --include-private`, and validate it with `python3 scripts/validate-references.py --agent <name> --agents-dir private-agents`.
+
+Load `references/agent-creator.md` for full phases. Deep references in `references/agent-creator/` cover design patterns, frontmatter template (overlay agents), eval design.
 
 ---
 
@@ -205,6 +248,10 @@ Optional modes: subdirectory CLAUDE.md for monorepos; minimal mode (overview + c
 
 ---
 
+## Dispatching a Toolkit Worker
+
+Repo agents are retired. When a toolkit task goes to a worker (a hook change in an upgrade, a parallel governance sweep), dispatch a fresh `general-purpose` agent whose prompt starts: "Read ~/.claude/skills/toolkit/references/<file> and follow it; load every file its Reference Loading Table matches."
+
 ## Deep References
 
 Load when the task needs detailed schemas, templates, or methodology.
@@ -221,6 +268,10 @@ Load when the task needs detailed schemas, templates, or methodology.
 | Routing Tables | `references/routing-table-updater.md`, `references/routing-table-updater/{routing-format,extraction-patterns,conflict-resolution,examples}.md` |
 | Toolkit Evolution | `references/toolkit-evolution.md`, `references/toolkit-evolution/{diagnose-scripts,evolution-history,evolve-preferred-patterns}.md` |
 | Generate CLAUDE.md | `references/generate-claudemd.md`, `references/generate-claudemd/{CLAUDEMD_TEMPLATE,examples-and-errors}.md` |
+| Governance | `references/toolkit-governance.md`, `references/toolkit-governance/{frontmatter-compliance,routing-table-patterns,adr-lifecycle,hook-standardization}.md` |
+| System Upgrade | `references/system-upgrade.md`, `references/system-upgrade/{upgrade-signal-parsing,component-audit-checklists,upgrade-failure-modes}.md` |
+| Hook Development | `references/hook-development.md`, `references/hook-development/{architecture,preferred-patterns,code-examples,telemetry-database}.md` |
+| GitHub Profile Rules | `references/github-profile-rules.md`, `references/github-profile-rules/{rule-categories,github-api-patterns}.md` |
 
 ## Scripts and Agents
 

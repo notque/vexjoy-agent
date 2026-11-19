@@ -54,9 +54,9 @@ The generated catalogs are [routing-map.md](routing-map.md) (agents, skills, and
 For the complete inventory of agents, skills, and pipelines, query programmatically:
 
 ```bash
-python3 scripts/routing-manifest.py --json      # all agents, skills, pipelines as JSON
+python3 scripts/routing-manifest.py --json      # all skills and pipelines as JSON
 python3 scripts/routing-manifest.py --compact    # compact text manifest for LLM context
-python3 scripts/generate-agent-index.py          # regenerate agents/INDEX.json
+python3 scripts/generate-agent-index.py          # regenerate agents/INDEX.json (empty public index; private overlay agents go to INDEX.local.json)
 python3 scripts/generate-skill-index.py          # regenerate skills/INDEX.json
 python3 scripts/validate-skill-frontmatter.py    # skill frontmatter; agent descriptions (300-byte cap, no <example>)
 ```
@@ -132,7 +132,7 @@ No toolkit Stop or SubagentStop hook blocks. `subagent-completion-guard` prints 
 
 ### Lifecycle
 
-1. **Decide**: `/do` picks an agent and skill and stamps a `[do-route]` marker into the dispatch prompt
+1. **Decide**: `/do` picks a skill (worker `main` or `general-purpose`) and stamps a `[do-route]` marker into the dispatch prompt
 2. **Record**: `routing-decision-recorder.py` writes one decision row per marker on PostToolUse
 3. **Resolve**: `routing-outcome-finalizer.py` scores the outcome on the user's next prompt; the SubagentStop recorder validates pending entries, the Stop fallback scores errored and stale (over 6 hours) ones, and the same hook resolves the rest on SessionEnd
 4. **Report**: `learning-db.py route-health` prints the loop's correctness metrics
@@ -186,7 +186,6 @@ description: "What this skill does and when to use it."
 user-invocable: true | false
 allowed-tools: [Read, Write, Bash, Grep, Glob, Edit, Skill, Task, Agent]
 context: fork                    # optional: run in an isolated subagent
-agent: golang-general-engineer   # optional: declare executor agent
 argument-hint: "<target>"        # optional
 routing:
   triggers: [keyword1]
@@ -219,12 +218,12 @@ Skills carry no `model` key. `/do` picks the dispatch model from the task type (
 User says "fix the failing Go tests"
 
 1. /do classifies: Simple (code change)
-2. Route on intent: agent golang-general-engineer; skill programming
+2. Route on intent: skill programming
    (force-routed on Go test work; loads its Go testing references)
 3. Enhancements: stacked on signals (tests -> verification)
 4. Plan: task_plan.md (Simple+)
 5. Execute: Claude Code's main thread runs Simple work with the skill loaded;
-   it dispatches the agent only when that pays
+   it dispatches a general-purpose worker only when that pays
 6. Record: a dispatch carries a [do-route] marker, and its decision and
    outcome land in learning.db
 ```
@@ -237,7 +236,7 @@ The route is an example; the router decides by meaning, and [routing-map.md](rou
 
 1. **Route through /do.** Every non-trivial request enters via `/do`. Direct agent invocation bypasses routing logic and misses enhancements.
 2. **Agents think, scripts compute.** If it's deterministic and measurable, there's a script. Use it instead of reasoning about it.
-3. **Load only what you need.** Context is scarce. Load agent + skill + relevant references. Don't preload the full inventory.
+3. **Load only what you need.** Context is scarce. Load the skill + relevant references. Don't preload the full inventory.
 4. **Blocking hooks enforce, agents comply.** A blocking hook covers specific actions ([start-here.md](start-here.md#gates-in-every-repo)). Don't fight it. If a hook blocks, it's correct until proven otherwise. Everything else, including evidence before done, is a skill instruction you follow yourself.
 5. **Telemetry is automatic.** Hooks record route decisions, outcomes, and governance events. Don't hand-record what hooks already capture.
 6. **Subagents for isolation.** Complex tasks spawn subagents. Each gets fresh context with only what it needs.

@@ -177,10 +177,10 @@ async function recordTier(modUrl, tier, extraArgs, stubs) {
     tier,
     fixThreshold: 8000,
     roster: [
-      { agentType: "reviewer-system", skills: ["review", "testing"], lens: "security" },
-      { agentType: "reviewer-code", skills: ["review", "testing"], lens: "quality" },
+      { agentType: "general-purpose", skills: ["review", "testing"], lens: "security" },
+      { agentType: "general-purpose", skills: ["review", "testing"], lens: "quality" },
     ],
-    synthAgentType: "research-coordinator-engineer",
+    synthAgentType: "general-purpose",
     ...extraArgs,
   });
   return buildTrace(records, phasesEntered, logs, result);

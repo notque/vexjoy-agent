@@ -6,7 +6,7 @@ export const meta = {
   description: "phases declared do not match phases entered",
   contract: {
     phases: ["wave-1", "synthesis"],
-    roster: [{ agentType: "reviewer-system", skill: "systematic-code-review" }],
+    roster: [{ agentType: "general-purpose", skill: "systematic-code-review" }],
     agents: { static: 1, dynamic: false },
     dynamic: false,
   },
@@ -19,9 +19,9 @@ function enterPhase(title) {
 export default async function run({ scope } = {}) {
   enterPhase("wave-1");
   await agent({
-    prompt: `You are reviewer-system. Call the Skill tool with \`systematic-code-review\`. ${JSON.stringify(scope)}`,
+    prompt: `You are a general-purpose reviewer. Call the Skill tool with \`systematic-code-review\`. ${JSON.stringify(scope)}`,
     schema: { type: "object", required: ["verdict"], properties: { verdict: { type: "string", enum: ["APPROVE"] } } },
-    agentType: "reviewer-system",
+    agentType: "general-purpose",
   });
   enterPhase("verify"); // entered but NOT in contract.phases -> mismatch
   return {};

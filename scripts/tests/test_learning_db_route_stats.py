@@ -110,8 +110,20 @@ def test_by_skill_json_counts_skills() -> None:
 def test_totals_json_exclude_bookkeeping_rows() -> None:
     _seed()
 
-    assert _json("--by", "force-route") == {"by": "force-route", "total_routes": 3, "force_routed": 1, "scored": 2}
-    assert _json("--by", "override") == {"by": "override", "total_routes": 3, "llm_override": 1, "phase0_as_is": 2}
+    assert _json("--by", "force-route") == {
+        "by": "force-route",
+        "total_routes": 3,
+        "force_routed": 1,
+        "scored": 2,
+        "instrumented": True,
+    }
+    assert _json("--by", "override") == {
+        "by": "override",
+        "total_routes": 3,
+        "llm_override": 1,
+        "phase0_as_is": 2,
+        "instrumented": True,
+    }
     assert _json("--by", "errors") == {
         "by": "errors",
         "total_routes": 3,
@@ -132,3 +144,53 @@ def test_human_output_with_only_bookkeeping_rows_reports_no_data() -> None:
 
     assert res.returncode == 0, res.stderr
     assert "No routing data found" in res.stdout
+
+
+def _seed_recorder_shape() -> None:
+    """Rows in the shape hooks/routing-decision-recorder.py writes today."""
+    _record(
+        "general-purpose:programming",
+        "routing-decision: agent=general-purpose skill=programming tool_errors=1 user_rerouted=0 request: fix the api",
+    )
+    _record(
+        "main:testing", "routing-decision: agent=main skill=testing tool_errors=0 user_rerouted=0 request: add tests"
+    )
+
+
+def test_errors_read_the_recorder_token_shape() -> None:
+    _seed_recorder_shape()
+
+    assert _json("--by", "errors")["errored"] == [{"key": "general-purpose:programming", "request": "fix the api"}]
+
+
+def test_uninstrumented_dimensions_say_so_instead_of_printing_zero() -> None:
+    _seed_recorder_shape()
+
+    assert _json("--by", "force-route")["instrumented"] is False
+    res = _run_cli("route-stats", "--by", "override")
+    assert res.returncode == 0, res.stderr
+    assert "not instrumented" in res.stdout
+
+
+def test_route_health_counts_routes_not_bookkeeping_rows() -> None:
+    _seed()
+
+    res = _run_cli("route-health", "--json")
+    assert res.returncode == 0, res.stderr
+    assert json.loads(res.stdout)["total"] == 3
+
+
+def test_handoff_report_skips_main_thread_rows() -> None:
+    import learning_db_v2
+
+    with learning_db_v2.get_connection() as conn:
+        for i, agent in enumerate(("main", "general-purpose")):
+            conn.execute(
+                "INSERT INTO evidence_route_decisions (decision_id, route_key, agent, spec_score, prompt_chars, created_at) "
+                "VALUES (?, ?, ?, ?, ?, '2026-11-17 00:00:00')",
+                (f"d{i}", f"{agent}:x", agent, 0 if agent == "main" else 5, 90 if agent == "main" else 4000),
+            )
+        conn.commit()
+    res = _run_cli("handoff-report", "--json")
+    assert res.returncode == 0, res.stderr
+    assert json.loads(res.stdout)["scored"] == 1

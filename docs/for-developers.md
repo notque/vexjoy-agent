@@ -40,7 +40,7 @@ commands/            Slash command definitions
 adr/                 Architecture Decision Records (gitignored, local working documents)
 ```
 
-Two details matter. Generate, rather than hand-edit, `agents/INDEX.json` and `skills/INDEX.json` with `scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`. Hooks import shared code from `hooks/lib/`, never from each other.
+Two details matter. Generate, rather than hand-edit, `skills/INDEX.json` and `agents/INDEX.json` with `scripts/generate-skill-index.py` and `scripts/generate-agent-index.py`. The public agent index is empty since the specialist agents retired (plans/009); private overlay agents land in the gitignored local agents index. Hooks import shared code from `hooks/lib/`, never from each other.
 
 ### Private Skills
 

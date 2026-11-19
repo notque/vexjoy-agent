@@ -42,7 +42,7 @@ Run every task in at least two arms: **no guidance** and **current guidance**. T
 ```bash
 python3 scripts/weak_model_run.py --task tasks/pool.txt --out runs/r0/base-pool --format files
 python3 scripts/weak_model_run.py --task tasks/pool.txt --out runs/r0/guided-pool --format files \
-  --guidance agents/golang-general-engineer/references/go-modern-code.md
+  --guidance skills/programming/programming/references/golang-general/go-modern-code.md
 ```
 
 - The runner calls `claude -p --model claude-opus-4-6 --tools "" --output-format stream-json` and removes `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING`, which forces older models onto a deprecated thinking mode. It keeps every assistant text block (the `result` field holds only the last one, so a closing summary used to replace all the files), moves prose after the last file into `<out>.commentary`, writes `<out>.cost.json`, and exits 1 when a files-format reply has no files (rate-limit and session-limit replies).

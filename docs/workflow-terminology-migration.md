@@ -26,7 +26,7 @@ Canonicalize "workflow" as the umbrella term. Keep "pipeline" as a documented le
 - `PIPELINE-SELECTION RULE` and the Phase 4 Step 1b dispatch conditional in `skills/meta/do/SKILL.md`.
 - Root key `pipelines` in `skills/process/workflow/references/pipeline-index.json`.
 - Each pipeline entry's `phases` array names in `pipeline-index.json`.
-- Section headers `AGENTS:` / `SKILLS:` / `PIPELINES:` in `scripts/routing-manifest.py`.
+- Section headers `SKILLS:` / `PIPELINES:` in `scripts/routing-manifest.py` (`AGENTS:` dropped when the specialist agents retired, plans/009).
 - `e["type"] == "pipeline"` classification in `scripts/routing-manifest.py` (≈ lines 100, 148).
 - `INDEX_PATHS["pipelines"]` key load in `scripts/routing-manifest.py`.
 - `.pipeline-phase` sentinel file read by `hooks/pipeline-phase-gate.py`.

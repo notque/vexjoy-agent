@@ -78,8 +78,16 @@ def load_pipelines_index() -> tuple[dict, str | None]:
 
 
 def load_agents_index() -> tuple[dict, str | None]:
-    """Load the resolved agents index and return the agents dict keyed by name."""
-    return _load_resolved("agents")
+    """Load the resolved agents index and return the agents dict keyed by name.
+
+    Retired repo agents (plans/009) are dropped: an install built before the
+    retirement still lists them, and they can no longer be dispatched. A
+    missing agents index is an empty one, the normal state with no overlays.
+    """
+    if not resolved_index_path("agents").exists():
+        return {}, None
+    items, generated = _load_resolved("agents")
+    return {k: v for k, v in items.items() if k not in routing_index_merge.RETIRED_AGENTS}, generated
 
 
 def _newest_mtime(glob_pattern: str, base: Path) -> float | None:

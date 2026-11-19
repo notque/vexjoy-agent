@@ -42,7 +42,7 @@ routing:
 
 # Comprehensive Code Review v4 — Four-Wave Hybrid Architecture
 
-Four-wave review with per-package deep analysis and adversarial challenge. Wave 0 auto-discovers packages and dispatches one language engineer per package (`golang-general-engineer`, `python-general-engineer`, or `typescript-frontend-engineer`) to read ALL code in that package. Wave 1 (12 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. Wave 3 (4 adversarial agents, 5 with the SAPCC reviewer) challenges Wave 1+2 consensus. A wave "agent" is one dispatch of a real agent (`reviewer-system`, `reviewer-domain`, `reviewer-code`, `reviewer-perspectives`, or a language engineer) with one lens; the rosters live in `references/wave-*.md`. All findings are aggregated with wave-agreement labels, deduplicated, and auto-fixed.
+Four-wave review with per-package deep analysis and adversarial challenge. Wave 0 auto-discovers packages and dispatches one language worker per package (`general-purpose` loading `programming` `golang-general.md` or `python-general.md`, or `frontend` `typescript-frontend.md`) to read ALL code in that package. Wave 1 (12 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. Wave 3 (4 adversarial agents, 5 with the SAPCC reviewer) challenges Wave 1+2 consensus. A wave "agent" is one fresh `general-purpose` worker with one lens. It calls the Skill tool with `review` and loads one review reference (`reviewer-system.md`, `reviewer-domain.md`, `reviewer-code.md`, or `reviewer-perspectives.md` from `~/.claude/skills/review/references/`), or a language reference for the language workers. Separate workers keep each lens independent. The rosters live in `references/wave-*.md`. All findings are aggregated with wave-agreement labels, deduplicated, and auto-fixed.
 
 **vs `/parallel-code-review`**: 3 agents (security, business, arch) — report only
 **vs `/comprehensive-review`**: 26-27 agents in Waves 1-3, plus one per package in Wave 0 — per-package + cross-cutting + adversarial AND fix everything
@@ -56,7 +56,7 @@ Four-wave review with per-package deep analysis and adversarial challenge. Wave 
 - **--wave1-only**: Run only Wave 1 (12 agents), skip Wave 0, Wave 2, and Wave 3
 - **--focus [files]**: Review only specified files instead of full diff
 - **--severity [critical|high|medium|all]**: Only report/fix findings at or above severity
-- **--org-conventions**: Pass organization-specific convention flags to the Wave 1 `reviewer-code` (language-specialist lens) dispatch
+- **--org-conventions**: Pass organization-specific convention flags to the Wave 1 `reviewer-code.md` (language-specialist lens) worker
 
 ---
 
@@ -137,7 +137,7 @@ git diff --name-only HEAD~1
 REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only 2>/dev/null || echo "personal")
 ```
 
-If the repo belongs to a protected organization: set convention flags for the rest of this review. Wave 1 Agent 9 (`reviewer-code`, language-specialist lens) gets organization-specific flags appended. Log: "Organization conventions detected."
+If the repo belongs to a protected organization: set convention flags for the rest of this review. Wave 1 Agent 9 (`reviewer-code.md`, language-specialist lens) gets organization-specific flags appended. Log: "Organization conventions detected."
 
 **Step 2b: Compute the review tier (work-proportional sizing)** — scale agents to diff scope, because a 3-file change does not earn a 27-agent four-wave review. Only a tier computed from a real diff, or one the caller names, shrinks the review.
 
@@ -147,7 +147,7 @@ PKGS=$(git diff --name-only | sed 's#/[^/]*$##;s#^[^/]*$#.#' | sort -u | grep -c
 python3 scripts/right-size-review.py --files "$FILES" --packages "$PKGS"
 ```
 
-The script returns `{tier, tier_signal, waves, agent_estimate, native_agent_estimate, wave3_on_critical}`. Tier governs which waves run. The two agent columns are the same waves on two paths: **prose** is this markdown flow (one dispatch per lens, rosters in `references/wave-*.md`), and **native** is `comprehensive-review-workflow.js` (the same lenses folded into fewer dispatches of the four reviewer agents). `agent_estimate` is the prose number and `native_agent_estimate` is the native number.
+The script returns `{tier, tier_signal, waves, agent_estimate, native_agent_estimate, wave3_on_critical}`. Tier governs which waves run. The two agent columns are the same waves on two paths: **prose** is this markdown flow (one dispatch per lens, rosters in `references/wave-*.md`), and **native** is `comprehensive-review-workflow.js` (the same lenses folded into fewer dispatches of the four review references). `agent_estimate` is the prose number and `native_agent_estimate` is the native number.
 
 | Tier | Scope | Waves run | Agents, prose path | Agents, native path |
 |------|-------|-----------|--------------------|---------------------|
@@ -229,7 +229,7 @@ echo "Saved Wave 0 findings: $(wc -l < "$REVIEW_DIR/wave0-findings.md") lines"
 - Error handling that assumes specific error types from imported libraries
 - Control flow that depends on library lifecycle (reconnect, rebalance, retry)
 
-**Step 2: Dispatch a single `golang-general-engineer` agent** (model: opus):
+**Step 2: Dispatch a single `general-purpose` worker** (model: opus) whose prompt starts by calling the Skill tool with `programming` and reading `~/.claude/skills/programming/references/golang-general.md`:
 
 ```
 You are a library contract verifier. Your job is to read library source code
@@ -523,7 +523,7 @@ npx tsc --noEmit && npx vitest run
 make check 2>/dev/null || make test 2>/dev/null
 ```
 
-**Step 3**: Apply simplifications (run `reviewer-code` with a code-simplifier lens on already-fixed files) and docs fixes LAST — docs should reflect final code state.
+**Step 3**: Apply simplifications (dispatch a `general-purpose` worker that loads `reviewer-code.md` with the simplifier lens on already-fixed files) and docs fixes LAST — docs should reflect final code state.
 
 **Step 4: If a fix breaks tests**:
 1. Revert the specific fix

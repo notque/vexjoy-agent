@@ -78,7 +78,7 @@ No manual commands needed - it's fully automatic.
 |------|--------|---------|
 | `auto` | Execute automatically | `install_module`, `use_replace_all`, `retry` |
 | `skill` | Call an indexed skill | `workflow` |
-| `agent` | Spawn agent | `golang-general-engineer` |
+| `agent` | Spawn agent | `general-purpose` (with the domain skill) |
 | `manual` | Show suggestion | User decides |
 
 ### Error Classification
@@ -206,9 +206,9 @@ BEFORE responding, complete these steps IN ORDER:
 - test-driven-development: RED→GREEN→REFACTOR
 ...
 
-**Agents to consider:**
-- golang-general-engineer: Go expertise
-- database-engineer: PostgreSQL, Prisma
+**Domain skills to consider (worker: general-purpose):**
+- programming: Go expertise
+- data: PostgreSQL, Prisma
 ...
 
 ## Step 2: ACTIVATE Relevant Tools
@@ -502,13 +502,13 @@ frontmatter = parse_frontmatter(content)  # Uses PyYAML if available, regex fall
 
 ## Creating New Hooks
 
-Use the `/do` router to create hooks — it dispatches the `hook-development-engineer` agent which handles the full lifecycle:
+Use the `/do` router to create hooks — it routes to the `toolkit` skill, whose hook-development reference handles the full lifecycle:
 
 ```
 /do create a hook for [your purpose]
 ```
 
-Describe the event type (PostToolUse, PreToolUse, UserPromptSubmit, SessionStart, Stop, PreCompact), what it should detect or inject, and any constraints. The creator agent handles file creation, `hooks/lib/` integration, settings.json registration, and testing.
+Describe the event type (PostToolUse, PreToolUse, UserPromptSubmit, SessionStart, Stop, PreCompact), what it should detect or inject, and any constraints. The worker handles file creation, `hooks/lib/` integration, settings.json registration, and testing.
 
 **Example prompts:**
 - `/do create a PostToolUse hook that detects failed SQL queries and suggests index improvements`

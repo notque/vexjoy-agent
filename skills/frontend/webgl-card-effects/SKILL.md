@@ -2,7 +2,6 @@
 name: webgl-card-effects
 promoted_to: frontend
 description: "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow."
-agent: typescript-frontend-engineer
 user-invocable: false
 command: /card-effects
 allowed-tools:
@@ -25,8 +24,7 @@ routing:
     - Balatro effect
     - card visual effects
   pairs_with:
-    - typescript-frontend-engineer
-    - ui-design-engineer
+    - frontend
   complexity: Medium
   category: frontend
 ---

@@ -384,18 +384,19 @@ Do not begin Phase 7 until the operator explicitly approves at least one ADR.
 
 ## Phase 7: IMPLEMENT — Execute ADR Task Lists
 
-**Goal**: For each approved ADR, dispatch the appropriate domain agent to implement the
-task list in the Decision section.
+**Goal**: For each approved ADR, dispatch a fresh `general-purpose` worker to implement the
+task list in the Decision section. The worker's prompt starts by calling the Skill tool with
+the row's skill and reading the row's reference from `~/.claude/skills/<skill>/references/`.
 
-**Domain agent selection**:
+**Domain reference selection**:
 
-| Domain | Agent |
-|--------|-------|
-| Go source code | `golang-general-engineer` |
-| Hooks (`hooks/`) | `hook-development-engineer` |
-| Python scripts | `python-general-engineer` |
-| SKILL.md files, agent .md files, routing, docs | `toolkit-governance-engineer` |
-| Security hardening | the engineer for the file type, with the `security` skill |
+| Domain | Skill | Reference |
+|--------|-------|-----------|
+| Go source code | `programming` | `golang-general.md` |
+| Hooks (`hooks/`) | `toolkit` | `hook-development.md` |
+| Python scripts | `programming` | `python-general.md` |
+| SKILL.md files, references, routing, docs | `toolkit` | `toolkit-governance.md` |
+| Security hardening | the row for the file type | that reference, plus the `security` skill |
 
 **Branch before any implementation** — never implement directly on main:
 

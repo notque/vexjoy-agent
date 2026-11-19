@@ -107,7 +107,7 @@ def run_d_route(case: dict, project: dict | None, timeout: float, model: str, sc
             "agent": None,
             "skill": None,
             "pipeline": None,
-            "agents": [],
+            "workers": [],
             "attach": [],
             "problems": [f"harness: {type(exc).__name__}: {str(exc)[:200]}"],
             "prepared": {},

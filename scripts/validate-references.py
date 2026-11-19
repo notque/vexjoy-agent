@@ -405,10 +405,10 @@ def run_check_placeholders(json_output: bool) -> int:
 SKILLS_DIR = REPO_ROOT / "skills"
 REFERENCE_LINE_LIMIT = 500
 
-# Agent reference files over the limit, keyed agent/references/file.md.
-_KNOWN_OVERSIZED_AGENT_REFS: set[str] = {
-    "typescript-debugging-engineer/references/debugging-workflows.md",
-}
+# Agent reference files over the limit, keyed agent/references/file.md. Empty
+# since the repo agents retired (plans/009); their references now sit under
+# skills and fall under the skill register below.
+_KNOWN_OVERSIZED_AGENT_REFS: set[str] = set()
 
 # Skill reference files over the limit, keyed relative to skills/, with the
 # baseline date. This is the dated debt register for gradual decomposition.
@@ -573,12 +573,23 @@ _QUOTED_NAME = re.compile(rf"""["']({_NAME})["']""")
 
 
 def _agent_names(root: Path) -> set[str]:
-    """Agent names from agents/INDEX.json when built, plus every agents/*.md file."""
+    """Agent names from agents/INDEX.json when built, plus every agents/*.md file.
+
+    Retired repo agents (plans/009) are subtracted: a stale INDEX.json may still
+    list them, and a dispatch naming one would fail at runtime.
+    """
     names = {p.stem for p in (root / "agents").glob("*.md") if p.name not in _SKIP_FILENAMES}
     index = root / "agents" / "INDEX.json"
     if index.is_file():
         names |= set(json.loads(index.read_text(encoding="utf-8")).get("agents", {}))
-    return names
+    try:
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        from routing_index_merge import RETIRED_AGENTS
+    except ImportError:  # pragma: no cover - shipped alongside
+        RETIRED_AGENTS = frozenset()
+    finally:
+        sys.path.remove(str(REPO_ROOT / "scripts"))
+    return names - RETIRED_AGENTS
 
 
 def check_dispatch_names(root: Path, skill_names: set[str]) -> list[str]:

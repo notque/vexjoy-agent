@@ -177,37 +177,12 @@ def _load_agent_info(agent_name: str) -> AgentReferenceInfo:
 
 # ---------------------------------------------------------------------------
 # Category 1: Reference Loading Table Completeness
+#
+# The parametrized agents (react-native, typescript-frontend,
+# performance-optimization) are retired (plans/009); their tables and
+# references moved into skills/frontend/frontend. `_load_agent_info` stays for
+# private overlay agents that keep the agents/<name>/references layout.
 # ---------------------------------------------------------------------------
-
-
-class TestReferenceLoadingTableCompleteness:
-    """Every reference file on disk must have a table entry, and vice versa."""
-
-    AGENTS_WITH_TABLES: ClassVar[list[str]] = [
-        "react-native-engineer",
-        "typescript-frontend-engineer",
-        "performance-optimization-engineer",
-    ]
-
-    @pytest.mark.parametrize("agent_name", AGENTS_WITH_TABLES)
-    def test_table_and_disk_agree(self, agent_name: str) -> None:
-        """The table has rows, every row names a file on disk, and every file on disk has a row.
-
-        A file on disk with no row is dead: the agent never loads it.
-
-        Args:
-            agent_name: Agent under test.
-        """
-        info = _load_agent_info(agent_name)
-        assert info.has_table, f"{agent_name}: no reference loading table found in agent markdown"
-        assert info.table_entries, f"{agent_name}: reference loading table is empty"
-
-        missing = [e.ref_file for e in info.table_entries if not (info.refs_dir / e.ref_file).exists()]
-        assert not missing, f"{agent_name}: table rows point to missing files: {missing}"
-
-        table_files = {e.ref_file for e in info.table_entries}
-        orphaned = [f for f in info.files_on_disk if f not in table_files]
-        assert not orphaned, f"{agent_name}: files on disk have no table row (never loaded): {orphaned}"
 
 
 # ---------------------------------------------------------------------------

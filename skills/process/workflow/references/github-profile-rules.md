@@ -2,7 +2,6 @@
 description: "Extract coding conventions from a GitHub user's public profile."
 user-invocable: false
 argument-hint: "<github-username>"
-agent: github-profile-rules-engineer
 allowed-tools:
   - Read
   - Write
@@ -27,7 +26,7 @@ routing:
 
 ## Overview
 
-This pipeline extracts programming rules from a GitHub user's public profile by analyzing repositories, code files, commit messages, and PR reviews via the GitHub API. It produces confidence-scored rules formatted for CLAUDE.md-compatible markdown or JSON output. All data fetching is API-only (no git clone). Every extracted rule must have evidence from at least one repo or PR review, scored by confidence: high (3+ repos or 2+ repos + review signal), medium (2 repos), low (1 repo).
+This pipeline extracts programming rules from a GitHub user's public profile by analyzing repositories, code files, commit messages, and PR reviews via the GitHub API. It produces confidence-scored rules formatted for CLAUDE.md-compatible markdown or JSON output. All data fetching is API-only (no git clone). Domain rules (rule taxonomy, confidence model, API patterns) live in `~/.claude/skills/toolkit/references/github-profile-rules.md`; load it before Phase 1 and give its path to every dispatched worker. Every extracted rule must have evidence from at least one repo or PR review, scored by confidence: high (3+ repos or 2+ repos + review signal), medium (2 repos), low (1 repo).
 
 ---
 

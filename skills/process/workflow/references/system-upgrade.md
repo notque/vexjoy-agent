@@ -1,7 +1,6 @@
 ---
 description: "6-phase pipeline for adapting agents, skills, and hooks to changes."
 user-invocable: false
-agent: system-upgrade-engineer
 allowed-tools:
   - Read
   - Bash
@@ -30,6 +29,8 @@ routing:
 ## Overview
 
 This skill orchestrates systematic upgrades to the agent/skill/hook/script ecosystem when external changes warrant adaptation. It is a **top-down** upgrade mechanism—triggered by Claude Code releases, user goal changes, or routing telemetry that shows components failing—complementing the **bottom-up** `agent-upgrade` pipeline that fixes one component at a time.
+
+The orchestrator's rules (signal parsing, audit checklists, failure modes) live in `~/.claude/skills/toolkit/references/system-upgrade.md`; load it before Phase 1.
 
 Present the ranked plan in Phase 3. Continue when the user has already authorized that scope; ask only for uncovered actions or material scope changes. A plan-only request stops at the plan.
 
@@ -157,7 +158,7 @@ CRITICAL (must fix):
   2. hooks/subagent-start-warmstart.py — Update for new tool event format [upgrade, ~20min]
 
 IMPORTANT (should fix):
-  3. agents/hook-development-engineer.md — Document Notification event type [inject-pattern, ~15min]
+  3. skills/meta/toolkit/references/hook-development.md — Document Notification event type [inject-pattern, ~15min]
   4. skills/programming/programming/SKILL.md — Apply the new pattern from the release notes [inject-pattern, ~10min]
 
 MINOR (nice to have):
@@ -181,13 +182,13 @@ git checkout -b chore/system-upgrade-$(date +%Y-%m-%d)
 
 ### Phase 4: IMPLEMENT
 
-**Goal**: Execute the approved plan by dispatching domain agents for each change. (Reuse domain agents; the upgrade engineer orchestrates while specialists execute. Parallel fan-out when 3+ changes target the same domain.)
+**Goal**: Execute the approved plan by dispatching a `general-purpose` worker per change, each loading its domain reference. (Reuse domain references; the upgrade orchestrator (`~/.claude/skills/toolkit/references/system-upgrade.md`) plans while workers execute. Parallel fan-out when 3+ changes target the same domain.)
 
 **Step 1**: Group changes by domain agent that should handle them:
 
 | Change Domain | Domain Agent |
 |--------------|-------------|
-| Hook modifications | hook-development-engineer |
+| Hook modifications | a `general-purpose` worker whose prompt starts "Read ~/.claude/skills/toolkit/references/hook-development.md and follow it" |
 | Agent upgrades | skill-creator |
 | Skill upgrades | skill-creator |
 | Routing changes | routing-table-updater |

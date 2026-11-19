@@ -147,9 +147,9 @@ def test_generated_markdown_count_phrases_are_ignored(tmp_path: Path) -> None:
 
 
 def test_agent_file_without_name_is_not_an_agent(tmp_path: Path) -> None:
-    """agents/base-instructions.md has no frontmatter name, so it is not counted."""
+    """An agents/*.md file with no frontmatter name (a shared prompt) is not counted."""
     repo = make_repo(tmp_path, (2, 3, 1, 4))
-    (repo / "agents" / "base-instructions.md").write_text("# Shared instructions\n", encoding="utf-8")
+    (repo / "agents" / "shared-prompt.md").write_text("# Shared instructions\n", encoding="utf-8")
 
     assert truth_of(repo)["agents"] == 2
     assert run_validator(repo).returncode == 0

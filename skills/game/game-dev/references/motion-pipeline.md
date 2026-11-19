@@ -187,11 +187,11 @@ This separation enables:
 
 ## Integration points
 
-| Downstream agent | Data consumed |
-|------------------|---------------|
-| `rive-skeletal-animator` | `per_joint_euler_zyx_degrees` from decompose |
-| `pixijs-combat-renderer` | `contact_frames` from extract-contacts |
-| `combat-effects-upgrade` | `contact_frames` (impact timing) |
+| Downstream consumer | Data consumed |
+|---------------------|---------------|
+| Rive skeletal animation (`rive-skeletal-animator.md`) | `per_joint_euler_zyx_degrees` from decompose |
+| PixiJS combat rendering (`pixijs-combat-renderer.md`) | `contact_frames` from extract-contacts |
+| CSS/Framer combat effects (`combat-effects-upgrade.md`) | `contact_frames` (impact timing) |
 | `game-asset-generator` | Produces source BVH files for this pipeline |
 
 ## Sample BVH for testing

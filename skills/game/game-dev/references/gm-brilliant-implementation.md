@@ -292,4 +292,4 @@ input, output, and spec hashes still match.
 - `skills/game/game-dev/SKILL.md`
 - `skills/process/workflow/references/fl-pipeline.md`
 - `skills/process/workflow/SKILL.md`
-- `agents/project-coordinator-engineer.md`
+- `skills/process/workflow/references/project-coordinator.md`

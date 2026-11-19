@@ -8,7 +8,7 @@ judgment in the loop itself.
 
 Usage:
     python3 skills/meta/toolkit/scripts/agent-comparison/optimize_loop.py \
-        --target agents/golang-general-engineer.md \
+        --target skills/programming/programming/references/golang-general.md \
         --goal "improve error handling instructions" \
         --benchmark-tasks tasks.json \
         --max-iterations 20 \

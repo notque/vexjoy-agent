@@ -1,7 +1,6 @@
 ---
 name: image-gen
 description: "AI image generation: Gemini and Nano Banana backends; single/series/batch workflows with prompt-to-disk."
-agent: python-general-engineer
 user-invocable: false
 routing:
   category: image-generation
@@ -29,7 +28,7 @@ routing:
     - create artwork
   not_for: "HTML visualization or charts (use html-artifact), or deterministic non-AI palette/matrix pixel art (use game-asset-generator)"
   pairs_with:
-    - python-general-engineer
+    - programming
     - game-dev
 ---
 

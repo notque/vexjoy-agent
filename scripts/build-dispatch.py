@@ -2,7 +2,7 @@
 """Deterministic /do Phase 4 dispatch-preamble builder (ADR: router-improvement-program, C4).
 
 Takes one routing decision as JSON and prints the complete dispatch-prompt
-preamble the router prepends to the agent prompt. Hand-assembly of these
+preamble the router prepends to the worker prompt. Hand-assembly of these
 blocks dropped mandatory injections; this script is the single source of
 truth for every one of them ("LLMs orchestrate, programs execute"):
 
@@ -11,8 +11,12 @@ truth for every one of them ("LLMs orchestrate, programs execute"):
      optional `alts={...}`, optional `stack={...}`, optional `fallback=<slug>`.
      model= is required for medium/complex (errors on omission); trivial/simple
      get `model=-`. skill is required for simple/medium/complex (errors on
-     omission). An agent absent from agents/INDEX.json is coerced to
-     general-purpose with `fallback=invalid-agent:<name>` (never raises).
+     omission). The repo ships no specialist agents: the dispatched worker is
+     the built-in `general-purpose` agent (the default when `agent` is
+     omitted) and the skill carries the domain. Other built-ins and private
+     overlay agents (agents/INDEX.local.json) still validate when named; any
+     other name is coerced to general-purpose with
+     `fallback=invalid-agent:<name>` (never raises).
      Emitted in the exact shape hooks/routing-decision-recorder.py parses.
   2. Exact Skill-tool call directives for the primary skill and each skill in
      the stack, primary first, ordered and de-duplicated. Shared-pattern stack
@@ -29,9 +33,10 @@ truth for every one of them ("LLMs orchestrate, programs execute"):
      12000 chars, sensitive paths skipped. context_mode=summary omits file
      excerpts; none omits gathered context. Neither bypasses path validation.
      Fixed repo state => fixed bytes.
-  7. The six MANDATORY verbatim injections: reference loading,
-     completeness, Dense-Complete Writing, Google developer-docs style,
-     base instructions, route-fit.
+  7. The six MANDATORY verbatim injections: reference loading (the loaded
+     skill's Reference Loading Table), completeness, Dense-Complete Writing,
+     Google developer-docs style, base instructions
+     (skills/shared-patterns/base-instructions.md), route-fit.
   8. Optional worktree rules and LOCAL-ONLY block, on flags.
 
 Main-thread execution (`"execution": "main"` or `"agent": "main"`): the marker
@@ -40,13 +45,22 @@ the Skill-tool calls, and a one-line main-thread note; worker handoff blocks
 are omitted. The CLI then feeds the marker to hooks/routing-decision-recorder.py
 (`--no-record` skips it). Model fields and `flags.worktree` are input errors.
 
+/d mode (`"router": "d"`, scripts/d_gate.py): execution defaults to main; the
+marker gains `router=d` (and `reason=<dispatch_reason>` on a dispatch) before
+`exec=main`. Before any output it requires an intent receipt from
+jev-intent-align.py matching task_spec.request_verbatim and task_spec.intent; a
+dispatch also needs `dispatch_reason` (fan-out|worktree|haiku-gather|verifier|overlay-agent)
+with its precondition, and `references` from the skill's references/ directory
+(optional for overlay-agent: the overlay agent file carries its domain).
+A failed check exits 2 with the instruction to act on. /do output is unchanged.
+
 Input schema (missing optional fields degrade gracefully — block omitted):
 
     {
-      "agent": "python-general-engineer",          // required; unknown => coerced
+      "agent": "general-purpose",                  // optional; default general-purpose.
+                                                   // A built-in or overlay agent name;
+                                                   // unknown => coerced with a reason
       "execution": "dispatch",                     // optional: dispatch (default) | main
-      "fallback_reason": "no-specialist-match",    // required when the agent is
-                                                   // general-purpose; slugified
       "skill": "testing",          // required for simple/medium/
                                                    // complex; trivial => skill=-
       "complexity": "medium",                      // required enum, case-insensitive:
@@ -122,29 +136,32 @@ DEFAULT_TOKEN_BUDGET = 500000
 # ---------------------------------------------------------------------------
 
 INJ_REFERENCE_LOADING = (
-    "Before starting work, consult the Reference Loading Table in your agent .md file "
+    "Before starting work, consult the Reference Loading Table in each loaded skill's SKILL.md "
     "and read the references that match this task."
 )
 
 INJ_COMPLETENESS = "Deliver the finished product. Ship the complete thing."
 
-INJ_DENSE_COMPLETE = "Follow the Dense-Complete Writing rules in `agents/base-instructions.md`."
+INJ_DENSE_COMPLETE = "Follow the Dense-Complete Writing rules in `skills/shared-patterns/base-instructions.md`."
 
 INJ_GOOGLE_DEVDOCS = "Follow its Google Developer Documentation Style rules and precedence."
 
-INJ_BASE_INSTRUCTIONS = "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
+INJ_BASE_INSTRUCTIONS = (
+    "Before starting work, also load `skills/shared-patterns/base-instructions.md` for universal operational rules."
+)
 
 # Route-fit banner. The router has no outcome signal today: 285 of 287 recorded
 # dispatches carry a NULL outcome and success is inferred from the absence of a
-# complaint, so a timid fallback scores like a correct specialist. This asks the
-# one party that knows — the agent that read the task — to say whether the pick
-# fit. Kept to one short imperative line: it is paid for on EVERY dispatch.
-# Read back by hooks/routing-decision-recorder.py (parse_route_fit); negatives
-# decay the route, `ok` never boosts it.
+# complaint. This asks the one party that knows — the worker that read the task —
+# to say whether the pick fit. Kept to one short imperative line: it is paid for
+# on EVERY dispatch. Read back by hooks/routing-decision-recorder.py
+# (parse_route_fit); negatives decay the route, `ok` never boosts it. The worker
+# is always general-purpose now, so `wrong-agent` is no longer offered; the
+# parser still accepts it from older replies.
 INJ_ROUTE_FIT = (
     "End your reply with this exact final line, nothing after it: "
-    "`route-fit: <ok|wrong-agent|wrong-skill|needs-coordinator|underspecified>` — "
-    "your honest read of whether this agent and skill fit the task."
+    "`route-fit: <ok|wrong-skill|needs-coordinator|underspecified>` — "
+    "your honest read of whether this skill fits the task."
 )
 
 THINKING_FAST = "Prioritize responding quickly rather than thinking deeply. When in doubt, respond directly."
@@ -257,15 +274,23 @@ MAIN_THREAD_NOTE = (
     "Execution: main thread. Load the skill(s) above and do the work in this thread. "
     "Do not dispatch an Agent for this route."
 )
+# /d main loop with a pipeline: the phases still run in order (owner: pipelines
+# make the same actions happen every time); only fan-out or verifier phases leave.
+D_PIPELINE_NOTE = (
+    "Run every pipeline phase in order in this thread. Dispatch a phase only when it is an independent fan-out "
+    "or an independent verifier: one build-dispatch.py call per worker with execution dispatch and dispatch_reason."
+)
 
 _AGENT_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _SKILL_RE = re.compile(r"^[a-z0-9-]+$")
 _KEY_RE = re.compile(r"^[a-z0-9:_-]+$")  # alts= / stack= items (comma is the separator)
 
-# Fallback accounting. 128 of 287 recorded dispatches (44.6%) fell back to
-# general-purpose with no recorded reason, so the regression was invisible for
-# six weeks. Every fallback now carries a reason token on the marker line.
-FALLBACK_AGENT = "general-purpose"
+# The dispatch worker. The repo's specialist agents are retired (plans/009):
+# general-purpose is the normal worker and the skill carries the domain, so it
+# needs no reason. A `fallback=<slug>` token now marks only a coercion: an
+# agent name that is neither built-in nor in the private overlay index.
+WORKER_AGENT = "general-purpose"
+FALLBACK_AGENT = WORKER_AGENT  # back-compat name
 AGENT_INDEX_PATH = INSTALL_ROOT / "agents" / "INDEX.json"
 AGENT_INDEX_LOCAL = "INDEX.local.json"
 SKILL_INDEX_PATH = INSTALL_ROOT / "skills" / "INDEX.json"
@@ -289,6 +314,12 @@ try:
     import routing_index_merge as _rim
 except ImportError:  # pragma: no cover - resolver shipped alongside
     _rim = None
+try:
+    import d_gate  # /d hard rules (intent receipt, dispatch reason); inert for /do
+except ImportError:  # pragma: no cover - a profile without d_gate.py keeps /do working
+    d_gate = None
+_ROUTER_D = "d"
+
 _INDEX_TARGET = _rim.detect_target(__file__) if _rim is not None else "claude"
 
 
@@ -306,16 +337,12 @@ def _resolved_source(kind: str, tracked: Path, local_name: str | None) -> tuple[
 
 # Harness-provided agents that exist outside agents/INDEX.json. Superset of
 # validate-do-references.py's set: the Agent tool accepts these names, so
-# coercing them would MANUFACTURE fallbacks instead of catching them.
+# coercing them would MANUFACTURE fallbacks instead of catching them. They are
+# always known, so a missing or empty agents index still validates a pick.
 BUILTIN_AGENTS = frozenset({"general-purpose", "claude", "explore", "plan", "statusline-setup"})
 # Router entry points: indexed skills whose job is to route a request
 # (scripts/jev-route.py ROUTER_ENTRY_POINT_SKILLS). Never a Skill-tool call.
 ROUTER_ENTRY_POINT_SKILLS = frozenset({"d", "do"})
-# Reason slug charset — same shape as alts=/stack= items, so the token can never
-# grow a space and split the marker line into two tokens.
-_FALLBACK_REASON_RE = re.compile(r"^[a-z0-9][a-z0-9:_-]*$")
-_FALLBACK_SLUG_SUB = re.compile(r"[^a-z0-9:_-]+")
-_FALLBACK_REASON_MAX = 80
 # Complexities where a skill is mandatory. do/SKILL.md already states this as
 # the "Skill-greediness gate (HARD — non-negotiable for Simple+)"; 23 of the 128
 # recorded fallbacks violated it because nothing enforced it. Trivial dispatches
@@ -525,25 +552,26 @@ def _key_list(raw: object, field: str) -> list[str]:
 
 
 def load_known_agents(index_path: Path | None = None) -> frozenset[str]:
-    """Dispatchable agent names from the resolved agents index + built-ins.
+    """Dispatchable agent names: built-ins plus the resolved agents index.
 
     Default: the installed index (installer spec 7.2) when present, else
     agents/INDEX.json + INDEX.local.json (add-only merge, same semantics as
     scripts/routing_index_merge.py). An explicit *index_path* reads that file
     plus its local overlay.
 
-    Returns an EMPTY set when nothing is readable. Callers treat empty as
-    "cannot validate" and keep the agent as given: a missing index must never
-    coerce a valid pick into a fallback.
+    The public index lists no agents since the specialist agents retired, so
+    an empty or missing index is the normal state: the result is then the
+    built-ins plus any private overlay agents, never empty. Retired names
+    (routing_index_merge.RETIRED_AGENTS) are subtracted, so a stale install
+    still coerces them.
     """
     if index_path is None:
         path, local = _resolved_source("agents", AGENT_INDEX_PATH, AGENT_INDEX_LOCAL)
     else:
         path, local = index_path, AGENT_INDEX_LOCAL
-    names = _load_index_names(path, "agents", local)
-    if not names:
-        return frozenset()
-    return frozenset(names | BUILTIN_AGENTS)
+    # An install built before the retirement still lists the retired agents.
+    retired = _rim.RETIRED_AGENTS if _rim is not None else frozenset()
+    return frozenset((_load_index_names(path, "agents", local) - retired) | BUILTIN_AGENTS)
 
 
 @lru_cache(maxsize=32)
@@ -768,21 +796,59 @@ def resolve_pipeline(decision: dict) -> str:
     return pipeline
 
 
-def slugify_fallback_reason(value: object) -> str:
-    """Normalize a fallback reason into ONE marker token; "" when absent.
+def resolve_router(decision: dict) -> str:
+    """``do`` (absent) or ``d``. /do's output never changes: the router token is written only for /d."""
+    if d_gate is None:
+        if str(decision.get("router") or "do").strip().lower() == "do":
+            return "do"
+        raise InputError("router 'd' needs scripts/d_gate.py next to build-dispatch.py; reinstall the toolkit")
+    try:
+        return d_gate.resolve_router(decision)
+    except ValueError as exc:
+        raise InputError(str(exc)) from None
 
-    The marker is space-separated, so the reason must never contain a space:
-    prose is lowercased and slugified to the alts=/stack= charset.
+
+def check_d_route(decision: dict) -> list[str]:
+    """Apply /d's tool-enforced rules. Returns the validated reference paths for a dispatch.
+
+    Raises InputError whose message is the instruction to act on: run the
+    intent validator, name a dispatch reason, or hand over the skill reference.
     """
-    if value is None:
-        return ""
-    text = str(value).strip().lower()
-    if not text or text == "-":
-        return ""
-    slug = _FALLBACK_SLUG_SUB.sub("-", text).strip("-:_")[:_FALLBACK_REASON_MAX].strip("-:_")
-    if not slug or not _FALLBACK_REASON_RE.match(slug):
-        raise InputError(f"'fallback_reason' {text!r} — needs at least one letter or digit")
-    return slug
+    spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
+    problem = d_gate.check_receipt(spec)
+    if problem:
+        raise InputError(problem)
+    if resolve_execution(decision) == "main":
+        if decision.get("dispatch_reason"):
+            raise InputError("dispatch_reason applies only to execution='dispatch'; drop it for a main-loop route")
+        return []
+    skill = str(decision.get("skill") or "").strip().lower()
+    if not skill or skill == "-":
+        raise InputError("a /d dispatch needs a skill: the worker loads it and its reference")
+    model, _effort = resolve_model_selection(decision, _resolve_provider(decision))
+    problem = d_gate.check_dispatch(decision, model, load_known_agents() - BUILTIN_AGENTS)
+    if problem:
+        raise InputError(problem)
+    reason = str(decision.get("dispatch_reason") or "").strip().lower()
+    if reason in d_gate.REFERENCES_OPTIONAL_REASONS and not decision.get("references"):
+        return []  # the overlay agent's own file carries its domain
+    refs, problem = d_gate.resolve_references(
+        skill, decision.get("references"), load_skill_index_entries(), [INSTALL_ROOT, REPO_ROOT]
+    )
+    if problem:
+        raise InputError(problem)
+    return refs  # absolute paths, so the worker can open them from any cwd
+
+
+def pipeline_phases(pipeline: str) -> list[str]:
+    """Phase names for a pipeline from pipeline-index.json; [] when absent."""
+    try:
+        data = json.loads(PIPELINE_INDEX_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    entry = (data.get("pipelines") or {}).get(pipeline) if isinstance(data, dict) else None
+    phases = entry.get("phases") if isinstance(entry, dict) else None
+    return [str(p) for p in phases] if isinstance(phases, list) else []
 
 
 def resolve_execution(decision: dict) -> str:
@@ -791,7 +857,9 @@ def resolve_execution(decision: dict) -> str:
     execution = str(raw).strip().lower() if raw is not None else ""
     if not execution:
         agent = str(decision.get("agent") or "").strip().lower()
-        execution = "main" if agent == MAIN_THREAD_AGENT else "dispatch"
+        # /d runs in the main loop unless the decision says dispatch.
+        main_default = agent == MAIN_THREAD_AGENT or resolve_router(decision) == _ROUTER_D
+        execution = "main" if main_default else "dispatch"
     if execution not in VALID_EXECUTIONS:
         raise InputError(f"'execution' {raw!r} — must be one of {'/'.join(VALID_EXECUTIONS)}")
     if execution == "main":
@@ -807,40 +875,31 @@ def resolve_agent(decision: dict) -> tuple[str, str]:
     Main-thread execution always records ``agent=main`` with no fallback: no
     agent was dispatched, so neither index coercion nor a fallback reason applies.
 
-    Two rules the router already had but nothing enforced:
-
-    1. UNKNOWN AGENT — an agent absent from agents/INDEX.json cannot be
-       dispatched, so it is coerced to general-purpose with
-       ``fallback_reason=invalid-agent:<name>``. Deliberately NOT an exception:
-       raising mid-session would stall real work, and a phantom agent name is
-       the router's bug to see in the data, not the user's task to lose.
-       A renamed agent's old name (routing_index_merge.AGENT_ALIASES) maps to
-       its current name first.
-    2. FALLBACK JUSTIFICATION — general-purpose (however reached) REQUIRES a
-       non-empty reason, so every fallback is justified and countable instead
-       of being an invisible default.
+    Dispatch: ``agent`` defaults to general-purpose, the normal worker, which
+    needs no reason (an input ``fallback_reason`` is accepted and ignored). A
+    built-in or private overlay agent named explicitly is kept. Any other name
+    (a retired specialist, a typo, a skill name) cannot be dispatched, so it is
+    coerced to general-purpose with ``fallback=invalid-agent:<name>``.
+    Deliberately NOT an exception: raising mid-session would stall real work,
+    and a phantom agent name is the router's bug to see in the data, not the
+    user's task to lose. A renamed agent's old name
+    (routing_index_merge.AGENT_ALIASES) maps to its current name first.
     """
     if resolve_execution(decision) == "main":
         return MAIN_THREAD_AGENT, ""
-    agent = _require_str(decision, "agent").lower()
+    raw = decision.get("agent")
+    agent = str(raw).strip().lower() if raw is not None else ""
+    if agent in ("", "-", "null", "none"):
+        return WORKER_AGENT, ""
     if not _AGENT_RE.match(agent):
         raise InputError(f"'agent' {agent!r} — must match [a-z0-9][a-z0-9-]*")
 
-    reason = slugify_fallback_reason(decision.get("fallback_reason"))
     known = load_known_agents()
-    if known and agent not in known and _rim is not None:
+    if agent not in known and _rim is not None:
         agent = _rim.canonical_agent_name(agent)  # a renamed agent's old name
-    if known and agent not in known:
-        reason = f"invalid-agent:{agent}"
-        agent = FALLBACK_AGENT
-
-    if agent == FALLBACK_AGENT and not reason:
-        raise InputError(
-            "'fallback_reason' is required when agent='general-purpose' "
-            "(a non-empty slug, e.g. 'no-specialist-match'). "
-            "An unjustified fallback is the failure mode this field exists to make countable."
-        )
-    return agent, reason
+    if agent not in known:
+        return WORKER_AGENT, f"invalid-agent:{agent}"
+    return agent, ""
 
 
 def build_marker(decision: dict) -> str:
@@ -864,7 +923,7 @@ def build_marker(decision: dict) -> str:
         raise InputError(
             f"'skill' is required for complexity={complexity} "
             f"(skill-greediness gate: HARD, non-negotiable for Simple+). "
-            f"Name the skill the agent must load, or route as trivial."
+            f"Name the skill the worker must load, or route as trivial."
         )
 
     # Validate the primary and stack names before emitting telemetry. This also
@@ -942,6 +1001,13 @@ def build_marker(decision: dict) -> str:
     # against the real recorder in scripts/tests/test_build_dispatch.py.
     if fallback_reason:
         parts.append(f"fallback={fallback_reason}")
+    # /d only: the dispatch reason and the router token, so telemetry splits the
+    # two routers. Absent token = /do, so /do markers keep every byte.
+    if resolve_router(decision) == _ROUTER_D:
+        reason = str(decision.get("dispatch_reason") or "").strip().lower()
+        if not main_thread and reason in d_gate.DISPATCH_REASONS:
+            parts.append(f"reason={reason}")
+        parts.append(f"router={_ROUTER_D}")
     # `exec=main` last for the same reason; main-thread routes carry no fallback.
     if main_thread:
         parts.append("exec=main")
@@ -1291,12 +1357,32 @@ def build_preamble(
         raise InputError("'flags' must be an object")
 
     context_mode(decision)
+    d_route = resolve_router(decision) == _ROUTER_D
+    references = check_d_route(decision) if d_route else []
     marker = build_marker(decision)
     skill_calls = render_skill_calls(decision)
     if marker.endswith(" exec=main"):
         # Main thread: the worker handoff blocks (Task Spec, repo state,
         # injections) have no reader; the thread already holds that context.
-        return "\n\n".join(block for block in (marker, skill_calls, MAIN_THREAD_NOTE) if block) + "\n"
+        note = MAIN_THREAD_NOTE
+        extra: list[str] = []
+        if d_route:
+            # /d runs Medium and Complex work here, so the main loop gets what a
+            # worker would: the reference-loading rule, the pipeline phases, and
+            # the local-only block.
+            pipeline = resolve_pipeline(decision)
+            if pipeline:
+                phases = pipeline_phases(pipeline)
+                note += " " + D_PIPELINE_NOTE
+                if phases:
+                    note += f" Phases of `{pipeline}`: {' -> '.join(phases)}."
+            extra.append(INJ_REFERENCE_LOADING)
+            stack = _key_list(decision.get("stack") or [], "stack")
+            if flags.get("local_only") or "local-only" in stack:
+                extra.append(LOCAL_ONLY_BLOCK)
+        return "\n\n".join(block for block in (marker, skill_calls, note, *extra) if block) + "\n"
+    if references:
+        skill_calls += "\nRead these references before work: " + ", ".join(f"`{r}`" for r in references) + "."
     thinking = build_thinking(decision)
     token_line = build_token_line(decision, settings_path)
     task_spec = build_task_spec(decision)
@@ -1342,13 +1428,24 @@ def build_subagent_dispatch(
     gather: bool = True,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Combine subagent persona generation with task dispatch preamble for Antigravity."""
-    agent_name = str(decision.get("agent") or "").strip()
+    """Combine subagent persona generation with task dispatch preamble for Antigravity.
+
+    The persona comes from the primary skill (the skill carries the domain). A
+    named private overlay agent builds its persona from its agent file instead.
+    """
+    agent_name, _reason = resolve_agent(decision)
+    skill_name = str(decision.get("skill") or "").strip().lower()
     fn = load_build_subagent_spec_fn()
     subagent_spec: dict[str, Any] = {}
-    if fn:
+    # The gather root may be another repo; the script's own checkout holds the skills.
+    for root in dict.fromkeys((repo_root, None)):
+        if not fn or subagent_spec:
+            break
         try:
-            subagent_spec = fn(agent_name, repo_root=repo_root)
+            if agent_name not in BUILTIN_AGENTS and agent_name != MAIN_THREAD_AGENT:
+                subagent_spec = fn(agent_name, repo_root=root)
+            elif skill_name and skill_name != "-":
+                subagent_spec = fn(skill=skill_name, repo_root=root)
         except Exception:
             subagent_spec = {}
 

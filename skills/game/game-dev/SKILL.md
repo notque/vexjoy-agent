@@ -1,7 +1,6 @@
 ---
 name: game-dev
 description: "Game development: design, asset pipelines, Phaser, Unity CLI and builds, vanilla JS frontend, GM mode, match booking."
-agent: project-coordinator-engineer
 user-invocable: true
 allowed-tools:
   - Read
@@ -51,6 +50,37 @@ routing:
     - unity.exe
     - editmode tests
     - playmode tests
+    - pixijs
+    - pixi.js
+    - pixi react
+    - "@pixi/react"
+    - 2D WebGL
+    - GPU particles
+    - combat renderer
+    - normal map 2D
+    - pixi filters
+    - sprite rendering GPU
+    - rive
+    - rive-app
+    - skeletal animation
+    - character animation
+    - spine animation
+    - animation state machine
+    - idle animation
+    - hit reaction animation
+    - "@rive-app/react-canvas"
+    - .riv files
+    - combat effects
+    - CSS particles
+    - particle replacement
+    - framer motion combat
+    - combat animations
+    - card transforms
+    - CSS 3D
+    - combat juice
+    - visual effects upgrade
+    - effects.ts
+    - combat polish
   pairs_with:
     - frontend
     - workflow
@@ -157,7 +187,7 @@ Route by asset type:
 
 ### Phase 3: DESIGN
 
-Add game feel: screen shake, particles, hit-stop, juice. Load `references/game-feel-patterns.md`.
+Add game feel: screen shake, particles, hit-stop, juice. Load `references/game-feel-patterns.md`. For React combat screens, load one file from the Combat Rendering and Animation table under Deep References. When dispatch pays, use a `general-purpose` worker that loads this skill and that reference.
 
 ### Phase 4: AUDIO
 
@@ -314,6 +344,16 @@ Load when the task needs detailed patterns, catalogs, or specifications.
 | Tilemaps and physics | `references/tilemaps-and-physics.md` |
 | Game feel patterns | `references/game-feel-patterns.md` |
 | Performance patterns | `references/performance.md` |
+
+### Combat Rendering and Animation
+
+Each file holds the workflow, hard rules, and its own loading table for `references/<slug>/`.
+
+| Signal | Reference |
+|--------|-----------|
+| PixiJS, pixi.js, `@pixi/react`, 2D WebGL, GPU particles, normal map 2D, pixi filters, combat renderer | `references/pixijs-combat-renderer.md` |
+| Rive, `@rive-app/react-canvas`, `.riv` files, skeletal or character animation, Spine, animation state machine, idle or hit reaction animation | `references/rive-skeletal-animator.md` |
+| Combat effects, CSS particles, particle replacement, `effects.ts`, Framer Motion combat juice, CSS 3D card transforms, combat polish (no new deps) | `references/combat-effects-upgrade.md` |
 
 ### GM
 

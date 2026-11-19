@@ -172,9 +172,9 @@ def _extract_verdict(lines: list[str]) -> str | None:
 
     Looks for patterns like:
       ## Verdict: PASS
-      ## 1. VERDICT: NEEDS_CHANGES       (reviewer agents)
-      ## 1. COMPOSITE VERDICT: BLOCK      (reviewer-perspectives)
-      7. VERDICT: BLOCK                   (reviewer-code, reviewer-system)
+      ## 1. VERDICT: NEEDS_CHANGES       (review workers)
+      ## 1. COMPOSITE VERDICT: BLOCK      (perspectives review)
+      7. VERDICT: BLOCK                   (code and system review lenses)
       Verdict: BLOCK / VERDICT: BLOCK
       **Verdict**: PASS
       **BLOCK** - rationale (parallel review)

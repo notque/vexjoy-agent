@@ -1,6 +1,6 @@
 ---
 name: testing
-description: "Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing."
+description: "Testing: TDD, E2E, test automation strategy (Vitest, coverage, CI), preferred patterns, test-value audits, verification, agent testing."
 user-invocable: false
 allowed-tools:
   - Read
@@ -12,7 +12,7 @@ allowed-tools:
   - Task
   - Skill
   - Agent
-agent: testing-automation-engineer
+agent: general-purpose
 routing:
   not_for: "code review (use review), linting (use code-quality)"
   triggers:
@@ -47,6 +47,12 @@ routing:
     - "verify completion"
     - "run tests"
     - "final verification"
+    # from testing-automation
+    - "testing"
+    - "E2E"
+    - "vitest"
+    - "test automation"
+    - "visual regression"
   category: testing
   pairs_with:
     - review
@@ -56,7 +62,7 @@ routing:
 
 # Testing
 
-Seven modes. Match the request to one mode and follow its section. Read
+Eight modes. Match the request to one mode and follow its section. Read
 repository CLAUDE.md first -- project conventions override defaults here.
 
 ## Mode Selection
@@ -70,6 +76,7 @@ repository CLAUDE.md first -- project conventions override defaults here.
 | Run vitest, JavaScript/TypeScript tests | **Vitest Runner** |
 | Playwright, E2E, end-to-end, browser test | **E2E (Playwright)** |
 | Verify completion, final check, defense in depth | **Verification** |
+| Test automation strategy: Vitest setup, coverage gates, CI integration, visual regression, mocks and factories | **Test Automation**: load `references/testing-automation.md` and follow its anchors, workflow, and output contract |
 
 ---
 
@@ -534,6 +541,7 @@ Load when the signal applies.
 | Stub detection | `references/verify-adversarial-methodology.md` | Four-level checks, goal-backward verification |
 | Domain checklists | `references/verify-checklist.md` | Schema change, compatibility checks |
 | Verification examples | `references/verify-verification-examples.md` | Bug fix, refactor, migration walkthroughs |
+| Test automation strategy, Vitest, coverage gates, CI, numeric anchors | `references/testing-automation.md` | Hard rules, workflow, output contract; routes to `testing-automation/` (Vitest, async, mocking, JS patterns, output contract) |
 
 ---
 

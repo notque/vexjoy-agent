@@ -54,8 +54,9 @@ descriptions or triggers.
 grep -i "<keyword>" /path/to/skills/INDEX.json
 ```
 
-Also search `agents/INDEX.json` for agents that already handle this domain as
-part of their core capability.
+Also grep `skills/*/*/references/` for a skill reference that already handles
+this domain as part of its core capability (repo agents are retired, plan 009;
+their expertise lives in skill references).
 
 **Step 3**: Check for active ADR session. If `.adr-session.json` exists, run
 `python3 ~/.claude/scripts/adr-query.py list` to find related ADRs. If

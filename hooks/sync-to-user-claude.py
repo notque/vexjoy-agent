@@ -53,8 +53,8 @@ DISABLE_ENV = "VEXJOY_SYNC_DISABLED"
 
 
 def is_toolkit_repo(path: Path) -> bool:
-    """True for a toolkit-shaped checkout (skills/, agents/, hooks/)."""
-    return all((path / d).is_dir() for d in ("skills", "agents", "hooks"))
+    """True for a toolkit-shaped checkout (skills/, hooks/, scripts/); agents/ was retired."""
+    return all((path / d).is_dir() for d in ("skills", "hooks", "scripts"))
 
 
 def home_inside(repo: Path) -> bool:

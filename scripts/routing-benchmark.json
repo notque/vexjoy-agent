@@ -68,7 +68,7 @@
     },
     {
       "request": "debug the goroutine leak in the worker pool",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -76,7 +76,7 @@
     },
     {
       "request": "write table-driven tests for the parser",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "candidate_deferred",
@@ -84,7 +84,7 @@
     },
     {
       "request": "add a worker pool with goroutines",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "candidate_deferred",
@@ -92,7 +92,7 @@
     },
     {
       "request": "wrap errors with fmt.Errorf and %w",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "candidate_deferred",
@@ -100,7 +100,7 @@
     },
     {
       "request": "review this Go PR for quality",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "review",
       "category": "go-development",
       "routing_tier": "candidate_deferred",
@@ -108,7 +108,7 @@
     },
     {
       "request": "work on the SAPCC Go repository go-bits",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -116,8 +116,8 @@
     },
     {
       "request": "add auth middleware to the Python Flask API",
-      "expected_agent": "python-general-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "programming",
       "category": "python-development",
       "routing_tier": "candidate",
       "notes": "Python domain task — python-general-engineer should appear in top-3 candidates"
@@ -132,16 +132,16 @@
     },
     {
       "request": "write pytest fixtures for the database layer",
-      "expected_agent": "python-general-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "programming",
       "category": "python-development",
       "routing_tier": "candidate",
       "notes": "Python testing — python-general-engineer should appear in top-3 candidates"
     },
     {
       "request": "fix the React component rendering bug",
-      "expected_agent": "typescript-frontend-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "frontend",
       "category": "frontend-development",
       "routing_tier": "candidate",
       "candidate_depth": 5,
@@ -149,15 +149,15 @@
     },
     {
       "request": "debug the async race condition in TypeScript",
-      "expected_agent": "typescript-debugging-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "programming",
       "category": "frontend-development",
       "routing_tier": "llm_only",
       "notes": "TypeScript debugging — needs TypeScript agent + workflow stacking, requires LLM intent understanding. Script correctly does NOT force-route."
     },
     {
       "request": "fix the typo in main.go",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -213,7 +213,7 @@
     },
     {
       "request": "run quality gates on the implemented feature",
-      "expected_agent": "python-general-engineer",
+      "expected_agent": null,
       "expected_skill": "code-quality",
       "category": "feature-lifecycle",
       "routing_tier": "force_route",
@@ -269,16 +269,16 @@
     },
     {
       "request": "deploy the app to Kubernetes with Helm",
-      "expected_agent": "kubernetes-helm-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "kubernetes",
       "category": "infrastructure",
       "routing_tier": "candidate",
       "notes": "K8s domain — kubernetes-helm-engineer should appear in top-3 candidates"
     },
     {
       "request": "set up Prometheus alerting rules",
-      "expected_agent": "prometheus-grafana-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "kubernetes",
       "category": "infrastructure",
       "routing_tier": "candidate",
       "notes": "Monitoring domain — prometheus-grafana-engineer should appear in top-3 candidates"
@@ -301,7 +301,7 @@
     },
     {
       "request": "create a new hook for PostToolUse events",
-      "expected_agent": "hook-development-engineer",
+      "expected_agent": null,
       "expected_skill": "workflow",
       "category": "meta-tooling",
       "routing_tier": "candidate_deferred",
@@ -317,7 +317,7 @@
     },
     {
       "request": "debug the goroutine leak causing memory issues",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -328,7 +328,7 @@
     },
     {
       "request": "wrap the error with %w for stack preservation",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "go-development",
       "routing_tier": "candidate_deferred",
@@ -336,7 +336,7 @@
     },
     {
       "request": "build a phaser 2d game with tilemaps and arcade physics",
-      "expected_agent": "typescript-frontend-engineer",
+      "expected_agent": null,
       "expected_skill": "game-dev",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate_deferred",
@@ -352,7 +352,7 @@
     },
     {
       "request": "generate sprite sheet for AI character art",
-      "expected_agent": "python-general-engineer",
+      "expected_agent": null,
       "expected_skill": "game-dev",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
@@ -360,7 +360,7 @@
     },
     {
       "request": "add holographic foil card effects with WebGL shader",
-      "expected_agent": "typescript-frontend-engineer",
+      "expected_agent": null,
       "expected_skill": "frontend",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
@@ -368,7 +368,7 @@
     },
     {
       "request": "run a security threat model audit on the toolkit",
-      "expected_agent": "python-general-engineer",
+      "expected_agent": null,
       "expected_skill": "security",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate_deferred",
@@ -472,8 +472,8 @@
     },
     {
       "request": "create a new hook for the SessionStart event",
-      "expected_agent": "hook-development-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "toolkit",
       "category": "meta-tooling",
       "routing_tier": "candidate",
       "candidate_depth": 5,
@@ -489,8 +489,8 @@
     },
     {
       "request": "I need a new pipeline for video processing",
-      "expected_agent": "pipeline-orchestrator-engineer",
-      "expected_skill": null,
+      "expected_agent": null,
+      "expected_skill": "workflow",
       "category": "meta-tooling",
       "routing_tier": "candidate",
       "candidate_depth": 5,
@@ -498,7 +498,7 @@
     },
     {
       "request": "go test ./internal/... to check the changes",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "pre-route-confidence",
       "routing_tier": "force_route",
@@ -506,7 +506,7 @@
     },
     {
       "request": "run the goroutine leak check",
-      "expected_agent": "golang-general-engineer",
+      "expected_agent": null,
       "expected_skill": "programming",
       "category": "pre-route-confidence",
       "routing_tier": "force_route",
@@ -542,7 +542,7 @@
     },
     {
       "request": "create a skill that does X",
-      "expected_agent": "toolkit-governance-engineer",
+      "expected_agent": null,
       "expected_skill": "toolkit",
       "category": "meta-tooling",
       "routing_tier": "candidate_deferred",
@@ -550,7 +550,7 @@
     },
     {
       "request": "scaffold a new skill",
-      "expected_agent": "toolkit-governance-engineer",
+      "expected_agent": null,
       "expected_skill": "toolkit",
       "category": "meta-tooling",
       "routing_tier": "force_route",
@@ -558,7 +558,7 @@
     },
     {
       "request": "build a skill for Y",
-      "expected_agent": "toolkit-governance-engineer",
+      "expected_agent": null,
       "expected_skill": "toolkit",
       "category": "meta-tooling",
       "routing_tier": "candidate_deferred",
@@ -1071,7 +1071,7 @@
     },
     {
       "request": "Retention is falling; inspect this game and improve the player experience",
-      "expected_agent": "ui-design-engineer",
+      "expected_agent": null,
       "expected_skill": "game-dev",
       "category": "game-design",
       "routing_tier": "candidate_deferred",
@@ -1084,7 +1084,7 @@
     },
     {
       "request": "make a new trailer for road to aew for youtube showing the ladder match and the busaiku knee finish",
-      "expected_agent": "python-general-engineer",
+      "expected_agent": null,
       "expected_skill": "game-trailer",
       "category": "content-creation",
       "routing_tier": "candidate",

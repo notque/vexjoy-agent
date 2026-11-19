@@ -1,7 +1,6 @@
 ---
 description: "Scaffold pipeline components from a Pipeline Spec JSON."
 user-invocable: false
-agent: pipeline-orchestrator-engineer
 allowed-tools:
   - Read
   - Write
@@ -26,7 +25,7 @@ routing:
 
 ## Overview
 
-This skill operates as the build engine of the self-improving pipeline generator. It consumes a Pipeline Spec JSON (produced by `chain-composer`) and scaffolds all components: 0-1 agents, N skills (one per subdomain), N sets of reference files, optional scripts, optional hooks, and routing entries for all N skills. It implements a **Spec-Driven Fan-Out** pattern: parse the spec, validate it, fan out skill creation per subdomain, integrate into routing.
+This skill operates as the build engine of the self-improving pipeline generator. It consumes a Pipeline Spec JSON (produced by `chain-composer`) and scaffolds all components: one domain reference (bound or new), N skills (one per subdomain), N sets of reference files, optional scripts, optional hooks, and routing entries for all N skills. Repo agents are retired (plan 009), so the scaffolder writes no repo agent file; a dispatched phase runs on a fresh `general-purpose` worker told which skill reference to load. It implements a **Spec-Driven Fan-Out** pattern: parse the spec, validate it, fan out skill creation per subdomain, integrate into routing.
 
 The skill MUST read and follow repository CLAUDE.md files before execution (project instructions override default behaviors). It ONLY accepts Pipeline Spec JSON as input—no freestyle scaffolding, no manual component manifests, no "just create a skill" requests. The spec is a validated, type-checked contract; freestyle scaffolding produces orphan components and type mismatches.
 
@@ -41,7 +40,7 @@ The skill MUST read and follow repository CLAUDE.md files before execution (proj
 **Step 2**: Validate the spec against `references/pipeline-spec-format.md`. The spec is the only valid input contract—pass invalid specs back to `chain-composer` for correction rather than fixing them here. Check:
 
 Top-level:
-- [ ] Exactly one of `new_agent` or `reuse_agent` is non-null
+- [ ] Exactly one of `new_agent` or `reuse_agent` is non-null; `reuse_agent` is `general-purpose` unless the owner named a private overlay agent
 - [ ] `operator_profile` is a valid enum value (`personal`, `work`, `ci`, `production`)
 - [ ] `subdomains` is non-empty
 - [ ] `domain` is lowercase kebab-case
@@ -51,12 +50,12 @@ Per subdomain:
 - [ ] Chain ends with terminal step (`output_schema: "pipeline-summary"`)
 - [ ] Type compatibility holds for all adjacent steps
 - [ ] `skill_name` matches pattern `^[a-z][a-z0-9]*(-[a-z][a-z0-9]*)+$`
-- [ ] `pairs_with_agent` references the correct agent
+- [ ] `pairs_with_agent` equals the top-level worker type (`reuse_agent` or `new_agent.name`)
 - [ ] `routing_triggers` is non-empty
 - [ ] Every `params.script` reference exists in `scripts_needed`
 - [ ] Every `params.rules` / `params.template` reference exists in `references_needed` or `shared_references`
 
-**Step 3**: If `reuse_agent` is non-null, verify the agent exists in `agents/INDEX.json`. If it does not exist, STOP—the spec is invalid. Trust the spec: if `reuse_agent` is set, upstream chain-composer already determined reuse is appropriate rather than fragmenting expertise across a new agent (Rule 9: Reuse Over Recreation).
+**Step 3**: Verify the worker type and the domain reference. `reuse_agent` must be a built-in agent type (`general-purpose` by default) or a private overlay agent listed in `agents/INDEX.local.json`; a retired repo agent name makes the spec invalid, so STOP. If `domain_reference` is non-null, verify the file exists under `skills/`; if it does not, STOP—the spec is invalid. Trust the spec: if `domain_reference` is set, upstream chain-composer already determined reuse is appropriate rather than fragmenting expertise across a new reference (Rule 9: Reuse Over Recreation).
 
 **Step 4**: Compute build targets from the spec:
 
@@ -64,14 +63,15 @@ Per subdomain:
 Skills to create    = spec.subdomains[*].skill_name
 References to create = union(spec.shared_references, spec.subdomains[*].references_needed)
 Scripts to create   = union(spec.subdomains[*].scripts_needed)
-Agent to create     = spec.new_agent (if non-null)
-Agent to bind       = spec.reuse_agent (if non-null)
+Domain reference    = spec.domain_reference (bind), else the new shared domain reference
+Worker type         = spec.reuse_agent (general-purpose by default)
+Overlay agent       = spec.new_agent (owner-requested private agent only)
 Routing entries     = spec.subdomains[*].routing_triggers (per skill)
 ```
 
 **Step 5**: Count and report planned components:
 - N skills (one per subdomain)
-- 0 or 1 agent
+- 1 domain reference (bound or new); 0 repo agents (0 or 1 overlay agent, owner-requested only)
 - Total unique reference files
 - Total unique scripts
 - Total routing trigger entries
@@ -94,19 +94,26 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 
 **Gate**: Pipeline Spec loaded and valid. All validation checks pass. ADR integrity verified (or hash absent—warning logged). Component count established. Proceed to Phase 2.
 
-### Phase 2: SCAFFOLD AGENT (if needed)
+### Phase 2: BIND OR WRITE THE DOMAIN REFERENCE
 
-**Goal**: Create the domain agent if no existing agent covers the domain.
+**Goal**: Give every subdomain skill one home for the domain expertise. In the repo that home is a skill reference, never an agent.
 
 **Decision logic**:
-- If `reuse_agent` is non-null: **SKIP this phase**. The existing agent is the executor. Log: "Reusing agent: {reuse_agent}".
-- If `new_agent` is non-null: Create the agent.
+- If `domain_reference` is non-null: bind it. Log: "Binding domain reference: {domain_reference}". Each generated skill names it in its Reference Loading Table and lists its skill in `pairs_with`.
+- If `domain_reference` is null: write the shared domain reference listed in `shared_references` (for example `{domain}-domain-knowledge.md`).
+- If `new_agent` is non-null (the owner asked for a private overlay agent): also follow "Overlay agent (owner-requested only)" below.
 
-**When creating a new agent**:
+**When writing a new domain reference**:
 
-**Step 1**: Read `skills/meta/toolkit/references/skill-creator/agent-template.md` for the structural template. Every agent MUST follow this template to ensure structural consistency, which enables automated validation and routing integration.
+**Step 1**: Write the reference with the domain's description, expertise list (3-6 items), CAN / CANNOT table that names the owning skill or reference for out-of-scope work, error handling (3+ categories), preferred patterns, and blocker criteria. Keep it under the size limit that `python3 scripts/validate-references.py --check-size` enforces; move depth into a `references/{domain}/` subdirectory.
 
-**Step 2**: Generate the agent file at `agents/{new_agent.name}.md` with:
+**Step 2**: Name the reference in each subdomain skill's Reference Loading Table, with signals drawn from the domain triggers.
+
+**Overlay agent (owner-requested only)**: a private agent never ships in the repo. Write it at `private-agents/{new_agent.name}.md` and index it into `agents/INDEX.local.json` with `python3 scripts/generate-agent-index.py --include-private`. These steps apply only to that overlay agent:
+
+**Step 1**: Read `skills/meta/toolkit/references/skill-creator/agent-template.md` for the structural template. Every overlay agent MUST follow this template to ensure structural consistency, which enables automated validation and routing integration.
+
+**Step 2**: Generate the agent file with:
 - YAML frontmatter: name, version, description (with 3 examples), color, routing metadata
 - `routing.triggers` from `new_agent.triggers`
 - `routing.pairs_with` listing ALL subdomain skill names from the spec—incomplete pairs_with means the agent can't be discovered for all subdomains
@@ -120,15 +127,16 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 - Blocker Criteria
 - References section
 
-**Step 3**: If `new_agent.complexity` is Medium or higher, create `agents/{new_agent.name}/references/` directory.
+**Step 3**: If `new_agent.complexity` is Medium or higher, create `private-agents/{new_agent.name}/references/` directory.
 
-**Step 4**: Validate the agent:
+**Step 4**: Validate the overlay agent:
 - [ ] All required agent-template sections present
 - [ ] Main file under 10,000 words—no monolithic prompts. If content exceeds this limit, move detail to `references/` subdirectory
 - [ ] `pairs_with` lists all N subdomain skill names
 - [ ] Naming follows `{domain}-{function}-engineer` pattern
+- [ ] Agent appears in `agents/INDEX.local.json`
 
-**Gate**: Either existing agent confirmed in INDEX.json, or new agent file created and validated. Proceed to Phase 3.
+**Gate**: Domain reference bound or written and validated (and the overlay agent indexed, when one was requested). Proceed to Phase 3.
 
 ### Phase 3: SCAFFOLD SKILLS (Fan-Out—one per subdomain)
 
@@ -153,7 +161,10 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 - `{{subdomain_name}}` from `subdomain.name`
 - `{{task_type}}` from `subdomain.task_type`
 - `{{description}}` from `subdomain.description`
-- `{{agent_name}}` from the agent decision (`reuse_agent` or `new_agent.name`)
+- `{{agent_name}}` from the worker type (`reuse_agent` or `new_agent.name`; `general-purpose` by default); not written to frontmatter
+- `{{pairs_with}}` from the skill that holds the domain reference (`assemble-skill.py --pairs-with`)
+
+After assembly, add a Reference Loading Table row to each generated skill that names the domain reference (`domain_reference`, or the new shared domain reference); the template has no placeholder for it.
 - `{{routing_triggers_csv}}` from joining `subdomain.routing_triggers`
 - `{{operator_profile_*}}` flags from top-level `operator_profile`—respect the profile field to include or exclude safety/interaction steps based on profile (personal profiles skip APPROVE gates; production profiles require them)
 
@@ -203,10 +214,10 @@ For steps with `profile_gate` set: include the phase only if the gate matches th
   - No LLM calls—scripts are deterministic operations
 
 **Validation per skill** (before proceeding to next subdomain):
-- [ ] YAML frontmatter has all required fields (name, description, version, user-invocable, agent, allowed-tools)
+- [ ] YAML frontmatter has all required fields (name, description, version, user-invocable, allowed-tools; `agent` only when the skill sets `context: fork`)
 - [ ] Phase 0 is ADR
 - [ ] Phase gates exist between all phases
-- [ ] `agent` field references the correct agent
+- [ ] The Reference Loading Table names the domain reference, and any dispatched phase tells its `general-purpose` worker which reference to load
 - [ ] All `references_needed` files exist in `skills/{skill_name}/references/`
 - [ ] Research-gathering phases use parallel multi-agent dispatch (Rule 12 is not negotiable—validated by A/B test)
 
@@ -218,13 +229,13 @@ For steps with `profile_gate` set: include the phase only if the gate matches th
 
 **Step 1: Routing integration**. Call the Skill tool with `toolkit` and run its Routing Tables mode. Use batch mode:
 - Add all N skills to `skills/meta/do/references/routing-tables.md`
-- Add the agent (if new) to `agents/INDEX.json`
 - For each skill: add trigger entries from `subdomain.routing_triggers`
-- If the agent is new: add agent trigger entries from `new_agent.triggers`
+- If the domain reference is new: add its triggers as signals in each skill's Reference Loading Table
+- If an overlay agent was requested: regenerate `agents/INDEX.local.json` (`python3 scripts/generate-agent-index.py --include-private`)
 
 **Step 2: Create domain manifest**. Write `commands/{domain}-pipeline.md` listing:
 - Domain name and purpose
-- Agent (new or reused) with trigger keywords
+- Domain reference (bound or new) and worker type
 - All N subdomain skills with their trigger keywords
 - All reference files (shared and per-skill)
 - All scripts
@@ -232,13 +243,14 @@ For steps with `profile_gate` set: include the phase only if the gate matches th
 
 **Step 3: Verify integration**. Check every component:
 
-Agent verification:
-- [ ] Agent appears in `agents/INDEX.json` (new or existing)
-- [ ] Agent's `pairs_with` lists all N subdomain skill names
+Domain reference verification:
+- [ ] Domain reference file exists (bound or new)
+- [ ] Every one of the N skills names it in its Reference Loading Table
+- [ ] Overlay agent only: it appears in `agents/INDEX.local.json` and its `pairs_with` lists all N subdomain skill names
 
 Skill verification (for each of N skills):
 - [ ] Skill has routing entry in `skills/meta/do/references/routing-tables.md`
-- [ ] Skill's `agent` field references the correct agent
+- [ ] Skill has no `agent` field, or `agent: general-purpose` (or the overlay agent) with `context: fork`
 - [ ] Skill's description includes "Use for" with trigger keywords
 
 Script verification (for each script):
@@ -264,7 +276,8 @@ Cross-cutting:
   "domain": "{domain}",
   "operator_profile": "{profile}",
   "components": {
-    "agent": "{agent_name} (new|reused)",
+    "domain_reference": "{path} (new|bound)",
+    "agent": "{agent_name}",
     "skills": ["{skill_1}", "{skill_2}", ...],
     "references": ["{ref_1}", "{ref_2}", ...],
     "scripts": ["{script_1}", ...],
@@ -290,7 +303,8 @@ Cross-cutting:
 
 | Type | Count | Names |
 |------|-------|-------|
-| Agent | {0 or 1} | {name} ({new or reused}) |
+| Domain reference | 1 | {path} ({new or bound}) |
+| Worker type | 1 | {general-purpose, or overlay agent name} |
 | Skills | {N} | {list} |
 | References | {M} | {list} |
 | Scripts | {J} | {list} |
@@ -308,14 +322,14 @@ Cross-cutting:
 ### {subdomain_2.name}
 ...
 
-## Agent Decision
-{Rationale for reuse vs. new agent creation}
+## Domain Reference Decision
+{Rationale for binding an existing reference vs. writing a new one}
 
 ## Usage Examples
 
 To invoke each generated skill:
-- `/do {trigger_phrase_1}` -> routes to `{skill_1}` via `{agent_name}`
-- `/do {trigger_phrase_2}` -> routes to `{skill_2}` via `{agent_name}`
+- `/do {trigger_phrase_1}` -> routes to `{skill_1}` (loads `{domain_reference}`)
+- `/do {trigger_phrase_2}` -> routes to `{skill_2}` (loads `{domain_reference}`)
 ```
 
 **Gate**: Report artifacts exist. Scaffolding complete.
@@ -326,9 +340,9 @@ To invoke each generated skill:
 **Cause**: The spec fails validation in Phase 1—missing fields, type incompatibilities, invalid enums, or constraint violations. Specs are contracts; return them to `chain-composer` for correction rather than fixing during scaffolding.
 **Solution**: Return the specific validation failure with the field path and expected value. This is `chain-composer`'s responsibility. Report the error to the orchestrator so it can re-invoke chain composition.
 
-### Error: Agent Not Found
-**Cause**: `reuse_agent` references an agent name not present in `agents/INDEX.json`.
-**Solution**: STOP. This is a spec error. The agent must exist before the scaffolder can bind skills to it. Report to orchestrator. Either the agent name is wrong (typo) or domain research missed it.
+### Error: Worker or Domain Reference Not Found
+**Cause**: `reuse_agent` names a retired repo agent or an overlay agent missing from `agents/INDEX.local.json`, or `domain_reference` names a file that does not exist.
+**Solution**: STOP. This is a spec error. The worker type and the domain reference must resolve before the scaffolder can bind skills to them. Report to orchestrator. Either the name is wrong (typo or retired agent) or domain research missed the reference.
 
 ### Error: Template Section Missing
 **Cause**: A generated skill is missing a required section (frontmatter field, Phase 0 ADR, gate between phases).
@@ -339,7 +353,7 @@ To invoke each generated skill:
 **Solution**: Re-generate the script skeleton. Scripts are simple argparse CLIs—syntax errors usually mean a template variable was not substituted. Check for remaining `{{variable}}` markers.
 
 ### Error: Naming Convention Violation
-**Cause**: A component name doesn't follow group-prefix pattern (`{domain}-{function}` for skills, `{domain}-{function}-engineer` for agents).
+**Cause**: A component name doesn't follow group-prefix pattern (`{domain}-{function}` for skills, `{domain}-{function}-engineer` for overlay agents).
 **Solution**: Rename the component. The `skill_name` field in the spec should already be validated, so this error usually means a manual override went wrong.
 
 ### Error: Orphan Component
@@ -348,7 +362,7 @@ To invoke each generated skill:
 
 ### Error: Monolithic Single Skill Created
 **Cause**: Creating one skill for the entire domain instead of N skills (one per subdomain).
-**Solution**: This violates the spec. Monolithic skills dilute expertise, overload context, and can't be routed independently. Each subdomain has different task types needing different pipeline chains. Follow the spec—one skill per subdomain entry, same agent, different methodology.
+**Solution**: This violates the spec. Monolithic skills dilute expertise, overload context, and can't be routed independently. Each subdomain has different task types needing different pipeline chains. Follow the spec—one skill per subdomain entry, same domain reference, different methodology.
 
 ### Error: Freestyle Scaffolding Attempted
 **Cause**: Creating skills without a Pipeline Spec JSON—"just make a skill for X".
@@ -364,4 +378,4 @@ To invoke each generated skill:
 - **Generated Skill Template**: [references/generated-skill-template.md](references/generated-skill-template.md)—template for each subdomain skill
 - **Architecture Rules**: [references/architecture-rules.md](references/architecture-rules.md)—rules to enforce on all components
 - **Step Menu**: [references/step-menu.md](references/step-menu.md)—valid steps and type compatibility
-- **Agent Template**: [../../skill-creator/references/agent-template.md](../../skill-creator/references/agent-template.md)—template for new agents
+- **Agent Template**: [../../../meta/toolkit/references/skill-creator/agent-template.md](../../../meta/toolkit/references/skill-creator/agent-template.md)—template for an owner-requested private overlay agent only

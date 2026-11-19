@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.3
+# hook-version: 1.1.0
 """
 PreToolUse:Agent Hook: Section-Integrity Validator
 
-Advisory hook that validates subagent_type against agents/INDEX.json and
-skills/INDEX.json before Agent dispatch. Catches two common mistakes:
+Advisory hook that validates subagent_type before Agent dispatch. The repo's
+specialist agents are retired (plans/009): the worker is the built-in
+general-purpose agent and the skill carries the domain. Valid names are the
+harness built-ins (case-insensitive) plus private overlay agents from the
+resolved agents index, minus the retired names. Catches three mistakes:
 
 1. Dispatching with a skill name instead of an agent name (the harness rejects
    this but the error is confusing).
-2. Dispatching with a name that exists in neither index (typo or stale name).
+2. Dispatching a retired specialist agent.
+3. Dispatching with a name that exists nowhere (typo or stale name).
 
 This is ADVISORY only -- exit 0 always, never blocks.
 
@@ -54,6 +58,20 @@ _EVENT_NAME = "PreToolUse"
 # a guard against accidental double-load).
 _agents_cache: set[str] | None = None
 _skills_cache: set[str] | None = None
+
+# Harness-provided agent types, valid without any index entry. Compared lower-case.
+BUILTIN_AGENTS = frozenset(
+    {
+        "general-purpose",
+        "fork",
+        "explore",
+        "plan",
+        "claude",
+        "statusline-setup",
+        "claude-code-guide",
+        "web-fetch",
+    }
+)
 
 
 def _load_index_names(index_path: Path, key: str) -> set[str]:
@@ -107,15 +125,21 @@ def _find_project_root(event: dict) -> Path:
     return Path(cwd_str).resolve()
 
 
+def _retired_agents() -> frozenset[str]:
+    rim = _resolver()
+    return frozenset(getattr(rim, "RETIRED_AGENTS", frozenset())) if rim is not None else frozenset()
+
+
 def _get_agent_names(project_root: Path) -> set[str]:
-    """Return set of valid agent names from the resolved agents index."""
+    """Valid agent names, lower-case: built-ins plus overlay agents, minus retired ones.
+
+    A stale install still lists the retired repo agents, so they are subtracted.
+    """
     global _agents_cache
     if _agents_cache is not None:
         return _agents_cache
-    _agents_cache = _resolved_names("agents", project_root)
-    # Always include "general-purpose" -- it's the default agent, not listed
-    # in INDEX.json but always valid.
-    _agents_cache.add("general-purpose")
+    indexed = {name.lower() for name in _resolved_names("agents", project_root)}
+    _agents_cache = (indexed - _retired_agents()) | BUILTIN_AGENTS
     return _agents_cache
 
 
@@ -182,7 +206,7 @@ def main() -> None:
         )
 
     # Valid agent name -- allow silently.
-    if subagent_type in agent_names:
+    if subagent_type.lower() in agent_names:
         if debug:
             print(
                 f"[section-integrity] '{subagent_type}' is a valid agent -- allowing",
@@ -201,10 +225,20 @@ def main() -> None:
             print(warning, file=sys.stderr)
         context_output(_EVENT_NAME, warning).print_and_exit(0)
 
-    # Not in either index -- warn about potential typo.
+    # Retired specialist agent -- point at the worker + skill contract.
+    if subagent_type.lower() in _retired_agents():
+        warning = (
+            f"[section-integrity] WARNING: '{subagent_type}' is a retired agent. Dispatch "
+            f"'general-purpose' and load the skill that now holds its domain."
+        )
+        if debug:
+            print(warning, file=sys.stderr)
+        context_output(_EVENT_NAME, warning).print_and_exit(0)
+
+    # Unknown everywhere -- warn about potential typo.
     warning = (
-        f"[section-integrity] WARNING: '{subagent_type}' not found in agents/INDEX.json "
-        f"or skills/INDEX.json. This may cause a dispatch failure."
+        f"[section-integrity] WARNING: '{subagent_type}' is not a built-in agent, an overlay agent, "
+        f"or a skill. This may cause a dispatch failure."
     )
     if debug:
         print(warning, file=sys.stderr)

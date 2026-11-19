@@ -41,9 +41,9 @@ Print a summary and exit.
 
 For each target name in the targets list:
 
-1. **Audit before:** Run `python3 scripts/audit-reference-depth.py --agent {name} --verbose` to record the starting level
-2. **Gap analysis:** Run `python3 skills/analysis/data/scripts/gap-analyzer.py --agent {name}` to identify specific knowledge gaps
-3. **Read exemplars:** Read one high-quality reference file as a model (e.g., `~/.claude/agents/golang-general-engineer/references/go-preferred-patterns.md`). This shows what Level 3 depth looks like.
+1. **Audit before:** Run `python3 scripts/audit-reference-depth.py --skill {name} --verbose` to record the starting level (`--agent {name}` only for a private overlay agent; repo agents are retired and their content lives in skill references)
+2. **Gap analysis:** Run `python3 skills/analysis/data/scripts/gap-analyzer.py --skill {name}` to identify specific knowledge gaps (`--agent` only for an overlay agent)
+3. **Read exemplars:** Read one high-quality reference file as a model (e.g., `~/.claude/skills/programming/references/go/preferred-patterns.md`). This shows what Level 3 depth looks like.
 4. **Read the quality rubric:** Read `skills/analysis/data/references/quality-rubric.md` for Level classification criteria
 5. **Read the template:** Read `skills/analysis/data/references/reference-file-template.md` for the standard structure
 6. **Generate reference files:** For the top 2-3 gaps identified, create reference files that include:
@@ -83,7 +83,7 @@ This gate prevents reference bloat — only references that add concrete, signal
 
 1. Stage only the files you created/modified (reference files, agent/skill body updates)
 2. Commit with: `feat(refs): {agent-name} — {brief description of what was added} (Level {before}→{after})`
-   - Example: `feat(refs): prometheus-grafana-engineer — PromQL patterns, alerting rules, cardinality management (Level 0→3)`
+   - Example: `feat(refs): kubernetes prometheus-grafana — PromQL patterns, alerting rules, cardinality management (Level 0→3)`
 3. Push: `git push -u origin enrich/refs-${ENRICH_RUN_ID}`
 4. Create PR and auto-merge: `gh pr create --title "feat(refs): {agent-name} (Level {before}→{after})" --body "..."` then `gh pr merge --squash --auto --delete-branch`
    - PR title should describe WHAT was enriched, not just the date

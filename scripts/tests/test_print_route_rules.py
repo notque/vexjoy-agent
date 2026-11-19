@@ -26,20 +26,22 @@ REQUIRED_RULES = (
     "SECTION-INTEGRITY RULE",
     "FORCE-ROUTE RULE",
     "PIPELINE-SELECTION RULE",
-    "MULTI-AGENT RULE",
+    "FAN-OUT RULE",
     "SPECIFICITY RULES",
     "COMBINATION DOCTRINE",
     "Skill-greediness gate",
-    "Agent-greediness gate",
-    "Pairing rule",
-    "Fallback reason",
 )
+
+# Retired with the specialist agents (plans/009); /d must not receive them.
+RETIRED_RULES = ("MULTI-AGENT RULE", "Agent-greediness gate", "Pairing rule", "Fallback reason")
 
 
 def test_extracted_span_holds_every_rule() -> None:
     text = rules.extract_rules(DO_SKILL.read_text(encoding="utf-8"))
     for name in REQUIRED_RULES:
         assert name in text, name
+    for name in RETIRED_RULES:
+        assert name not in text, name
     assert text.startswith(rules.START)
     assert rules.END not in text
 

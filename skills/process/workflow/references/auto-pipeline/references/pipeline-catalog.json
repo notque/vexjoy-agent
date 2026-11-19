@@ -306,12 +306,12 @@
       "phase_count": 5,
       "phases": [
         "LOAD",
-        "SCAFFOLD AGENT",
+        "BIND OR WRITE THE DOMAIN REFERENCE",
         "SCAFFOLD SKILLS",
         "INTEGRATE",
         "REPORT"
       ],
-      "chain": "LOAD → SCAFFOLD AGENT → SCAFFOLD SKILLS → INTEGRATE → REPORT",
+      "chain": "LOAD → BIND OR WRITE THE DOMAIN REFERENCE → SCAFFOLD SKILLS → INTEGRATE → REPORT",
       "task_type": "meta",
       "triggers": [
         "scaffold pipeline",

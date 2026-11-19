@@ -1,0 +1,502 @@
+{
+  "version": "1.0",
+  "frozen": "2026-11-17, before any router ran on this set",
+  "description": "Golden tasks for comparing /do and /d (plans/009 L6). Request shapes come from the owner's routed work in the learning DB (skill and pipeline mix, 2026-10 to 2026-11), scripts/routing-ab-corpus.json, and scripts/router_attachment/cases.json. Requests are rewritten; no personal data. Labels: `skill` and `pipeline` are acceptable sets (null = no pipeline), `required` are skill groups that must appear in skill+stack, `forbid` must not appear, `d_exec` is what /d may do (main loop and allowed dispatch reasons). `e2e` tasks run against fixture/ in the end-to-end runner; `acceptance` are their checks and `rubric` is graded on the final answer.",
+  "tasks": [
+    {
+      "id": "g01-debug-truncation",
+      "source": "learning-db shape: workflow + systematic-debugging, 'Fix GM >12-team truncation bug'",
+      "request": "The season standings drop teams when a league has more than 12 teams. Find the cause, fix it, and add a regression test.",
+      "skill": [
+        "debugging",
+        "workflow",
+        "programming",
+        "testing"
+      ],
+      "pipeline": [
+        "systematic-debugging",
+        null,
+        "quality-loop"
+      ],
+      "required": [
+        [
+          "testing",
+          "debugging",
+          "workflow"
+        ]
+      ],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "verifier"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": true,
+      "acceptance": [
+        {
+          "cmd": "python3 -m pytest -q",
+          "expect_exit": 0
+        },
+        {
+          "cmd": "python3 -c \"from simsim.season import standings; assert len(standings({f't{i}': i for i in range(20)})) == 20\"",
+          "expect_exit": 0
+        },
+        {
+          "cmd": "git diff --name-only HEAD; git ls-files --others --exclude-standard",
+          "expect_regex": "tests/"
+        }
+      ],
+      "rubric": [
+        "Names the cause: the standings slice caps the table at 12 rows.",
+        "The fix keeps every team and keeps the sort order (points, then name).",
+        "Adds a test with more than 12 teams that failed before the fix.",
+        "Changes nothing unrelated to the bug."
+      ]
+    },
+    {
+      "id": "g02-pr-push",
+      "source": "corpus paraphrase-git / learning-db pr-workflow + pr-pipeline",
+      "request": "Commit these changes, push the branch, and open a pull request.",
+      "skill": [
+        "pr-workflow"
+      ],
+      "pipeline": [
+        "pr-pipeline",
+        null
+      ],
+      "required": [],
+      "forbid": [],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "verifier",
+          "worktree"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": false,
+      "rubric": [
+        "Runs the repo's quality gates before pushing.",
+        "Commits only the intended files.",
+        "Opens one PR and reports its link."
+      ]
+    },
+    {
+      "id": "g03-review-diff",
+      "source": "learning-db shape: review, 'Diff review of deploy-docs fixes'",
+      "request": "Review the diff on this branch for correctness bugs before I merge it.",
+      "skill": [
+        "review"
+      ],
+      "pipeline": [
+        null,
+        "comprehensive-review"
+      ],
+      "required": [],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "verifier",
+          "fan-out"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": true,
+      "setup": {
+        "branch": "feature/scoring",
+        "write": {
+          "simsim/scoring.py": "\"\"\"Points for a result.\"\"\"\n\n\ndef points(wins: int, draws: int, losses: int) -> int:\n    \"\"\"Three points a win, one a draw, none a loss.\"\"\"\n    return wins * 3 + draws * 3\n"
+        },
+        "message": "add scoring"
+      },
+      "acceptance": [
+        {
+          "cmd": "git status --porcelain",
+          "expect_regex": "^$"
+        },
+        {
+          "reply_regex": "(?is)draw.{0,120}(3|three)|(3|three).{0,120}draw"
+        }
+      ],
+      "rubric": [
+        "Finds the bug: a draw scores 3 points instead of 1.",
+        "Cites the file and line.",
+        "Does not edit, commit, or merge anything.",
+        "Reports no invented findings."
+      ]
+    },
+    {
+      "id": "g04-data-home-advantage",
+      "source": "learning-db shape: data, 'Analyze real run win/loss data'",
+      "request": "Analyze data/runs.csv and tell me whether home teams win more often than away teams, with the win rates.",
+      "skill": [
+        "data"
+      ],
+      "pipeline": [
+        null
+      ],
+      "required": [],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "haiku-gather"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": true,
+      "acceptance": [
+        {
+          "reply_regex": "62\\.5\\s*%"
+        },
+        {
+          "reply_regex": "37\\.5\\s*%"
+        },
+        {
+          "cmd": "git status --porcelain",
+          "expect_regex": "^$"
+        }
+      ],
+      "rubric": [
+        "States home 25 of 40 (62.5%) and away 15 of 40 (37.5%).",
+        "Answers the question directly: yes, home teams win more often here.",
+        "Notes the sample is small (40 games) without overclaiming.",
+        "Changes no files."
+      ]
+    },
+    {
+      "id": "g05-hook-todo",
+      "source": "router_attachment hook-new-01",
+      "request": "Write a PostToolUse hook in hooks/ that warns when an edit adds a TODO without an issue link, with tests.",
+      "skill": [
+        "toolkit",
+        "programming",
+        "testing",
+        "workflow"
+      ],
+      "pipeline": [
+        "hook-development-pipeline",
+        null,
+        "quality-loop"
+      ],
+      "required": [
+        [
+          "testing",
+          "toolkit"
+        ]
+      ],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "verifier"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": true,
+      "acceptance": [
+        {
+          "cmd": "ls hooks/*.py",
+          "expect_exit": 0
+        },
+        {
+          "cmd": "python3 -m pytest -q",
+          "expect_exit": 0
+        },
+        {
+          "cmd": "git diff --name-only HEAD; git ls-files --others --exclude-standard",
+          "expect_regex": "test"
+        }
+      ],
+      "rubric": [
+        "The hook reads the PostToolUse JSON on stdin and inspects the edited text.",
+        "It warns on a TODO with no issue link and stays silent when a link is present.",
+        "It never blocks the edit (exits 0).",
+        "Tests cover both cases."
+      ]
+    },
+    {
+      "id": "g06-frontend-flicker",
+      "source": "router_attachment ts-async/ood-ts shape; learning-db frontend",
+      "request": "The health bar in the React combat screen flickers on every damage tick; fix it.",
+      "skill": [
+        "frontend",
+        "debugging",
+        "workflow",
+        "game-dev"
+      ],
+      "pipeline": [
+        null,
+        "systematic-debugging"
+      ],
+      "required": [
+        [
+          "frontend",
+          "game-dev"
+        ]
+      ],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "verifier"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": false,
+      "rubric": [
+        "Finds why the bar re-renders or remounts on each tick.",
+        "Fixes the cause, not the symptom (no CSS hiding).",
+        "Verifies in the running app or a test."
+      ]
+    },
+    {
+      "id": "g07-docs-from-source",
+      "source": "do/SKILL.md pipeline example 'write structured docs for X from the source'; learning-db doc-pipeline",
+      "request": "Write structured reference docs for the routing scripts in scripts/ from their source.",
+      "skill": [
+        "writing",
+        "toolkit"
+      ],
+      "pipeline": [
+        "doc-pipeline",
+        null
+      ],
+      "required": [],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "haiku-gather",
+          "fan-out",
+          "verifier"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": false,
+      "rubric": [
+        "Every documented flag and behaviour exists in the source.",
+        "Covers each routing script, one section each.",
+        "Plain, dense prose with runnable examples."
+      ]
+    },
+    {
+      "id": "g08-research-ratings",
+      "source": "learning-db shape: research; router_attachment research-01",
+      "request": "Research how other wrestling sims rate matches and summarize the approaches with sources.",
+      "skill": [
+        "research"
+      ],
+      "pipeline": [
+        null,
+        "domain-research"
+      ],
+      "required": [
+        [
+          "research"
+        ]
+      ],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "haiku-gather",
+          "fan-out"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": false,
+      "rubric": [
+        "Names at least three distinct rating approaches.",
+        "Every claim has a source link.",
+        "Compares the approaches instead of listing them."
+      ]
+    },
+    {
+      "id": "g09-trivial-question",
+      "source": "EVAL.md idiom set case 12 (Trivial)",
+      "request": "What does git rebase --onto do?",
+      "expect_trivial": true,
+      "skill": [],
+      "pipeline": [
+        null
+      ],
+      "required": [],
+      "forbid": [],
+      "d_exec": {
+        "main": true,
+        "reasons": [],
+        "expect_dispatch": false
+      },
+      "e2e": true,
+      "acceptance": [
+        {
+          "reply_regex": "(?i)onto"
+        },
+        {
+          "cmd": "git status --porcelain",
+          "expect_regex": "^$"
+        },
+        {
+          "cmd": "git log --oneline | wc -l",
+          "expect_regex": "^\\s*1\\s*$"
+        }
+      ],
+      "rubric": [
+        "Explains that --onto replays a range of commits onto a new base.",
+        "Gives the three-argument form with a short example.",
+        "Runs no git command that changes the repo."
+      ]
+    },
+    {
+      "id": "g10-security-audit",
+      "source": "corpus paraphrase-security; learning-db security",
+      "request": "Audit the login endpoint for injection and auth bypass.",
+      "skill": [
+        "security"
+      ],
+      "pipeline": [
+        null,
+        "comprehensive-review"
+      ],
+      "required": [],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [
+          "verifier",
+          "fan-out"
+        ],
+        "expect_dispatch": false
+      },
+      "e2e": false,
+      "rubric": [
+        "Checks injection (SQL, command, header) and auth bypass paths.",
+        "Each finding has a file, line, and exploit sketch.",
+        "Changes no code unless asked."
+      ]
+    },
+    {
+      "id": "g11-k8s-helm",
+      "source": "router_attachment helm-01 / k8s shape",
+      "request": "Raise the memory limit on the api deployment's Helm chart and add a liveness probe.",
+      "skill": [
+        "kubernetes"
+      ],
+      "pipeline": [
+        null
+      ],
+      "required": [
+        [
+          "kubernetes"
+        ]
+      ],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [],
+        "expect_dispatch": false
+      },
+      "e2e": false,
+      "rubric": [
+        "Edits only the chart values or templates for the api deployment.",
+        "Adds a liveness probe with sane timings.",
+        "Renders the chart (helm template) to check it."
+      ]
+    },
+    {
+      "id": "g12-idiom-push-back",
+      "source": "EVAL.md idiom case 2 / corpus false-positive-guard",
+      "request": "Push back on the plan in PLAN.md to move the sim database to Postgres before we commit to it.",
+      "skill": [
+        "assessment",
+        "review",
+        "data"
+      ],
+      "pipeline": [
+        null
+      ],
+      "required": [],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": true,
+        "reasons": [],
+        "expect_dispatch": false
+      },
+      "e2e": true,
+      "acceptance": [
+        {
+          "cmd": "git status --porcelain",
+          "expect_regex": "^$"
+        },
+        {
+          "cmd": "git log --oneline | wc -l",
+          "expect_regex": "^\\s*1\\s*$"
+        },
+        {
+          "reply_regex": "(?i)measure|benchmark|evidence"
+        }
+      ],
+      "rubric": [
+        "Challenges the plan's reason: no measurement shows SQLite is slow.",
+        "Names the cost and risk of the migration.",
+        "Proposes a cheaper first step (measure, then decide).",
+        "Runs no git push, commit, or merge."
+      ]
+    },
+    {
+      "id": "g13-fanout-dead-code",
+      "source": "learning-db shape: review lanes A/B/C; do FAN-OUT RULE (per-package review)",
+      "request": "Review hooks/, scripts/, and skills/ for dead code. The three are independent, so do them in parallel.",
+      "skill": [
+        "review",
+        "code-quality"
+      ],
+      "pipeline": [
+        null,
+        "comprehensive-review"
+      ],
+      "required": [],
+      "forbid": [
+        "pr-workflow"
+      ],
+      "d_exec": {
+        "main": false,
+        "reasons": [
+          "fan-out",
+          "haiku-gather"
+        ],
+        "expect_dispatch": true
+      },
+      "e2e": false,
+      "rubric": [
+        "One report section per directory.",
+        "Each finding shows the symbol and why it is unused (no callers).",
+        "No false positives on entry points or hooks registered in settings."
+      ]
+    }
+  ]
+}

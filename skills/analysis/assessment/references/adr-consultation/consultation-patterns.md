@@ -36,10 +36,10 @@ Dispatch all agents in ONE response message. Sequential dispatch triples wall-cl
 with no cross-perspective benefit.
 
 ```markdown
-<!-- Correct: single message, three Task calls -->
-Task 1: reviewer-perspectives (contrarian) → writes adr/{name}/reviewer-perspectives-contrarian.md
-Task 2: reviewer-perspectives (user-advocate) → writes adr/{name}/reviewer-perspectives-user-advocate.md
-Task 3: reviewer-perspectives (meta-process) → writes adr/{name}/reviewer-perspectives-meta-process.md
+<!-- Correct: single message, three general-purpose Agent calls, each loading review/references/reviewer-perspectives.md -->
+Task 1: reviewer-perspectives.md (contrarian) → writes adr/{name}/reviewer-perspectives-contrarian.md
+Task 2: reviewer-perspectives.md (user-advocate) → writes adr/{name}/reviewer-perspectives-user-advocate.md
+Task 3: reviewer-perspectives.md (meta-process) → writes adr/{name}/reviewer-perspectives-meta-process.md
 ```
 
 **Why**: Agents assess independently. Sequential dispatch introduces timing artifacts where
@@ -165,7 +165,7 @@ ls adr/{name}/synthesis.md adr/{name}/concerns.md 2>/dev/null
 # Concerns: {adr-name}
 
 ## Concern 1: [Title]
-- **Raised by**: reviewer-perspectives (contrarian) | reviewer-perspectives (user-advocate) | reviewer-perspectives (meta-process)
+- **Raised by**: reviewer-perspectives.md (contrarian) | reviewer-perspectives.md (user-advocate) | reviewer-perspectives.md (meta-process)
 - **Severity**: blocking | important | minor
 - **Description**: [What's wrong or at risk]
 - **Resolution**: UNRESOLVED
@@ -196,9 +196,9 @@ sha256:{digest}
 ## Agent Verdicts
 | Agent | Verdict |
 |-------|---------|
-| reviewer-perspectives (contrarian) | [verdict] |
-| reviewer-perspectives (user-advocate) | [verdict] |
-| reviewer-perspectives (meta-process) | [verdict] |
+| reviewer-perspectives.md (contrarian) | [verdict] |
+| reviewer-perspectives.md (user-advocate) | [verdict] |
+| reviewer-perspectives.md (meta-process) | [verdict] |
 
 ## Areas of Agreement
 [Where all agents agree — positive or negative.]
@@ -261,9 +261,9 @@ sha256:{digest}
  Verdict: PROCEED — no blocking concerns found.
 
  Agent Verdicts:
-   - reviewer-perspectives (contrarian):    [verdict]
-   - reviewer-perspectives (user-advocate): [verdict]
-   - reviewer-perspectives (meta-process):  [verdict]
+   - reviewer-perspectives.md (contrarian):    [verdict]
+   - reviewer-perspectives.md (user-advocate): [verdict]
+   - reviewer-perspectives.md (meta-process):  [verdict]
 
  Important Concerns (non-blocking):
    [{raised by}] {concern title} — {brief description}
@@ -283,4 +283,4 @@ sha256:{digest}
 
 - `consultation-preferred-patterns.md` — ADR quality failure modes that reviewers should catch
 - `skills/review/review/SKILL.md` (Parallel mode) — Fan-out/fan-in pattern this skill adapts
-- `agents/reviewer-perspectives.md` — Perspectives agent (contrarian, user-advocate, meta-process lenses)
+- `~/.claude/skills/review/references/reviewer-perspectives.md` — Perspectives reviewer reference (contrarian, user-advocate, meta-process lenses)

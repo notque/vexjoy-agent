@@ -46,13 +46,13 @@ Select `model` (and optional `model_effort` or `model_policy`) in `build-dispatc
 
 ### 2.3 Execution Tier Architecture in Antigravity CLI
 
-In Antigravity CLI, all non-trivial tasks follow VexJoy's orchestrator contract: the main thread orchestrates and delegates all execution to subagents. Custom agents are registered via `define_subagent` from `agents/<name>.md` before `invoke_subagent`:
+In Antigravity CLI, all non-trivial tasks follow VexJoy's orchestrator contract: the main thread orchestrates and delegates all execution to subagents. The repo ships no specialist agents (plans/009): each worker persona is registered via `define_subagent` from its skill (`build-subagent-spec.py --skill <skill>`) before `invoke_subagent`. A user-named private overlay agent registers from its agent file (`--agent <name>`):
 
 | Complexity Tier | Execution Mode | Agent Mechanism | Skill Mechanism |
 |---|---|---|---|
 | **Trivial** | Direct in-thread | Handled directly (single user-named file typo/fix) | None |
-| **Simple / Medium** | Single subagent dispatch | Register specialist via `define_subagent` from `agents/<name>.md`; dispatch via `invoke_subagent` (`Workspace="inherit"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
-| **Complex / Fan-out** | Multi-agent dispatch (`/teamwork`) | Register via `define_subagent` from `agents/<name>.md`; dispatch via `invoke_subagent` (`Workspace="branch"` or `"share"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
+| **Simple / Medium** | Single subagent dispatch | Register the `<skill>-worker` persona via `define_subagent` from `build-subagent-spec.py --skill <skill>`; dispatch via `invoke_subagent` (`Workspace="inherit"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
+| **Complex / Fan-out** | Multi-worker dispatch (`/teamwork`) | Register one `<skill>-worker` persona per worker skill via `define_subagent`; dispatch via `invoke_subagent` (`Workspace="branch"` or `"share"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
 
 **Context Gathering Boundary (Phase 3 Step G)**:
 Reading repository status (`git status -s`, `git branch`) and exploring up to 5 files in the main thread is explicitly permitted as orchestrator routing work to populate the Task Spec prior to subagent dispatch (`skills/meta/do/SKILL.md#L25`).
@@ -67,11 +67,11 @@ When a task breakdown, job package, or Phase 1 classification plans multiple sub
 
 ## 3. Multi-Agent Teamwork (`/teamwork` Engine for Complex Tasks)
 
-When Phase 1 classifies a request as `Complex` (or Phase 2 selects multiple `agents` for parallel fan-out), execute using Antigravity's `/teamwork` architecture:
+When Phase 1 classifies a request as `Complex` (or Phase 2 selects `workers` for parallel fan-out), execute using Antigravity's `/teamwork` architecture:
 
 ```mermaid
 flowchart LR
-    Coord["/do Orchestrator (Argon)"] -->|1. define_subagent| Def["Register Domain Specialists from agents/*.md"]
+    Coord["/do Orchestrator (Argon)"] -->|1. define_subagent| Def["Register skill worker personas (build-subagent-spec.py --skill)"]
     Def -->|2. invoke_subagent Workspace='branch'| W1["Worker 1 (Isolated Branch)"]
     Def -->|2. invoke_subagent Workspace='branch'| W2["Worker 2 (Isolated Branch)"]
     Def -->|2. invoke_subagent Workspace='inherit'| R1["Research Scout (Read-Only)"]
@@ -82,29 +82,29 @@ flowchart LR
     Coord -->|4. Synthesize + Self-Review| Out["Final Verified Delivery"]
 ```
 
-### Step 1: Register Domain Specialists (`define_subagent`)
-Antigravity ships built-in `self` (full tool access), `research` (read-only sandbox), and `image-generator` subagents. To dispatch a specialized VexJoy agent (such as `python-general-engineer`, `golang-general-engineer`, `reviewer-system`):
+### Step 1: Register Worker Personas (`define_subagent`)
+Antigravity ships built-in `self` (full tool access), `research` (read-only sandbox), and `image-generator` subagents. To dispatch a VexJoy worker for a skill (such as `programming`, `review`, `research`):
 1. Extract persona definition and permissions via `scripts/build-subagent-spec.py`:
    ```bash
-   python3 scripts/build-subagent-spec.py --agent <agent-name> --format define_subagent
+   python3 scripts/build-subagent-spec.py --skill <skill> --format define_subagent
    ```
 2. Call `define_subagent`:
-   - `Name`: `"<agent-name>"`
-   - `Description`: Specialist domain summary from frontmatter.
-   - `SystemPrompt`: Compiled agent body + `agents/base-instructions.md` rules.
+   - `Name`: `"<skill>-worker"`
+   - `Description`: The skill's description from frontmatter.
+   - `SystemPrompt`: A short persona that loads the skill's SKILL.md and Reference Loading Table, plus `skills/shared-patterns/base-instructions.md` rules.
    - `EnableWriteTools`: `true` for implementers; `false` for reviewers/scouts.
    - `EnableMCPTools`: `true` when MCP documentation or external tools are needed.
-   - `EnableSubagentTools`: `true` only for coordinators (`project-coordinator-engineer`, `pipeline-orchestrator-engineer`).
+   - `EnableSubagentTools`: `true` only with `--category coordinator`.
 
 #### Antigravity SDK Programmatic Equivalents:
 In the Python SDK (`google-antigravity`), personas and permissions map directly to `types.SubagentConfig` or `LocalAgentConfig`:
 ```python
 from google_antigravity import types
 
-# Programmatic equivalent generated via `scripts/build-subagent-spec.py --agent <name> --format sdk`
+# Programmatic equivalent generated via `scripts/build-subagent-spec.py --skill <skill> --format sdk`
 worker_config = types.SubagentConfig(
-    name="python-general-engineer",
-    description="Python development: features, debugging, code review, performance",
+    name="programming-worker",
+    description="<the programming skill's description>",
     system_instruction="<compiled system prompt>",
     capabilities=types.CapabilitiesConfig(
         enable_write_tools=True,
@@ -115,15 +115,15 @@ worker_config = types.SubagentConfig(
 ```
 
 #### Antigravity SDK Tool Permission Matrix for Specialists:
-| Specialist Category | Example Agents | `EnableWriteTools` | `EnableMCPTools` | `EnableSubagentTools` | SDK Equivalent |
+| Specialist Category | Example Skills | `EnableWriteTools` | `EnableMCPTools` | `EnableSubagentTools` | SDK Equivalent |
 |---|---|---|---|---|---|
-| **Builders / Implementers** | `python-general-engineer`, `typescript-frontend-engineer` | `true` | `false` (or `true` if needed) | `false` | ReadWrite BuiltinTools |
-| **Reviewers & Auditors** | `reviewer-code`, `reviewer-system`, `reviewer-perspectives` | `false` | `false` | `false` | ReadOnly Policy (`BuiltinTools.read_only()`) |
-| **Scouts & Researchers** | `research-subagent-executor` | `false` | `true` | `false` | Sandboxed ReadOnly + Web/MCP |
-| **Coordinators / Planners** | `project-coordinator-engineer`, `pipeline-orchestrator-engineer` | `true` | `true` | `true` | Full capabilities (`enable_subagents=True`) |
+| **Builders / Implementers** | `programming`, `frontend` | `true` | `false` (or `true` if needed) | `false` | ReadWrite BuiltinTools |
+| **Reviewers & Auditors** | `review`, `security`, `code-quality` | `false` | `false` | `false` | ReadOnly Policy (`BuiltinTools.read_only()`) |
+| **Scouts & Researchers** | `research` | `false` | `true` | `false` | Sandboxed ReadOnly + Web/MCP |
+| **Coordinators / Planners** | any skill with `--category coordinator` | `true` | `true` | `true` | Full capabilities (`enable_subagents=True`) |
 
 ### Step 2: Dispatch with Native Workspace Isolation (`invoke_subagent`)
-1. Run `build-dispatch.py` **once per agent** (or use `--subagent-spec`) so each worker receives its own `[do-route]` marker line, scoped `task_spec.files`, and `ownership` boundaries:
+1. Run `build-dispatch.py` **once per worker** (or use `--subagent-spec`) so each worker receives its own `[do-route]` marker line, scoped `task_spec.files`, and `ownership` boundaries:
    ```bash
    python3 scripts/build-dispatch.py --json '<decision>' --subagent-spec
    ```
@@ -131,7 +131,7 @@ worker_config = types.SubagentConfig(
 3. Call `invoke_subagent(TypeName, Role, Prompt, Model, Workspace)`:
    - **`Workspace="branch"`**: Creates an isolated workspace branched/cloned from the parent. **Mandatory** when parallel implementers edit files concurrently (replaces manual `git worktree` creation and prevents merge conflicts).
    - **`Workspace="share"`**: Shares the underlying repository metadata (worktree-style) for lightweight independent branching without duplicating storage.
-   - **`Workspace="inherit"`**: Uses the parent workspace directly. **Default** for read-only reviewers (`reviewer-*`), scouts (`research-subagent-executor`), and single-agent sequential work where files do not collide.
+   - **`Workspace="inherit"`**: Uses the parent workspace directly. **Default** for read-only reviewers (`review`, `security` workers), scouts (`research` workers), and single-worker sequential work where files do not collide.
 
 #### Workspace Selection Guidelines:
 | Agent Role | Primary Activity | Recommended Workspace | Rationale |
@@ -190,7 +190,7 @@ When the user invokes `/do` alongside `/goal` (or requests `<afk-mode>`, "loop u
 | **`/goal`** (`<!-- GOAL_COMPLETE -->` + `Stop` hook loop) | Phase 3 & Phase 4.5 (Objective / Deep Work) | Couples VexJoy's `objective-loop` and `quality-loop.md` with `/goal` completion gates so long-running tasks never stop prematurely. Recommend `/goal` for overnight or multi-hour autonomous runs. |
 | **`/plan`** (`implementation_plan.md` + `walkthrough.md` in `<appDataDir>/brain/<conversation-id>/`) | Phase 4 Step 1 & Phase 5 | Writes structured brain artifacts (`implementation_plan.md` with `ArtifactMetadata: {RequestFeedback: true, UserFacing: true}`) for user review before risky/complex changes, plus `task_plan.md` for repo-local checkpointing and `walkthrough.md` at completion. |
 | **`/grill-me`** + **`ask_question`** tool | Phase 3 (Ambiguity Gate / Depth-First Interview) | Uses Antigravity's native `ask_question` tool (`questions` array, unnumbered `options`, `(Recommended)` prefix on first option, `is_multi_select`) to batch independent decision frontiers (`pl-depth-first-interview.md`). Recommend `/grill-me` when the user wants an exhaustive interactive design interview. |
-| **`/boost`** (Deep Thinking + Multi-Perspective Verification + Scratch Prototyping) | Phase 3 & Phase 4.5 (`high-risk` / `max-power`) | Escalates to `gemini-4-argon-high` (`effort: "high"` or `"max"`), runs multi-perspective review fan-out (`reviewer-code`, `reviewer-system`, `reviewer-domain`, `reviewer-perspectives`), and builds empirical prototypes (`pl-empirical-prototype.md`) in `<appDataDir>/brain/<conversation-id>/scratch/`. |
+| **`/boost`** (Deep Thinking + Multi-Perspective Verification + Scratch Prototyping) | Phase 3 & Phase 4.5 (`high-risk` / `max-power`) | Escalates to `gemini-4-argon-high` (`effort: "high"` or `"max"`), runs multi-perspective review fan-out (`review` workers with the `reviewer-code`, `reviewer-system`, `reviewer-domain`, and `reviewer-perspectives` lens references), and builds empirical prototypes (`pl-empirical-prototype.md`) in `<appDataDir>/brain/<conversation-id>/scratch/`. |
 | **`/browser`** | Phase 4.5 Stage 6 (`LIVE-VALIDATE`) | Validates web applications, UI components, and visual regressions in a live browser. |
 | **`/schedule`** (`schedule` tool) & **`/automation`** (Sidecars) | Phase 4 (Async Monitoring / Recurring Tasks) | Uses the native `schedule` tool (`DurationSeconds` or `CronExpression` + `TimerCondition`) instead of bash `sleep` polling; uses `~/.gemini/config/sidecars/<id>/sidecar.json` (`automation` skill) for standing background daemons. |
 | **`/compact`** | Phase Boundaries (Context Hygiene) | When `suggest-compact.py` or context length signals pressure between phases, checkpoints state to `task_plan.md` and brain artifacts, then recommends `/compact`. |

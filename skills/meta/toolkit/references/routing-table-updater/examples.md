@@ -36,22 +36,24 @@ description: Generate and validate database migrations. Use when "migrate databa
 
 ---
 
-## Example 2: Agent Description Updated
+## Example 2: Skill Description Updated
 
-**Original Agent:**
+Repo agents are retired (plan 009); the same flow applies to a private overlay agent in `agents/INDEX.local.json`.
+
+**Original Skill:**
 ```yaml
-# agents/golang-general-engineer.md
+# skills/programming/programming/SKILL.md
 ---
-name: golang-general-engineer
+name: programming
 description: Deep expertise in Go development
 ---
 ```
 
-**Updated Agent:**
+**Updated Skill:**
 ```yaml
-# agents/golang-general-engineer.md
+# skills/programming/programming/SKILL.md
 ---
-name: golang-general-engineer
+name: programming
 description: Deep expertise in Go development, architecture, debugging, concurrency
 ---
 ```
@@ -64,8 +66,8 @@ description: Deep expertise in Go development, architecture, debugging, concurre
 
 **Updated Routing Entry:**
 ```diff
--| Go, Golang, gofmt | golang-general-engineer | Medium-Complex |
-+| Go, Golang, gofmt, Go architecture, Go debugging, Go concurrency | golang-general-engineer | Medium-Complex | [AUTO-GENERATED]
+-| Go, Golang, gofmt | programming | Medium-Complex |
++| Go, Golang, gofmt, Go architecture, Go debugging, Go concurrency | programming | Medium-Complex | [AUTO-GENERATED]
 ```
 
 ---
@@ -113,18 +115,18 @@ description: Run integration tests. Use when "test integration", "test API integ
 
 **do.md Before:**
 ```markdown
-| "review Python", "Python quality" | python-general-engineer + python-quality-gate | Medium |
+| "review Python", "Python quality" | programming + python-quality-gate | Medium |
 | "review code" | systematic-code-review skill | Medium |
 ```
 
 **Auto-Generated Entry:**
 ```markdown
-| "review Python" | python-general-engineer | Medium | [AUTO-GENERATED]
+| "review Python" | programming | Medium | [AUTO-GENERATED]
 ```
 
 **Merge Result:**
 ```markdown
-| "review Python", "Python quality" | python-general-engineer + python-quality-gate | Medium |  <!-- Manual entry preserved -->
+| "review Python", "Python quality" | programming + python-quality-gate | Medium |  <!-- Manual entry preserved -->
 | "review code" | systematic-code-review skill | Medium | [AUTO-GENERATED]
 ```
 

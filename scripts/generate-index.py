@@ -362,14 +362,14 @@ def check_index(generated: dict, existing_path: Path, label: str) -> bool:
 # ---------------------------------------------------------------------------
 
 # Matches the bold name in the first column of a markdown table row, e.g.:
-#   | **golang-general-engineer** | ... |
+#   | **programming** | ... |
 #   | **fast (FORCE)** | ... |
 #   | **/pr-review command** | ... |
 ROUTING_TABLE_NAME_RE = re.compile(
     r"^\|\s*\*\*"  # row start, bold open
     r"(/?"  # optional leading slash (e.g. /pr-review)
     r"[\w][\w-]*)"  # the component name
-    r"(?:\s*\(.*?\))?"  # optional parenthetical like (FORCE) or (pipeline-orchestrator-engineer)
+    r"(?:\s*\(.*?\))?"  # optional parenthetical like (FORCE) or (workflow)
     r"\*\*"  # bold close
     r".*\|",  # rest of the row
 )
@@ -522,9 +522,8 @@ def main() -> int:
     indexes: dict[str, tuple[dict, Path]] = {}
 
     if "agents" in types:
-        if not agents_dir.exists():
-            print(f"Error: agents directory not found at {agents_dir}", file=sys.stderr)
-            return 1
+        # No agents/ directory is normal since the repo agents retired (plans/009):
+        # the index is empty (glob finds nothing) and the write creates the dir.
         idx = generate_agents_index(agents_dir)
         indexes["Agents"] = (idx, agents_dir / "INDEX.json")
 
@@ -553,6 +552,7 @@ def main() -> int:
 
     # Write mode
     for label, (idx, path) in indexes.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_text(path, json.dumps(idx, indent=2) + "\n")
 
     # Summary

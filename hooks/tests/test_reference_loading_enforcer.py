@@ -34,7 +34,7 @@ def _run_hook(prompt: str) -> str:
     payload = {
         "hook_event_name": "PreToolUse",
         "tool_name": "Agent",
-        "tool_input": {"prompt": prompt, "subagent_type": "python-general-engineer"},
+        "tool_input": {"prompt": prompt, "subagent_type": "general-purpose"},
     }
     result = subprocess.run(
         [sys.executable, str(HOOK_PATH)],
@@ -89,3 +89,10 @@ def test_ignores_non_agent_tools() -> None:
     )
     assert result.returncode == 0
     assert "Reference Loading Table" not in result.stdout
+
+
+def test_injection_points_at_the_skill_not_an_agent_file() -> None:
+    """Specialist agents are retired (plans/009): the table lives in the loaded skill's SKILL.md."""
+    stdout = _run_hook("Fix the flaky retry test in client.py.")
+    assert "SKILL.md" in stdout
+    assert "agent .md" not in stdout

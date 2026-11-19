@@ -22,7 +22,7 @@ deliverable alongside the code.
 
 - Boolean done-criteria loops with no continuous metric (`objective-loop`).
 - Correctness bugs and crashes (debugging skills).
-- Domain performance knowledge — Core Web Vitals thresholds and web tactics stay in `performance-optimization-engineer`; this skill carries methodology only.
+- Domain performance knowledge — Core Web Vitals thresholds and web tactics stay in the `frontend` skill's `performance-optimization.md` reference; this skill carries methodology only.
 - One-shot micro-optimizations with no measurement.
 - Capacity planning and infrastructure sizing.
 

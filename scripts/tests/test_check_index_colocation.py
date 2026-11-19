@@ -144,3 +144,12 @@ def test_no_changes_exits_zero(tmp_path: Path) -> None:
     proc = _run(repo)
     assert proc.returncode == 0
     assert "WARN" not in proc.stdout
+
+
+def test_silent_on_a_deleted_component(tmp_path: Path) -> None:
+    """Deleting an agent (the plans/009 retirement) is not a routing-field edit."""
+    repo = _make_repo(tmp_path)
+    (repo / "agents" / "demo-agent.md").unlink()
+    proc = _run(repo, "--json")
+    assert proc.returncode == 0
+    assert json.loads(proc.stdout) == []

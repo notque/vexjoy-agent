@@ -1,6 +1,6 @@
 # Routing Table Updater — Batch Mode
 
-When invoked by `pipeline-scaffolder` Phase 4 (INTEGRATE), this skill operates in batch mode to register N skills and 0-1 agents in a single pass.
+When invoked by `pipeline-scaffolder` Phase 4 (INTEGRATE), this skill operates in batch mode to register N skills in a single pass. Repo agents are retired (plan 009), so `agent` is the worker type (`general-purpose`); an owner-requested private overlay agent registers in `agents/INDEX.local.json` instead.
 
 ### Batch Input
 
@@ -8,11 +8,12 @@ The scaffolder provides a component list (from the Pipeline Spec):
 ```json
 {
   "domain": "prometheus",
-  "agent": { "name": "prometheus-grafana-engineer", "is_new": false },
+  "domain_reference": "kubernetes/references/prometheus-grafana.md",
+  "agent": { "name": "general-purpose", "is_new": false },
   "skills": [
-    { "name": "prometheus-metrics", "triggers": ["prometheus metrics", "PromQL", "recording rules"], "agent": "prometheus-grafana-engineer" },
-    { "name": "prometheus-alerting", "triggers": ["prometheus alerting", "alert rules", "alertmanager"], "agent": "prometheus-grafana-engineer" },
-    { "name": "prometheus-operations", "triggers": ["prometheus operations", "prometheus troubleshooting"], "agent": "prometheus-grafana-engineer" }
+    { "name": "prometheus-metrics", "triggers": ["prometheus metrics", "PromQL", "recording rules"], "agent": "general-purpose" },
+    { "name": "prometheus-alerting", "triggers": ["prometheus alerting", "alert rules", "alertmanager"], "agent": "general-purpose" },
+    { "name": "prometheus-operations", "triggers": ["prometheus operations", "prometheus troubleshooting"], "agent": "general-purpose" }
   ]
 }
 ```

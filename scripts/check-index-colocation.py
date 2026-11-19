@@ -103,8 +103,11 @@ def check(base: str | None, head: str | None, staged: bool, cwd: Path) -> list[d
     findings: list[dict] = []
 
     for path in changed_files(base, head, staged, cwd):
+        new_content = _file_at_ref(path, new_ref, cwd)
+        if new_content is None:
+            continue  # deleted (e.g. the plans/009 agent retirement) — the generator drops it
         old_view = _index_view(_file_at_ref(path, old_ref, cwd))
-        new_view = _index_view(_file_at_ref(path, new_ref, cwd))
+        new_view = _index_view(new_content)
         fields = changed_routing_fields(old_view, new_view)
         if not fields:
             continue  # pure body edit — not a colocation warning

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Generate the human-readable static routing map (docs/routing-map.md).
 
-Reads the same INDEX sources as routing-manifest.py (skills/INDEX.json,
-agents/INDEX.json, pipeline-index.json) and writes a Markdown file with one
-table per surface (AGENTS / SKILLS / PIPELINES). Every entry appears with ALL
+Reads the same INDEX sources as routing-manifest.py (skills/INDEX.json and
+pipeline-index.json) and writes a Markdown file with one table per surface
+(SKILLS / PIPELINES). The specialist agents are retired (plans/009), so there
+is no AGENTS table, and a retired agent name left in a skill's pairs_with is
+dropped rather than reported. Every entry appears with ALL
 triggers -- no TRIGGER_CAP truncation. The map is the full record; the
 manifest is the runtime form.
 
@@ -21,8 +23,8 @@ Usage:
     - a PUBLIC pairs_with name that resolves to nothing
     - committed docs/routing-map.md differs from a fresh render
 
-skills/INDEX.json and agents/INDEX.json are generated and untracked. Every run
-regenerates one that is missing or older than its sources
+skills/INDEX.json is generated and untracked. Every run regenerates it when it
+is missing or older than its sources
 (scripts/lib/index_freshness.py) before reading it.
 
 Private components never reach the map. Names of locally installed private
@@ -61,12 +63,12 @@ if str(_SCRIPTS_DIR) not in sys.path:
 sys.path.append(str(_SCRIPTS_DIR / "lib"))
 
 from index_freshness import ensure_fresh_indexes
+from routing_index_merge import RETIRED_AGENTS
 
 
 def _index_paths(repo_root: Path) -> dict[str, Path]:
     return {
         "skills": repo_root / "skills" / "INDEX.json",
-        "agents": repo_root / "agents" / "INDEX.json",
         "pipelines": repo_root / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
     }
 
@@ -77,7 +79,7 @@ def _ensure_generated_indexes(repo_root: Path) -> None:
     A stale index would make --check disagree with CI and make a write-mode
     run render outdated text into the committed map.
     """
-    ensure_fresh_indexes(repo_root)
+    ensure_fresh_indexes(repo_root, ("skills",))
 
 
 HEADER = """\
@@ -85,7 +87,7 @@ HEADER = """\
 
 # Routing Map
 
-Single source of truth: agent/skill frontmatter and `pipeline-index.json`.
+Single source of truth: skill frontmatter and `pipeline-index.json`.
 Regenerate: `python3 scripts/generate-routing-map.py`.
 CI check: `python3 scripts/generate-routing-map.py --check`.
 """
@@ -97,12 +99,12 @@ def _escape_md(text: str) -> str:
 
 
 def load_all_entries(repo_root: Path = REPO_ROOT) -> dict[str, list[dict]]:
-    """Load tracked entries from all three INDEX files, grouped by surface.
+    """Load tracked entries from the skills and pipeline indexes, grouped by surface.
 
     The committed map must be identical across machines. Local index overlays
     contain private capabilities and therefore must never affect this artifact.
     """
-    surfaces: dict[str, list[dict]] = {"agents": [], "skills": [], "pipelines": []}
+    surfaces: dict[str, list[dict]] = {"skills": [], "pipelines": []}
     _ensure_generated_indexes(repo_root)
     for index_type, tracked in _index_paths(repo_root).items():
         try:
@@ -123,7 +125,7 @@ def load_all_entries(repo_root: Path = REPO_ROOT) -> dict[str, list[dict]]:
                 "triggers": data.get("triggers", []),
                 "force_route": bool(data.get("force_route", False)),
                 "not_for": data.get("not_for", ""),
-                "pairs_with": data.get("pairs_with", []),
+                "pairs_with": [p for p in data.get("pairs_with", []) if p not in RETIRED_AGENTS],
             }
             surfaces[index_type].append(entry)
     return surfaces
@@ -201,7 +203,7 @@ def generate_map(
         private = private_names()
     surfaces = strip_private(surfaces, private)
     parts = [HEADER]
-    for section, label in [("agents", "AGENTS"), ("skills", "SKILLS"), ("pipelines", "PIPELINES")]:
+    for section, label in [("skills", "SKILLS"), ("pipelines", "PIPELINES")]:
         entries = surfaces.get(section, [])
         parts.append(f"## {label} ({len(entries)})\n")
         parts.append(_render_table(entries))

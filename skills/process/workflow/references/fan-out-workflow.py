@@ -13,7 +13,15 @@ Runtime globals provided by Antigravity's `run_workflow` harness:
 
 Every worker prompt begins with a line-anchored `[do-route]` marker so
 `hooks/agy-hook-adapter.py` + `hooks/routing-decision-recorder.py` record one
-routing decision row per dispatched specialist.
+routing decision row per dispatched worker.
+
+The repo's specialist agents are retired (plans/009). Each roster entry is a
+general-purpose worker whose skills carry the domain: `{"skills": [...],
+"lens": ..., "workspace": ..., "model": ...}`. The Antigravity `type_name`
+defaults to `<primary-skill>-worker`, the persona
+`scripts/build-subagent-spec.py --skill <primary-skill>` defines. A legacy
+`agentType` other than general-purpose is coerced to general-purpose and the
+marker carries `fallback=invalid-agent:<name>`, as `build-dispatch.py` does.
 """
 
 from __future__ import annotations
@@ -23,6 +31,8 @@ import re
 from typing import Any
 
 MAX_ROSTER_SIZE = 10
+WORKER_AGENT = "general-purpose"
+_READ_ONLY_SKILLS = frozenset({"review", "security", "research", "assessment", "code-quality"})
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 FINDING_SCHEMA: dict[str, Any] = {
@@ -59,15 +69,15 @@ SYNTH_SCHEMA: dict[str, Any] = {
 }
 
 MANDATORY_INJECTIONS = (
-    "\n\nBefore starting work, consult the Reference Loading Table in your agent .md file "
+    "\n\nBefore starting work, consult the Reference Loading Table in each loaded skill's SKILL.md "
     "and read the references that match this task.\n\n"
     "Deliver the finished product. Ship the complete thing.\n\n"
-    "Follow the Dense-Complete Writing rules in `agents/base-instructions.md`.\n\n"
+    "Follow the Dense-Complete Writing rules in `skills/shared-patterns/base-instructions.md`.\n\n"
     "Follow its Google Developer Documentation Style rules and precedence.\n\n"
-    "Before starting work, also load `agents/base-instructions.md` for universal operational rules.\n\n"
+    "Before starting work, also load `skills/shared-patterns/base-instructions.md` for universal operational rules.\n\n"
     "End your reply with this exact final line, nothing after it: "
-    "`route-fit: <ok|wrong-agent|wrong-skill|needs-coordinator|underspecified>` — "
-    "your honest read of whether this agent and skill fit the task."
+    "`route-fit: <ok|wrong-skill|needs-coordinator|underspecified>` — "
+    "your honest read of whether this skill fits the task."
 )
 
 
@@ -79,32 +89,34 @@ def validate_name(value: str, label: str) -> str:
     return cleaned
 
 
-def default_workspace_for_agent(agent_type: str) -> str:
-    """Default workspace to 'inherit' for reviewers/scouts, and 'branch' for implementers."""
-    cleaned = agent_type.strip().lower()
-    if cleaned.startswith("reviewer-") or "review" in cleaned or "research" in cleaned or "scout" in cleaned:
+def default_workspace_for_skill(skill: str) -> str:
+    """Default workspace to 'inherit' for review and research skills, and 'branch' for implementers."""
+    cleaned = skill.strip().lower()
+    if cleaned in _READ_ONLY_SKILLS or "review" in cleaned or "research" in cleaned:
         return "inherit"
     return "branch"
 
 
 def validate_roster(roster: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Validate the caller-supplied specialist roster (1..MAX_ROSTER_SIZE)."""
+    """Validate the caller-supplied worker roster (1..MAX_ROSTER_SIZE)."""
     if not isinstance(roster, list) or not (1 <= len(roster) <= MAX_ROSTER_SIZE):
         raise ValueError(f"roster must be a non-empty list of at most {MAX_ROSTER_SIZE} entries")
     validated: list[dict[str, Any]] = []
-    for entry in roster:
-        agent_type = validate_name(entry.get("agentType", ""), "agentType")
+    for i, entry in enumerate(roster):
         raw_skills = entry.get("skills") or []
         if not isinstance(raw_skills, list) or not raw_skills:
-            raise ValueError(f"roster entry for {agent_type!r} requires at least one skill")
+            raise ValueError(f"roster entry {i} requires at least one skill")
         skills = [validate_name(s, "skill") for s in raw_skills]
+        legacy = str(entry.get("agentType") or "").strip().lower()
+        fallback = f"invalid-agent:{validate_name(legacy, 'agentType')}" if legacy and legacy != WORKER_AGENT else ""
         ws = str(entry.get("workspace") or "").strip()
         if not ws:
-            ws = default_workspace_for_agent(agent_type)
-        type_name = str(entry.get("type_name") or agent_type).strip()
+            ws = default_workspace_for_skill(skills[0])
+        type_name = str(entry.get("type_name") or f"{skills[0]}-worker").strip()
         validated.append(
             {
-                "agentType": agent_type,
+                "agentType": WORKER_AGENT,
+                "fallback": fallback,
                 "type_name": type_name,
                 "skills": skills,
                 "lens": str(entry.get("lens") or "").strip(),
@@ -121,21 +133,22 @@ def build_worker_prompt(entry: dict[str, Any], scope: dict[str, Any], complexity
     stack = entry["skills"][1:]
     stack_token = f" stack={{{','.join(stack)}}}" if stack else ""
     model_token = entry.get("model") or "gemini-4-argon"
+    fallback_token = f" fallback={entry['fallback']}" if entry.get("fallback") else ""
     marker = (
         f"[do-route] agent={entry['agentType']} skill={primary_skill} "
-        f"complexity={complexity} model={model_token} health=-{stack_token}"
+        f"complexity={complexity} model={model_token} health=-{stack_token}{fallback_token}"
     )
     skill_calls = "\n".join(
         f"Read and follow ~/.gemini/skills/{s}/SKILL.md before starting work." for s in entry["skills"]
     )
-    lens = f"Apply this lens: {entry['lens']}." if entry.get("lens") else "Apply your specialist lens."
+    lens = f"Apply this lens: {entry['lens']}." if entry.get("lens") else "Apply the skill's lens."
     return (
         f"{marker}\n\n"
-        f"You are `{entry['agentType']}` (`agents/{entry['agentType']}.md`). {lens}\n"
+        f"You are a `{entry['agentType']}` worker for the `{primary_skill}` skill. {lens}\n"
         f"{skill_calls}\n\n"
         f"## Task Specification (auto-extracted)\n\n"
         f"**Request (verbatim):** {scope.get('request_verbatim', scope.get('intent', 'Execute assigned scope'))}\n"
-        f"**Intent:** {scope.get('intent', 'Complete specialist analysis and implementation within lens.')}\n"
+        f"**Intent:** {scope.get('intent', 'Complete the analysis and implementation within the lens.')}\n"
         f"**Acceptance criteria:** Return schema-valid output with concrete file:line evidence.\n"
         f"**Relevant file locations:** {scope.get('files', '.')}\n"
         f"**Decisions:** {scope.get('decisions', 'Follow repository conventions.')}\n"
@@ -150,14 +163,14 @@ async def run_fan_out_workflow(
     *,
     scope: dict[str, Any],
     roster: list[dict[str, Any]],
-    synth_agent_type: str = "research-coordinator-engineer",
+    synth_agent_type: str = "general-purpose",
     tier: int | None = None,
     phase_fn: Any = None,
     agent_fn: Any = None,
     parallel_fn: Any = None,
     trajectory_fn: Any = None,
 ) -> dict[str, Any]:
-    """Execute parallel specialist fan-out followed by typed in-memory synthesis."""
+    """Execute parallel worker fan-out followed by typed in-memory synthesis."""
     workers = validate_roster(roster)
     synthesizer = validate_name(synth_agent_type, "synth_agent_type")
 
@@ -175,18 +188,18 @@ async def run_fan_out_workflow(
             return await _agent(
                 prompt,
                 schema=WORKER_SCHEMA,
-                role=f"{w['agentType']} ({w['lens'] or w['skills'][0]})",
-                type_name=w.get("type_name") or w.get("agentType") or "self",
-                workspace=w.get("workspace") or default_workspace_for_agent(w["agentType"]),
+                role=f"{w['skills'][0]} worker ({w['lens'] or w['skills'][0]})",
+                type_name=w.get("type_name") or "self",
+                workspace=w.get("workspace") or default_workspace_for_skill(w["skills"][0]),
                 model=w.get("model", "inherit"),
             )
         except Exception as exc:
             return {
                 "verdict": "BLOCK",
-                "summary": f"Worker {w['agentType']} execution failed: {exc}",
+                "summary": f"Worker {w['type_name']} execution failed: {exc}",
                 "findings": [
                     {
-                        "title": f"Worker execution failure ({w['agentType']})",
+                        "title": f"Worker execution failure ({w['type_name']})",
                         "location": "run_workflow",
                         "severity": "critical",
                         "detail": str(exc),
@@ -218,10 +231,10 @@ async def run_fan_out_workflow(
     synthesis = None
     if results and callable(_agent):
         synth_prompt = (
-            f"You are `{synthesizer}`. Synthesize these {len(results)} typed specialist results "
+            f"You are `{synthesizer}`. Synthesize these {len(results)} typed worker results "
             f"into one verdict + summary. Merge overlapping findings, preserve the highest severity, "
             f"and provide actionable recommendations.\n\n"
-            f"Typed specialist results:\n{json.dumps(results, indent=2)}"
+            f"Typed worker results:\n{json.dumps(results, indent=2)}"
             f"{MANDATORY_INJECTIONS}"
         )
         synthesis = await _agent(

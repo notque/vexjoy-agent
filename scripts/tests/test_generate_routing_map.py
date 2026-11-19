@@ -28,13 +28,12 @@ _spec.loader.exec_module(grm)
 
 
 def _surfaces(
-    agents: dict | None = None,
     skills: dict | None = None,
     pipelines: dict | None = None,
 ) -> dict[str, list[dict]]:
     """Build a surfaces dict from raw INDEX-shaped dicts."""
-    result: dict[str, list[dict]] = {"agents": [], "skills": [], "pipelines": []}
-    for section, raw in [("agents", agents), ("skills", skills), ("pipelines", pipelines)]:
+    result: dict[str, list[dict]] = {"skills": [], "pipelines": []}
+    for section, raw in [("skills", skills), ("pipelines", pipelines)]:
         if not raw:
             continue
         for name, data in raw.items():
@@ -55,9 +54,10 @@ class TestTableRendering:
     """Markdown table output from generate_map."""
 
     def test_entry_appears_in_table(self) -> None:
-        s = _surfaces(agents={"test-agent": {"description": "Test agent.", "triggers": ["test", "check"]}})
+        s = _surfaces(skills={"test-skill": {"description": "Test skill.", "triggers": ["test", "check"]}})
         md = grm.generate_map(s)
-        assert "| test-agent |" in md
+        assert "| test-skill |" in md
+        assert "## AGENTS" not in md
         assert "test, check" in md
 
     def test_force_route_shown(self) -> None:
@@ -66,7 +66,7 @@ class TestTableRendering:
         assert "| yes |" in md
 
     def test_pipe_escaped(self) -> None:
-        s = _surfaces(agents={"a": {"description": "A | B.", "triggers": ["t"]}})
+        s = _surfaces(skills={"a": {"description": "A | B.", "triggers": ["t"]}})
         md = grm.generate_map(s)
         assert "A \\| B." in md
 
@@ -75,7 +75,7 @@ class TestCheckFindings:
     """check_map detects common defects."""
 
     def test_empty_description_flagged(self) -> None:
-        s = _surfaces(agents={"bad": {"description": "", "triggers": ["x"]}})
+        s = _surfaces(skills={"bad": {"description": "", "triggers": ["x"]}})
         findings = grm.check_map(s)
         assert any("empty description" in f for f in findings)
 
@@ -86,33 +86,55 @@ class TestCheckFindings:
 
     def test_pairs_with_phantom_flagged(self) -> None:
         s = _surfaces(
-            agents={"real": {"description": "Real.", "triggers": ["r"], "pairs_with": ["nonexistent"]}},
+            skills={"real": {"description": "Real.", "triggers": ["r"], "pairs_with": ["nonexistent"]}},
         )
         findings = grm.check_map(s)
         assert any("resolves to nothing" in f for f in findings)
 
     def test_pairs_with_valid_not_flagged(self) -> None:
         s = _surfaces(
-            agents={"a1": {"description": "A.", "triggers": ["x"], "pairs_with": ["s1"]}},
-            skills={"s1": {"description": "S.", "triggers": ["y"]}},
+            skills={
+                "a1": {"description": "A.", "triggers": ["x"], "pairs_with": ["s1"]},
+                "s1": {"description": "S.", "triggers": ["y"]},
+            },
         )
         findings = grm.check_map(s)
         pairs_findings = [f for f in findings if "resolves to nothing" in f]
         assert len(pairs_findings) == 0
 
     def test_stale_map_flagged(self, monkeypatch) -> None:
-        s = _surfaces(agents={"a": {"description": "A.", "triggers": ["x"]}})
+        s = _surfaces(skills={"a": {"description": "A.", "triggers": ["x"]}})
         monkeypatch.setattr(grm, "MAP_PATH", Path("/tmp/nonexistent-routing-map-test.md"))
         findings = grm.check_map(s)
         assert any("stale" in f for f in findings)
 
     def test_clean_map_no_stale_finding(self, tmp_path, monkeypatch) -> None:
-        s = _surfaces(agents={"a": {"description": "A.", "triggers": ["x"]}})
+        s = _surfaces(skills={"a": {"description": "A.", "triggers": ["x"]}})
         map_file = tmp_path / "routing-map.md"
         map_file.write_text(grm.generate_map(s), encoding="utf-8")
         monkeypatch.setattr(grm, "MAP_PATH", map_file)
         findings = grm.check_map(s)
         assert not any("stale" in f for f in findings)
+
+
+class TestRetiredAgents:
+    """plans/009: a retired agent name in a skill's pairs_with is dropped, not reported."""
+
+    def test_retired_pair_is_dropped_on_load(self, tmp_path) -> None:
+        repo = tmp_path / "repo"
+        (repo / "skills").mkdir(parents=True)
+        (repo / "skills" / "INDEX.json").write_text(
+            json.dumps(
+                {"skills": {"s": {"description": "S.", "triggers": ["s"], "pairs_with": ["reviewer-code", "t"]}}}
+            ),
+            encoding="utf-8",
+        )
+        pipeline_index = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
+        pipeline_index.parent.mkdir(parents=True)
+        pipeline_index.write_text('{"pipelines":{}}', encoding="utf-8")
+        surfaces = grm.load_all_entries(repo)
+        assert set(surfaces) == {"skills", "pipelines"}
+        assert surfaces["skills"][0]["pairs_with"] == ["t"]
 
 
 class TestRealRepo:
@@ -154,11 +176,6 @@ class TestRealRepo:
             'Path("skills/INDEX.json").write_text(\'{"skills":{"s":{"description":"S","triggers":["s"]}}}\')\n',
             encoding="utf-8",
         )
-        (scripts / "generate-agent-index.py").write_text(
-            'from pathlib import Path\nPath("agents").mkdir(exist_ok=True)\n'
-            'Path("agents/INDEX.json").write_text(\'{"agents":{"a":{"description":"A","triggers":["a"]}}}\')\n',
-            encoding="utf-8",
-        )
         pipeline_index = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
         pipeline_index.parent.mkdir(parents=True)
         pipeline_index.write_text(
@@ -174,7 +191,8 @@ class TestRealRepo:
 
         assert result.returncode == 0, result.stdout + result.stderr
         rendered = (repo / "docs" / "routing-map.md").read_text(encoding="utf-8")
-        assert "## AGENTS (1)" in rendered
+        assert "## AGENTS" not in rendered
+        assert not (repo / "agents").exists()  # no agents index is needed
         assert "## SKILLS (1)" in rendered
         assert "## PIPELINES (1)" in rendered
 
@@ -188,8 +206,6 @@ class TestRealRepo:
             'Path("skills/INDEX.json").write_text(\'{"skills":{"new":{"description":"New.","triggers":["n"]}}}\')\n',
             encoding="utf-8",
         )
-        (repo / "agents").mkdir()
-        (repo / "agents" / "INDEX.json").write_text('{"agents":{}}', encoding="utf-8")
         pipeline_index = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
         pipeline_index.parent.mkdir(parents=True)
         pipeline_index.write_text('{"pipelines":{}}', encoding="utf-8")
@@ -219,11 +235,9 @@ class TestRealRepo:
     def test_invalid_required_index_fails_closed_without_overwrite(self, tmp_path, bad_content: bytes) -> None:
         repo = tmp_path / "repo"
         (repo / "skills").mkdir(parents=True)
-        (repo / "agents").mkdir()
         pipeline_index = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
         pipeline_index.parent.mkdir(parents=True)
         (repo / "skills" / "INDEX.json").write_bytes(bad_content)
-        (repo / "agents" / "INDEX.json").write_text('{"agents":{}}', encoding="utf-8")
         pipeline_index.write_text('{"pipelines":{}}', encoding="utf-8")
         map_file = repo / "docs" / "routing-map.md"
         map_file.parent.mkdir()

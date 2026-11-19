@@ -99,9 +99,10 @@ def test_build_dispatch_falls_back_to_deploy_dir_index(fake_repo: Path) -> None:
     assert bd.load_known_skills(tracked) == frozenset({"repo-skill", "legacy-skill"})
 
 
-def test_build_dispatch_explicit_missing_index_fails_open(tmp_path: Path, installed: Path) -> None:
+def test_build_dispatch_explicit_missing_index_keeps_builtins(tmp_path: Path, installed: Path) -> None:
+    """No public agents is the normal state (plans/009); built-ins still validate."""
     bd = _load("build-dispatch.py", "bd_explicit")
-    assert bd.load_known_agents(tmp_path / "nope.json") == frozenset()
+    assert bd.load_known_agents(tmp_path / "nope.json") == bd.BUILTIN_AGENTS
 
 
 # --------------------------------------------------------------------------- pre-route _ensure_index

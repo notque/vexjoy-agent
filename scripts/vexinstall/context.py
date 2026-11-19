@@ -56,8 +56,8 @@ def state_dir(home: Path) -> Path:
 
 
 def looks_like_repo(path: Path) -> bool:
-    """True for a toolkit-shaped checkout (skills/, agents/, hooks/)."""
-    return all((path / d).is_dir() for d in ("skills", "agents", "hooks"))
+    """True for a toolkit-shaped checkout (skills/, hooks/, scripts/); agents/ was retired."""
+    return all((path / d).is_dir() for d in ("skills", "hooks", "scripts"))
 
 
 def resolve_source_root(opts: Options, ledger: Ledger | None) -> Path:

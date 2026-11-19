@@ -10,6 +10,9 @@ Basic pattern for running a single test case:
 # 1. Dispatch agent with test input
 Task(
   prompt="""
+  Read ~/.claude/skills/review/references/reviewer-system.md and follow it;
+  load every file its Reference Loading Table matches.
+
   Review this Python function for issues:
 
   ```python
@@ -17,7 +20,7 @@ Task(
       return db.execute(f"SELECT * FROM users WHERE id = {id}")
   ```
   """,
-  subagent_type="reviewer-system"
+  subagent_type="general-purpose"
 )
 
 # 2. Capture output verbatim
@@ -35,9 +38,10 @@ Verify agent handles invalid inputs correctly:
 # Test with missing required context
 Task(
   prompt="""
+  Read ~/.claude/skills/review/references/reviewer-system.md and follow it.
   Review this code.
   """,
-  subagent_type="reviewer-system"
+  subagent_type="general-purpose"
 )
 
 # Expected: Agent should request more context or handle gracefully

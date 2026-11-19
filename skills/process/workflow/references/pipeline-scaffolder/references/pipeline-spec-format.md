@@ -15,11 +15,14 @@ This is a **machine-readable contract**. Both sides must agree on every field.
   "adr_hash": "sha256:3a7f9b2c...",
   "subdomains": [ ... ],
   "shared_references": ["prometheus-domain-knowledge.md"],
+  "domain_reference": "kubernetes/references/prometheus-grafana.md",
   "new_agent": null,
-  "reuse_agent": "prometheus-grafana-engineer",
+  "reuse_agent": "general-purpose",
   "operator_profile": "personal"
 }
 ```
+
+Repo agents are retired (plan 009). Domain expertise lives in skills and their references, and a phase that dispatches work hands it to a fresh `general-purpose` worker told which skill reference to load. The `*_agent` field names stay for compatibility; their values name the worker type, not a domain specialist.
 
 ### Top-Level Field Definitions
 
@@ -30,8 +33,9 @@ This is a **machine-readable contract**. Both sides must agree on every field.
 | `adr_hash` | string | Required if `adr_path` is set | Format: `sha256:hexdigest` (e.g., `sha256:3a7f9b2c...`) | SHA-256 hash of the ADR file content, computed at chain-composition time. The scaffolder verifies this hash before proceeding to detect ADR changes since composition. |
 | `subdomains` | array\<Subdomain\> | Yes | Non-empty array of Subdomain objects | Each subdomain becomes one skill. The scaffolder creates one skill per subdomain entry. |
 | `shared_references` | array\<string\> | No | Filenames (no path — placed in skill's `references/`) | Reference files shared across all subdomains. Created once, symlinked or copied into each skill's references directory. |
-| `new_agent` | object\|null | Conditional | Agent object (see below) or `null` | If no existing agent covers the domain, define the new agent here. Mutually exclusive with `reuse_agent` — exactly one must be non-null. |
-| `reuse_agent` | string\|null | Conditional | Existing agent name from `agents/INDEX.json` | If an existing agent covers 70%+ of the domain (Rule 9: Reuse Over Recreation), reference it here instead of creating a new one. |
+| `domain_reference` | string\|null | No | Skill-relative path `{skill}/references/{file}.md` of an existing reference | The existing skill reference that covers 70%+ of the domain (Rule 9: Reuse Over Recreation). Every generated skill names it in its Reference Loading Table and lists `{skill}` in `pairs_with`. `null` when no reference covers the domain: the domain expertise then goes into a new shared reference listed in `shared_references` (for example `{domain}-domain-knowledge.md`). |
+| `new_agent` | object\|null | Conditional | `null` in the repo; an overlay Agent object (see below) only when the owner asks for a private agent | Private overlay agents only. Mutually exclusive with `reuse_agent` — exactly one must be non-null. |
+| `reuse_agent` | string\|null | Conditional | `general-purpose` (default), another built-in agent type, or a private overlay agent listed in `agents/INDEX.local.json` | The worker type that dispatched phases use. Repo pipelines set `general-purpose`. |
 | `operator_profile` | string | Yes | See Operator Profile enum | The detected or overridden operator profile. Determines which safety/interaction steps are injected into chains. |
 
 **Note on `adr_hash`**: Computed via `python3 ~/.claude/scripts/adr-query.py hash --adr {path}` at the time `chain-composer` produces the spec. The `pipeline-scaffolder` Phase 1 gate runs `python3 ~/.claude/scripts/adr-query.py verify --adr {spec.adr_path} --hash {spec.adr_hash}` before proceeding. If exit 1 (hash mismatch), the scaffolder stops — the ADR changed after composition and `chain-composer` must be re-run with the updated ADR before scaffolding.
@@ -51,7 +55,7 @@ Each subdomain represents one pipeline skill to scaffold.
   "description": "Writing PromQL queries, recording rules, metric naming conventions",
   "chain": [ ... ],
   "skill_name": "prometheus-metrics",
-  "pairs_with_agent": "prometheus-grafana-engineer",
+  "pairs_with_agent": "general-purpose",
   "references_needed": ["promql-patterns.md", "metric-naming-conventions.md"],
   "scripts_needed": ["promql-validator.py"],
   "routing_triggers": ["promql", "recording rule", "metric naming", "prometheus metrics"]
@@ -67,7 +71,7 @@ Each subdomain represents one pipeline skill to scaffold.
 | `description` | string | Yes | 1-2 sentences | What this subdomain covers. Becomes the basis for the generated skill's YAML description field. |
 | `chain` | array\<Step\> | Yes | Non-empty array of Step objects, validated by chain rules | The ordered sequence of pipeline steps. The scaffolder converts this into numbered phases in the generated SKILL.md. |
 | `skill_name` | string | Yes | `{domain}-{function}` pattern per Rule 8 | The name for the generated skill. Becomes the directory name under `skills/` and the `name:` in YAML frontmatter. |
-| `pairs_with_agent` | string | Yes | Must match `reuse_agent` or `new_agent.name` at top level, OR an existing agent | The agent that executes this skill. Written to the skill's `agent:` frontmatter field. |
+| `pairs_with_agent` | string | Yes | Must match `reuse_agent` or `new_agent.name` at top level | The worker type for this skill's dispatched phases. Written to the skill's `agent:` frontmatter field only when the skill sets `context: fork`; otherwise the skill has no `agent:` field. |
 | `references_needed` | array\<string\> | No | Filenames (placed in `skills/{skill_name}/references/`) | Domain-specific reference files the skill needs. The scaffolder creates stub files with headers; domain content is populated by research. |
 | `scripts_needed` | array\<string\> | No | Filenames matching `{domain}-{function}.py` pattern | Deterministic Python scripts the skill invokes. The scaffolder creates skeleton scripts with argparse CLI. |
 | `routing_triggers` | array\<string\> | Yes | Non-empty array of lowercase trigger phrases | Keywords and phrases that cause `/do` to route to this skill. Written to the skill description's "Use for" clause and to routing tables. |
@@ -344,9 +348,9 @@ Step-specific parameters that customize the generated phase template. All params
 
 ---
 
-## New Agent Object
+## New Agent Object (private overlay only)
 
-When no existing agent covers the domain (`reuse_agent` is null), define the new agent.
+Repo pipelines never set `new_agent`: when no skill reference covers the domain, the spec lists a new shared domain reference in `shared_references`, and its content comes from the same fields below (`description`, `triggers`, `expertise`). Set `new_agent` only when the owner asks for a private overlay agent. That agent file goes in `private-agents/` and is indexed into `agents/INDEX.local.json` with `python3 scripts/generate-agent-index.py --include-private`.
 
 ```json
 {
@@ -419,10 +423,7 @@ Steps with `profile_gate` set to a profile that is less restrictive than the spe
 ### Component Reference Rules
 
 **Rule 7: Agent Reference**
-`pairs_with_agent` must reference either:
-- The value of `reuse_agent` at the top level, OR
-- The value of `new_agent.name` at the top level, OR
-- An agent that exists in `agents/INDEX.json`
+`pairs_with_agent` must equal the value of `reuse_agent` or `new_agent.name` at the top level. That value must be a built-in agent type (`general-purpose` by default) or a private overlay agent listed in `agents/INDEX.local.json`. A retired repo agent name fails this rule. When `domain_reference` is set, the file must exist at `skills/**/{domain_reference}`.
 
 **Rule 8: Skill Naming**
 `skill_name` must follow the `{domain}-{function}` pattern (Rule 8 from architecture-rules.md). Validated by regex: `^[a-z][a-z0-9]*(-[a-z][a-z0-9]*)+$`
@@ -454,8 +455,10 @@ FROM spec:
                            spec.subdomains[*].references_needed
                          )
   Scripts to create   = union(spec.subdomains[*].scripts_needed)
-  Agent to create     = spec.new_agent (if non-null)
-  Agent to bind       = spec.reuse_agent (if non-null)
+  Domain reference    = spec.domain_reference (bind; null means the shared
+                        domain reference is created instead)
+  Worker type         = spec.reuse_agent (general-purpose by default)
+  Overlay agent       = spec.new_agent (owner-requested private agent only)
   Routing entries     = spec.subdomains[*].routing_triggers (per skill)
 ```
 
@@ -467,27 +470,27 @@ FROM spec:
 | Skill references | `subdomains[i].references_needed` | `skills/{skill_name}/references/{filename}` | Domain-descriptive |
 | Shared references | `shared_references` | `skills/{skill_name}/references/{filename}` (copied per skill) | Domain-descriptive |
 | Script | `subdomains[i].scripts_needed` | `scripts/{filename}` | `{domain}-{function}.py` |
-| Agent | `new_agent.name` | `agents/{name}.md` | `{domain}-{function}-engineer` |
-| Agent references | (created if `new_agent.complexity` is Medium+) | `agents/{name}/references/` | Per architecture-rules.md |
-| Routing entries | `subdomains[i].routing_triggers` | `skills/meta/do/references/routing-tables.md`, `agents/INDEX.json` | N/A (data, not files) |
+| Domain reference (bound) | `domain_reference` | Existing file; named in each generated skill's loading table | N/A |
+| Overlay agent (owner-requested only) | `new_agent.name` | `private-agents/{name}.md`, indexed into `agents/INDEX.local.json` | `{domain}-{function}-engineer` |
+| Routing entries | `subdomains[i].routing_triggers` | skill frontmatter `routing.triggers`, regenerated into `skills/INDEX.json` | N/A (data, not files) |
 
 ### Component Dependency Graph
 
 The scaffolder also validates that no component is orphaned (Rule 7: No Dead Code):
 
 ```
-agent (new or reused)
-  ├── bound to skill_1 (via pairs_with_agent)
+domain reference (domain_reference, or the new shared domain reference)
+  ├── loaded by skill_1 (named in its Reference Loading Table)
   │     ├── references: ref_a.md, ref_b.md
   │     ├── invokes: script_x.py (via VALIDATE step params)
   │     └── routing: triggers registered in /do
-  ├── bound to skill_2
+  ├── loaded by skill_2
   │     ├── references: ref_c.md, shared_ref.md
   │     └── routing: triggers registered in /do
   └── ...
 ```
 
-Every skill must have a `pairs_with_agent`. Every script in `scripts_needed` must be referenced by at least one step's `params`. Every reference in `references_needed` must be referenced by at least one step's `params` or loaded explicitly in a phase.
+Every skill must have a `pairs_with_agent` and must load the domain reference. Every script in `scripts_needed` must be referenced by at least one step's `params`. Every reference in `references_needed` must be referenced by at least one step's `params` or loaded explicitly in a phase.
 
 ---
 
@@ -575,7 +578,7 @@ A full pipeline spec for the Prometheus domain with two subdomains:
         }
       ],
       "skill_name": "prometheus-metrics",
-      "pairs_with_agent": "prometheus-grafana-engineer",
+      "pairs_with_agent": "general-purpose",
       "references_needed": ["promql-patterns.md", "metric-naming-conventions.md"],
       "scripts_needed": ["promql-validator.py"],
       "routing_triggers": ["promql", "recording rule", "metric naming", "prometheus metrics"]
@@ -664,15 +667,16 @@ A full pipeline spec for the Prometheus domain with two subdomains:
         }
       ],
       "skill_name": "prometheus-operations",
-      "pairs_with_agent": "prometheus-grafana-engineer",
+      "pairs_with_agent": "general-purpose",
       "references_needed": ["prometheus-cluster-patterns.md", "federation-topology.md"],
       "scripts_needed": ["prometheus-health-check.py"],
       "routing_triggers": ["prometheus scaling", "prometheus storage", "prometheus federation", "prometheus pod", "prometheus troubleshoot"]
     }
   ],
   "shared_references": ["prometheus-domain-knowledge.md"],
+  "domain_reference": "kubernetes/references/prometheus-grafana.md",
   "new_agent": null,
-  "reuse_agent": "prometheus-grafana-engineer",
+  "reuse_agent": "general-purpose",
   "operator_profile": "personal"
 }
 ```
@@ -688,7 +692,8 @@ Top-level checks:
   [PASS] adr-query.py verify --adr adr/pipeline-prometheus.md --hash sha256:3a7f9b2c... → exit 0
   [PASS] reuse_agent is non-null, new_agent is null -- exactly one executor
   [PASS] operator_profile "personal" is valid
-  [PASS] reuse_agent "prometheus-grafana-engineer" exists in agents/INDEX.json
+  [PASS] reuse_agent "general-purpose" is a built-in agent type
+  [PASS] domain_reference "kubernetes/references/prometheus-grafana.md" exists
 
 Subdomain 1: metrics-authoring
   [PASS] Chain starts with ADR (invariant)
@@ -721,7 +726,8 @@ Component manifest:
               prometheus-cluster-patterns.md, federation-topology.md,
               prometheus-domain-knowledge.md (shared)
   Scripts: promql-validator.py, prometheus-health-check.py
-  Agent: reuse prometheus-grafana-engineer (no new agent)
+  Domain reference: bind kubernetes/references/prometheus-grafana.md
+  Worker: general-purpose (no overlay agent)
   Routing: 9 trigger phrases across 2 skills
 
 Result: VALID -- proceed to scaffolding

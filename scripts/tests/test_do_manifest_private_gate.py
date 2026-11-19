@@ -62,6 +62,7 @@ PRIVATE_SKILLS = {
         "owner": "overlay:synthetic",
     },
 }
+# A stale install may still list a retired public agent; the manifest ignores agents.
 PUBLIC_AGENTS = {
     "research-coordinator-engineer": {"description": "Research coordination.", "owner": "public"},
 }
@@ -158,46 +159,48 @@ def test_no_request_keeps_every_entry(installed: Path, tmp_path: Path) -> None:
 def test_unreadable_request_file_hides_private_and_keeps_public(installed: Path, tmp_path: Path) -> None:
     out = _manifest(tmp_path, "--request-file", str(tmp_path / "missing.txt"))
     assert _skill_names(out) == {"research", "writing"}
-    assert "research-coordinator-engineer" in out
+    assert "research-coordinator-engineer" not in out  # agents never render (plans/009)
+    assert "AGENTS:" not in out
 
 
 @pytest.fixture
 def installed_with_pairs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """The installed index above, plus a public agent that pairs with a private skill."""
+    """The installed index above, plus a public skill that pairs with a private skill."""
     index = tmp_path / "installed"
     index.mkdir()
-    agents = {
-        **PUBLIC_AGENTS,
-        "writer-engineer": {
+    skills = {
+        **PUBLIC_SKILLS,
+        **PRIVATE_SKILLS,
+        "long-form": {
             "description": "Long-form writing.",
-            "pairs_with": ["voice-blorvik", "writing"],
+            "pairs_with": ["voice-blorvik", "writing", "research-coordinator-engineer"],
             "owner": "public",
         },
     }
-    (index / "skills.json").write_text(json.dumps({"skills": {**PUBLIC_SKILLS, **PRIVATE_SKILLS}}), encoding="utf-8")
-    (index / "agents.json").write_text(json.dumps({"agents": agents}), encoding="utf-8")
+    (index / "skills.json").write_text(json.dumps({"skills": skills}), encoding="utf-8")
+    (index / "agents.json").write_text(json.dumps({"agents": PUBLIC_AGENTS}), encoding="utf-8")
     monkeypatch.setenv("VEXJOY_INDEX_DIR", str(index))
     return index
 
 
 @pytest.mark.parametrize("mode", [(), ("--compact",)])
-def test_gated_private_name_leaves_the_pairs_brackets(installed_with_pairs: Path, tmp_path: Path, mode) -> None:
-    # The gate removed voice-blorvik from SKILLS, but the agent line still
-    # printed it in [pairs_with], so the private name reached the router.
+def test_gated_private_name_never_renders(installed_with_pairs: Path, tmp_path: Path, mode) -> None:
     out = _manifest(tmp_path, *mode, "--request", "write an article")
     assert "voice-blorvik" not in out
-    assert "writer-engineer [writing] —" in out
+    assert "  long-form " in out
 
 
 def test_gated_private_name_leaves_json_pairs(installed_with_pairs: Path, tmp_path: Path) -> None:
+    """The gate drops the hidden private name; the retired agent name is dropped too."""
     entries = json.loads(_manifest(tmp_path, "--json", "--request", "write an article"))
-    writer = next(e for e in entries if e["name"] == "writer-engineer")
+    writer = next(e for e in entries if e["name"] == "long-form")
     assert writer["pairs_with"] == ["writing"]
 
 
 def test_named_private_skill_keeps_its_pairing(installed_with_pairs: Path, tmp_path: Path) -> None:
-    out = _manifest(tmp_path, "--request", "write this in blorvik's voice")
-    assert "[voice-blorvik, writing]" in out
+    entries = json.loads(_manifest(tmp_path, "--json", "--request", "write this in blorvik's voice"))
+    writer = next(e for e in entries if e["name"] == "long-form")
+    assert writer["pairs_with"] == ["voice-blorvik", "writing"]
 
 
 # ---------------------------------------------------------------- get-routing-manifest.sh

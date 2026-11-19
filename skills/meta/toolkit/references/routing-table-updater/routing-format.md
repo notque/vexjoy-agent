@@ -61,11 +61,13 @@ Optional per-entry fields when present in frontmatter: `not_for`, `force_route`,
 
 ## agents/INDEX.json Entry Shape
 
+The repo ships no agents since plan 009, so `agents/INDEX.json` is normally empty; private overlay agents use the same entry shape in `agents/INDEX.local.json`.
+
 ```json
 {
   "agents": {
-    "ansible-automation-engineer": {
-      "file": "agents/ansible-automation-engineer.md",
+    "my-overlay-engineer": {
+      "file": "private-agents/my-overlay-engineer.md",
       "short_description": "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security",
       "triggers": ["ansible", "playbook"],
       "pairs_with": ["verification-before-completion"],

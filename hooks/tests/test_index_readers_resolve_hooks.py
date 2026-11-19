@@ -61,7 +61,31 @@ def test_section_integrity_falls_back_to_project_index(tmp_path: Path) -> None:
         assert res.stdout.strip() == "", name
     miss = _run_validator(project, "no-such-agent", tmp_path)
     assert miss.returncode == 0
-    assert "not found" in miss.stdout
+    assert "may cause a dispatch failure" in miss.stdout
+
+
+@pytest.mark.parametrize("name", ["fork", "Explore", "plan", "general-purpose", "claude-code-guide", "web-fetch"])
+def test_section_integrity_accepts_harness_builtins(tmp_path: Path, name: str) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    res = _run_validator(project, name, tmp_path)
+    assert res.returncode == 0
+    assert res.stdout.strip() == "", name
+
+
+def test_section_integrity_flags_a_retired_agent_even_in_a_stale_index(tmp_path: Path, monkeypatch) -> None:
+    """A pre-retirement install still lists the specialist agents; they no longer validate."""
+    index_dir = tmp_path / "installed"
+    _w(index_dir / "agents.json", {"agents": {"golang-general-engineer": {}, "acme-overlay-engineer": {}}})
+    _w(index_dir / "skills.json", {"skills": {"programming": {}}})
+    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(index_dir))
+    project = tmp_path / "project"
+    project.mkdir()
+    retired = _run_validator(project, "golang-general-engineer", tmp_path)
+    assert retired.returncode == 0
+    assert "retired agent" in retired.stdout and "general-purpose" in retired.stdout
+    overlay = _run_validator(project, "acme-overlay-engineer", tmp_path)
+    assert overlay.stdout.strip() == ""
 
 
 def _runtime_helper(tmp_path: Path, name: str):

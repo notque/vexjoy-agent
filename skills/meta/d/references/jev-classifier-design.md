@@ -9,11 +9,38 @@ tuning, or extending the router. SKILL.md's phases are enough to run it.
 |---|---|---|
 | Force-route guard (`pr-workflow`, `pr-pipeline`, `security`) | code | `pre-route.py`, kept by `jev-route.py` prepare |
 | Attachment evidence: 5 signal Nouls, 6 domain Nouls, one Jev call | Jev | `jev-route.py` prepare |
-| Pick agent, skill, pipeline from the full manifest with `/do`'s rule text | session model | `print-route-rules.py`, `get-routing-manifest.sh --request-file` |
+| Pick skill, pipeline, stack, and workers from the full manifest with `/do`'s rule text | session model | `print-route-rules.py`, `get-routing-manifest.sh --request-file` |
 | Validate names against the live manifest, apply the safety force route, attach skills, derive complexity | code | `jev-route.py --finalize` |
-| Check the restated outcome survives the route | Jev | `jev-intent-align.py` (Phase 2) |
+| Check the restated outcome survives the route | Jev | `jev-intent-align.py` (Phase 2), writes a receipt |
+| Refuse to execute without a matching receipt; allow a dispatch only for a named reason with the skill reference | code | `build-dispatch.py` `"router": "d"`, `d_gate.py` |
+| Do the work with the skill loaded; run pipeline phases in order | session model, main loop | Skill tool |
 
 Jev supplies evidence and a check. It does not pick the primary route.
+
+## Main loop by default (plans/009 L6)
+
+Anthropic's "when to fold subagents into your main agent loop" argues that one
+loop with skills loaded on demand often beats an orchestrator over subagents:
+each handoff is a lossy summary and each nested loop adds latency. Keep a
+subagent only when the main loop degrades from context bloat, parallel work
+needs fresh disposable context, or tool choice and instructions conflict; an
+independent verifier also earns one. `/d` encodes that as dispatch reasons
+(`fan-out`, `worktree`, `haiku-gather`, `verifier`, plus `overlay-agent` for a
+private overlay agent the manifest lists), each with a precondition
+`d_gate.py` checks. `/do` keeps its own rule (Trivial and Simple in the main
+thread, Medium and Complex dispatched), so the two routers are the two arms of
+the comparison. The owner judges the result.
+
+Hard rules moved from prose into the tool, each returning the instruction to act on:
+
+| Rule (was prose) | Now |
+|---|---|
+| Phase 2 "MANDATORY STOP" before any action | receipt check in `build-dispatch.py` (missing, stale, other intent, baseline phase) |
+| Clarification stops the route | refused until `task_spec.clarification` holds the answer |
+| `review` issues go into `gaps` | refused on `review` with empty `gaps` |
+| Dispatch only when it pays | `dispatch_reason` enum and its precondition |
+| Worker gets the skill | `references` must name files from the skill's `references/` |
+| Trivial skips the executor | Trivial goes through the same call, so it is gated and recorded |
 
 ## Why the pick moved to the session
 
@@ -87,10 +114,11 @@ The measurement ran on the `jev-latest` alias, which pointed at `jev-1.13.0`. Ty
 ### Attachment policy (finalize)
 
 `_attachments` builds `attach` in this order and stops at three skills: the
-pre-route stack, the agent's domain floor (`DOMAIN_SKILL_BY_AGENT`), domain
-Nouls at 0.6 or higher by score, then `SIGNAL_SKILLS`. Names outside the live
-manifest drop out. `_default_agent` fills a null or `general-purpose` agent from
-the skill's owner (`AGENT_BY_SKILL`).
+pre-route stack, the domain floor (the decision's own `stack`: the domain skill
+the session named beside a methodology skill, which before plans/009 rode on
+the specialist agent pick through `DOMAIN_SKILL_BY_AGENT`), domain Nouls at 0.6
+or higher by score, then `SIGNAL_SKILLS`. Names outside the live manifest drop
+out. The worker is `general-purpose`; there is no owning-agent default.
 
 ### Intent alignment (Phase 2)
 
@@ -103,11 +131,14 @@ Unchanged: one batched `jev-intent-align.py` evaluation of the agent's
 |---|---|
 | A safety force route (`pr-workflow`, `pr-pipeline`, high-confidence `security`) overrides the picked skill and pipeline | `finalize`, matching `/do` Step 1(a) |
 | Other force matches and suggestions are not passed to the pick | `_forced`, matching `/do` Step 1(b) |
-| A name outside `AGENTS:`, `SKILLS:`, or `PIPELINES:` is dropped and listed in `problems` | `finalize` |
+| A name outside `SKILLS:` or `PIPELINES:`, or an agent that is not a built-in or private overlay agent, is dropped and listed in `problems` | `finalize` |
 | The router entry points `d` and `do` are never valid skills | `finalize` |
 | A skill name in the agent slot moves to the skill slot | `finalize` |
 | An empty skill becomes `workflow` (`skill_source: "fallback"`), the skill-greediness gate's default | `finalize` |
-| `general-purpose` without a `fallback_reason` is a problem | `finalize` |
+| A retired agent name never leaves `finalize` (`routing_index_merge.RETIRED_AGENTS`) | `finalize` |
+| Execution without a matching intent receipt is refused | `build-dispatch.py` `"router": "d"` (`d_gate.check_receipt`) |
+| A dispatch needs an allowed reason, its precondition, and the skill's references | `d_gate.check_dispatch`, `d_gate.resolve_references` |
+| `/d` markers carry `router=d` (and `reason=`) so telemetry splits the routers | `build-dispatch.py`, `routing-decision-recorder.py` |
 
 ## Cost per request
 
@@ -115,7 +146,9 @@ Unchanged: one batched `jev-intent-align.py` evaluation of the agent's
 |---|---|---|
 | Jev calls before the pick | 2 (rank, rerank), about 9k Jev tokens | 1, about 800 input and 210 output tokens |
 | Jev intent alignment | 1 batched call | 1 batched call |
-| Session context for the pick | route JSON only | `/do` rules (about 2k tokens) plus the manifest (about 10k tokens), read once |
+| Session context for the pick | route JSON only | `/do` rules (about 6.5k bytes) plus the manifest (about 20k bytes), read once |
+| /d instructions loaded per request | SKILL.md 17,616 bytes (v2.0) | SKILL.md 13,353 bytes (v3.0) |
+| Execution | `general-purpose` dispatch per route | main loop; dispatch only for a named reason |
 | Fallback to `/do` | 26% of requests, then the full `/do` read | none |
 | Pick cost in the eval (`claude -p`, prompt cache warm) | n/a | $0.019 per request on Sonnet |
 

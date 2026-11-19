@@ -3,7 +3,6 @@ name: game-trailer
 description: "Make a trailer, promo, teaser, sizzle reel, launch or gameplay video for one of our browser games (Road to AEW / ROAD TO THE BIG TIME, 5 Star Booker, or any game built the same way) from the real game: frame-exact 4K capture under a virtual clock, a beat-mapped edit with poster overlays printed in the game's own CSS, a score written in code, the game's own sounds and its crowd engine. Use it whenever someone asks for a trailer, a promo or social video of a game, a YouTube or X cut, a re-cut or recapture of an existing trailer, or just 'make a video that shows the game off'. Carries the pace rules the owner settled on and the capture, edit and audio traps that cost time."
 user-invocable: true
 argument-hint: "<game, and what the trailer must show>"
-agent: python-general-engineer
 allowed-tools:
   - Read
   - Write
@@ -41,9 +40,8 @@ routing:
     - video-editing
     - building-with-jev
     - grill-jev
-  agents:
-    - python-general-engineer
-    - pixijs-combat-renderer
+    - programming
+    - game-dev
 ---
 
 # Game trailer

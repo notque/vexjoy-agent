@@ -56,7 +56,7 @@ Skills (`skills/**/SKILL.md`):
 - A skill with `promoted_to`, or one reached through a symlink (private), is scanned but not expected in the catalog
 
 Agents (`agents/*.md`):
-- File has valid YAML frontmatter with `name` field; a file without frontmatter (`agents/base-instructions.md`) is not an agent
+- File has valid YAML frontmatter with `name` field; a file without frontmatter is not an agent (the shared worker prompt now lives at `skills/shared-patterns/base-instructions.md`)
 - Filename (without .md) matches YAML `name` value
 
 Commands (`commands/**/*.md`):

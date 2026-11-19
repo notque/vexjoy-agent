@@ -14,7 +14,7 @@ allowed-tools:
   - Agent
 routing:
   force_route: true
-  not_for: "code comments (use code-quality), API documentation (use docs-sync-checker), scheduling or calendaring content (use content), code review (use review)"
+  not_for: "code comments (use code-quality), drift between existing docs and code (use docs-sync-checker), local documentation MCP servers (use programming), scheduling or calendaring content (use content), code review (use review)"
   triggers:
     - "write article"
     - "blog post"
@@ -37,15 +37,25 @@ routing:
     - "generate content"
     - "professional communication"
     - "draft response"
+    - "technical article"
+    - "technical writing"
+    - "journalist voice"
+    - "technical writer"
+    - "technical journalism"
+    - "API documentation"
+    - "technical docs"
+    - "documentation validation"
+    - "integration guide"
   category: content
   pairs_with:
     - joy-check
     - content
+    - testing
 ---
 
 # Writing Skill
 
-Five modes. Match the request to the correct mode and follow its section.
+Seven modes. Match the request to the correct mode and follow its section.
 
 | Request matches | Mode |
 |---|---|
@@ -54,6 +64,8 @@ Five modes. Match the request to the correct mode and follow its section.
 | Check draft against voice profile fidelity | Voice Validation |
 | Email, memo, status update, meeting notes, pushback | Professional Communication |
 | Translate or localize a document | Translation |
+| Technical explainer, opinion, or analysis article | Technical Journalism: load `references/technical-journalist-writer.md` |
+| API reference, architecture doc, runbook, integration guide | Technical Documentation: load `references/technical-documentation.md` |
 
 ## Deep References
 
@@ -71,6 +83,8 @@ Five modes. Match the request to the correct mode and follow its section.
 | Voice creation: triad eval | `references/cv-triad-eval.md` | Held-out pairwise test, order-swap consistency, commands |
 | Translation modes, chunking | `references/tr-modes.md` | Quick/normal/refined, parallel dispatch |
 | Translation glossary | `references/tr-glossary-template.md` | Glossary format, term-preservation rules |
+| Technical journalism: explainers, opinion, analysis | `references/technical-journalist-writer.md` | Matter-of-fact voice rules, structure, sourcing; files in `references/technical-journalist-writer/` |
+| Technical documentation: API docs, runbooks, integration guides | `references/technical-documentation.md` | Source-verified docs, templates, standards; files in `references/technical-documentation/` |
 
 ---
 

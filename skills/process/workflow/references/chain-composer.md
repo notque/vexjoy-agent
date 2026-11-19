@@ -1,7 +1,6 @@
 ---
 description: "Compose valid pipeline chains from the step menu per subdomain."
 user-invocable: false
-agent: pipeline-orchestrator-engineer
 allowed-tools:
   - Read
   - Write
@@ -44,7 +43,7 @@ This skill composes valid pipeline chains for each subdomain in a Component Mani
 **Step 1**: Read the Component Manifest from the domain-research output. This is the `content.md` from Phase 4 of the domain-research skill. Extract:
 - The list of subdomains with their task types and descriptions
 - The operator profile
-- The agent decision (new_agent or reuse_agent)
+- The domain reference decision (bind an existing skill reference, or write a new shared domain reference) and the worker type (`general-purpose` unless the owner asked for a private overlay agent)
 - Per-subdomain metadata: references_needed, scripts_needed, routing_triggers
 
 **Step 2**: Load `skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md`. This file contains:
@@ -271,14 +270,16 @@ Naming rules:
   "adr_hash": "sha256:{hash_from_adr-query.py}",
   "subdomains": [/* subdomain objects from Step 2 */],
   "shared_references": [/* from Component Manifest */],
-  "new_agent": {/* or null */},
-  "reuse_agent": "{or null}",
+  "domain_reference": "{skill}/references/{file}.md or null",
+  "new_agent": null,
+  "reuse_agent": "general-purpose",
   "operator_profile": "{profile}"
 }
 ```
 
 Top-level validation:
-- Exactly one of `new_agent` or `reuse_agent` is non-null. *Constraint: Whether to create a new agent vs. reuse must come from Component Manifest or user input.*
+- Exactly one of `new_agent` or `reuse_agent` is non-null. Repo agents are retired, so `reuse_agent` is `general-purpose` and `new_agent` is `null`; set `new_agent` (and `reuse_agent: null`) only when the owner asked for a private overlay agent. *Constraint: Whether to bind an existing domain reference or write a new one must come from Component Manifest or user input.*
+- `domain_reference` is the existing reference the Component Manifest chose to bind, or `null` when a new shared domain reference is listed in `shared_references`.
 - `operator_profile` is a valid profile enum value
 - `subdomains` is non-empty
 
@@ -314,8 +315,9 @@ python3 ~/.claude/scripts/artifact-utils.py create-manifest \
 
 ## Operator Profile: {profile}
 
-## Agent Decision
-{Reuse/Create} agent: {agent-name}
+## Domain Reference Decision
+{Bind/Create} domain reference: {path}
+Worker: {general-purpose, or owner-requested overlay agent}
 Rationale: {from Component Manifest}
 
 ## Subdomain Chains

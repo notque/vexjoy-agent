@@ -31,23 +31,23 @@ Before writing any code or creating any files, read `docs/PHILOSOPHY.md` in full
    - `ls scripts/*.py` — check for scripts that already do this work
    If overlap exists, extend the existing component (add a reference file, extend a phase) rather than creating a new one.
 
-3. **Progressive Disclosure**: Keep runtime files thin. If you create an agent, the main `.md` file stays under 10k words. Deep content (pattern catalogs, detection commands, error-fix mappings) goes in `references/` subdirectories, loaded on demand.
+3. **Progressive Disclosure**: Keep runtime files thin. Repo agents are retired (plan 009), so new domain expertise is a skill reference (or a new skill), never a repo agent; the reference stays within `validate-references.py --check-size`. Deep content (pattern catalogs, detection commands, error-fix mappings) goes in `references/` subdirectories, loaded on demand.
 
 4. **Deterministic Execution**: If the work can be expressed as a script (file searching, validation, counting, formatting), write a Python script in `scripts/` or the skill's `scripts/` directory. Reserve LLM judgment for design decisions and contextual analysis.
 
-5. **Our Naming, Our Structure, Our Routing**: Use our naming conventions. Register new components in the routing system. Follow our file layout (`agents/*.md`, `skills/*/SKILL.md`, `skills/*/references/`).
+5. **Our Naming, Our Structure, Our Routing**: Use our naming conventions. Register new components in the routing system. Follow our file layout (`skills/*/*/SKILL.md`, `skills/*/*/references/`).
 
 ## Implementation Steps
 
 1. **Search existing components** — verify nothing already covers this gap
 2. **Design the solution** — decide: new reference file on existing component? New script? Extension to existing skill phase?
 3. **Build it** — create files following our conventions
-4. **Register it** — if you created a new agent or skill, TWO registrations are required:
-   - **Routing table**: add an entry to `skills/meta/do/references/routing-tables.md` — this is the canonical routing table. Every skill and agent must have an entry there (not in skill-local files, not in agent frontmatter alone). Run `python3 scripts/check-routing-drift.py` after adding the entry to verify it was added correctly — CI enforces this check.
-   - **INDEX.json**: regenerate with `python3 scripts/generate-skill-index.py` (for skills) or `python3 scripts/generate-agent-index.py` (for agents)
+4. **Register it** — if you created a new skill, TWO registrations are required (a new reference needs only a row in its skill's Reference Loading Table):
+   - **Routing table**: add an entry to `skills/meta/do/references/routing-tables.md` — this is the canonical routing table. Every skill must have an entry there (not in skill-local files alone). Run `python3 scripts/check-routing-drift.py` after adding the entry to verify it was added correctly — CI enforces this check.
+   - **INDEX.json**: regenerate with `python3 scripts/generate-skill-index.py`
 5. **Validate it** — run the applicable quality gates:
    - Python files: `ruff check . --config pyproject.toml && ruff format --check . --config pyproject.toml`
-   - New agent/skill reference files: `python3 scripts/validate-references.py`
+   - New skill reference files: `python3 scripts/validate-references.py --check-placeholders` and `--check-size`
    - New components: verify they appear in INDEX files
 6. **Branch it** — create a feature branch for this implementation: `feat/{recommendation-slug}`
 
@@ -55,7 +55,7 @@ Before writing any code or creating any files, read `docs/PHILOSOPHY.md` in full
 
 - Do not copy files from the external repo into our tree
 - Do not use external naming conventions or directory structures
-- Do not create a new agent or skill when a reference file on an existing component would suffice
+- Do not create a new skill when a reference file on an existing skill would suffice, and do not create a repo agent at all
 - Do not skip quality gates — a passing build is part of the deliverable
 - Do not commit to main — create a feature branch
 
@@ -85,16 +85,16 @@ When done, report:
 
 ### Agent Selection
 
-The implementation agent should match the domain of the recommendation:
+Every implementation agent is a fresh `general-purpose` worker. Match the skill and reference it loads to the domain of the recommendation; its prompt starts: "Read ~/.claude/skills/<skill>/references/<file> and follow it; load every file its Reference Loading Table matches."
 
-| Recommendation Domain | Dispatch To |
-|----------------------|-------------|
-| Python scripts or tooling | python-general-engineer |
-| Go code patterns | golang-general-engineer |
-| TypeScript/frontend | typescript-frontend-engineer |
-| Agent or skill structure | toolkit-governance-engineer |
-| Documentation | technical-documentation-engineer |
-| General/mixed | general-purpose |
+| Recommendation Domain | Skill and reference to load |
+|----------------------|-----------------------------|
+| Python scripts or tooling | `programming` `python-general.md` |
+| Go code patterns | `programming` `golang-general.md` |
+| TypeScript/frontend | `frontend` `typescript-frontend.md` |
+| Agent or skill structure | `toolkit` `toolkit-governance.md` |
+| Documentation | `writing` `technical-documentation.md` |
+| General/mixed | none (plain `general-purpose`) |
 
 ### Timeout
 

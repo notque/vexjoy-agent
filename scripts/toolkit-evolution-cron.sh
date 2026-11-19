@@ -95,7 +95,9 @@ Key constraints:
 - Write evolution report to evolution-reports/evolution-report-$(date +%Y-%m-%d).md
 - Index generation: if the cycle regenerates skills/INDEX.json or agents/INDEX.json, run
   the generators in default mode only. Do not pass --include-private. Do not modify
-  routing-tables.md to add entries for symlinked skill directories."
+  routing-tables.md to add entries for symlinked skill directories.
+- Do not create agents under agents/: the repo's specialist agents are retired
+  (plans/009). Put new domain content in a skill and its references."
 
 if [ -z "$GH_AUTH_VALID" ]; then
     PROMPT="$PROMPT

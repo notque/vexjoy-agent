@@ -174,8 +174,10 @@ Audit agents inherit none of this skill. Put in each brief:
 - "Return findings only, in the finding format. No fixes. No file dumps.
   Confirm you read the playbook."
 
-Agent choice: `reviewer-code` for correctness, performance, tests, tech debt,
-developer experience, and docs; `reviewer-system` for security and
+Agent choice: a `general-purpose` worker that reads
+`~/.claude/skills/review/references/reviewer-code.md` for correctness,
+performance, tests, tech debt, developer experience, and docs; one that reads
+`~/.claude/skills/review/references/reviewer-system.md` for security and
 dependencies; `Explore` on `haiku` for inventory. Audit direction yourself: it
 needs the whole recon.
 

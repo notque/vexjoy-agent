@@ -121,7 +121,7 @@ Actions:
 Result: Agent passes all tests, report documents pass rate and verdict
 
 ### Example 2: Testing After Agent Modification
-User says: "I updated the golang-general-engineer, make sure it still works"
+User says: "I updated the programming skill's golang-general reference, make sure it still works"
 Actions:
 1. Run existing test cases against modified agent (RED)
 2. Compare outputs to previous baseline (RED)

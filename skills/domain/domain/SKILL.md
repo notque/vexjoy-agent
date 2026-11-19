@@ -57,9 +57,8 @@ routing:
     - search tuning
   force_route: false
   pairs_with:
-    - golang-general-engineer
-    - opensearch-elasticsearch-engineer
     - programming
+    - kubernetes
   category: domain
 ---
 
@@ -71,13 +70,13 @@ Classify the request into one domain, then follow its section.
 
 ## Mode Detection
 
-| Domain | Signal | Agent |
-|--------|--------|-------|
-| **SAPCC Review** | sapcc review, 10-specialist review, lead review | `golang-general-engineer` |
-| **SAPCC Audit** | sapcc audit, sapcc compliance, full repo audit | `golang-general-engineer` |
+| Domain | Signal | Worker and reference |
+|--------|--------|----------------------|
+| **SAPCC Review** | sapcc review, 10-specialist review, lead review | `general-purpose` workers loading `programming` `golang-general.md` |
+| **SAPCC Audit** | sapcc audit, sapcc compliance, full repo audit | `general-purpose` workers loading `programming` `golang-general.md` |
 | **OpenSearch Detection** | SIEM, SIGMA, MITRE, detection engineering, SOC | (this session) |
 | **WordPress Validation** | validate wordpress post, check live post, post rendering | (this session) |
-| **Enterprise Search** | search relevance, ranking, BM25, query understanding | `opensearch-elasticsearch-engineer` |
+| **Enterprise Search** | search relevance, ranking, BM25, query understanding | (this session) loading `kubernetes` `opensearch-elasticsearch.md` |
 
 ---
 
@@ -105,7 +104,10 @@ Check key imports: `go-bits`, `go-api-declarations`, `gophercloud`, `gorilla/mux
 
 Load `references/sapcc-review-agent-dispatch-prompts.md` for the 10 agent specs.
 
-Dispatch all 10 in ONE message via Agent tool. Each agent gets: path to
+Dispatch all 10 in ONE message via the Agent tool, each a fresh
+`subagent_type=general-purpose` worker whose prompt starts: "Read
+~/.claude/skills/programming/references/golang-general.md and follow it; load every
+file its Reference Loading Table matches." Each agent also gets: path to
 sapcc-code-patterns.md, assigned sections, domain-specific reference, all .go
 files to scan, finding output format.
 
@@ -154,8 +156,10 @@ Count files per package. Plan 5-8 agents, 5-15 files each.
 Load `references/sapcc-audit-phase-2-dispatch-agents.md` for the dispatch prompt
 (11 review areas: over-engineering, dead code, error messages, constructors,
 interface contracts, copy-paste, HTTP handlers, database patterns, type patterns,
-logging, mixed approaches). Dispatch all in one message via Task tool with
-`subagent_type=golang-general-engineer`.
+logging, mixed approaches). Dispatch all in one message via the Agent tool with
+`subagent_type=general-purpose`; each prompt starts: "Read
+~/.claude/skills/programming/references/golang-general.md and follow it; load every
+file its Reference Loading Table matches."
 
 ### Phase 3: COMPILE REPORT
 

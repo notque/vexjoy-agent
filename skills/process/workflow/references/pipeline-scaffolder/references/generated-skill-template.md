@@ -10,8 +10,13 @@ Run the assembler script to generate a skill scaffold:
 ```bash
 python3 skills/process/workflow/references/pipeline-scaffolder/scripts/assemble-skill.py \
   --name <skill-name> --domain <domain> --subdomain <subdomain> \
-  --task-type generation --agent <agent-name> --profile personal
+  --task-type generation --pairs-with <domain-reference-skill> --profile personal
 ```
+
+The generated skill has no `agent:` field: repo agents are retired, and a dispatched
+phase runs on a fresh `general-purpose` worker told which skill reference to load.
+`--agent` records a different worker type (a private overlay agent) and defaults to
+`general-purpose`.
 
 Use `--list` to see all available templates (main + 13 phase family templates).
 Use `--help` for full parameter documentation.
@@ -27,7 +32,7 @@ Use `--help` for full parameter documentation.
 
 All `{{variables}}` map to Pipeline Spec fields. See `pipeline-spec-format.md` for
 authoritative field definitions. Key variables: `skill_name`, `domain`, `subdomain_name`,
-`task_type`, `agent_name`, `operator_profile`, `complexity`, `phase_count`.
+`task_type`, `agent_name`, `pairs_with`, `operator_profile`, `complexity`, `phase_count`.
 
 ## Phase Generation Rules
 

@@ -16,7 +16,7 @@ description: |                           # REQUIRED — 1024 char max
 # allowed-tools: [Read, Write, Bash, Grep, Glob]
 # compatibility: "Requires Python 3.10+, network access for API calls"
 # user-invocable: false
-# agent: golang-general-engineer
+# agent: general-purpose               # only with `context: fork`; repo agents are retired (plan 009)
 # model: opus                         # omit to inherit; never sonnet (scripts/validate_component_models.py)
 routing:                                 # REQUIRED — must be a mapping
   triggers:                              # REQUIRED — non-empty list

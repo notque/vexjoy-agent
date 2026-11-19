@@ -85,56 +85,9 @@ ROLE_TOOLS = {
     ],
 }
 
-# Explicit agent-to-role mappings
-AGENT_ROLES = {
-    # Consolidated reviewers - read-only by default
-    "reviewer-code": "reviewer-readonly",
-    "reviewer-domain": "reviewer-readonly",
-    "reviewer-perspectives": "reviewer-readonly",
-    "reviewer-system": "reviewer-readonly",
-    # Research/orchestration - no code modification
-    "research-coordinator-engineer": "research",
-    "research-subagent-executor": "research",
-    "project-coordinator-engineer": "orchestrator",
-    "pipeline-orchestrator-engineer": "orchestrator",
-    "system-upgrade-engineer": "orchestrator",
-    # Documentation - write docs but no bash
-    "technical-documentation-engineer": "documentation",
-    "technical-journalist-writer": "documentation",
-    # Code modifiers - full access (their job is to write code)
-    "ansible-automation-engineer": "code-modifier",
-    "combat-effects-upgrade": "code-modifier",
-    "data-engineer": "code-modifier",
-    "database-engineer": "code-modifier",
-    "github-profile-rules-engineer": "research",
-    "golang-general-engineer": "code-modifier",
-    "hook-development-engineer": "code-modifier",
-    "kotlin-general-engineer": "code-modifier",
-    "kubernetes-helm-engineer": "code-modifier",
-    "mcp-local-docs-engineer": "code-modifier",
-    "nextjs-ecommerce-engineer": "code-modifier",
-    "nodejs-api-engineer": "code-modifier",
-    "opensearch-elasticsearch-engineer": "code-modifier",
-    "performance-optimization-engineer": "code-modifier",
-    "perses-engineer": "code-modifier",
-    "php-general-engineer": "code-modifier",
-    "pixijs-combat-renderer": "code-modifier",
-    "prometheus-grafana-engineer": "code-modifier",
-    "python-general-engineer": "code-modifier",
-    "python-openstack-engineer": "code-modifier",
-    "rabbitmq-messaging-engineer": "code-modifier",
-    "react-native-engineer": "code-modifier",
-    "react-portfolio-engineer": "code-modifier",
-    "rive-skeletal-animator": "code-modifier",
-    "rust-general-engineer": "code-modifier",
-    "sqlite-peewee-engineer": "code-modifier",
-    "swift-general-engineer": "code-modifier",
-    "testing-automation-engineer": "code-modifier",
-    "toolkit-governance-engineer": "code-modifier",
-    "typescript-debugging-engineer": "code-modifier",
-    "typescript-frontend-engineer": "code-modifier",
-    "ui-design-engineer": "code-modifier",
-}
+# Explicit agent-to-role mappings. Empty since the repo's specialist agents
+# retired (plans/009); private overlay agents declare their own allowed-tools.
+AGENT_ROLES: dict[str, str] = {}
 
 
 def parse_frontmatter(content: str) -> tuple[dict, str, str]:
@@ -219,8 +172,8 @@ def main():
 
     agents_dir = Path(__file__).resolve().parent.parent / "agents"
     if not agents_dir.exists():
-        print(f"Error: agents directory not found at {agents_dir}")
-        sys.exit(1)
+        print(f"No agents directory at {agents_dir}; nothing to audit (repo agents retired, plans/009)")
+        return
 
     print(f"Auditing {len(list(agents_dir.glob('*.md')))} agents in {agents_dir}")
     print(f"Mode: {'FIX' if args.fix else 'AUDIT'}")

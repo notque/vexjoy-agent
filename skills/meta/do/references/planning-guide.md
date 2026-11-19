@@ -7,7 +7,7 @@ The `pretool-plan-gate` hook (PreToolUse) blocks Write/Edit to `agents/` and `sk
 | Complexity | Indicators | Action |
 |------------|------------|--------|
 | Trivial | Pure lookup, single read | No plan needed |
-| Simple+ | Routes to agent, code change | **Create task_plan.md** |
+| Simple+ | Routes to a skill, code change | **Create task_plan.md** |
 
 ## Plan File Template
 

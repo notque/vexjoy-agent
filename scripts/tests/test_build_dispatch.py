@@ -60,7 +60,7 @@ _preamble = functools.partial(bd.build_preamble, gather=False)
 def _decision(**overrides):
     """A complete, valid routing decision; overrides replace top-level keys."""
     base = {
-        "agent": "python-general-engineer",
+        "agent": "general-purpose",
         "skill": "testing",
         "complexity": "medium",
         "model": "opus",
@@ -88,7 +88,7 @@ def _decision(**overrides):
 ROUND_TRIP_CASES = [
     pytest.param(  # V1: everything — numeric health, all gate inputs, alts, stack, model
         {
-            "agent": "golang-general-engineer",
+            "agent": "general-purpose",
             "skill": "programming",
             "complexity": "complex",
             "model": "opus",
@@ -98,12 +98,12 @@ ROUND_TRIP_CASES = [
                 "n": 6,
                 "failure": 1,
                 "action": "keep",
-                "alts": ["claude:quick", "python-general-engineer:tdd"],
+                "alts": ["claude:quick", "general-purpose:tdd"],
             },
             "stack": ["testing"],
         },
         {
-            "agent": "golang-general-engineer",
+            "agent": "general-purpose",
             "skill": "programming",
             "complexity": "complex",
             "model": "opus",
@@ -111,7 +111,7 @@ ROUND_TRIP_CASES = [
             "n": 6,
             "failure": 1,
             "action": "keep",
-            "alternates": ["claude:quick", "python-general-engineer:tdd"],
+            "alternates": ["claude:quick", "general-purpose:tdd"],
             "gate_inputs_present": True,
             "stack": ["testing"],
         },
@@ -120,7 +120,7 @@ ROUND_TRIP_CASES = [
     pytest.param(  # V2: no weight row (health=-) with a stack
         {"health": {}, "stack": ["quick"]},
         {
-            "agent": "python-general-engineer",
+            "agent": "general-purpose",
             "skill": "testing",
             "complexity": "medium",
             "model": "opus",
@@ -138,7 +138,7 @@ ROUND_TRIP_CASES = [
         # Trivial only: simple/medium/complex now hard-fail on a missing skill.
         {"skill": "", "complexity": "trivial", "health": None, "stack": []},
         {
-            "agent": "python-general-engineer",
+            "agent": "general-purpose",
             "skill": "",
             "complexity": "trivial",
             "model": "opus",
@@ -151,7 +151,7 @@ ROUND_TRIP_CASES = [
     pytest.param(  # V4: numeric health alone — no n/fail/action/alts tokens
         {"health": {"confidence": 0.5}, "stack": []},
         {
-            "agent": "python-general-engineer",
+            "agent": "general-purpose",
             "skill": "testing",
             "complexity": "medium",
             "model": "opus",
@@ -168,7 +168,7 @@ ROUND_TRIP_CASES = [
     pytest.param(  # V5: simple complexity, model omitted => model=-
         {"complexity": "simple", "health": None, "stack": [], "model": None},
         {
-            "agent": "python-general-engineer",
+            "agent": "general-purpose",
             "skill": "testing",
             "complexity": "simple",
             "model": None,
@@ -181,7 +181,7 @@ ROUND_TRIP_CASES = [
     pytest.param(  # V6: confidence 1.0 formats as integer '1'; tiebreak action
         {"health": {"confidence": 1.0, "n": 12, "failure": 0, "action": "tiebreak"}, "stack": []},
         {
-            "agent": "python-general-engineer",
+            "agent": "general-purpose",
             "skill": "testing",
             "complexity": "medium",
             "model": "opus",
@@ -210,7 +210,7 @@ ROUND_TRIP_CASES = [
     pytest.param(  # V8: legacy GPT-5.5 remains a manual-only compatibility lane.
         {"model": "gpt-5.5", "model_effort": "high", "manual_model_override": True},
         {
-            "agent": "python-general-engineer",
+            "agent": "general-purpose",
             "skill": "testing",
             "complexity": "medium",
             "model": "gpt-5.5",
@@ -262,7 +262,7 @@ def test_marker_is_first_line_at_line_start():
 def test_preamble_contains_every_mandatory_block_in_order():
     preamble = _preamble(_decision(complexity="complex"))
     ordered = [
-        "[do-route] agent=python-general-engineer skill=testing complexity=complex model=opus",
+        "[do-route] agent=general-purpose skill=testing complexity=complex model=opus",
         "Call the Skill tool with `testing`.",
         bd.THINKING_SLOW,
         "~480000 tokens available for this task; prioritize accordingly.",
@@ -378,9 +378,7 @@ def shared_alias_index(tmp_path, monkeypatch):
     index = tmp_path / "index"
     index.mkdir()
     (index / "skills.json").write_text(json.dumps({"skills": SHARED_ALIAS_SKILLS}), encoding="utf-8")
-    (index / "agents.json").write_text(
-        json.dumps({"agents": {"python-general-engineer": {"short_description": "Python."}}}), encoding="utf-8"
-    )
+    (index / "agents.json").write_text(json.dumps({"agents": {}}), encoding="utf-8")
     monkeypatch.setenv("VEXJOY_INDEX_DIR", str(index))
     bd._trigger_claims.cache_clear()
     yield index
@@ -578,7 +576,6 @@ def test_token_budget_reads_settings_and_defaults(tmp_path):
 @pytest.mark.parametrize(
     "overrides",
     [
-        {"agent": ""},
         {"agent": "Bad Agent!"},
         {"complexity": "low"},  # the audit's real-world invalid value
         {"complexity": ""},
@@ -625,17 +622,28 @@ def test_route_fit_injection_present_on_every_dispatch():
         assert "route-fit:" in preamble
 
 
-@pytest.mark.parametrize("verdict", ["ok", "wrong-agent", "wrong-skill", "needs-coordinator", "underspecified"])
+@pytest.mark.parametrize("verdict", ["ok", "wrong-skill", "needs-coordinator", "underspecified"])
 def test_every_injected_verdict_parses_with_the_real_recorder(verdict):
     """The enum the injection advertises must be exactly what the recorder reads."""
     assert verdict in bd.INJ_ROUTE_FIT
     assert recorder.parse_route_fit(f"work done.\nroute-fit: {verdict}") == verdict
 
 
+def test_wrong_agent_is_no_longer_offered_but_still_parses():
+    """The worker is always general-purpose, so the injection drops `wrong-agent`;
+    older replies that still carry it parse unchanged."""
+    assert "wrong-agent" not in bd.INJ_ROUTE_FIT
+    assert recorder.parse_route_fit("done.\nroute-fit: wrong-agent") == "wrong-agent"
+
+
 # ---------------------------------------------------------------------------
-# Agent validation: unknown agent coerces (never raises); general-purpose needs
-# a reason; the fallback token survives the recorder's parser.
+# Agent validation (plans/009: specialist agents retired). general-purpose is
+# the normal worker and needs no reason; built-ins and private overlay agents
+# validate when named; any other name coerces (never raises) with a reason
+# token that survives the recorder's parser.
 # ---------------------------------------------------------------------------
+
+RETIRED_AGENTS = ("golang-general-engineer", "python-general-engineer", "reviewer-code", "toolkit-governance-engineer")
 
 
 def test_unknown_agent_coerces_to_general_purpose_with_a_reason():
@@ -651,44 +659,101 @@ def test_unknown_agent_coerces_to_general_purpose_with_a_reason():
     assert recorder.parse_fallback_reason(marker) == "invalid-agent:python-hook-wizard"
 
 
-def test_known_agent_and_builtins_are_not_coerced():
-    for agent in ("python-general-engineer", "hook-development-engineer", "claude"):
+@pytest.mark.parametrize("agent", RETIRED_AGENTS)
+def test_retired_agent_coerces_to_general_purpose(agent):
+    marker = bd.build_marker(_decision(agent=agent))
+    assert recorder.parse_do_route_marker(marker) == ("general-purpose", "testing")
+    assert recorder.parse_fallback_reason(marker) == f"invalid-agent:{agent}"
+
+
+def test_builtins_are_not_coerced():
+    for agent in ("general-purpose", "claude", "explore", "plan"):
         marker = bd.build_marker(_decision(agent=agent))
         assert f"agent={agent}" in marker
         assert "fallback=" not in marker
 
 
-def test_unreadable_agent_index_fails_open(tmp_path):
-    """No index => cannot validate => keep the agent. Never manufacture a fallback."""
-    assert bd.load_known_agents(tmp_path / "nope.json") == frozenset()
+def test_general_purpose_needs_no_fallback_reason():
+    marker = bd.build_marker(_decision(agent="general-purpose"))
+    assert marker.startswith("[do-route] agent=general-purpose ")
+    assert "fallback=" not in marker
+    assert recorder.parse_fallback_reason(marker) is None
 
 
-def test_general_purpose_requires_a_fallback_reason():
-    with pytest.raises(bd.InputError, match="fallback_reason"):
-        _preamble(_decision(agent="general-purpose"))
+@pytest.mark.parametrize("agent", [None, "", "-", "null"])
+def test_missing_agent_defaults_to_general_purpose(agent):
+    decision = _decision(agent=agent)
+    if agent is None:
+        decision.pop("agent")
+    marker = bd.build_marker(decision)
+    assert recorder.parse_do_route_marker(marker) == ("general-purpose", "testing")
+    assert "fallback=" not in marker
 
 
-def test_general_purpose_with_a_reason_emits_the_token():
-    marker = bd.build_marker(_decision(agent="general-purpose", fallback_reason="No specialist matches!"))
-    assert marker.endswith("fallback=no-specialist-matches")
-    assert recorder.parse_fallback_reason(marker) == "no-specialist-matches"
+def test_input_fallback_reason_is_ignored():
+    """A leftover reason from the old contract must not count as a fallback."""
+    marker = bd.build_marker(_decision(agent="general-purpose", fallback_reason="no-specialist-match"))
+    assert "fallback=" not in marker
+    assert marker == bd.build_marker(_decision(agent="general-purpose"))
 
 
 def test_fallback_token_never_shifts_an_existing_marker_field():
     """`fallback=` is appended last; every other parsed field is byte-identical."""
-    plain = bd.build_marker(_decision(agent="python-general-engineer"))
-    fallen = bd.build_marker(_decision(agent="general-purpose", fallback_reason="no-specialist-match"))
-    assert fallen == plain.replace("agent=python-general-engineer", "agent=general-purpose", 1) + (
-        " fallback=no-specialist-match"
-    )
+    plain = bd.build_marker(_decision(agent="general-purpose"))
+    fallen = bd.build_marker(_decision(agent="python-hook-wizard"))
+    assert fallen == plain + " fallback=invalid-agent:python-hook-wizard"
     for parse in (recorder.parse_marker_complexity, recorder.parse_stack, recorder.parse_model):
         assert parse(fallen) == parse(plain)
     assert recorder.parse_health_inputs(fallen) == recorder.parse_health_inputs(plain)
 
 
-def test_reason_without_a_letter_or_digit_raises():
-    with pytest.raises(bd.InputError, match="fallback_reason"):
-        bd.build_marker(_decision(agent="general-purpose", fallback_reason="!!!"))
+def test_missing_agent_index_still_knows_the_builtins(tmp_path):
+    """An empty or missing index is the normal state now: never 'cannot validate'."""
+    assert bd.load_known_agents(tmp_path / "nope.json") == bd.BUILTIN_AGENTS
+
+
+def test_overlay_agent_in_local_index_validates(tmp_path):
+    """A private overlay agent (agents/INDEX.local.json) still validates when named."""
+    agents = tmp_path / "agents"
+    agents.mkdir()
+    (agents / "INDEX.json").write_text(json.dumps({"agents": {}}), encoding="utf-8")
+    (agents / "INDEX.local.json").write_text(
+        json.dumps({"agents": {"acme-overlay-engineer": {"file": "agents/acme-overlay-engineer.md"}}}),
+        encoding="utf-8",
+    )
+    known = bd.load_known_agents(agents / "INDEX.json")
+    assert "acme-overlay-engineer" in known
+    assert known >= bd.BUILTIN_AGENTS
+
+
+def test_overlay_agent_in_installed_index_is_kept(tmp_path, monkeypatch, public_index_dir):
+    """The installed index merges overlay agents; a named one dispatches as itself."""
+    index = tmp_path / "index"
+    index.mkdir()
+    (index / "skills.json").write_bytes((public_index_dir / "skills.json").read_bytes())
+    (index / "agents.json").write_text(
+        json.dumps(
+            {
+                "agents": {
+                    "acme-overlay-engineer": {"short_description": "Private."},
+                    # A stale pre-retirement install still lists the retired agents.
+                    "golang-general-engineer": {"short_description": "Go."},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(index))
+    bd._load_index_names.cache_clear()
+    try:
+        marker = bd.build_marker(_decision(agent="acme-overlay-engineer"))
+        stale = bd.build_marker(_decision(agent="golang-general-engineer"))
+    finally:
+        bd._load_index_names.cache_clear()
+    assert recorder.parse_do_route_marker(marker) == ("acme-overlay-engineer", "testing")
+    assert "fallback=" not in marker
+    assert recorder.parse_do_route_marker(stale) == ("general-purpose", "testing")
+    assert recorder.parse_fallback_reason(stale) == "invalid-agent:golang-general-engineer"
 
 
 # ---------------------------------------------------------------------------
@@ -1634,19 +1699,20 @@ def test_invalid_context_mode_fails_even_without_gather(mode):
 
 
 def test_build_subagent_dispatch():
-    decision = _decision(agent="python-general-engineer", skill="testing")
+    """The Antigravity persona comes from the skill, not an agent file."""
+    decision = _decision(agent="general-purpose", skill="testing")
     payload = bd.build_subagent_dispatch(decision, repo_root=REPO_ROOT)
     assert "subagent_spec" in payload
-    assert payload["subagent_spec"]["Name"] == "python-general-engineer"
+    assert payload["subagent_spec"]["Name"] == "testing-worker"
     assert payload["define_subagent"]["EnableWriteTools"] is True
-    assert payload["invoke_subagent"]["TypeName"] == "python-general-engineer"
+    assert payload["invoke_subagent"]["TypeName"] == "testing-worker"
     assert payload["invoke_subagent"]["Workspace"] == "branch"
     assert "[do-route]" in payload["preamble"]
 
 
 def test_build_dispatch_cli_subagent_spec(tmp_path):
     decision_file = tmp_path / "route.json"
-    decision = _decision(agent="reviewer-code", skill="review")
+    decision = _decision(agent="general-purpose", skill="review", stack=[])
     decision_file.write_text(json.dumps(decision), encoding="utf-8")
 
     cmd = [
@@ -1660,6 +1726,6 @@ def test_build_dispatch_cli_subagent_spec(tmp_path):
     res = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT, check=False)
     assert res.returncode == 0
     data = json.loads(res.stdout)
-    assert data["define_subagent"]["Name"] == "reviewer-code"
+    assert data["define_subagent"]["Name"] == "review-worker"
     assert data["define_subagent"]["EnableWriteTools"] is False
     assert data["invoke_subagent"]["Workspace"] == "inherit"

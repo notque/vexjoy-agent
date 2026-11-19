@@ -1,9 +1,9 @@
 ---
 name: kubernetes
-description: "Kubernetes operations: debugging, security, RBAC, and infrastructure tooling."
+description: "Kubernetes and infrastructure operations: cluster debugging, security and RBAC, manifests and Helm charts, Ansible, Prometheus/Grafana, Perses, OpenSearch/Elasticsearch, RabbitMQ, and cobaltcore tooling."
 user-invocable: false
 context: fork
-agent: kubernetes-helm-engineer
+agent: general-purpose
 routing:
   triggers:
     # from kubernetes-debugging
@@ -27,18 +27,80 @@ routing:
     - "hypervisor metrics"
     - "libvirt exporter"
     - "cloud hypervisor"
+    # from kubernetes-helm
+    - "kubernetes"
+    - "helm"
+    - "k8s"
+    - "kubectl"
+    - "statefulset"
+    - "argocd"
+    # from ansible-automation
+    - "ansible"
+    - "playbook"
+    - "molecule"
+    - "ansible-tower"
+    - "AWX"
+    # from prometheus-grafana
+    - "prometheus"
+    - "grafana"
+    - "alerting"
+    - "observability"
+    # from opensearch-elasticsearch
+    - "opensearch"
+    - "elasticsearch"
+    - "search cluster"
+    - "logstash"
+    - "kibana"
+    - "search performance"
+    # from rabbitmq-messaging
+    - "rabbitmq"
+    - "messaging"
+    - "message queue"
+    - "amqp"
+    - "event bus"
+    # from perses
+    - "perses"
+    - "perses dashboard"
+    - "perses plugin"
+    - "perses operator"
+    - "perses kubernetes"
+    - "perses CRD"
+    - "percli"
+    - "perses migrate"
+    - "perses dac"
+    - "PersesDashboard"
+    - "perses core"
+    - "contribute perses"
+    - "perses backend"
+    - "perses frontend"
+    - "perses architecture"
+    - "perses internals"
+    - "perses project"
+    - "observability dashboard"
+    - "perses datasource"
+    - "perses variable"
+    - "perses helm"
+    - "perses k8s"
+    - "create plugin"
+    - "panel plugin"
+    - "datasource plugin"
+    - "perses plugin development"
+    - "perses cue schema"
+    - "plugin schema"
+  not_for: "analyzing business or product metrics data (use data); relational database schema and query tuning, ETL/ELT, or Kafka/Spark stream pipelines (use data); application test automation (use testing); Claude Code hook or toolkit automation (use toolkit); search-relevance UX or query-DSL authoring inside an app (use domain); TypeScript frontend work outside the Perses codebase (use frontend)"
   category: kubernetes
   pairs_with:
     - assessment
     - programming
-    - prometheus-grafana-engineer
+    - testing
+    - data
 ---
 
 # Kubernetes Skill
 
-Three domains: **debugging** (pod triage, networking, resources), **security** (RBAC, pod hardening, network isolation, supply chain), and **cobaltcore** (KVM exporter, hypervisor metrics). Select by request signal, then follow the phases below.
+Home for Kubernetes and infrastructure operations. Cluster domains: **debugging** (pod triage, networking, resources), **security** (RBAC, pod hardening, network isolation, supply chain), and **cobaltcore** (KVM exporter, hypervisor metrics); follow the phases below for these. Infrastructure engineering domains (manifests and Helm, Ansible, Prometheus/Grafana, Perses, OpenSearch/Elasticsearch, RabbitMQ): load the matching reference from the Domain Selection table and follow its hard rules, gates, and blockers.
 
-Always specify `-n <namespace>` in every kubectl command. Use read-only commands to gather evidence before proposing changes.
+In cluster work, always specify `-n <namespace>` in every kubectl command. Use read-only commands to gather evidence before proposing changes. When dispatch pays, use a `general-purpose` worker that loads this skill and the matching reference.
 
 ---
 
@@ -54,6 +116,12 @@ Always specify `-n <namespace>` in every kubectl command. Use read-only commands
 | NetworkPolicy, default-deny, namespace isolation | Security (network) |
 | Image signing, secrets, admission control | Security (supply chain) |
 | KVM exporter, cobaltcore, hypervisor metrics | Cobaltcore |
+| Author or fix manifests, Helm charts, StatefulSets, ArgoCD, deploy safety | `references/kubernetes-helm.md` |
+| Ansible playbooks, roles, Molecule, Vault, AWX | `references/ansible-automation.md` |
+| Prometheus, Grafana, PromQL, alerting, SLO burn rate, cardinality | `references/prometheus-grafana.md` |
+| Perses dashboards, plugins, operator, core | `references/perses.md` |
+| OpenSearch or Elasticsearch cluster, shards, mappings, ILM, query DSL tuning | `references/opensearch-elasticsearch.md` |
+| RabbitMQ, AMQP, quorum queues, DLX, prefetch | `references/rabbitmq-messaging.md` |
 
 ---
 
@@ -138,7 +206,7 @@ spec:
 
 ### Cobaltcore Domain
 
-Components: KVM Exporter (`cobaltcore-dev/kvm-exporter`). Load `references/cobalt-kvm-exporter.md` for architecture, metric catalogs, configuration, and deployment. Pair with `go-patterns` for code, `prometheus-grafana-engineer` for metrics.
+Components: KVM Exporter (`cobaltcore-dev/kvm-exporter`). Load `references/cobalt-kvm-exporter.md` for architecture, metric catalogs, configuration, and deployment. Load the `programming` skill for Go code and `references/prometheus-grafana.md` for metrics.
 
 ---
 
@@ -167,3 +235,9 @@ Components: KVM Exporter (`cobaltcore-dev/kvm-exporter`). Load `references/cobal
 | KVM exporter architecture, metrics, config | `references/cobalt-kvm-exporter.md` | Full component reference (463 lines) |
 | Cobaltcore concurrency, goroutine, semaphore | `references/cobalt-concurrency-patterns.md` | Go concurrency patterns (268 lines) |
 | Cobaltcore testing, mock, Kind cluster | `references/cobalt-testing-patterns.md` | Testing strategies (271 lines) |
+| Kubernetes manifests, Helm charts, probes, limits, image tags, deploy safety | `references/kubernetes-helm.md` | Hard rules, gates, detection, blockers; sub-reference `kubernetes-helm/` |
+| Ansible playbooks, roles, idempotency, Vault, Molecule, ansible-lint | `references/ansible-automation.md` | Hard rules, gates, detection; sub-references `ansible-automation/` (security, testing, modules) |
+| Prometheus, Grafana, PromQL, recording rules, Alertmanager, cardinality | `references/prometheus-grafana.md` | Hard rules, gates, audit list; sub-references `prometheus-grafana/` (PromQL, alerting, cardinality) |
+| Perses dashboards, DaC, percli, plugins, CUE schema, Perses operator CRDs | `references/perses.md` | Areas and loading table; sub-references `perses/` (dashboard, operator, plugin) |
+| OpenSearch, Elasticsearch, shard sizing, heap, mappings, ILM, snapshots | `references/opensearch-elasticsearch.md` | Hard rules, gates, audit list; sub-references `opensearch-elasticsearch/` (query, index, cluster) |
+| RabbitMQ, AMQP, quorum queues, publisher confirms, acks, DLX, prefetch | `references/rabbitmq-messaging.md` | Hard rules, gates, audit list; sub-references `rabbitmq-messaging/` (channels, performance, error handling) |

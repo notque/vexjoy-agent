@@ -34,8 +34,6 @@ def _setup(tmp_path: Path) -> tuple[Path, Path]:
     (sdir / "routing_index_merge.py").write_text("# merge helper\n", encoding="utf-8")
     (base / "skills").mkdir()
     (base / "skills" / "INDEX.json").write_text('{"skills": {}}', encoding="utf-8")
-    (base / "agents").mkdir()
-    (base / "agents" / "INDEX.json").write_text('{"agents": {}}', encoding="utf-8")
     wf = base / "skills" / "process" / "workflow" / "references"
     wf.mkdir(parents=True)
     (wf / "pipeline-index.json").write_text('{"pipelines": {}}', encoding="utf-8")
@@ -52,8 +50,6 @@ def _input_hash(sdir: Path) -> str:
         sdir / "routing_index_merge.py",
         base / "skills" / "INDEX.json",
         base / "skills" / "INDEX.local.json",
-        base / "agents" / "INDEX.json",
-        base / "agents" / "INDEX.local.json",
         base / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
     ]
     h = hashlib.sha256()
@@ -98,3 +94,14 @@ def test_missing_cache_regenerates(tmp_path: Path) -> None:
     result = _run(sdir, home)
     assert result.returncode == 0, result.stderr
     assert result.stdout == "GENERATED\n"
+
+
+def test_agent_index_is_not_a_cache_input(tmp_path: Path) -> None:
+    """The manifest lists no agents (plans/009), so an agents index change keeps the cache."""
+    sdir, home = _setup(tmp_path)
+    cache_dir = home / ".claude" / "cache"
+    (cache_dir / "routing-manifest.txt").write_text("CACHED MANIFEST\n", encoding="utf-8")
+    (cache_dir / "routing-manifest.hash").write_text(_input_hash(sdir), encoding="utf-8")
+    (sdir.parent / "agents").mkdir()
+    (sdir.parent / "agents" / "INDEX.json").write_text('{"agents": {"x": {}}}', encoding="utf-8")
+    assert _run(sdir, home).stdout == "CACHED MANIFEST\n"

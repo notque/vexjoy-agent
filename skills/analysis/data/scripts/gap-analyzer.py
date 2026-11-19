@@ -7,9 +7,9 @@ triggers, and body content, compares against existing reference file coverage, a
 outputs a JSON report of sub-domains missing reference coverage.
 
 Usage:
-    python3 skills/analysis/data/scripts/gap-analyzer.py --agent golang-general-engineer
+    python3 skills/analysis/data/scripts/gap-analyzer.py --skill programming
     python3 skills/analysis/data/scripts/gap-analyzer.py --skill review
-    python3 skills/analysis/data/scripts/gap-analyzer.py --agent python-general-engineer --verbose
+    python3 skills/analysis/data/scripts/gap-analyzer.py --agent <overlay-agent> --verbose  # private overlay agents only
 
 Exit code: always 0 (analysis tool, not a gate).
 """

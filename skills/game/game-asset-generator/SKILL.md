@@ -2,7 +2,6 @@
 name: game-asset-generator
 promoted_to: game-dev
 description: "Deterministic palette/matrix pixel art (not AI). Use for procedural tile art, color-quantized output, matrix sprites."
-agent: typescript-frontend-engineer
 user-invocable: false
 command: /game-assets
 allowed-tools:
@@ -42,7 +41,6 @@ routing:
   not_for: "AI-generated pixel art, illustration, or character art (use image-gen) — this skill is deterministic palette/matrix generation, not an AI backend; ad-hoc workflow composition (use workflow skill)"
   pairs_with:
     - frontend
-    - typescript-frontend-engineer
   complexity: Medium
   category: game-development
 ---

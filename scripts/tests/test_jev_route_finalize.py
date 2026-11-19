@@ -2,7 +2,8 @@
 
 prepare runs the force-route guard and one Jev attachment call before the
 session model picks. finalize validates the pick against the manifest, applies
-the safety force route, and computes `attach`. No test calls Jev or a model.
+the safety force route, computes `attach`, and sets the worker
+(general-purpose, or a named private overlay agent; retired agents never). No test calls Jev or a model.
 """
 
 from __future__ import annotations
@@ -22,35 +23,22 @@ spec = importlib.util.spec_from_file_location("jev_route_finalize", SCRIPTS / "j
 jev_route = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev_route)
 
-ENTRIES = (
-    [
-        {"name": n, "type": "agent"}
-        for n in (
-            "golang-general-engineer",
-            "python-general-engineer",
-            "reviewer-system",
-            "research-coordinator-engineer",
-            "testing-automation-engineer",
-        )
-    ]
-    + [
-        {"name": n, "type": "skill"}
-        for n in (
-            "pr-workflow",
-            "security",
-            "workflow",
-            "testing",
-            "review",
-            "programming",
-            "frontend",
-            "kubernetes",
-            "research",
-            "d",
-            "do",
-        )
-    ]
-    + [{"name": n, "type": "pipeline"} for n in ("pr-pipeline", "writing")]
-)
+ENTRIES = [
+    {"name": n, "type": "skill"}
+    for n in (
+        "pr-workflow",
+        "security",
+        "workflow",
+        "testing",
+        "review",
+        "programming",
+        "frontend",
+        "kubernetes",
+        "research",
+        "d",
+        "do",
+    )
+] + [{"name": n, "type": "pipeline"} for n in ("pr-pipeline", "writing")]
 
 
 def _force(skill: str | None, pipeline: str | None = None, stack: list | None = None, **extra) -> dict:
@@ -151,72 +139,119 @@ def test_unavailable_transport_skips_jev_and_keeps_the_force_route() -> None:
 
 
 def test_finalize_keeps_a_valid_pick_and_adds_the_attachments() -> None:
-    prepared = _prepare({"matched": False}, _jev_answers(programming=0.95, tests_requested=0.9))
-    route = jev_route.finalize(
-        prepared, {"agent": "golang-general-engineer", "skill": "workflow", "confidence": "high"}, ENTRIES
-    )
-    assert (route["agent"], route["skill"], route["source"], route["agent_source"]) == (
-        "golang-general-engineer",
-        "workflow",
-        "session",
-        "session",
-    )
+    prepared = _prepare({"matched": False}, _jev_answers(domain__programming=0.95, tests_requested=0.9))
+    route = jev_route.finalize(prepared, {"skill": "workflow", "confidence": "high"}, ENTRIES)
+    assert (route["agent"], route["skill"], route["source"]) == ("general-purpose", "workflow", "session")
     assert route["attach"] == ["programming", "testing"]
     assert route["problems"] == []
     assert route["confidence"] == "high"
+    assert "agent_source" not in route and "agents" not in route and "fallback_reason" not in route
+
+
+def test_general_purpose_needs_no_fallback_reason() -> None:
+    for agent in (None, "general-purpose"):
+        route = jev_route.finalize({}, {"agent": agent, "skill": "workflow"}, ENTRIES)
+        assert route["agent"] == "general-purpose"
+        assert route["problems"] == []
+
+
+@pytest.mark.parametrize("name", sorted(jev_route.routing_index_merge.RETIRED_AGENTS))
+def test_finalize_never_emits_a_retired_agent(name: str) -> None:
+    """Even when a stale agents index still lists the retired name."""
+    route = jev_route.finalize({}, {"agent": name, "skill": "testing"}, ENTRIES, known_agents={name})
+    assert route["agent"] == "general-purpose"
+    assert any("not dispatchable" in p for p in route["problems"])
+    assert route["skill"] == "testing"
 
 
 @pytest.mark.parametrize("name", ["not-an-agent", "pr-workflow"])
-def test_finalize_drops_an_agent_outside_agents(name: str) -> None:
+def test_finalize_drops_an_unknown_agent(name: str) -> None:
     route = jev_route.finalize({}, {"agent": name, "skill": "testing"}, ENTRIES)
-    assert any("not in AGENTS" in p for p in route["problems"])
-    assert route["agent"] == "testing-automation-engineer"  # the skill's owning agent
-    assert route["agent_source"] == "skill-default"
+    assert any("not dispatchable" in p for p in route["problems"])
+    assert route["agent"] == "general-purpose"
+
+
+def test_finalize_keeps_a_named_overlay_agent() -> None:
+    route = jev_route.finalize(
+        {}, {"agent": "acme-overlay-engineer", "skill": "testing"}, ENTRIES, known_agents={"acme-overlay-engineer"}
+    )
+    assert route["agent"] == "acme-overlay-engineer"
+    assert route["problems"] == []
+
+
+def test_overlay_agents_come_from_the_index_minus_retired(tmp_path: Path, monkeypatch) -> None:
+    index = tmp_path / "index"
+    index.mkdir()
+    agents = {"acme-overlay-engineer": {"file": "agents/a.md"}, "golang-general-engineer": {"file": "agents/g.md"}}
+    (index / "agents.json").write_text(json.dumps({"agents": agents}), encoding="utf-8")
+    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(index))
+    known = jev_route._load_overlay_agents()
+    assert "acme-overlay-engineer" in known
+    assert "golang-general-engineer" not in known
+    assert known >= jev_route.BUILTIN_AGENTS
 
 
 def test_finalize_moves_a_skill_named_in_the_agent_slot() -> None:
     route = jev_route.finalize({}, {"agent": "workflow", "skill": None}, ENTRIES)
     assert route["skill"] == "workflow"
     assert route["skill_source"] == "session"
+    assert route["agent"] == "general-purpose"
 
 
-def test_finalize_drops_unknown_skills_pipelines_and_fanout_agents() -> None:
+def test_finalize_validates_fanout_workers() -> None:
     decision = {
-        "agent": "python-general-engineer",
         "skill": "ghost",
         "pipeline": "ghost-pipeline",
-        "agents": ["python-general-engineer", "ghost-agent", "reviewer-system", "reviewer-system"],
+        "workers": [
+            {"skill": "review", "scope": "pkg/a"},
+            "testing",
+            {"skill": "ghost-skill", "scope": "pkg/b"},
+            {"skill": "do"},
+        ],
     }
     route = jev_route.finalize({}, decision, ENTRIES)
     assert route["pipeline"] is None
-    assert route["agents"] == ["reviewer-system"]
-    assert len(route["problems"]) == 3
+    assert route["workers"] == [{"skill": "review", "scope": "pkg/a"}, {"skill": "testing", "scope": ""}]
+    assert len(route["problems"]) == 4
     assert (route["skill"], route["skill_source"]) == ("workflow", "fallback")
+
+
+def test_legacy_agents_fanout_is_a_problem() -> None:
+    route = jev_route.finalize({}, {"skill": "review", "agents": ["reviewer-system"]}, ENTRIES)
+    assert route["workers"] == []
+    assert any("'agents' is retired" in p for p in route["problems"])
 
 
 @pytest.mark.parametrize("name", ["d", "do"])
 def test_finalize_rejects_the_router_entry_points_as_skills(name: str) -> None:
-    route = jev_route.finalize({}, {"agent": "python-general-engineer", "skill": name}, ENTRIES)
+    route = jev_route.finalize({}, {"skill": name}, ENTRIES)
     assert route["skill"] == "workflow"
     assert any(f"skill {name!r}" in p for p in route["problems"])
 
 
+def test_domain_floor_comes_from_the_session_stack() -> None:
+    """The domain skill the session names beside a methodology skill rides along without Jev evidence."""
+    route = jev_route.finalize({}, {"skill": "workflow", "stack": ["programming", "ghost"]}, ENTRIES)
+    assert route["attach"] == ["programming"]
+    prepared = {"stack": ["kubernetes"], "domain_scores": {"testing": 0.9}}
+    route = jev_route.finalize(prepared, {"skill": "workflow", "stack": ["programming"]}, ENTRIES)
+    assert route["attach"] == ["kubernetes", "programming", "testing"]
+
+
 def test_safety_force_route_overrides_the_picked_skill_and_pipeline() -> None:
     prepared = _prepare(_force("pr-workflow", pipeline="pr-pipeline", stack=["programming"]))
-    route = jev_route.finalize(prepared, {"agent": "golang-general-engineer", "skill": "review"}, ENTRIES)
+    route = jev_route.finalize(prepared, {"skill": "review"}, ENTRIES)
     assert (route["skill"], route["pipeline"], route["source"]) == ("pr-workflow", "pr-pipeline", "pre-route-force")
     assert route["skill_source"] == "pre-route"
-    assert route["agent"] == "golang-general-engineer"
+    assert route["agent"] == "general-purpose"
     assert route["attach"] == ["programming"]
 
 
-def test_safety_force_route_keeps_the_picked_agent() -> None:
-    # A force route fixes the skill and pipeline only (/d Step 2, /do Phase 2
-    # Step 1(a)). Replacing the session's Go engineer with pre-route's
-    # reviewer-system broke that contract.
+def test_safety_force_route_never_sets_the_agent() -> None:
+    # A force route fixes the skill and pipeline only (/d Step 2, /do Phase 2 Step 1(a)).
     prepared = _prepare(_force("security", agent="reviewer-system"))
-    route = jev_route.finalize(prepared, {"agent": "golang-general-engineer", "skill": "review"}, ENTRIES)
-    assert (route["agent"], route["agent_source"]) == ("golang-general-engineer", "session")
+    route = jev_route.finalize(prepared, {"skill": "review"}, ENTRIES)
+    assert route["agent"] == "general-purpose"
     assert (route["skill"], route["source"]) == ("security", "pre-route-force")
 
 
@@ -224,33 +259,24 @@ def test_safety_force_route_survives_a_failed_pick() -> None:
     prepared = _prepare(_force("security"))
     route = jev_route.finalize(prepared, {}, ENTRIES)
     assert route["skill"] == "security"
-    assert route["agent"] == "reviewer-system"  # skill-owned default agent
+    assert route["agent"] == "general-purpose"
     assert route["source"] == "pre-route-force"
 
 
-def test_general_purpose_without_a_reason_is_a_problem_and_with_one_is_not() -> None:
-    bare = jev_route.finalize({}, {"agent": "general-purpose", "skill": "workflow"}, ENTRIES)
-    assert bare["agent"] == "general-purpose"
-    assert any("fallback_reason" in p for p in bare["problems"])
-    reasoned = jev_route.finalize(
-        {}, {"agent": None, "skill": "workflow", "fallback_reason": "general-purpose: no listed agent"}, ENTRIES
-    )
-    assert reasoned["problems"] == []
-    assert reasoned["fallback_reason"] == "general-purpose: no listed agent"
-
-
 def test_complexity_comes_from_the_decision_or_is_derived() -> None:
-    base = {"agent": "python-general-engineer", "skill": "workflow", "fallback_reason": "x"}
+    base = {"skill": "workflow"}
     assert jev_route.finalize({}, {**base, "complexity": "medium"}, ENTRIES)["complexity"] == "medium"
     assert jev_route.finalize({}, {**base, "complexity": "trivial"}, ENTRIES)["complexity"] == "simple"
     assert jev_route.finalize({}, {**base, "pipeline": "writing"}, ENTRIES)["complexity"] == "complex"
+    assert jev_route.finalize({}, {**base, "workers": ["review"]}, ENTRIES)["complexity"] == "complex"
     prepared = {"signals": {"tests_requested": True}}
     assert jev_route.finalize(prepared, base, ENTRIES)["complexity"] == "medium"
+    assert jev_route.finalize({}, base, ENTRIES)["complexity"] == "simple"
 
 
 def test_finalize_output_is_usable_as_the_intent_validator_route_file() -> None:
-    route = jev_route.finalize({}, {"agent": "python-general-engineer", "skill": "workflow", "reasoning": "r"}, ENTRIES)
-    for key in ("agent", "skill", "pipeline", "complexity", "source", "reasoning", "attach", "agents"):
+    route = jev_route.finalize({}, {"skill": "workflow", "reasoning": "r"}, ENTRIES)
+    for key in ("agent", "skill", "pipeline", "complexity", "source", "reasoning", "attach", "workers"):
         assert key in route
     json.dumps(route)
 
@@ -281,6 +307,7 @@ def test_cli_finalize_reads_files_and_prints_the_route(tmp_path: Path, use_publi
     assert proc.returncode == 0
     route = json.loads(proc.stdout)
     assert route["skill"] == "workflow"
+    assert route["agent"] == "general-purpose"  # the retired agent never comes back out
 
 
 def test_cli_finalize_reports_an_unreadable_file_as_an_error_not_a_crash(tmp_path: Path) -> None:

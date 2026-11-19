@@ -79,7 +79,7 @@ def fixture_repo(tmp_path: Path) -> Path:
         skill.format(n="retired", extra="promoted_to: listed\n"),
     )
     _write(tmp_path / "agents" / "alpha-engineer.md", "---\nname: alpha-engineer\ndescription: Alpha\n---\n")
-    _write(tmp_path / "agents" / "base-instructions.md", "# Shared prompt, no frontmatter\n")
+    _write(tmp_path / "agents" / "shared-prompt.md", "# Shared prompt, no frontmatter\n")
     _write(tmp_path / "commands" / "go.md", "---\ndescription: Go command\n---\n# /go\n")
     _write(tmp_path / "commands" / "new.md", "---\ndescription: New command\n---\n# /new\n")
     _write(
@@ -133,7 +133,6 @@ def test_fixes_point_at_generator_or_reference_row(fixture_repo: Path) -> None:
 @pytest.mark.parametrize(
     ("doc", "old", "new"),
     [
-        ("docs/routing-map.md", "## AGENTS (2)", "## Agents (2)"),
         ("docs/REFERENCE.md", "## Slash Commands", "## Commands"),
         ("docs/skills.md", "| `listed` |", "| listed |"),
     ],
@@ -178,5 +177,15 @@ def test_head_pipeline_reports_no_false_layout_issues(tmp_path: Path) -> None:
     )
     assert proc.returncode in (0, 1), proc.stderr
     documented = json.loads(proc.stdout)["documented"]
-    for rel in parse_docs.PRIMARY_DOCS.values():
+    for tool_type, rel in parse_docs.PRIMARY_DOCS.items():
+        if tool_type in parse_docs._MAY_BE_EMPTY:
+            continue  # no repo agents since plans/009
         assert documented[rel], f"parsed 0 entries from {rel}; the parser no longer reads its format"
+
+
+def test_routing_map_without_agents_parses(fixture_repo: Path) -> None:
+    """No repo agents since plans/009: a routing map with no AGENTS rows is valid."""
+    path = fixture_repo / "docs" / "routing-map.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("## AGENTS (2)", "## Agents (2)"), encoding="utf-8")
+    failed = [name for name, passed, _ in validate.validate_primary_docs_parse(fixture_repo) if not passed]
+    assert failed == []

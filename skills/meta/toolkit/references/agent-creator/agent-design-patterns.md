@@ -2,6 +2,7 @@
 
 > **Scope**: Vexjoy-specific operator context structure, reference loading table format, phase/gate patterns, hook design, routing design, and allowed-tools role mapping.
 > **Load when**: designing operator context, writing reference loading tables, planning routing triggers, or understanding hook event types.
+> **After plan 009**: repo agents are retired. These patterns now shape a skill reference (operator context, loading table, phases and gates, CAN / CANNOT); the `agents/` file paths and agent-only fields below apply only to an owner-requested private overlay agent in `private-agents/`.
 
 ---
 

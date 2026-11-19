@@ -761,10 +761,21 @@ def resolve_script(target: str, md: Path, root: Path = REPO_ROOT) -> Path | None
 
 
 def collect_toolkit_markdown(root: Path = REPO_ROOT) -> list[Path]:
-    """Markdown under skills/, agents/ and commands/; git-tracked files only when root is a git checkout."""
+    """Markdown under skills/, agents/ and commands/; tracked plus untracked-not-ignored files in a git checkout."""
     try:
         listed = subprocess.run(
-            ["git", "-C", str(root), "ls-files", "-z", "--", *(f"{d}/*.md" for d in TOOLKIT_DIRS)],
+            [
+                "git",
+                "-C",
+                str(root),
+                "ls-files",
+                "-z",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+                "--",
+                *(f"{d}/*.md" for d in TOOLKIT_DIRS),
+            ],
             capture_output=True,
             text=True,
             timeout=30,
@@ -773,7 +784,8 @@ def collect_toolkit_markdown(root: Path = REPO_ROOT) -> list[Path]:
     except (OSError, subprocess.SubprocessError):
         listed = ""
     if listed:
-        return sorted(root / name for name in listed.split("\0") if name)
+        # A tracked file deleted in the working tree (an unstaged move) is skipped.
+        return sorted(root / name for name in listed.split("\0") if name and (root / name).is_file())
     files: list[Path] = []
     for name in TOOLKIT_DIRS:
         if (root / name).is_dir():

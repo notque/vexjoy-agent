@@ -4,7 +4,6 @@ description: |
   {{description}} -- {{task_type}} pipeline for the {{domain}} domain.
   Use for {{trigger_keywords}} inside the {{subdomain_name}} subdomain.
 user-invocable: true
-agent: {{agent_name}}
 allowed-tools:
   - Read
   - Write
@@ -15,7 +14,7 @@ allowed-tools:
   - Task
 routing:
   triggers: [{{trigger_keywords}}]
-  pairs_with: [{{agent_name}}]
+  pairs_with: [{{pairs_with}}]
   complexity: {{complexity}}
   category: domain
 ---

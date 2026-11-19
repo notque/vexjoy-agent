@@ -42,10 +42,71 @@ routing:
     - "PR review"
     - "pr-review"
     - "diff review"
+    - "review code quality"
+    - "code conventions"
+    - "naming review"
+    - "dead code review"
+    - "performance review"
+    - "type design review"
+    - "test coverage review"
+    - "config safety review"
+    - "adr compliance"
+    - "adr review"
+    - "adr check"
+    - "scope creep"
+    - "business logic"
+    - "domain review"
+    - "edge cases"
+    - "state machine"
+    - "sapcc structural"
+    - "sapcc structural review"
+    - "go-bits design"
+    - "go-bits usage"
+    - "type export"
+    - "anti-over-engineering"
+    - "pragmatic builder"
+    - "production gaps"
+    - "operational readiness"
+    - "newcomer perspective"
+    - "fresh eyes review"
+    - "production readiness"
+    - "senior review"
+    - "skeptical review"
+    - "technical accuracy"
+    - "spec compliance"
+    - "pedantic review"
+    - "challenge the premise"
+    - "multi-persona critique"
+    - "user advocate"
+    - "usability review"
+    - "is this worth the complexity"
+    - "meta-process review"
+    - "architecture health"
+    - "single point of failure"
+    - "complexity audit"
+    - "authority concentration"
+    - "reversibility check"
+    - "system review"
+    - "concurrency review"
+    - "error handling review"
+    - "observability review"
+    - "API contract review"
+    - "migration safety review"
+    - "dependency audit"
+    - "API doc accuracy review"
+    - "architecture decision"
+    - "decision record"
+    - "documentation review"
+    - "user impact"
+    - "user perspective"
+    - "user experience"
+    - "system design review"
+    - "indispensable component"
   category: code-review
   pairs_with:
     - security
     - testing
+    - workflow
 ---
 
 # Review
@@ -68,6 +129,10 @@ Three modes. Pick one by request shape, default to systematic.
 | Dispatching full-repo wave agents | `references/audit-playbook.md` | 8-category checklists with evidence requirements |
 | Disproving findings before report (Systematic Phase 3.5, Parallel Step 3) | `references/disprove-pass.md` | Refuter dispatch, drop rule, fail-open cases, model choice |
 | Receiving review feedback | `references/receiving-feedback.md` | Feedback-handling patterns |
+| Code-quality review: conventions, naming, dead code, comments, performance, types, tests, config | `references/reviewer-code.md` | Code-quality reviewer method; dimension files in `references/reviewer-code/` |
+| System review: security, concurrency, silent failures, errors, observability, API contracts, migrations, dependencies, docs | `references/reviewer-system.md` | System reviewer method; domain files in `references/reviewer-system/` |
+| Domain review: ADR compliance, business logic, SAP CC structural, pragmatic builder | `references/reviewer-domain.md` | Domain reviewer method; files in `references/reviewer-domain/` |
+| Perspective review: newcomer, skeptical senior, pedant, contrarian, user advocate, meta-process | `references/reviewer-perspectives.md` | Perspective reviewer method; files in `references/reviewer-perspectives/` |
 
 ## Severity Classification
 
@@ -89,7 +154,7 @@ Decision: security/correctness/reliability risk? -> BLOCKING. Violates patterns 
 | SHOULD FIX (parallel: HIGH) findings, no BLOCKING | **NEEDS_CHANGES** |
 | Only SUGGESTION or clean | **PASS** |
 
-These are the only verdict words, the same PASS / NEEDS_CHANGES / BLOCK the reviewer agents emit. An open question that stops a PASS is NEEDS_CHANGES with the question stated. The validator rejects a verdict that contradicts the findings (PASS over SHOULD FIX, anything but BLOCK over BLOCKING).
+These are the only verdict words, the same PASS / NEEDS_CHANGES / BLOCK the reviewer references prescribe. An open question that stops a PASS is NEEDS_CHANGES with the question stated. The validator rejects a verdict that contradicts the findings (PASS over SHOULD FIX, anything but BLOCK over BLOCKING).
 
 Omit empty severity sections. Include review scope, evidence, and limitations. Validate output (`--type parallel` for Mode 2):
 
@@ -161,17 +226,17 @@ git diff --name-only HEAD
 gh pr view --json files -q '.files[].path'
 ```
 
-Select Architecture reviewer by language: Go -> `golang-general-engineer`; Python -> `python-general-engineer`; TypeScript -> `typescript-frontend-engineer`; mixed -> `Explore`.
+Select the Architecture reviewer's reference by language: Go -> `programming` skill, `golang-general.md`; Python -> `programming`, `python-general.md`; TypeScript -> `frontend`, `typescript-frontend.md`; mixed -> built-in `Explore` with no reference.
 
 ### Step 2: Dispatch
 
-Dispatch three reviewers together. Read-only; no code edits.
+Dispatch three reviewers together, each a fresh `general-purpose` worker (Agent tool `subagent_type: "general-purpose"`) so each review stays independent. Read-only; no code edits. Start each prompt with the reviewer's Skill call and reference read line: "Read ~/.claude/skills/<skill>/references/<file> and follow it; load every file its Reference Loading Table matches."
 
-| Reviewer | Focus |
-|---|---|
-| Security | Auth, authorization, input validation, secrets, OWASP |
-| Business Logic | Requirements, edge cases, state transitions, failure modes |
-| Architecture | Design, structure, performance, maintainability, scope |
+| Reviewer | Focus | Loads |
+|---|---|---|
+| Security | Auth, authorization, input validation, secrets, OWASP | `review`, `reviewer-system.md` (security domain) |
+| Business Logic | Requirements, edge cases, state transitions, failure modes | `review`, `reviewer-domain.md` (business-logic domain) |
+| Architecture | Design, structure, performance, maintainability, scope | language reference from Step 1 |
 
 Pass `references/architecture-smell-baseline.md` verbatim to the Architecture reviewer. Require `[Reviewer] file:line` format with severity and consequence.
 

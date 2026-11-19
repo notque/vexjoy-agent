@@ -210,6 +210,30 @@ def test_d2_builtin_agent_accepted(tmp_path):
     assert "DEAD-AGENT-REF" not in result.stdout
 
 
+def test_d2_retired_agent_ref_is_a_warning_not_an_error(tmp_path):
+    """A skill still paired with a retired repo agent (plans/009) warns; --strict passes."""
+    skills = {"paired": skill_entry("paired", agent="python-general-engineer")}
+    repo, claude = make_repo(tmp_path, skills, agents={})
+    result = run(repo, claude, "--strict")
+    assert "WARN RETIRED-AGENT-REF paired" in result.stdout
+    assert "DEAD-AGENT-REF" not in result.stdout
+    assert result.returncode == 0, result.stdout
+
+
+def test_d2_retired_agent_in_a_stale_index_is_still_retired(tmp_path):
+    """A stale index that still lists a retired agent does not revive it."""
+    skills = {"paired": skill_entry("paired", agent="reviewer-system")}
+    repo, claude = make_repo(tmp_path, skills, agents={"reviewer-system": agent_entry("reviewer-system")})
+    result = run(repo, claude)
+    assert "WARN RETIRED-AGENT-REF paired" in result.stdout
+
+
+def test_empty_agents_index_passes(tmp_path):
+    repo, claude = make_repo(tmp_path, {"good-skill": skill_entry("good-skill")}, agents={})
+    result = run(repo, claude, "--strict")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 # ---------------------------------------------------------------------------
 # D3 / D4 — missing category / description
 # ---------------------------------------------------------------------------

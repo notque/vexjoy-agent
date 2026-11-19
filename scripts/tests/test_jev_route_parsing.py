@@ -71,10 +71,10 @@ def test_a_malformed_answer_leaves_the_evidence_empty_but_routing_continues() ->
     assert result["signals"] is None
     assert result["domain_scores"] is None
     assert "not a probability" in result["error"]
-    entries = [{"name": "python-general-engineer", "type": "agent"}, {"name": "testing", "type": "skill"}]
-    route = jev_route.finalize(result, {"agent": "python-general-engineer", "skill": "testing"}, entries)
+    entries = [{"name": "testing", "type": "skill"}]
+    route = jev_route.finalize(result, {"skill": "testing"}, entries)
     assert (route["agent"], route["skill"], route["attach"], route["problems"]) == (
-        "python-general-engineer",
+        "general-purpose",
         "testing",
         [],
         [],

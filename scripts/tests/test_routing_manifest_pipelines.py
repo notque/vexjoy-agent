@@ -143,8 +143,8 @@ class TestTriggers:
         assert line.count(rm.TRIGGER_SEP) == rm.TRIGGER_CAP - 1
         assert f"phrase {rm.TRIGGER_CAP}" not in line
 
-    def test_agent_and_skill_names_are_dropped(self, tmp_path, monkeypatch) -> None:
-        """A skill or agent name printed here would validate as a pipeline.
+    def test_skill_names_are_dropped(self, tmp_path, monkeypatch) -> None:
+        """A skill name printed here would validate as a pipeline.
 
         The /do section validator tokenizes the text after PIPELINES:, so a
         borrowed name leaks across the section boundary.
@@ -152,9 +152,8 @@ class TestTriggers:
         entries = _entries(
             tmp_path,
             monkeypatch,
-            {"alpha": _pipeline(triggers=["voice-validator", "some-agent", "real phrase"])},
+            {"alpha": _pipeline(triggers=["voice-validator", "real phrase"])},
             skills={"voice-validator": {"file": "s.md", "description": "A skill."}},
-            agents={"some-agent": {"file": "a.md", "description": "An agent."}},
         )
         assert _line(rm.format_compact(entries), "alpha").endswith(" t:real phrase")
 
@@ -262,7 +261,8 @@ class TestLineGrammar:
             rm.format_compact_mode(entries),
             rm.format_tiered(entries, set()),
         ):
-            assert out.index("AGENTS:") < out.index("SKILLS:") < out.index("PIPELINES:")
+            assert "AGENTS:" not in out
+            assert out.index("SKILLS:") < out.index("PIPELINES:")
 
 
 # ---------------------------------------------------------------------------

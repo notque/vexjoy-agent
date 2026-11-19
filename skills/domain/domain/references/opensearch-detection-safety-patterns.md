@@ -6,7 +6,7 @@ description: OpenSearch Security Analytics failure modes — chained findings in
 
 OpenSearch-specific failure modes that block or destabilize detector creation. Production-observed bugs with concrete diagnosis commands and remediation paths.
 
-> **Scope**: Mapping failures and runtime safety patterns specific to Security Analytics detectors and alerting. General index management (ILM, reindexing) lives in `opensearch-elasticsearch-engineer`.
+> **Scope**: Mapping failures and runtime safety patterns specific to Security Analytics detectors and alerting. General index management (ILM, reindexing) lives in the `kubernetes` skill's `references/opensearch-elasticsearch.md`.
 > **Version range**: OpenSearch 2.x Security Analytics plugin
 
 ---

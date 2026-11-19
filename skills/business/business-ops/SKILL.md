@@ -31,7 +31,7 @@ routing:
     - "unit economics"
     - "business model"
     - "market fit"
-  not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts, or tactical marketing competitive analysis (use marketing) — this is executive strategy, not campaign execution. Code security audits, vulnerability scanning, or auth-flow reviews (use security) — only financial/accounting audit and SOX compliance. Code performance review (use reviewer-code) — this covers people performance reviews and HR operations. Software task specs, requirements, or plan-lifecycle management (use planning) — this skill prioritizes and tracks work, not specs. UX design methodology, wireframes, or accessibility audits (use design) — this handles product strategy, roadmaps, user research for feature prioritization."
+  not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts, or tactical marketing competitive analysis (use marketing) — this is executive strategy, not campaign execution. Code security audits, vulnerability scanning, or auth-flow reviews (use security) — only financial/accounting audit and SOX compliance. Code performance review (use review) — this covers people performance reviews and HR operations. Software task specs, requirements, or plan-lifecycle management (use planning) — this skill prioritizes and tracks work, not specs. UX design methodology, wireframes, or accessibility audits (use design) — this handles product strategy, roadmaps, user research for feature prioritization."
   complexity: Medium
   category: decision-support
   pairs_with:

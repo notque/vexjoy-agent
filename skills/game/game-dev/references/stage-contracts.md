@@ -15,7 +15,7 @@ and rejection rules. Examples below explain that schema and never redefine it.
   "spec_hash": "sha256:<64 lowercase hex>",
   "input_hashes": ["sha256:<64 lowercase hex>"],
   "output_hash": "sha256:<64 lowercase hex>",
-  "owner": "project-coordinator-engineer",
+  "owner": "workflow/references/project-coordinator.md",
   "status": "complete",
   "attempt": 1,
   "rollback_pointer": "git:<sha-or-null>",
@@ -56,7 +56,7 @@ Expose only:
 {
   "canonical_phase": "EXECUTE",
   "active_node": "S24",
-  "owner": "project-coordinator-engineer",
+  "owner": "workflow/references/project-coordinator.md",
   "evidence": ["artifact path or hash"],
   "next_action": "bounded action",
   "resume_condition": "specific verified condition"

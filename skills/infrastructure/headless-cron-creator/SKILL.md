@@ -4,7 +4,6 @@ promoted_to: deploy
 description: "Generate headless Claude Code cron jobs with safety."
 user-invocable: false
 argument-hint: "<name> <schedule> <prompt>"
-agent: python-general-engineer
 allowed-tools:
   - Read
   - Write

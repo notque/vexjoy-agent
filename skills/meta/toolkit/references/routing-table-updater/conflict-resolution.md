@@ -3,7 +3,7 @@
 ## Conflict Types
 
 ### Type 1: Exact Pattern Overlap
-**Example:** "debug" matches both systematic-debugging skill AND golang-general-engineer agent
+**Example:** "debug" matches both systematic-debugging skill AND programming skill (golang-general.md)
 
 **Resolution Strategy:**
 - More specific pattern takes precedence
@@ -13,8 +13,8 @@
 **Action:**
 ```
 Pattern: "debug" → systematic-debugging skill (general)
-Pattern: "debug Go" → golang-general-engineer agent (specific)
-Pattern: "debug Python" → python-general-engineer agent (specific)
+Pattern: "debug Go" → programming skill (golang-general.md) (specific)
+Pattern: "debug Python" → programming skill (python-general.md) (specific)
 ```
 
 ### Type 2: Subset Pattern Overlap
@@ -28,7 +28,7 @@ Pattern: "debug Python" → python-general-engineer agent (specific)
 **Action:**
 ```
 Pattern: "test API" → api-testing-skill (specific)
-Pattern: "test Go" → golang-general-engineer + test-driven-development (specific)
+Pattern: "test Go" → programming (golang-general.md) + test-driven-development (specific)
 Pattern: "test" → test-driven-development skill (general fallback)
 ```
 
@@ -55,7 +55,7 @@ Pattern: "review", "audit", "check quality" → systematic-code-review skill
 
 **Action:**
 ```
-If request includes "Go" + "API" → golang-general-engineer (domain)
+If request includes "Go" + "API" → programming skill, golang-general.md (domain)
 If request includes "test" + "API" → api-testing-skill (task)
 If request is just "API" → Ask clarifying question
 ```
@@ -83,7 +83,7 @@ If request is just "API" → Ask clarifying question
 **Low Severity:**
 - Both routes would work reasonably well
 - User can clarify if needed
-- Example: "test" → TDD skill vs testing-automation-engineer
+- Example: "test" → TDD skill vs testing skill (testing-automation.md)
 
 **Medium Severity:**
 - Routes lead to different outcomes
@@ -120,7 +120,7 @@ If request is just "API" → Ask clarifying question
    ```markdown
    <!-- ROUTING NOTE: "debug" has multiple routes
         - General debugging → systematic-debugging skill
-        - Go debugging → golang-general-engineer agent
+        - Go debugging → programming skill (golang-general.md)
         Resolution: Context-dependent, domain routing takes precedence
    -->
    ```

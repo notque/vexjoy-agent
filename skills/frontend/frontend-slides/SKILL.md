@@ -3,7 +3,6 @@ name: frontend-slides
 promoted_to: frontend
 description: "Browser-based HTML presentation generation."
 user-invocable: false
-agent: typescript-frontend-engineer
 allowed-tools:
   - Read
   - Write
@@ -27,7 +26,7 @@ routing:
     - interactive presentation keyboard
     - projector browser
   pairs_with:
-    - typescript-frontend-engineer
+    - frontend
   complexity: Medium
   category: frontend
 ---

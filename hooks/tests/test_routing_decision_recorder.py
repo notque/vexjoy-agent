@@ -214,6 +214,33 @@ class TestDecisionRecorder:
         row = next(r for r in rows if r["key"] == "python-general-engineer:testing")
         assert "tool_errors=0" in row["value"]
 
+    def test_d_marker_writes_router_and_reason_to_route_events(self, db_env, monkeypatch):
+        """/d markers carry router=d and reason=; the decision event keeps both, /do events neither."""
+        a = _load(A_PATH, "rdr_a_router")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        markers = (
+            "[do-route] agent=general-purpose skill=review complexity=medium model=opus health=- "
+            "reason=verifier router=d",
+            "[do-route] agent=general-purpose skill=testing complexity=medium model=opus health=-",
+        )
+        for i, marker in enumerate(markers):
+            event = {
+                "hook_event_name": "PostToolUse",
+                "tool_name": "Agent",
+                "session_id": "s-router",
+                "tool_input": {"prompt": marker + "\n\nwork", "description": f"work {i}"},
+                "tool_response": "ok",
+            }
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        events = [json.loads(line) for line in (db_env["db_dir"] / "route-events.jsonl").read_text().splitlines()]
+        decisions = [e for e in events if e["type"] == "decision"]
+        assert decisions[0]["router"] == "d" and decisions[0]["dispatch_reason"] == "verifier"
+        assert "router" not in decisions[1] and "dispatch_reason" not in decisions[1]
+        tags = {r["key"]: r["tags"] for r in _query_routing(db_env)}
+        assert "router:d" in tags["general-purpose:review"]
+
     def test_agent_only_key_when_no_skill(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a2")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)

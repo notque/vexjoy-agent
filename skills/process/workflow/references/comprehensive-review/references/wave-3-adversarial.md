@@ -4,22 +4,24 @@ These agents receive Wave 0+1+2 aggregated findings as input. Their job is to CH
 
 **ALL Wave 3 agents MUST be dispatched in ONE message for true parallel execution.**
 
+**Dispatch.** Each roster row is one fresh `general-purpose` worker (Agent tool `subagent_type: "general-purpose"`), so every lens reviews independently with no shared context. The reference column names the review reference that worker loads. Start each worker prompt with: "Call the Skill tool with `review`. Then read ~/.claude/skills/review/references/<reference> and follow it; load every file its Reference Loading Table matches, and apply only the <lens> lens."
+
 Review agents run on `opus` (the `work` role in `workflow-helpers.js`); pass the owner's model instead when the owner names one. Never use haiku or sonnet for code review.
 
 ## Agent Roster
 
-| # | Agent | Role | Challenge Focus |
+| # | Reference (worker loads) | Role | Challenge Focus |
 |---|-------|------|----------------|
-| 21 | `reviewer-perspectives` (contrarian lens) | Challenges findings | Are these findings actually important? Which are false positives? Which are over-severity? |
-| 22 | `reviewer-code` (skeptical-senior lens) | Experience-based skepticism | "I've seen this before" — which findings are theoretical vs real-world issues? |
-| 23 | `reviewer-perspectives` (user-advocate lens) | User impact assessment | Does this change break users? Are UX tradeoffs justified? Are migration paths safe? |
-| 24 | `reviewer-perspectives` (meta-process lens) | Process/approach review | Is this the right approach? Should the PR be split? Is the review itself focused correctly? |
+| 21 | `reviewer-perspectives.md` (contrarian lens) | Challenges findings | Are these findings actually important? Which are false positives? Which are over-severity? |
+| 22 | `reviewer-perspectives.md` (skeptical-senior lens) | Experience-based skepticism | "I've seen this before" — which findings are theoretical vs real-world issues? |
+| 23 | `reviewer-perspectives.md` (user-advocate lens) | User impact assessment | Does this change break users? Are UX tradeoffs justified? Are migration paths safe? |
+| 24 | `reviewer-perspectives.md` (meta-process lens) | Process/approach review | Is this the right approach? Should the PR be split? Is the review itself focused correctly? |
 
 ## Conditional: SAPCC Structural Review
 
-| # | Agent | Condition | Challenge Focus |
+| # | Reference (worker loads) | Condition | Challenge Focus |
 |---|-------|-----------|----------------|
-| 25 | `reviewer-domain` (sapcc-structural lens) | `go.mod` names a module or dependency under `github.com/sapcc/` or `github.com/sap-cloud-infrastructure/` | SAP Converged Cloud Go structural integrity — type exports, wrappers, Option timing, go-bits usage |
+| 25 | `reviewer-domain.md` (sapcc-structural lens) | `go.mod` names a module or dependency under `github.com/sapcc/` or `github.com/sap-cloud-infrastructure/` | SAP Converged Cloud Go structural integrity — type exports, wrappers, Option timing, go-bits usage |
 
 SAPCC detection:
 ```bash
@@ -29,7 +31,7 @@ if [ -f "go.mod" ] && grep -Eq 'github\.com/(sapcc|sap-cloud-infrastructure)/' g
 fi
 ```
 
-If `SAPCC_DETECTED=false`, skip `reviewer-domain` (sapcc-structural lens) silently (no warning, no log).
+If `SAPCC_DETECTED=false`, skip `reviewer-domain.md` (sapcc-structural lens) silently (no warning, no log).
 
 ## Standard Agent Prompt Template
 
@@ -75,13 +77,13 @@ OUTPUT FORMAT:
 
 ## Agent-Specific Prompt Additions
 
-| Agent | Extra Instructions |
+| Reference (lens) | Extra Instructions |
 |-------|-------------------|
-| `reviewer-perspectives` (contrarian) | Challenge every HIGH and CRITICAL finding. Are they actually important? Which are false positives? Which are over-classified? Look for findings where Wave 1+2 agents reinforced each other's bias rather than independently verifying. Question whether suggested fixes introduce new problems. |
-| `reviewer-code` (skeptical-senior) | Apply 10+ years of engineering experience. Which findings are theoretical risks that never manifest in practice? Which are textbook answers that don't apply to this codebase's scale/context? Flag "resume-driven" suggestions (over-engineering, premature optimization). Identify findings where the cure is worse than the disease. |
-| `reviewer-perspectives` (user-advocate) | Focus exclusively on user impact. Does this change break existing users? Are migration paths safe? Are UX tradeoffs justified? Challenge findings that improve code quality at the expense of user experience. Flag findings that ignore backward compatibility. Question whether "fixing" something makes it harder for users. |
-| `reviewer-perspectives` (meta-process) | Step back from individual findings. Is the overall approach correct? Should this PR be split into smaller PRs? Are the right problems being solved? Is the review itself focused on the right things? Flag cases where the review is bikeshedding on style while missing structural issues. Question whether the fix phase will create more churn than the findings are worth. |
-| `reviewer-domain` (sapcc-structural) | **(SAPCC repos only)** Challenge findings through the SAP Converged Cloud Go structural lens. Do findings respect sapcc type-export and wrapper conventions? Are suggested fixes compatible with go-bits usage and Option timing? Flag findings that would break the nine structural categories in the reviewer-domain agent's `sapcc-structural.md`. |
+| `reviewer-perspectives.md` (contrarian) | Challenge every HIGH and CRITICAL finding. Are they actually important? Which are false positives? Which are over-classified? Look for findings where Wave 1+2 agents reinforced each other's bias rather than independently verifying. Question whether suggested fixes introduce new problems. |
+| `reviewer-perspectives.md` (skeptical-senior) | Apply 10+ years of engineering experience. Which findings are theoretical risks that never manifest in practice? Which are textbook answers that don't apply to this codebase's scale/context? Flag "resume-driven" suggestions (over-engineering, premature optimization). Identify findings where the cure is worse than the disease. |
+| `reviewer-perspectives.md` (user-advocate) | Focus exclusively on user impact. Does this change break existing users? Are migration paths safe? Are UX tradeoffs justified? Challenge findings that improve code quality at the expense of user experience. Flag findings that ignore backward compatibility. Question whether "fixing" something makes it harder for users. |
+| `reviewer-perspectives.md` (meta-process) | Step back from individual findings. Is the overall approach correct? Should this PR be split into smaller PRs? Are the right problems being solved? Is the review itself focused on the right things? Flag cases where the review is bikeshedding on style while missing structural issues. Question whether the fix phase will create more churn than the findings are worth. |
+| `reviewer-domain.md` (sapcc-structural) | **(SAPCC repos only)** Challenge findings through the SAP Converged Cloud Go structural lens. Do findings respect sapcc type-export and wrapper conventions? Are suggested fixes compatible with go-bits usage and Option timing? Flag findings that would break the nine structural categories in `reviewer-domain/sapcc-structural.md`. |
 
 ## Wave Agreement Labels
 

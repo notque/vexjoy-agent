@@ -69,8 +69,9 @@ cross-model review applies.
 
 When delegating, give read-only reviewers the committed candidate, original
 request, acceptance criteria, and relevant decisions/results. Use the repository
-root; reviewers do not need additional checkouts. Select `reviewer-system`,
-`reviewer-domain`, or `reviewer-perspectives` for the actual risk. Phase 10 remains
+root; reviewers do not need additional checkouts. Dispatch `general-purpose`
+reviewers with the `review` skill and the lens reference for the actual risk:
+`reviewer-system.md`, `reviewer-domain.md`, or `reviewer-perspectives.md`. Phase 10 remains
 available through `pr-workflow`'s codex-review intent when requested or useful;
 perform it before merge if its findings could block delivery.
 

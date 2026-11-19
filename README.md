@@ -4,12 +4,12 @@
 
 Essays and writing behind this toolkit live at [vexjoy.com](https://vexjoy.com).
 
-VexJoy Agent connects plain-English requests to specialist agents, skills, and workflows. `/do` selects the knowledge and tools needed for your task. Hooks enforce specific checks, and scripts handle repeatable work.
+VexJoy Agent connects plain-English requests to skills and workflows. `/do` selects the knowledge and tools needed for your task. Hooks enforce specific checks, and scripts handle repeatable work.
 
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 46 skills, 71 hooks, 165 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+46 skills, 26 pipelines, 71 hooks, 167 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. When dispatch pays, the worker is Claude Code's built-in `general-purpose` agent with the skill loaded.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
 
@@ -24,8 +24,9 @@ $ claude
  ROUTING: debug a failing Go test
 ===================================================================
  Selected:
-   -> Agent: golang-general-engineer - Go code and test tooling
+   -> Worker: general-purpose - Go debugging spans several files
    -> Skill: workflow - "debug" runs the systematic-debugging pipeline
+   -> Extra Rigor: programming - Go code and test tooling
    -> Pipeline: OBSERVE → HYPOTHESIZE → TEST → FIX → RECORD
  Invoking...
 ===================================================================
@@ -37,14 +38,14 @@ $ claude
   RECORD: noted the cause for later sessions
 ```
 
-The router pairs the Go agent with the `workflow` skill's debugging pipeline, then follows the task through each phase. The output is illustrative and abridged: the banner format, agent, skill, and phases are real; the run is an example.
+The router stacks the `programming` skill (Go) on the `workflow` skill's debugging pipeline, then follows the task through each phase. The output is illustrative and abridged: the banner format, skill, and phases are real; the run is an example.
 
 ## The Pipeline
 
 ```
   ROUTE        PLAN         EXECUTE      VERIFY       DELIVER      RECORD
  ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐
- │ /do  │───▶│ Task │───▶│Agent │───▶│Tests │───▶│  PR  │───▶│Route │
+ │ /do  │───▶│ Task │───▶│Worker│───▶│Tests │───▶│  PR  │───▶│Route │
  │Router│    │ Plan │    │+Skill│    │Gates │    │Branch│    │Result│
  └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘
 ```
@@ -53,7 +54,7 @@ The router pairs the Go agent with the `workflow` skill's debugging pipeline, th
 
 `/d` requires [TypeSafe's Jev](https://docs.typesafe.ai). Jev classifies the
 request, checks that the selected route preserves the requested outcome, and
-then dispatches the agent, skill, and pipeline.
+then dispatches the skill and pipeline.
 
 Intent preservation is production behavior: `/d` restates the requested
 outcome and gates dispatch on a Jev receipt for that exact proposed intent,
@@ -95,7 +96,7 @@ Example (illustrative):
     -> Restated outcome: Fix the flaky payments test without changing unrelated behavior.
     -> Jev: aligned
 
-  ROUTING (/d): testing-automation-engineer + testing
+  ROUTING (/d): testing (main loop)
   Source: jev (confidence: medium)
   Invoking...
 ```
@@ -104,7 +105,7 @@ Example (illustrative):
 
 Skills ask for evidence rather than confidence.
 
-| Agent Says | What Happens |
+| Worker Says | What Happens |
 |---|---|
 | "Code looks correct, skip tests" | The skill's exit gate asks for test output before the phase ends. |
 | "Trivial change, no verification" | The skill still asks for evidence; at merge time, `ci-merge-gate` blocks `gh pr merge` until CI passes. |
@@ -112,7 +113,7 @@ Skills ask for evidence rather than confidence.
 | "User is in a hurry" | Protocol overrides time pressure. |
 | "I'm confident" | The skill asks for an exit code, not an assertion. |
 
-These rows are skill and agent instructions, not hooks. No hook stops a session or a subagent from finishing without evidence. The Stop hooks are advisory (in this checkout, `stop-drift-guard` can wake the session again after it stops when its changes caused hook, doc-count, or routing drift), and `subagent-completion-guard`'s deny is not an output SubagentStop honors, so it never blocks in Claude Code. The hooks that do block cover specific actions: commits on `main` or `master`, pushes and PR creation before `/pr-review` records the commit (in every repo except non-fork `github.com/notque` ones), merges before CI passes, destructive commands, writes to credential files, and pipeline phases written without their artifact. The full list is in [Start Here](docs/start-here.md#gates-in-every-repo). Coverage depends on the runtime and tool path.
+These rows are skill instructions, not hooks. No hook stops a session or a subagent from finishing without evidence. The Stop hooks are advisory (in this checkout, `stop-drift-guard` can wake the session again after it stops when its changes caused hook, doc-count, or routing drift), and `subagent-completion-guard`'s deny is not an output SubagentStop honors, so it never blocks in Claude Code. The hooks that do block cover specific actions: commits on `main` or `master`, pushes and PR creation before `/pr-review` records the commit (in every repo except non-fork `github.com/notque` ones), merges before CI passes, destructive commands, writes to credential files, and pipeline phases written without their artifact. The full list is in [Start Here](docs/start-here.md#gates-in-every-repo). Coverage depends on the runtime and tool path.
 
 ## Knowledge Work Is First-Class
 
@@ -228,10 +229,10 @@ Know the trade-off first. The default prompt also carries Claude Code's own guid
 
 | Layer | Count | Does |
 |---|---|---|
-| Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 46 | Reusable guidance and methodology for recurring work. |
+| Agents | 0 | Retired (plans/009): their domain knowledge moved into skill references. Private overlay agents still install from overlays. |
+| Skills | 46 | Domain knowledge and methodology for recurring work: idiom tables, failure mode catalogs, error-to-fix mappings. |
 | Hooks | 71 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 165 | Repeatable validation, orchestration, and plumbing. |
+| Scripts | 167 | Repeatable validation, orchestration, and plumbing. |
 
 The counts are active components: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and the Python scripts in `scripts/`.
 
@@ -254,7 +255,7 @@ This is the common shape, not a schema. Every active skill declares routing trig
 
 ## Built with the Toolkit
 
-A game built entirely by Claude Code using these agents, skills, and pipelines:
+A game built entirely by Claude Code using these skills and pipelines:
 
 <div align="center">
 <video src="https://github.com/user-attachments/assets/0e74abeb-dc7e-42ba-8239-a7a98cb1ab09" width="100%" autoplay loop muted playsinline></video>
@@ -266,7 +267,7 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 
 **[I do knowledge work](docs/for-knowledge-workers.md)** Writing, research, data analysis, moderation, HTML artifacts. No code.
 
-**[I'm a developer](docs/for-developers.md)** Architecture, extension points, adding agents and skills.
+**[I'm a developer](docs/for-developers.md)** Architecture, extension points, adding skills.
 
 **[I'm an AI power user](docs/for-ai-wizards.md)** Routing tables, pipelines, hooks, telemetry DB.
 
@@ -289,7 +290,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 165 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 167 scripts.
 
 | Need | Use |
 |---|---|

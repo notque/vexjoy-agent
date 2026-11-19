@@ -4,9 +4,9 @@
 The rules live once, in `skills/meta/do/SKILL.md`, from the line
 "**Routing rules (ALL apply):**" up to "**Section validator (before
 dispatch):**". That span holds the section-integrity, FORCE-route,
-pipeline-selection, multi-agent, and specificity rules, the combination
-doctrine, and the Step 0b skill-greediness gate, agent-greediness gate,
-pairing rule, and fallback reason. /d prints it instead of copying it, so the
+pipeline-selection, fan-out, and specificity rules, the combination doctrine,
+and the Step 0b skill-greediness gate. The agent-greediness gate, pairing rule,
+and fallback reason retired with the specialist agents (plans/009). /d prints it instead of copying it, so the
 two routers cannot drift. `scripts/tests/test_print_route_rules.py` fails when
 either anchor moves.
 

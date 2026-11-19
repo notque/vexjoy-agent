@@ -57,17 +57,17 @@ For each task in the wave:
 
 1. Check if task is marked parallel-safe in the plan AND parallel mode is enabled. Only dispatch parallel-safe tasks simultaneously -- dispatching all tasks in parallel causes file conflicts and data corruption when tasks touch overlapping files.
 
-2. Dispatch to the domain agent assigned in the plan via Task tool. Each task gets a fresh agent dispatch (no reusing agents across tasks) because shared context between tasks causes subtle pollution where fixes for one task leak assumptions into another:
+2. Dispatch a fresh `general-purpose` worker that loads the reference assigned in the plan. Each task gets a fresh worker (no reusing agents across tasks) because shared context between tasks causes subtle pollution where fixes for one task leak assumptions into another:
 
 ```
 Agent(
-  subagent_type="[agent-from-plan]",
-  prompt="Implement the following task:\n\n[TASK DETAILS FROM PLAN]\n\nFiles: [FILES]\nOperations: [OPERATIONS]\nVerification: [VERIFICATION COMMAND]\n\nContext from design: [RELEVANT DESIGN CONTEXT]",
+  subagent_type="general-purpose",
+  prompt="Read ~/.claude/skills/[skill-from-plan]/references/[file-from-plan] and follow it; load every file its Reference Loading Table matches.\n\nImplement the following task:\n\n[TASK DETAILS FROM PLAN]\n\nFiles: [FILES]\nOperations: [OPERATIONS]\nVerification: [VERIFICATION COMMAND]\n\nContext from design: [RELEVANT DESIGN CONTEXT]",
   description="Implement [task title]"
 )
 ```
 
-Use the agent specified in the plan, never override it -- the plan assigns agents based on domain expertise alignment determined during planning.
+Use the reference specified in the plan, never override it -- the plan assigns references based on domain expertise alignment determined during planning.
 
 3. After each task completes, verify the output matches the plan specification (expected files, function signatures, behavior). Catching spec drift per-task is far cheaper than discovering it after the entire wave.
 

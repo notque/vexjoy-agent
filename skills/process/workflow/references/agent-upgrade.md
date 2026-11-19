@@ -45,15 +45,16 @@ multi-component changes driven by external events.
 
 ```
 # Common target patterns:
-agents/golang-general-engineer.md
-agents/python-general-engineer.md
+skills/programming/programming/references/golang-general.md
+skills/programming/programming/references/python-general.md
 skills/programming/programming/SKILL.md
 ```
 
-If the user names an agent without a path, resolve it:
+Repo agents are retired (plan 009): a retired agent name resolves to its skill reference. If the user names an agent or reference without a path, resolve it:
 ```bash
-ls agents/ | grep [name]
+ls skills/*/*/references/ | grep [name]
 ls skills/ | grep [name]
+ls private-agents/ | grep [name]   # private overlay agents only
 ```
 
 **Step 2**: Call the Skill tool with `toolkit` and run its Agent Evaluation mode. Evaluate the target file to get the baseline score (0–100) and grade (A/B/C/F).

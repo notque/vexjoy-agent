@@ -1,7 +1,6 @@
 ---
 description: "Test generated pipeline skills against real targets."
 user-invocable: false
-agent: pipeline-orchestrator-engineer
 allowed-tools:
   - Read
   - Write
@@ -55,7 +54,7 @@ This skill requires:
 ```
 subdomains = spec.subdomains
 domain = spec.domain
-agent = spec.reuse_agent or spec.new_agent.name
+agent = spec.reuse_agent or spec.new_agent.name   # general-purpose unless an overlay agent was requested
 ```
 
 **Step 2: For each subdomain, find a test target**
@@ -160,8 +159,8 @@ Dispatch skill runs in parallel batches:
 - If N > 5: batch into groups of 5, run each batch sequentially (each batch's skills run in parallel)
 
 For each skill run:
-1. Invoke using the Agent tool with the subdomain's bound agent
-2. Pass the invocation prompt
+1. Invoke using the Agent tool with the subdomain's `pairs_with_agent` worker type (`general-purpose` by default)
+2. Pass the invocation prompt, starting with the Skill-tool call for the subdomain skill
 3. Set timeout: 5 minutes (300,000ms). Constraint: Never increase timeout without user confirmation
 4. On completion, record: exit status, execution time, output path
 5. On timeout: record TIMEOUT status, note which phase was running when timeout hit (if determinable)
@@ -393,7 +392,7 @@ Remove `/tmp/pipeline-test-*` directories after the report is produced. Keep onl
 
 ### Error: Agent Not Available
 **Cause**: The agent specified in `reuse_agent` or `new_agent.name` is not available for invocation.
-**Solution**: Verify the agent exists in `agents/INDEX.json`. If the agent was just created by the scaffolder, it may need to be in the current session's context. Classify affected subdomains as FAIL with reason `agent_unavailable`.
+**Solution**: Use `general-purpose` unless the spec names a private overlay agent; verify an overlay agent exists in `agents/INDEX.local.json`. A retired repo agent name is a spec error: send it back to `chain-composer`. If the overlay agent was just created by the scaffolder, it may need to be in the current session's context. Classify affected subdomains as FAIL with reason `agent_unavailable`.
 
 ### Error: Validation Script Not Found
 **Cause**: A subdomain's `scripts_needed` references a script that doesn't exist at `scripts/{filename}`.
@@ -423,5 +422,5 @@ STOP and ask the user (wait for explicit confirmation) when:
 ## References
 
 - **Artifact Utilities**: [../../scripts/artifact-utils.py](../../scripts/artifact-utils.py) -- manifest creation and validation
-- **Pipeline Orchestrator**: [../../agents/pipeline-orchestrator-engineer.md](../../agents/pipeline-orchestrator-engineer.md) -- the parent orchestrator (this skill is Phase 5)
+- **Pipeline Orchestrator**: [pipeline-orchestrator.md](pipeline-orchestrator.md) -- the parent orchestrator reference (this skill is Phase 5)
 - **Pipeline Retro**: pipeline-retro skill (Phase 6) -- consumes this skill's report

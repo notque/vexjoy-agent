@@ -30,15 +30,18 @@ import {
   engineerForPath,
   mandatoryInjections,
   modelFor,
+  referenceDirective,
+  referenceForPath,
   skillDirectives,
   tierOrFull,
   validateModelOverride,
+  WORKER,
 } from "./workflow-helpers.js";
 
 export const meta = {
   name: "comprehensive-review-workflow",
   description:
-    "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. With no tier the run covers every wave; an explicit tier shrinks it. Report-only by default: the fix loop runs only with implement: true plus a non-default work branch. Each reviewer attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
+    "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. With no tier the run covers every wave; an explicit tier shrinks it. Report-only by default: the fix loop runs only with implement: true plus a non-default work branch. Each reviewer is a fresh general-purpose worker that loads its review-skill reference and attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stages 0-1). This is the declared dispatch shape the conformance gate
@@ -55,10 +58,10 @@ export const meta = {
     // one exact Skill-tool call per element) — the gate asserts EACH declared skill has a
     // corresponding exact Skill-tool call in source.
     roster: [
-      { agentType: "reviewer-system", skills: ["review", "testing"] },
-      { agentType: "reviewer-domain", skills: ["review", "testing"] },
-      { agentType: "reviewer-code", skills: ["review", "testing"] },
-      { agentType: "reviewer-perspectives", skills: ["assessment", "testing"] },
+      { agentType: "general-purpose", skills: ["review", "testing"] },
+      { agentType: "general-purpose", skills: ["review", "testing"] },
+      { agentType: "general-purpose", skills: ["review", "testing"] },
+      { agentType: "general-purpose", skills: ["assessment", "testing"] },
     ],
     // The Wave-1 barrier dispatches exactly 4 agents on every run (static).
     agents: { static: 4, dynamic: false },
@@ -70,62 +73,65 @@ export const meta = {
   },
 };
 
-// Map each reviewer agent to the FULL skill stack it invokes by name (one exact
-// Skill-tool call per element). Skill attachment inside a native Workflow agent() dispatch
-// resolves by name (path-independent), proven this session. reviewer-{system,
-// domain,code} run the review methodology; reviewer-perspectives runs
-// the assessment (multi-persona) lens; every reviewer also runs testing
-// (verification gate — the /do Phase-3 stack for review).
-const AGENT_SKILLS = {
-  "reviewer-system": ["review", "testing"],
-  "reviewer-domain": ["review", "testing"],
-  "reviewer-code": ["review", "testing"],
-  "reviewer-perspectives": ["assessment", "testing"],
+// Repo agents are retired (plan 009). Every reviewer is a fresh general-purpose
+// worker (WORKER) that reads one review reference from the review skill, so each
+// lens still runs in its own independent context. REVIEWERS maps each reference
+// slug to that reference and to the FULL skill stack the worker invokes by name
+// (one exact Skill-tool call per element). reviewer-{system,domain,code} run the
+// review methodology; reviewer-perspectives runs the assessment (multi-persona)
+// lens; every reviewer also runs testing (verification gate — the /do Phase-3
+// stack for review).
+const REVIEWERS = {
+  "reviewer-system": { agent: "general-purpose", ref: { skill: "review", file: "reviewer-system.md" }, skills: ["review", "testing"] },
+  "reviewer-domain": { agent: "general-purpose", ref: { skill: "review", file: "reviewer-domain.md" }, skills: ["review", "testing"] },
+  "reviewer-code": { agent: "general-purpose", ref: { skill: "review", file: "reviewer-code.md" }, skills: ["review", "testing"] },
+  "reviewer-perspectives": { agent: "general-purpose", ref: { skill: "review", file: "reviewer-perspectives.md" }, skills: ["assessment", "testing"] },
 };
 
-// The per-finding verify pass dispatches the challenger reviewer with its stack.
-const VERIFY_AGENT = "reviewer-perspectives";
+// One roster entry: a general-purpose worker, the reference it loads, its skill
+// stack, and the wave-specific lens.
+function reviewer(slug, lens) {
+  const r = REVIEWERS[slug];
+  return { agent: r.agent, name: slug, ref: r.ref, skills: r.skills, lens };
+}
+
+// The per-finding verify pass dispatches the challenger reference with its stack.
+const VERIFY_REVIEWER = "reviewer-perspectives";
 
 // The fix loop dispatches the engineer that owns the finding's file type
-// (engineerForPath) with this stack. A file type with no listed engineer runs
-// without agentType and still attaches the stack.
+// (engineerForPath, a private overlay agent when indexed) or a general-purpose
+// worker that loads the file type's reference (referenceForPath), with this stack.
 const FIX_SKILLS = ["programming", "testing"];
 
-// --- Wave rosters: the four real reviewer agents, applied through wave-specific
-//     lenses. The agent files are agents/reviewer-{system,domain,code,perspectives}.md;
-//     each entry dispatches that agent via agentType (so a real specialist runs)
-//     and supplies a lens so the SAME four reviewers scale in depth across waves
-//     rather than inventing nonexistent per-topic agents. This mirrors the
-//     lens-based scheme in comprehensive-review/references/wave-{1,2,3}-*.md. ----
-
-// Each entry now carries BOTH `agent` (-> agentType, dispatches the real
-// specialist) AND `skills` (the full methodology stack that agent invokes by
-// name, one exact Skill-tool call per element). `lens` still scales review depth across
-// waves.
+// --- Wave rosters: the four review references, applied through wave-specific
+//     lenses. Each entry is a separate fresh worker, so the SAME four reviewer
+//     references scale in depth across waves without inventing per-topic
+//     roles. This mirrors the lens-based scheme in
+//     comprehensive-review/references/wave-{1,2,3}-*.md. ----------------------
 const WAVE1_AGENTS = [
-  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "security, input validation, error handling, API contracts" },
-  { agent: "reviewer-domain", skills: AGENT_SKILLS["reviewer-domain"], lens: "business logic, edge cases, data integrity, state transitions" },
-  { agent: "reviewer-code", skills: AGENT_SKILLS["reviewer-code"], lens: "conventions, naming, dead code, performance, test coverage" },
-  { agent: "reviewer-perspectives", skills: AGENT_SKILLS["reviewer-perspectives"], lens: "newcomer clarity, user-advocate, senior-maintainer view" },
+  reviewer("reviewer-system", "security, input validation, error handling, API contracts"),
+  reviewer("reviewer-domain", "business logic, edge cases, data integrity, state transitions"),
+  reviewer("reviewer-code", "conventions, naming, dead code, performance, test coverage"),
+  reviewer("reviewer-perspectives", "newcomer clarity, user-advocate, senior-maintainer view"),
 ];
 
 // Tier 3 dispatches the deep-dive subset; Tier 4 adds the remaining lenses.
 const WAVE2_SUBSET = [
-  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "deep security + concurrency + resource lifecycle" },
-  { agent: "reviewer-domain", skills: AGENT_SKILLS["reviewer-domain"], lens: "deep correctness + data integrity + migration safety" },
-  { agent: "reviewer-code", skills: AGENT_SKILLS["reviewer-code"], lens: "deep performance + error paths + state machines" },
+  reviewer("reviewer-system", "deep security + concurrency + resource lifecycle"),
+  reviewer("reviewer-domain", "deep correctness + data integrity + migration safety"),
+  reviewer("reviewer-code", "deep performance + error paths + state machines"),
 ];
 
 const WAVE2_FULL = WAVE2_SUBSET.concat([
-  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "API-contract compatibility + observability gaps" },
-  { agent: "reviewer-perspectives", skills: AGENT_SKILLS["reviewer-perspectives"], lens: "senior-maintainer + meta-process review" },
+  reviewer("reviewer-system", "API-contract compatibility + observability gaps"),
+  reviewer("reviewer-perspectives", "senior-maintainer + meta-process review"),
 ]);
 
 const WAVE3_AGENTS = [
-  { agent: "reviewer-perspectives", skills: AGENT_SKILLS["reviewer-perspectives"], lens: "contrarian + falsifier: try to break the change" },
-  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "adversarial security: assume hostile input everywhere" },
-  { agent: "reviewer-domain", skills: AGENT_SKILLS["reviewer-domain"], lens: "adversarial assumptions: challenge every invariant" },
-  { agent: "reviewer-code", skills: AGENT_SKILLS["reviewer-code"], lens: "simplicity challenge: is this over-engineered?" },
+  reviewer("reviewer-perspectives", "contrarian + falsifier: try to break the change"),
+  reviewer("reviewer-system", "adversarial security: assume hostile input everywhere"),
+  reviewer("reviewer-domain", "adversarial assumptions: challenge every invariant"),
+  reviewer("reviewer-code", "simplicity challenge: is this over-engineered?"),
 ];
 
 // --- Schemas (mirror skills/shared-patterns/schemas/) -------------------------
@@ -223,7 +229,7 @@ function dedupeFindings(findings) {
 }
 
 function reviewPrompt(roster, scope, priorContext) {
-  // roster is {agent, skills, lens}; priorContext is the typed prior-wave summary
+  // roster is {agent, name, ref, skills, lens}; priorContext is the typed prior-wave summary
   // passed in-memory (no disk read). skillDirectives emits one exact call per
   // element of roster.skills (the full stack) — the call resolves path-
   // independent inside a native Workflow agent() dispatch (proven this session).
@@ -234,8 +240,9 @@ function reviewPrompt(roster, scope, priorContext) {
     ? `\n\nPrior-wave findings (typed, in-memory):\n${JSON.stringify(priorContext)}`
     : "";
   return (
-    `You are ${roster.agent}. Apply this review lens: ${roster.lens}.` +
+    `You are a ${roster.name} review worker. Apply this review lens: ${roster.lens}.` +
     skillDirectives(roster.skills) +
+    referenceDirective(roster.ref) +
     `\nReview the changed code for this diff scope:\n` +
     `${JSON.stringify(scope)}\n` +
     `Return only findings within your lens. The only valid dispositions are ` +
@@ -348,22 +355,24 @@ export default async function run({
   findings = dedupeFindings(findings);
 
   // Per-finding adversarial verify BEFORE synthesis (mirrors the pr-review
-  // gated per-finding verify). Each finding gets one challenger (VERIFY_AGENT
-  // with its skill stack); DISMISS drops it from the fix queue. parallel()
+  // gated per-finding verify). Each finding gets one challenger (a worker that
+  // loads VERIFY_REVIEWER's reference, with its skill stack); DISMISS drops it from the fix queue. parallel()
   // barriers the whole verify pass.
   enterPhase("verify");
   const verdicts = await parallel(
     findings.map((f) => () =>
       agent({
         prompt:
-          `You are ${VERIFY_AGENT}. Adversarially verify this review finding. ` +
-          `Confirm it is real and correctly rated, or challenge it with evidence.` +
-          skillDirectives(AGENT_SKILLS[VERIFY_AGENT]) +
+          `You are a ${VERIFY_REVIEWER} review worker. Adversarially verify this ` +
+          `review finding. Confirm it is real and correctly rated, or challenge ` +
+          `it with evidence.` +
+          skillDirectives(REVIEWERS[VERIFY_REVIEWER].skills) +
+          referenceDirective(REVIEWERS[VERIFY_REVIEWER].ref) +
           `\nFinding:\n${JSON.stringify(f)}` +
           mandatoryInjections(),
         schema: VERIFY_SCHEMA,
         model: modelFor("work", modelOverride),
-        agentType: VERIFY_AGENT,
+        agentType: WORKER,
       }),
     ),
   );
@@ -416,11 +425,12 @@ export default async function run({
         `mismatch return outcome BLOCKED.` +
         branchRule(branch) +
         skillDirectives(FIX_SKILLS) +
+        referenceDirective(referenceForPath(f.location)) +
         `\nFinding:\n${JSON.stringify(f)}` +
         mandatoryInjections(),
       schema: FIX_SCHEMA,
       model: modelFor("work", modelOverride),
-      agentType: engineerForPath(f.location),
+      agentType: engineerForPath(f.location) ?? WORKER,
     });
     if (result) {
       fixes.push(result);

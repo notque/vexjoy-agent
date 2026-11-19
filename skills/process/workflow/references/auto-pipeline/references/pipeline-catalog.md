@@ -17,7 +17,7 @@ Generated: 2026-08-15T15:25:52Z
 | hook-development-pipeline | 5 | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT | infrastructure | create hook pipeline, new hook formal, hook with gates |
 | mcp-pipeline-builder | 6 | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER | meta | mcp pipeline, repo to mcp, create mcp from repo, generate mcp, mcp builder |
 | pipeline-retro | 5 | INGEST → TRACE → PROPOSE → REGENERATE → REPORT | meta | pipeline retro, trace failures, generator improvement, three-layer fix, fix generator |
-| pipeline-scaffolder | 5 | LOAD → SCAFFOLD AGENT → SCAFFOLD SKILLS → INTEGRATE → REPORT | meta | scaffold pipeline, create pipeline components, generate pipeline from spec |
+| pipeline-scaffolder | 5 | LOAD → BIND OR WRITE THE DOMAIN REFERENCE → SCAFFOLD SKILLS → INTEGRATE → REPORT | meta | scaffold pipeline, create pipeline components, generate pipeline from spec |
 | pipeline-test-runner | 4 | DISCOVER TARGETS → EXECUTE → VALIDATE OUTPUTS → REPORT | meta | test generated pipelines, run pipeline tests, validate scaffolded skills, pipeline test runner |
 | research-pipeline | 5 | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER | meta | research pipeline, formal research, research with artifacts, structured research, research topic |
 | research-to-article | 6 | GATHER → COMPILE → GROUND → GENERATE → VALIDATE → OUTPUT | content | research then write, article with research, write about, research and article, full article pipeline |

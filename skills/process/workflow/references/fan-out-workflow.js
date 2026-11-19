@@ -158,10 +158,10 @@ export default async function run({
   // Validate the complete caller-supplied dispatch plan before entering a phase
   // or invoking agent(), so one bad name rejects the whole fan-out.
   const workers = validateRoster(roster, "roster");
-  // Default general synthesizer: research-coordinator-engineer (its role is
-  // multi-source synthesis). The caller overrides via synthAgentType.
+  // Default general synthesizer: a general-purpose worker (repo agents are
+  // retired, plan 009). The caller overrides via synthAgentType.
   const synthesizer = validateAgentName(
-    synthAgentType || "research-coordinator-engineer",
+    synthAgentType || "general-purpose",
     "synthAgentType",
   );
   const minSynthBudget = typeof fixThreshold === "number" ? fixThreshold : 8000;

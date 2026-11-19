@@ -45,7 +45,7 @@ Group tasks by dependency wave -- Wave N must complete before Wave N+1 begins. S
 
 ## Wave 1 (no dependencies)
 ### T1: [Task title]
-- **Agent**: golang-general-engineer
+- **Reference**: programming/golang-general.md
 - **Duration**: 3 min
 - **Files**: /absolute/path/to/file.go
 - **Operations**: [specific changes]
@@ -53,7 +53,7 @@ Group tasks by dependency wave -- Wave N must complete before Wave N+1 begins. S
 - **Parallel-safe**: true (no file conflicts with T2)
 
 ### T2: [Task title]
-- **Agent**: typescript-frontend-engineer
+- **Reference**: frontend/typescript-frontend.md
 - **Duration**: 4 min
 - **Files**: /absolute/path/to/component.tsx
 - **Operations**: [specific changes]
@@ -62,7 +62,7 @@ Group tasks by dependency wave -- Wave N must complete before Wave N+1 begins. S
 
 ## Wave 2 (depends on Wave 1)
 ### T3: [Task title]
-- **Agent**: golang-general-engineer
+- **Reference**: programming/golang-general.md
 - **Dependencies**: T1
 - **Duration**: 5 min
 - **Files**: /absolute/path/to/handler.go
@@ -78,13 +78,13 @@ For each wave, check if any two tasks modify the same files. This analysis is no
 - If yes: mark `Parallel-safe: false` and add ordering constraint
 - If no: mark `Parallel-safe: true`
 
-**Step 4: Agent Routing Verification**
+**Step 4: Reference Routing Verification**
 
-Every implementation task must specify which domain agent handles it. The agent assignment is authoritative -- do not override domain agent routing after assignment.
+Every implementation task must name the skill reference its worker loads (`<skill>/<file>`; map in `project-coordinator/agent-capability-map.md`). Every worker is a fresh `general-purpose` agent. The reference assignment is authoritative -- do not override it after assignment.
 
-For each task, verify the assigned agent exists:
-- Check against known agent triggers
-- If uncertain, default to the closest domain agent
+For each task, verify the assigned reference exists:
+- `ls ~/.claude/skills/<skill>/references/<file>`
+- If uncertain, default to the closest domain reference
 - Log routing decisions
 
 **Step 5: Define Goal-Backward Success Criteria**
@@ -196,7 +196,7 @@ Scan every task in the plan against the three deep work rules:
 | Rule | Check | Rejection Signal |
 |------|-------|-----------------|
 | Concrete actions | Does the task specify exactly what to do? | Vague verbs: "align," "ensure," "handle," "improve," "clean up" without concrete details |
-| Self-contained | Can the assigned agent execute without asking questions? | References to "the discussion," "as mentioned," or context not in the task text |
+| Self-contained | Can the assigned worker execute without asking questions? | References to "the discussion," "as mentioned," or context not in the task text |
 | Observable completion | Is there a way to verify the task is done? | No verification command, no observable outcome described |
 
 If any task fails a rule, rewrite it before proceeding. Do not approve plans with vague tasks -- they create execution debt that compounds across waves.

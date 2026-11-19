@@ -26,9 +26,6 @@ routing:
   category: game-animation
   pairs_with:
     - game-dev
-  agents:
-    - rive-skeletal-animator
-    - pixijs-combat-renderer
     - game-asset-generator
 ---
 
@@ -220,12 +217,12 @@ This separation enables:
 
 ## Integration points
 
-| Downstream agent | Data consumed |
-|------------------|---------------|
-| `rive-skeletal-animator` | `per_joint_euler_zyx_degrees` from decompose |
-| `pixijs-combat-renderer` | `contact_frames` from extract-contacts |
-| `combat-effects-upgrade` | `contact_frames` (impact timing) |
-| `game-asset-generator` | Produces source BVH files for this pipeline |
+| Downstream consumer | Data consumed |
+|---------------------|---------------|
+| `game-dev` `references/rive-skeletal-animator.md` | `per_joint_euler_zyx_degrees` from decompose |
+| `game-dev` `references/pixijs-combat-renderer.md` | `contact_frames` from extract-contacts |
+| `game-dev` `references/combat-effects-upgrade.md` | `contact_frames` (impact timing) |
+| `game-asset-generator` skill | Produces source BVH files for this pipeline |
 
 ## Sample BVH for testing
 

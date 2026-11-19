@@ -5,12 +5,12 @@ UserPromptSubmit Hook: Pipeline Creator Context Detection
 
 Detects when a user is requesting pipeline creation and builds an
 environmental state snapshot of existing agents, skills, and hooks.
-This JSON context is injected so pipeline-orchestrator-engineer can
+This JSON context is injected so the workflow skill (pipeline scaffolding) can
 make informed scaffolding decisions without re-scanning the filesystem.
 
 Detection Logic:
 - Check user prompt for pipeline creation triggers
-- Scan agents/ for existing agent manifests
+- Scan agents/ for existing agent manifests (private overlay agents only since plans/009)
 - Scan skills/ for existing skill directories
 - Scan hooks/ for existing hook scripts
 - Serialize related components as JSON context

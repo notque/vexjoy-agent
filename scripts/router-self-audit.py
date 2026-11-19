@@ -7,20 +7,20 @@ requires explicit owner approval (OWNER-APPROVED-PERSISTENCE); ADR
 router-improvement-program ships C3 manual-run only.
 
 One composite report over four checks, exit 0/1:
-  1. manifest     — routing-manifest.py output byte size + merged skill/agent
-                    entry counts (via the live pre-route.py loader).
+  1. manifest     — routing-manifest.py output byte size + merged skill
+                    entry count (via the live pre-route.py loader). The
+                    specialist agents are retired (plans/009): no agent entries.
   2. merged-index — validate-merged-index.py --strict findings: phantom files,
                     dead agent refs, missing fields, "NOT: " doubling.
   3. replay-suite — the route-replay regression corpus: routing-benchmark.py
                     (runs the pre_route_only / pre_route_negative rows of
                     routing-benchmark.json through pre-route.py) plus the
                     pre-route boundary tests, run through pytest.
-  4. drift        — check-routing-drift.py: every INDEX skill and agent
-                    appears in the routing manifest.
+  4. drift        — check-routing-drift.py: every INDEX skill appears in the
+                    routing manifest, and no AGENTS: section renders.
 
-The audit first regenerates a missing or stale skills/INDEX.json or
-agents/INDEX.json (scripts/lib/index_freshness.py), so every check reads current
-indexes.
+The audit first regenerates a missing or stale skills/INDEX.json
+(scripts/lib/index_freshness.py), so every check reads a current index.
 
 Usage:
     python3 scripts/router-self-audit.py
@@ -114,11 +114,10 @@ def check_manifest() -> CheckResult:
     pre_route = importlib.import_module("pre-route")
     entries = pre_route.load_entries()
     skills = sum(1 for e in entries if e["type"] == "skill")
-    agents = sum(1 for e in entries if e["type"] == "agent")
     return CheckResult(
         "manifest",
         True,
-        f"{size} bytes; merged entries: {skills} skills, {agents} agents",
+        f"{size} bytes; merged entries: {skills} skills",
     )
 
 
@@ -173,11 +172,11 @@ def check_replay_suite() -> CheckResult:
 
 
 def check_drift() -> CheckResult:
-    """Run check-routing-drift.py; fail when a skill or agent is missing from the manifest."""
+    """Run check-routing-drift.py; fail when a skill is missing from the manifest."""
     proc = _run([sys.executable, str(SCRIPTS / "check-routing-drift.py")])
     lines = proc.stdout.strip().splitlines()
     ok = proc.returncode == 0
-    default = "OK (all INDEX skills and agents present in manifest)" if ok else f"exit {proc.returncode}"
+    default = "OK (all INDEX skills present in manifest)" if ok else f"exit {proc.returncode}"
     summary = lines[-1] if lines else default
     detail = "" if ok else (proc.stdout + proc.stderr).strip()
     return CheckResult("drift", ok, summary, detail)
@@ -188,7 +187,7 @@ def main() -> int:
     checks = (check_manifest, check_merged_index, check_replay_suite, check_drift)
     results: list[CheckResult] = []
     try:
-        ensure_fresh_indexes(REPO_ROOT)
+        ensure_fresh_indexes(REPO_ROOT, ("skills",))
     except RuntimeError as exc:
         results.append(CheckResult("indexes", False, str(exc)))
     for check in checks:
