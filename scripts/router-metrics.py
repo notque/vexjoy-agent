@@ -7,6 +7,8 @@ router so /do and /d compare on the same definitions:
 - decisions: routed requests (one `[do-route]` marker each)
 - main_share / dispatch_share: where the work ran (`agent=main` vs a worker)
 - dispatch_reasons: why a /d route left the main loop (`reason=` token)
+- intent_skipped_rate: /d routes that skipped the intent validator (`intent=skipped`)
+- verify: verify=required routes followed by a verifier dispatch in the same session
 - pipeline_rate: share of decisions that picked a pipeline
 - skill_load: did the session call the Skill tool with the routed skill
 
@@ -90,6 +92,7 @@ def load_decisions(events_path: Path, since: float | None = None) -> list[dict]:
                 "skill": str(event.get("skill") or ""),
                 "pipeline": event.get("pipeline") or None,
                 "dispatch_reason": event.get("dispatch_reason") or None,
+                "d_flags": [str(f) for f in event.get("d_flags") or []],
             }
         )
     return rows
@@ -158,8 +161,18 @@ def summarize(decisions: list[dict], calls: dict[str, list[tuple[float, str]]]) 
             "pipeline_rate": _rate(sum(1 for d in rows if d["pipeline"]), len(rows)),
             "pipelines": dict(Counter(d["pipeline"] for d in rows if d["pipeline"])),
             "skill_load": skill_load,
+            "intent_skipped_rate": _rate(sum(1 for d in rows if "intent=skipped" in d.get("d_flags", [])), len(rows)),
+            "verify": _verify_followthrough(rows),
         }
     return out
+
+
+def _verify_followthrough(rows: list[dict]) -> dict:
+    """Of the routes marked verify=required, how many saw a verifier dispatch later in the same session."""
+    required = [d for d in rows if "verify=required" in d.get("d_flags", [])]
+    verifiers = [d for d in rows if d.get("dispatch_reason") == "verifier"]
+    hit = sum(1 for r in required if any(v["session"] == r["session"] and v["ts"] >= r["ts"] for v in verifiers))
+    return {"required": len(required), "verified": hit, "rate": _rate(hit, len(required))}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -187,6 +200,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"/{router}: {m['decisions']} decisions ({m['first_ts'][:16]} to {m['last_ts'][:16]} UTC)")
         print(f"  main {m['main_share']} | dispatch {m['dispatch_share']} | reasons {m['dispatch_reasons']}")
         print(f"  pipeline picked {m['pipeline_rate']} {m['pipelines']}")
+        v = m["verify"]
+        print(
+            f"  intent skipped {m['intent_skipped_rate']} | verifier after verify=required {v['verified']}/{v['required']}"
+        )
         for kind in ("main", "dispatch"):
             s = m["skill_load"][kind]
             print(f"  skill loaded ({kind}): {s['loaded']}/{s['n']} ({s['rate']})")

@@ -46,7 +46,7 @@ ROUTERS = ("d", "do")
 JEV_TOKEN_BUDGET = 45_000  # stop new Jev calls past this (run cap ~50k)
 
 _PLAN_KEYS = """"execution": [{"part": "<primary, or a worker's scope>", "mode": "main|dispatch",
- "dispatch_reason": "<fan-out|worktree|haiku-gather|verifier, or null>"}]"""
+ "dispatch_reason": "<fan-out|worktree|haiku-gather|verifier|context-budget, or null>"}]"""
 
 D_PROMPT = (
     """You are executing the /d skill for the user request below. Its SKILL.md, /do's routing rules, and the routing

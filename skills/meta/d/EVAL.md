@@ -30,10 +30,15 @@ agree.
 | 9 | "help me plan a birthday party" | some sensible skill | end-to-end path exercised |
 | 10 | (simulate) both Jev keys unset | `error` set, `available: false`; routing still picks; `attach` holds only the pre-route stack and domain floor | Jev failure never blocks routing |
 | 11 | (simulate) a decision naming a skill or a retired agent in `agent` | `--finalize` moves a skill to `skill`, sets `agent` to `general-purpose`, lists it in `problems` | section validator |
-| 12 | "thanks" / "hi" / "say hello" / "what is 2+2" | Trivial per `/do` Phase 1: no dispatch, Phase 2 still runs, `build-dispatch.py` main/trivial records `router=d` | Trivial path |
+| 12 | "thanks" / "hi" / "say hello" / "what is 2+2" | Trivial per `/do` Phase 1: no dispatch, Phase 2 skipped, `build-dispatch.py` main/trivial records `intent=skipped router=d` | Trivial skip |
 | 13 | (simulate) Phase 5 without running the validator | `build-dispatch.py` exits 2 and prints the `jev-intent-align.py` command | receipt gate |
 | 14 | (simulate) `"execution": "dispatch"` with no or an unknown `dispatch_reason` | exit 2 listing the five reasons | dispatch-reason gate |
 | 15 | (simulate) a `fan-out` dispatch of `programming` without `references` | exit 2 listing the skill's reference files | skill + reference handover |
+| 16 | (simulate) Trivial "push my changes", no receipt | exit 2 with the validator command: a safety force route never skips | trivial skip guard |
+| 17 | (simulate) Medium main route without `acceptance`; then with `files` under `hooks/` and no `scenario` | exit 2 each time; with both set, `verify=required` and the verifier step | verify gate |
+| 18 | (simulate) `context-budget` dispatch naming 1 small file; then a 10+ file directory | exit 2 with the measured count; then accepted | measured budget |
+| 19 | (simulate) Jev unavailable, decision `signals.tests_requested` true | `attach` includes `testing`, `signals_source: "session"` | Jev-down attachment |
+| 20 | `d-preflight.py --paths agents/x.md <file with a key-shaped string>` | creation-gate ADR cost, synthesis cost, and a redacted security finding; exit 0 | preflight |
 
 **Known result (2026-09-22)**: case 6 resolves to `content`, not a deploy
 skill. `pre-route.py` still matches it (the word "hosting" satisfies the
@@ -73,8 +78,9 @@ The first four rows are the Jev two-stage pick.
   implementation does not provide.
 - A receipt is written on `unavailable` and `error` too, so a Jev outage never
   blocks execution.
-- Every route, including force-route and Trivial, must attempt runtime
-  alignment.
+- Every route, including force-route, must attempt runtime alignment. The one
+  exception is a Trivial route with no skill, no pipeline, and no safety force
+  route (`d_gate.trivial_skip`, guard checked in `build-dispatch.py`).
 - Essential ambiguity must return `clarification_needed: true`; routine
   implementation choices must not.
 - A 429, 503, 529, or timeout from Vercel retries at most twice and persists a

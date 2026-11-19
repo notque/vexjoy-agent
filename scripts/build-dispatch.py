@@ -48,8 +48,13 @@ are omitted. The CLI then feeds the marker to hooks/routing-decision-recorder.py
 /d mode (`"router": "d"`, scripts/d_gate.py): execution defaults to main; the
 marker gains `router=d` (and `reason=<dispatch_reason>` on a dispatch) before
 `exec=main`. Before any output it requires an intent receipt from
-jev-intent-align.py matching task_spec.request_verbatim and task_spec.intent; a
-dispatch also needs `dispatch_reason` (fan-out|worktree|haiku-gather|verifier|overlay-agent)
+jev-intent-align.py matching task_spec.request_verbatim and task_spec.intent,
+except a trivial main-loop route with no skill, no pipeline, and no safety force
+route (marker `intent=skipped`). A Medium or Complex main-loop route needs
+task_spec.acceptance (plus task_spec.scenario when task_spec.files touches the
+installer, hooks, or routing scripts) and gets the closing verifier step
+(marker `verify=required`). A
+dispatch also needs `dispatch_reason` (fan-out|worktree|haiku-gather|verifier|overlay-agent|context-budget)
 with its precondition, and `references` from the skill's references/ directory
 (optional for overlay-agent: the overlay agent file carries its domain).
 A failed check exits 2 with the instruction to act on. /do output is unchanged.
@@ -808,32 +813,75 @@ def resolve_router(decision: dict) -> str:
         raise InputError(str(exc)) from None
 
 
+def _safety_forced(request: str) -> object:
+    """The /d safety force route (git, PR, security) for a request, from jev-route's deterministic guard.
+
+    Never calls Jev. Unknown (the guard cannot load) counts as forced, so a
+    broken install never lets a route skip the intent validator.
+    """
+    try:
+        import importlib.util
+
+        path = Path(__file__).resolve().parent / "jev-route.py"
+        spec = importlib.util.spec_from_file_location("jev_route_guard", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module._forced(module._run_pre_route(request))
+    except Exception:
+        return True
+
+
+def d_intent_skipped(decision: dict) -> bool:
+    """True when this /d route skips the intent validator (d_gate.trivial_skip, checked against the request)."""
+    spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
+    if not d_gate.trivial_skip(decision, None):
+        return False
+    return not _safety_forced(str(spec.get("request_verbatim") or ""))
+
+
+def d_verify_required(decision: dict) -> bool:
+    """True for a Medium or Complex /d main-loop route: it closes with an independent verifier."""
+    complexity = str(decision.get("complexity") or "").strip().lower()
+    return resolve_execution(decision) == "main" and complexity in d_gate.VERIFY_COMPLEXITIES
+
+
 def check_d_route(decision: dict) -> list[str]:
     """Apply /d's tool-enforced rules. Returns the validated reference paths for a dispatch.
 
     Raises InputError whose message is the instruction to act on: run the
-    intent validator, name a dispatch reason, or hand over the skill reference.
+    intent validator, name the acceptance check, name a dispatch reason, or
+    hand over the skill reference.
     """
     spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
-    problem = d_gate.check_receipt(spec)
-    if problem:
-        raise InputError(problem)
+    if d_intent_skipped(decision):
+        decision["_d_intent_skipped"] = True
+    else:
+        problem = d_gate.check_receipt(spec)
+        if problem:
+            raise InputError(problem)
     if resolve_execution(decision) == "main":
         if decision.get("dispatch_reason"):
             raise InputError("dispatch_reason applies only to execution='dispatch'; drop it for a main-loop route")
+        problem = d_gate.check_verify(str(decision.get("complexity") or "").strip().lower(), spec)
+        if problem:
+            raise InputError(problem)
         return []
     skill = str(decision.get("skill") or "").strip().lower()
     if not skill or skill == "-":
         raise InputError("a /d dispatch needs a skill: the worker loads it and its reference")
     model, _effort = resolve_model_selection(decision, _resolve_provider(decision))
-    problem = d_gate.check_dispatch(decision, model, load_known_agents() - BUILTIN_AGENTS)
+    problem = d_gate.check_dispatch(decision, model, load_known_agents() - BUILTIN_AGENTS, Path.cwd())
     if problem:
         raise InputError(problem)
     reason = str(decision.get("dispatch_reason") or "").strip().lower()
     if reason in d_gate.REFERENCES_OPTIONAL_REASONS and not decision.get("references"):
         return []  # the overlay agent's own file carries its domain
     refs, problem = d_gate.resolve_references(
-        skill, decision.get("references"), load_skill_index_entries(), [INSTALL_ROOT, REPO_ROOT]
+        skill,
+        decision.get("references"),
+        load_skill_index_entries(),
+        # The resolved index may be the installed one (flat skills/<name>), also from a checkout.
+        [INSTALL_ROOT, REPO_ROOT, Path.home() / ".claude"],
     )
     if problem:
         raise InputError(problem)
@@ -1007,6 +1055,10 @@ def build_marker(decision: dict) -> str:
         reason = str(decision.get("dispatch_reason") or "").strip().lower()
         if not main_thread and reason in d_gate.DISPATCH_REASONS:
             parts.append(f"reason={reason}")
+        if decision.get("_d_intent_skipped"):
+            parts.append("intent=skipped")
+        if main_thread and d_verify_required(decision):
+            parts.append("verify=required")
         parts.append(f"router={_ROUTER_D}")
     # `exec=main` last for the same reason; main-thread routes carry no fallback.
     if main_thread:
@@ -1380,6 +1432,9 @@ def build_preamble(
             stack = _key_list(decision.get("stack") or [], "stack")
             if flags.get("local_only") or "local-only" in stack:
                 extra.append(LOCAL_ONLY_BLOCK)
+            if d_verify_required(decision):
+                spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
+                extra.append(d_gate.verify_step(spec))
         return "\n\n".join(block for block in (marker, skill_calls, note, *extra) if block) + "\n"
     if references:
         skill_calls += "\nRead these references before work: " + ", ".join(f"`{r}`" for r in references) + "."

@@ -78,6 +78,7 @@ def record_decision_event(
     model: str | None = None,
     router: str | None = None,
     dispatch_reason: str | None = None,
+    d_flags: list[str] | None = None,
     health_at_decision: float | None = None,
     n: int | None = None,
     failure: int | None = None,
@@ -138,6 +139,8 @@ def record_decision_event(
         event["router"] = router
     if dispatch_reason:
         event["dispatch_reason"] = dispatch_reason
+    if d_flags:
+        event["d_flags"] = d_flags
     _append(event)
 
 

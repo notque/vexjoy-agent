@@ -262,7 +262,14 @@ def test_check_dispatch_overlay_reason_needs_a_live_overlay_agent() -> None:
 
 
 def test_dispatch_reason_enum_stays_small() -> None:
-    assert set(d_gate.DISPATCH_REASONS) == {"fan-out", "worktree", "haiku-gather", "verifier", "overlay-agent"}
+    assert set(d_gate.DISPATCH_REASONS) == {
+        "fan-out",
+        "worktree",
+        "haiku-gather",
+        "verifier",
+        "overlay-agent",
+        "context-budget",
+    }
     assert {"overlay-agent"} == d_gate.REFERENCES_OPTIONAL_REASONS
 
 

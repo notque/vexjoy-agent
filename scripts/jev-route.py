@@ -544,6 +544,26 @@ def _workers(raw: object, skill_names: set[str], problems: list[str]) -> list[di
     return workers
 
 
+SIGNAL_KEYS = ("tests_requested", "research_needed", "comprehensive_review", "local_only", "objective_loop_worthy")
+
+
+def _signals(prepared: dict, decision: dict) -> tuple[dict | None, str]:
+    """Jev's stack signals, or the session's own when Jev gave none (outage or unusable answers).
+
+    The fallback is /do's method: the session model judges the same five
+    signals from the request and passes them as `signals` in the decision.
+    """
+    jev = prepared.get("signals")
+    if isinstance(jev, dict) and jev:
+        return jev, "jev"
+    own = decision.get("signals")
+    if isinstance(own, dict):
+        picked = {k: bool(own.get(k)) for k in SIGNAL_KEYS if k in own}
+        if picked:
+            return picked, "session"
+    return None, "none"
+
+
 def finalize(
     prepared: dict, decision: dict, entries: list[dict], known_agents: frozenset[str] | set[str] | None = None
 ) -> dict:
@@ -591,11 +611,12 @@ def finalize(
         skill, skill_source = FALLBACK_SKILL, "fallback"
 
     session_stack = decision.get("stack") if isinstance(decision.get("stack"), list) else []
+    signals, signals_source = _signals(prepared, decision)
     route: dict = {
         "skill": skill,
         "stack": list(prepared.get("stack") or []),
         "session_stack": session_stack,
-        "signals": prepared.get("signals"),
+        "signals": signals,
         "domain_scores": prepared.get("domain_scores"),
     }
     attach = _attachments(route, skill_names)
@@ -618,6 +639,7 @@ def finalize(
         "reasoning": str(decision.get("reasoning") or ""),
         "signals": route["signals"],
         "signal_scores": prepared.get("signal_scores"),
+        "signals_source": signals_source,
         "domain_scores": route["domain_scores"],
         "problems": problems,
     }
