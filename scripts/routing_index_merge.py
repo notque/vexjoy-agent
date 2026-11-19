@@ -48,6 +48,61 @@ def canonical_agent_name(name: str) -> str:
     return AGENT_ALIASES.get(name, name)
 
 
+# Retired repo agents (plans/009): their content moved into skills, and the
+# dispatch worker is the built-in general-purpose agent. An installed index
+# built before the retirement still lists them (and ~/.claude/agents may hold
+# stale links), so dispatch validators subtract this set from the resolved
+# index instead of trusting it. Private overlay agents are never in it.
+RETIRED_AGENTS: frozenset[str] = frozenset(
+    {
+        "ansible-automation-engineer",
+        "combat-effects-upgrade",
+        "data-engineer",
+        "database-engineer",
+        "github-profile-rules-engineer",
+        "golang-general-engineer",
+        "hook-development-engineer",
+        "kotlin-general-engineer",
+        "kubernetes-helm-engineer",
+        "mcp-local-docs-engineer",
+        "nextjs-ecommerce-engineer",
+        "nodejs-api-engineer",
+        "opensearch-elasticsearch-engineer",
+        "performance-optimization-engineer",
+        "perses-engineer",
+        "php-general-engineer",
+        "pipeline-orchestrator-engineer",
+        "pixijs-combat-renderer",
+        "project-coordinator-engineer",
+        "prometheus-grafana-engineer",
+        "python-general-engineer",
+        "python-openstack-engineer",
+        "rabbitmq-messaging-engineer",
+        "react-native-engineer",
+        "react-portfolio-engineer",
+        "research-coordinator-engineer",
+        "research-subagent-executor",
+        "reviewer-code",
+        "reviewer-domain",
+        "reviewer-perspectives",
+        "reviewer-system",
+        "rive-skeletal-animator",
+        "rust-general-engineer",
+        "sqlite-peewee-engineer",
+        "swift-general-engineer",
+        "system-upgrade-engineer",
+        "technical-documentation-engineer",
+        "technical-journalist-writer",
+        "testing-automation-engineer",
+        "toolkit-governance-engineer",
+        "typescript-debugging-engineer",
+        "typescript-frontend-engineer",
+        "ui-design-engineer",
+        "ui-frontend-engineer",  # pre-rename alias of ui-design-engineer
+    }
+)
+
+
 def load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
     """Load index items from the tracked file, overlaying the local override.
 
@@ -185,6 +240,35 @@ def load_items_for(
     return load_index_items(tracked, local_name, kind)
 
 
+# Harness-provided agents (the Agent tool accepts them without an index entry).
+# Mirrors build-dispatch.py and jev-route.py BUILTIN_AGENTS.
+BUILTIN_AGENTS: frozenset[str] = frozenset({"general-purpose", "claude", "explore", "plan", "statusline-setup"})
+
+
+def overlay_agent_items(target: str = "claude", repo_root: Path | None = None) -> dict[str, dict]:
+    """Live private overlay agents: ``{name: index item}``.
+
+    Every public repo agent is retired (plans/009), so an agent the resolved
+    index lists is an overlay agent unless it is retired or a built-in. The
+    installed index does not stamp an ``owner`` on agent items, so ownership
+    cannot decide this. Reads the resolved index (installed first, else
+    ``agents/INDEX.json`` plus ``INDEX.local.json``). Never raises.
+    """
+    root = repo_root if repo_root is not None else REPO_ROOT
+    try:
+        items = load_items_for("agents", root / "agents" / "INDEX.json", LEGACY_LOCAL, target, root)
+    except Exception:
+        return {}
+    return {
+        str(name): data
+        for name, data in items.items()
+        if isinstance(data, dict)
+        and str(name).strip()
+        and name not in RETIRED_AGENTS
+        and str(name).lower() not in BUILTIN_AGENTS
+    }
+
+
 def private_names_for(
     kind: str,
     tracked: Path,
@@ -224,9 +308,18 @@ def private_names_for(
 OVERLAY_OWNER_PREFIX = "overlay:"
 
 # Plain English words private triggers use that the public catalog happens not
-# to. They describe tasks or objects, not a private domain.
+# to. They describe tasks or objects, not a private domain. The second group
+# came in with the overlay AGENTS: section: retiring the public agents took
+# their descriptions (which held these words) out of the public vocabulary, so
+# a word from an overlay agent's name ("engineer", "compact") would otherwise
+# gate the agent in on any request using it.
 GENERIC_WORDS = frozenset(
     {
+        "compact",
+        "engineer",
+        "expanded",
+        "producer",
+        "tree",
         "articles",
         "ball",
         "board",

@@ -102,7 +102,9 @@
         "pipeline-scaffolder",
         "domain-research"
       ],
-      "agent": "pipeline-orchestrator-engineer",
+      "worker": "general-purpose",
+      "worker_skill": "workflow",
+      "worker_reference": "skills/process/workflow/references/pipeline-orchestrator.md",
       "model": "opus"
     },
     "comprehensive-review": {
@@ -222,7 +224,7 @@
       ],
       "pairs_with": [
         "assessment",
-        "technical-documentation-engineer"
+        "writing"
       ]
     },
     "domain-research": {
@@ -248,7 +250,9 @@
         "pipeline-scaffolder",
         "assessment"
       ],
-      "agent": "pipeline-orchestrator-engineer",
+      "worker": "general-purpose",
+      "worker_skill": "workflow",
+      "worker_reference": "skills/process/workflow/references/pipeline-orchestrator.md",
       "model": "opus"
     },
     "explore-pipeline": {
@@ -284,7 +288,7 @@
       ],
       "pairs_with": [
         "assessment",
-        "technical-documentation-engineer"
+        "writing"
       ]
     },
     "game-dev": {
@@ -303,7 +307,9 @@
       "force_route": true,
       "user_invocable": true,
       "version": "1.0.0",
-      "agent": "project-coordinator-engineer",
+      "worker": "general-purpose",
+      "worker_skill": "workflow",
+      "worker_reference": "skills/process/workflow/references/project-coordinator.md",
       "phases": [
         "Design Mode",
         "Pipeline Mode",
@@ -341,7 +347,9 @@
       "pairs_with": [
         "domain-research"
       ],
-      "agent": "github-profile-rules-engineer",
+      "worker": "general-purpose",
+      "worker_skill": "toolkit",
+      "worker_reference": "skills/meta/toolkit/references/github-profile-rules.md",
       "model": "opus"
     },
     "hook-development-pipeline": {
@@ -363,10 +371,12 @@
         "DOCUMENT"
       ],
       "pairs_with": [
-        "hook-development-engineer",
+        "toolkit",
         "systematic-debugging"
       ],
-      "agent": "hook-development-engineer"
+      "worker": "general-purpose",
+      "worker_skill": "toolkit",
+      "worker_reference": "skills/meta/toolkit/references/hook-development.md"
     },
     "mcp-pipeline-builder": {
       "file": "skills/process/workflow/references/mcp-pipeline-builder.md",
@@ -394,7 +404,9 @@
         "workflow-orchestrator",
         "systematic-debugging"
       ],
-      "agent": "mcp-local-docs-engineer"
+      "worker": "general-purpose",
+      "worker_skill": "programming",
+      "worker_reference": "skills/programming/programming/references/mcp-local-docs.md"
     },
     "pipeline-scaffolder": {
       "file": "skills/process/workflow/references/pipeline-scaffolder.md",
@@ -409,7 +421,7 @@
       "version": "2.0.0",
       "phases": [
         "LOAD",
-        "SCAFFOLD AGENT",
+        "BIND OR WRITE THE DOMAIN REFERENCE",
         "SCAFFOLD SKILLS",
         "INTEGRATE",
         "REPORT"
@@ -418,7 +430,9 @@
         "chain-composer",
         "pipeline-test-runner"
       ],
-      "agent": "pipeline-orchestrator-engineer",
+      "worker": "general-purpose",
+      "worker_skill": "workflow",
+      "worker_reference": "skills/process/workflow/references/pipeline-orchestrator.md",
       "model": "opus"
     },
     "pipeline-test-runner": {
@@ -443,7 +457,9 @@
         "pipeline-scaffolder",
         "chain-composer"
       ],
-      "agent": "pipeline-orchestrator-engineer",
+      "worker": "general-purpose",
+      "worker_skill": "workflow",
+      "worker_reference": "skills/process/workflow/references/pipeline-orchestrator.md",
       "model": "opus"
     },
     "pr-pipeline": {
@@ -593,7 +609,9 @@
         "agent-upgrade",
         "toolkit"
       ],
-      "agent": "system-upgrade-engineer"
+      "worker": "general-purpose",
+      "worker_skill": "toolkit",
+      "worker_reference": "skills/meta/toolkit/references/system-upgrade.md"
     },
     "systematic-debugging": {
       "file": "skills/process/workflow/references/systematic-debugging.md",
@@ -774,7 +792,8 @@
       ],
       "pairs_with": [
         "joy-check",
-        "content"
+        "content",
+        "testing"
       ]
     },
     "workflow-orchestrator": {

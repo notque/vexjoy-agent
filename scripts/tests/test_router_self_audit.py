@@ -50,7 +50,7 @@ def test_main_refreshes_indexes_before_the_checks(monkeypatch: pytest.MonkeyPatc
     order: list[str] = []
     _stub_checks(monkeypatch)
     monkeypatch.setattr(audit, "check_manifest", lambda: order.append("check") or audit.CheckResult("m", True, "ok"))
-    monkeypatch.setattr(audit, "ensure_fresh_indexes", lambda _root: order.append("refresh") or [])
+    monkeypatch.setattr(audit, "ensure_fresh_indexes", lambda _root, *_surfaces: order.append("refresh") or [])
 
     assert audit.main() == 0
     assert order == ["refresh", "check"]
@@ -62,7 +62,7 @@ def test_main_fails_when_an_index_cannot_be_regenerated(
     """A generator failure fails the audit and names the cause."""
     _stub_checks(monkeypatch)
 
-    def _raise(root: Path) -> list[str]:
+    def _raise(root: Path, *_surfaces: object) -> list[str]:
         raise RuntimeError("generate-skill-index.py exited 1: boom")
 
     monkeypatch.setattr(audit, "ensure_fresh_indexes", _raise)

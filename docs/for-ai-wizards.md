@@ -10,9 +10,9 @@ This guide traces a request through routing, agents, skills, hooks, and telemetr
 
 ## The Router
 
-`skills/meta/do/SKILL.md` is the routing source of truth. It classifies request complexity, reads the cached or generated manifest from `scripts/routing-manifest.py`, and selects an agent and skill by intent. `scripts/pre-route.py` checks that selection. A high-confidence PR or security force-route can override the semantic skill choice.
+`skills/meta/do/SKILL.md` is the routing source of truth. It classifies request complexity, reads the cached or generated manifest from `scripts/routing-manifest.py`, and selects a skill, pipeline, and stack by intent. `scripts/pre-route.py` checks that selection. A high-confidence PR or security force-route can override the semantic skill choice.
 
-The router matches intent against agent and skill descriptions; frontmatter triggers are hints:
+The router matches intent against skill and pipeline descriptions; frontmatter triggers are hints:
 
 ```yaml
 routing:
@@ -36,45 +36,15 @@ The former `skill-evaluator` and `auto-plan-detector` hooks are disabled or remo
 
 ## Agent Architecture
 
-An agent is a Markdown file in `agents/` with YAML frontmatter. A representative schema:
+The repo ships no specialist agents: the 43 retired in plans/009, and each body moved into a skill's `references/`. When dispatch pays, `/do` sends the work to Claude Code's built-in `general-purpose` agent with the skill loaded; the skill carries the domain. `build-dispatch.py` keeps `agent=` on the `[do-route]` marker (`main` or `general-purpose`) so telemetry is unchanged, and coerces any other name to `general-purpose` with `fallback=invalid-agent:<name>`.
 
-```yaml
----
-name: golang-general-engineer
-description: "Go development: features, debugging, code review, performance."
-color: blue
-memory: project
-hooks:
-  PostToolUse:
-    - type: command
-      command: |
-        python3 -c "
-        import sys, json
-        data = json.loads(sys.stdin.read())
-        tool = data.get('tool_name', '')
-        command = data.get('tool_input', {}).get('command', '')
-        # agent-specific hook logic
-        "
-      timeout: 5  # seconds
-routing:
-  triggers: [go, golang, goroutine, gopls]
-  process-topics: [programming, concurrency, debugging]
-  pairs_with: [programming]
-allowed-tools: [Read, Edit, Write, Bash, Glob, Grep, Agent, Skill]
----
-```
+Private overlay agents (listed in the gitignored local agents index, installed from an overlay) still validate when a request names one. They are Markdown files with YAML frontmatter (`name`, `description`, `routing`, `allowed-tools`); `allowed-tools` is advisory, because Claude Code restricts a subagent's tools only through its `tools:` field.
 
-`name` identifies the agent in routing. `hooks` registers agent-specific handlers; they read the same JSON payload as settings hooks (see Hook System), and `timeout` is in seconds. `routing.triggers` supplies routing hints. `routing.process-topics` names knowledge areas; no script reads it today (`scripts/feature-state.py` still matches features on the older `retro-topics` key, which no agent carries). `memory: project` scopes remembered context to the project.
-
-`allowed-tools` is advisory for agents. Claude Code restricts a subagent's tools through its `tools:` field, which no toolkit agent sets, so every agent runs with all tools. The list documents intent and feeds `scripts/audit-tool-restrictions.py`.
-
-Agent bodies distinguish hardcoded behaviors, overridable defaults, and opt-in behaviors. Repository and user instructions determine which defaults and options apply.
-
-Reviewer agents (`reviewer-code`, `reviewer-system`, `reviewer-domain`, and `reviewer-perspectives`) are dispatched by review skills. They inspect and report; they do not modify code. That read-only rule is an instruction in their prompts, not a tool restriction: their `allowed-tools` lists are advisory, and no hook stops a reviewer from editing files.
+Review lenses (`reviewer-code`, `reviewer-system`, `reviewer-domain`, `reviewer-perspectives`) are now references of the `review` skill. Review workers inspect and report; that read-only rule is an instruction, not a tool restriction.
 
 ## Skill System
 
-A skill is `skills/{category}/{name}/SKILL.md`. Agents supply domain expertise; skills define execution methods.
+A skill is `skills/{category}/{name}/SKILL.md`. Skills supply domain expertise and define execution methods.
 
 ```yaml
 ---
@@ -232,7 +202,7 @@ Review findings and false positives have dedicated, lightly used paths. Older ca
 
 ### Routing feedback loop
 
-1. `/do` chooses an agent and skill and stamps a `[do-route]` marker into the dispatch.
+1. `/do` chooses a skill (the worker is `main` or `general-purpose`) and stamps a `[do-route]` marker into the dispatch.
 2. `routing-decision-recorder` stores the decision and a pending outcome.
 3. `routing-outcome-finalizer` scores it when the next prompt provides evidence. Subagent-stop handling validates pending records, the Stop fallback scores only errored or stale (over 6 hours) records, and the same hook resolves the rest on SessionEnd.
 4. Reporting commands measure route health and compare cohorts.

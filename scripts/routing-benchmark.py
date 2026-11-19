@@ -39,6 +39,10 @@ from collections.abc import Callable
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+from routing_index_merge import RETIRED_AGENTS
+
 DEFAULT_FIXTURE = REPO_ROOT / "scripts" / "routing-benchmark.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
@@ -49,6 +53,8 @@ COVERAGE_EXCLUSIONS = REPO_ROOT / "scripts" / "routing-benchmark-exclusions.json
 # they never appear in agents/INDEX.json (same set as validate-do-references.py
 # and validate-merged-index.py). A fixture may name them as an expected agent —
 # "general-purpose is correct here" is a real assertion, distinct from null.
+# The specialist agents are retired (plans/009): a row naming one is invalid
+# even when a stale agents index still lists it; name the skill instead.
 BUILTIN_AGENTS = frozenset({"general-purpose"})
 
 # Rows in these tiers are executed through scripts/pre-route.py, not just
@@ -108,7 +114,7 @@ def load_component_names() -> tuple[set[str], set[str], set[str]]:
 
     if AGENTS_INDEX.exists():
         data = load_json(AGENTS_INDEX)
-        agents = set(data.get("agents", {}).keys())
+        agents = set(data.get("agents", {}).keys()) - RETIRED_AGENTS
 
     if SKILLS_INDEX.exists():
         data = load_json(SKILLS_INDEX)
@@ -142,7 +148,9 @@ def validate_test_case(
     errors: list[str] = []
 
     expected_agent = case.get("expected_agent")
-    if expected_agent and expected_agent not in agents and expected_agent not in BUILTIN_AGENTS:
+    if expected_agent in RETIRED_AGENTS:
+        errors.append(f"agent '{expected_agent}' is retired (plans/009); expect its skill instead")
+    elif expected_agent and expected_agent not in agents and expected_agent not in BUILTIN_AGENTS:
         errors.append(f"agent '{expected_agent}' not found in agents/INDEX.json")
 
     expected_skill = case.get("expected_skill")

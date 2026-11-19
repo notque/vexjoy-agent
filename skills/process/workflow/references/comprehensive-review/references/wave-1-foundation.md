@@ -4,33 +4,37 @@ These agents run in parallel with Wave 0 per-package findings as context. They p
 
 **ALL 12 agents MUST be dispatched in ONE message for true parallel execution.**
 
+**Dispatch.** Each roster row is one fresh `general-purpose` worker (Agent tool `subagent_type: "general-purpose"`), so every lens reviews independently with no shared context. The reference column names the review reference that worker loads. Start each worker prompt with: "Call the Skill tool with `review`. Then read ~/.claude/skills/review/references/<reference> and follow it; load every file its Reference Loading Table matches, and apply only the <lens> lens."
+
 Review agents run on `opus` (the `work` role in `workflow-helpers.js`); pass the owner's model instead when the owner names one. Never use haiku or sonnet for code review.
 
 ## Agent Roster
 
-| # | Agent | Focus Area | Key Catches |
+| # | Reference (worker loads) | Focus Area | Key Catches |
 |---|-------|------------|-------------|
-| 1 | `reviewer-system` (security lens) | Security | OWASP Top 10, auth, injection, secrets |
-| 2 | `reviewer-domain` (business-logic lens) | Domain | Edge cases, state transitions, requirement gaps |
+| 1 | `reviewer-system.md` (security lens) | Security | OWASP Top 10, auth, injection, secrets |
+| 2 | `reviewer-domain.md` (business-logic lens) | Domain | Edge cases, state transitions, requirement gaps |
 | 3 | Architecture reviewer* | Architecture | Patterns, naming, structure, idioms |
-| 4 | `reviewer-system` (silent-failures lens) | Error Handling | Swallowed errors, empty catches, bad fallbacks |
-| 5 | `reviewer-code` (test-analyzer lens) | Test Coverage | Coverage gaps, fragile tests, missing negative cases |
-| 6 | `reviewer-code` (type-design lens) | Type Design | Weak invariants, leaky encapsulation |
-| 7 | `reviewer-code` (quality lens) | Quality/Style | CLAUDE.md violations, convention drift |
-| 8 | `reviewer-code` (comment-analyzer lens) | Documentation | Comment rot, misleading docs, stale TODOs |
-| 9 | `reviewer-code` (language-specialist lens) | Language Idioms | Modern stdlib, concurrency, LLM tells, org-specific rules |
-| 10 | `reviewer-code` (docs-validator lens) | Project Health | README, CLAUDE.md, deps, CI, build system |
-| 11 | `reviewer-domain` (adr-compliance lens) | ADR Compliance | Implementation matches ADR decisions, no scope creep |
-| 12 | `reviewer-perspectives` (newcomer lens) | Newcomer Perspective | Documentation gaps, confusing code, implicit assumptions, onboarding friction |
+| 4 | `reviewer-system.md` (silent-failures lens) | Error Handling | Swallowed errors, empty catches, bad fallbacks |
+| 5 | `reviewer-code.md` (test-analyzer lens) | Test Coverage | Coverage gaps, fragile tests, missing negative cases |
+| 6 | `reviewer-code.md` (type-design lens) | Type Design | Weak invariants, leaky encapsulation |
+| 7 | `reviewer-code.md` (quality lens) | Quality/Style | CLAUDE.md violations, convention drift |
+| 8 | `reviewer-code.md` (comment-analyzer lens) | Documentation | Comment rot, misleading docs, stale TODOs |
+| 9 | `reviewer-code.md` (language-specialist lens) | Language Idioms | Modern stdlib, concurrency, LLM tells, org-specific rules |
+| 10 | `reviewer-system.md` (docs-validator lens) | Project Health | README, CLAUDE.md, deps, CI, build system |
+| 11 | `reviewer-domain.md` (adr-compliance lens) | ADR Compliance | Implementation matches ADR decisions, no scope creep |
+| 12 | `reviewer-perspectives.md` (newcomer lens) | Newcomer Perspective | Documentation gaps, confusing code, implicit assumptions, onboarding friction |
 
 *Architecture reviewer selection by language:
 
-| File Types | Agent |
+| File Types | Worker |
 |-----------|-------|
-| `.go` files | `golang-general-engineer` |
-| `.py` files | `python-general-engineer` |
-| `.ts`/`.tsx` files | `typescript-frontend-engineer` |
+| `.go` files | `general-purpose` + `programming` skill, `references/golang-general.md` |
+| `.py` files | `general-purpose` + `programming` skill, `references/python-general.md` |
+| `.ts`/`.tsx` files | `general-purpose` + `frontend` skill, `references/typescript-frontend.md` |
 | Mixed or other | `Explore` |
+
+The architecture worker calls the Skill tool with its row's skill (not `review`) and reads that skill's reference from `~/.claude/skills/<skill>/`. `Explore` is a built-in agent and takes no reference.
 
 ## Standard Agent Prompt Template
 
@@ -83,20 +87,20 @@ Return findings as:
 
 ## Agent-Specific Prompt Additions
 
-| Agent | Extra Instructions |
+| Reference (lens) | Extra Instructions |
 |-------|-------------------|
-| `reviewer-system` (security) | Focus on OWASP Top 10, auth, input validation, and secrets. **MCP**: For Go, use gopls `go_symbol_references` to trace tainted input flows. **CALLER TRACING (mandatory)**: When the diff modifies functions with security-sensitive parameters (auth tokens, filter flags, sentinel values like `"*"`), grep for all callers across the repo and verify that each one validates the parameter. Verify independently rather than relying on PR descriptions. |
-| `reviewer-domain` (business-logic) | Focus on requirements coverage, edge cases, and state transitions. **CALLER TRACING (mandatory)**: When the diff changes interface semantics or introduces sentinel values, grep for all callers (`.MethodName(`) across the repo and verify that each honors the contract. Search before concluding that no caller passes X. |
+| `reviewer-system.md` (security) | Focus on OWASP Top 10, auth, input validation, and secrets. **MCP**: For Go, use gopls `go_symbol_references` to trace tainted input flows. **CALLER TRACING (mandatory)**: When the diff modifies functions with security-sensitive parameters (auth tokens, filter flags, sentinel values like `"*"`), grep for all callers across the repo and verify that each one validates the parameter. Verify independently rather than relying on PR descriptions. |
+| `reviewer-domain.md` (business-logic) | Focus on requirements coverage, edge cases, and state transitions. **CALLER TRACING (mandatory)**: When the diff changes interface semantics or introduces sentinel values, grep for all callers (`.MethodName(`) across the repo and verify that each honors the contract. Search before concluding that no caller passes X. |
 | Architecture reviewer | Focus on patterns, naming, structure, maintainability. **MCP**: For Go, use gopls `go_file_context` to understand cross-file dependencies |
-| `reviewer-system` (silent-failures) | Focus on catch blocks, error swallowing, fallback behavior. **MCP**: For Go, use gopls `go_diagnostics` to verify error handling correctness |
-| `reviewer-code` (test-analyzer) | Focus on coverage gaps, missing edge case tests, test quality. **ASSERTION DEPTH CHECK (mandatory)**: For security-sensitive code, flag presence-only assertions (NotEmpty, NotNil, hasKey). Tests MUST verify actual values, not just existence. |
-| `reviewer-code` (type-design) | Focus on invariants, encapsulation, type safety. **MCP**: For Go, use gopls `go_package_api` to understand type surface area |
-| `reviewer-code` (quality) | Focus on CLAUDE.md compliance, conventions, style |
-| `reviewer-code` (comment-analyzer) | Focus on comment accuracy, rot, misleading docs |
-| `reviewer-code` (language-specialist) | Detect language from files, check modern stdlib, idioms, concurrency, LLM tells. **MCP**: For Go files, use gopls `go_file_context` and `go_diagnostics` to detect non-idiomatic patterns with type awareness. If org conventions detected, append org-specific flags to prompt. |
-| `reviewer-code` (docs-validator) | Check README.md, CLAUDE.md, deps, CI config, build system, LICENSE. Review the project, not the code. **MCP**: Use Context7 to verify documented library versions/APIs match actual usage |
-| `reviewer-domain` (adr-compliance) | Auto-discover ADRs from `adr/` and `.adr-session.json`. Check every decision point has implementation, no contradictions, no scope creep. Output ADR COMPLIANT or NOT ADR COMPLIANT. |
-| `reviewer-perspectives` (newcomer) | Review from a newcomer/fresh-eyes perspective. Focus on: documentation gaps that would confuse a new developer, implicit assumptions not explained in code or comments, confusing variable/function names, unclear control flow, missing "why" explanations. Flag anything where a developer unfamiliar with this codebase would be lost. |
+| `reviewer-system.md` (silent-failures) | Focus on catch blocks, error swallowing, fallback behavior. **MCP**: For Go, use gopls `go_diagnostics` to verify error handling correctness |
+| `reviewer-code.md` (test-analyzer) | Focus on coverage gaps, missing edge case tests, test quality. **ASSERTION DEPTH CHECK (mandatory)**: For security-sensitive code, flag presence-only assertions (NotEmpty, NotNil, hasKey). Tests MUST verify actual values, not just existence. |
+| `reviewer-code.md` (type-design) | Focus on invariants, encapsulation, type safety. **MCP**: For Go, use gopls `go_package_api` to understand type surface area |
+| `reviewer-code.md` (quality) | Focus on CLAUDE.md compliance, conventions, style |
+| `reviewer-code.md` (comment-analyzer) | Focus on comment accuracy, rot, misleading docs |
+| `reviewer-code.md` (language-specialist) | Detect language from files, check modern stdlib, idioms, concurrency, LLM tells. **MCP**: For Go files, use gopls `go_file_context` and `go_diagnostics` to detect non-idiomatic patterns with type awareness. If org conventions detected, append org-specific flags to prompt. |
+| `reviewer-system.md` (docs-validator) | Check README.md, CLAUDE.md, deps, CI config, build system, LICENSE. Review the project, not the code. **MCP**: Use Context7 to verify documented library versions/APIs match actual usage |
+| `reviewer-domain.md` (adr-compliance) | Auto-discover ADRs from `adr/` and `.adr-session.json`. Check every decision point has implementation, no contradictions, no scope creep. Output ADR COMPLIANT or NOT ADR COMPLIANT. |
+| `reviewer-perspectives.md` (newcomer) | Review from a newcomer/fresh-eyes perspective. Focus on: documentation gaps that would confuse a new developer, implicit assumptions not explained in code or comments, confusing variable/function names, unclear control flow, missing "why" explanations. Flag anything where a developer unfamiliar with this codebase would be lost. |
 
 ## Wave 0+1 Aggregate Output Format
 
@@ -113,12 +117,12 @@ After Wave 1 completes, build this combined summary for Wave 2 context:
   - [package]: [SEVERITY] [summary]
   - ...
 
-### Security — reviewer-system (Agent 1): [N findings]
+### Security — reviewer-system.md worker (Agent 1): [N findings]
 - CRITICAL: [list if any]
 - HIGH: [list]
 - Files with security issues: [list]
 
-### Business Logic — reviewer-domain (Agent 2): [N findings]
+### Business Logic — reviewer-domain.md worker (Agent 2): [N findings]
 - State transitions identified: [list]
 - Edge cases flagged: [list]
 - Files with domain issues: [list]
@@ -128,44 +132,44 @@ After Wave 1 completes, build this combined summary for Wave 2 context:
 - Hot paths identified: [list]
 - Files with structural issues: [list]
 
-### Silent Failures — reviewer-system (Agent 4): [N findings]
+### Silent Failures — reviewer-system.md worker (Agent 4): [N findings]
 - Swallowed errors at: [file:line list]
 - Error paths without handling: [list]
 - Files with error handling gaps: [list]
 
-### Test Coverage — reviewer-code (Agent 5): [N findings]
+### Test Coverage — reviewer-code.md worker (Agent 5): [N findings]
 - Coverage gaps: [list]
 - Untested paths: [list]
 
-### Type Design — reviewer-code (Agent 6): [N findings]
+### Type Design — reviewer-code.md worker (Agent 6): [N findings]
 - Weak types identified: [list]
 - Type safety issues at: [file:line list]
 
-### Code Quality — reviewer-code (Agent 7): [N findings]
+### Code Quality — reviewer-code.md worker (Agent 7): [N findings]
 - Convention baseline established: [patterns]
 - Convention violations: [list]
 - CLAUDE.md compliance issues: [list]
 
-### Comments — reviewer-code (Agent 8): [N findings]
+### Comments — reviewer-code.md worker (Agent 8): [N findings]
 - Comment rot at: [file:line list]
 - Stale TODOs: [list]
 
-### Language Specialist — reviewer-code (Agent 9): [N findings]
+### Language Specialist — reviewer-code.md worker (Agent 9): [N findings]
 - Language-specific issues: [list]
 - Modern stdlib opportunities: [list]
 - LLM code tells: [list]
 
-### Docs & Config — reviewer-code (Agent 10): [N findings]
+### Docs & Config — reviewer-code.md worker (Agent 10): [N findings]
 - Documentation gaps: [list]
 - Dependency issues: [list]
 - CI/build issues: [list]
 
-### ADR Compliance — reviewer-domain (Agent 11): [N findings]
+### ADR Compliance — reviewer-domain.md worker (Agent 11): [N findings]
 - ADR decisions not implemented: [list]
 - ADR contradictions: [list]
 - Scope creep: [list]
 
-### Newcomer Perspective — reviewer-perspectives (Agent 12): [N findings]
+### Newcomer Perspective — reviewer-perspectives.md worker (Agent 12): [N findings]
 - Documentation gaps: [list]
 - Confusing code: [list]
 - Implicit assumptions: [list]

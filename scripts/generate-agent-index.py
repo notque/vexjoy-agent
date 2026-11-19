@@ -3,7 +3,9 @@
 Generate agent routing index from YAML frontmatter.
 
 Reads all agents/*.md files, extracts routing metadata from YAML frontmatter,
-and generates agents/INDEX.json for fast /do router lookups.
+and generates agents/INDEX.json for fast /do router lookups. The repo ships no
+agents since the specialist agents retired (plans/009), so the public index is
+normally empty; private overlay agents land in agents/INDEX.local.json.
 
 Usage:
     python scripts/generate-agent-index.py
@@ -245,9 +247,11 @@ def main() -> int:
     repo_root = (args.repo_root or script_dir.parent).resolve()
     agents_dir = repo_root / "agents"
 
+    # The repo's specialist agents are retired (plans/009), so a checkout may
+    # hold no agents/ directory. Write an empty index there: readers still
+    # merge agents/INDEX.local.json (private overlay agents) beside it.
     if not agents_dir.exists():
-        print(f"Error: agents directory not found at {agents_dir}")
-        return 1
+        print(f"Note: no agents directory at {agents_dir}; writing an empty agent index")
 
     # Resolve output path
     output_path: Path = (
@@ -265,6 +269,7 @@ def main() -> int:
             index["agents"].update(private_index["agents"])
 
     # Write index file
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_write_text(output_path, json.dumps(index, indent=2))
 
     # Summary

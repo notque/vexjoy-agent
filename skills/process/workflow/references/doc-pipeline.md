@@ -26,7 +26,7 @@ routing:
     - "document the API"
   pairs_with:
     - codebase-overview
-    - technical-documentation-engineer
+    - writing
   complexity: medium
   category: documentation
 ---

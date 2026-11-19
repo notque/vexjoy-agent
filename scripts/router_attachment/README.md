@@ -1,6 +1,6 @@
 # Router attachment eval
 
-Measures whether `/d` and `/do` attach the right agent and skills to a request: the Go agent plus `programming` for Go work, `frontend` for UI work, `testing` when tests are part of the deliverable, `building-with-jev` for Jev programs, and so on.
+Measures whether `/d` and `/do` attach the right skills to a request: `programming` for Go work, `frontend` for UI work, `testing` when tests are part of the deliverable, `building-with-jev` for Jev programs, and so on.
 
 ## Files
 
@@ -15,12 +15,11 @@ Measures whether `/d` and `/do` attach the right agent and skills to a request: 
 
 Each case lists:
 
-- `agents`: acceptable primary agents (`*` accepts any). A null agent scores as `general-purpose`.
 - `required`: skill groups; a group is met when any member is attached.
 - `acceptable`: skills that may be attached without penalty.
-- `forbid_agents`, `forbid_skills`: near-miss traps, for example `golang-general-engineer` on "go ahead and..." or `programming` on Python work.
+- `forbid_skills`: near-miss traps, for example `programming` on "go ahead and..." or on Python work.
 
-Labels come from `agents/INDEX.json`, `skills/INDEX.json`, and each component's `not_for` text. `scripts/tests/test_router_attachment_eval.py` fails when a label names a component that no longer exists.
+Labels come from `skills/INDEX.json` and each skill's `not_for` text. The specialist agents are retired (plans/009), so cases carry no agent labels: the worker is the built-in `general-purpose` agent and the skills carry the domain. `scripts/tests/test_router_attachment_eval.py` fails when a label names a component that no longer exists.
 
 ## Metrics
 
@@ -28,10 +27,10 @@ Attached skills are the primary `skill` plus `stack`, excluding shared patterns 
 
 | Metric | Definition |
 |---|---|
-| Agent accuracy | Primary agent is acceptable and not forbidden |
+| Worker share | Routes whose worker is `general-purpose` (a route naming a private overlay agent lowers it) |
 | Skill recall | Required groups met / required groups |
 | Skill precision | Attached skills that are required or acceptable / attached skills |
-| Full attach | Agent correct, every group met, no forbidden skill |
+| Full attach | Every group met, no forbidden skill |
 
 ## Routers
 
@@ -101,3 +100,14 @@ Change: the session model picks the agent, skill, and pipeline with `/do`'s rule
 | `/d` session pick, run 2 | 0.977 / 1.000 / 0.969 / 0.977 | 1.000 / 1.000 / 1.000 / 1.000 | $2.04 |
 
 Both runs miss the same dev case on agent and full attach, and neither attaches a forbidden agent or skill.
+
+## Results (2026-11-17): agent retirement (plans/009)
+
+The agent slot is gone: `finalize` returns the `general-purpose` worker, and the session names a domain skill in its own `stack` instead of picking a domain agent. Scoring dropped agent accuracy; `full` is skills only. Offline replay of `fixtures/jev-answers-r2.json` (no Jev or model calls), with the r2 agent pick translated to the session stack through the retired agent-to-domain floor (Go, Kotlin, PHP, Swift to `programming`; Kubernetes to `kubernetes`; UI design to `frontend`):
+
+| Replay | Dev recall / precision / full | Held-out recall / precision / full |
+|---|---|---|
+| Before: agent floor, agent-scored full | 0.933 / 0.948 / 0.930 (agent 0.977) | 0.938 / 0.905 / 0.929 (agent 1.000) |
+| After: session-stack floor, skills-only full | 0.933 / 0.948 / 0.930 | 0.938 / 0.905 / 0.929 |
+
+The same four cases miss in both (`go-review-01`, `mixed-py-refactor-01`, `nm-go-verb-01`, `ood-go-04`). The replay holds the pick fixed, so it shows that the policy change does not lose attachments. It does not show whether a live session names the domain skill as reliably as it named the domain agent; that needs a fresh `d-model` and `do-model` run.

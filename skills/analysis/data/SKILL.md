@@ -1,6 +1,6 @@
 ---
 name: data
-description: "Data analysis and reference enrichment."
+description: "Data analysis, reference enrichment, and data engineering: pipelines and warehouses, server database design and tuning, SQLite with Peewee."
 user-invocable: true
 argument-hint: "<dataset-or-component-name> [--decompose]"
 allowed-tools:
@@ -39,22 +39,65 @@ routing:
     - "reference enrichment"
     - "decompose skill"
     - "extract references"
-  not_for: "database schema (agents handle directly), code review (use review)"
+    # from data
+    - "data pipeline"
+    - "ETL"
+    - "ELT"
+    - "dbt"
+    - "Airflow"
+    - "Prefect"
+    - "Dagster"
+    - "dimensional model"
+    - "data warehouse"
+    - "star schema"
+    - "snowflake schema"
+    - "data lake"
+    - "data quality"
+    - "streaming"
+    - "Kafka"
+    - "Spark"
+    - "Flink"
+    - "BigQuery"
+    - "Redshift"
+    - "Parquet"
+    - "Delta Lake"
+    - "Iceberg"
+    - "data vault"
+    - "slowly changing dimension"
+    - "SCD"
+    - "data lineage"
+    # from database
+    - "database"
+    - "schema"
+    - "SQL"
+    - "postgres"
+    - "mysql"
+    - "indexing"
+    - "query optimization"
+    # from sqlite-peewee
+    - "peewee"
+    - "sqlite"
+    - "ORM"
+    - "python database"
+    - "playhouse"
+  not_for: "code review (use review); RabbitMQ or AMQP broker topology, clustering, and HA (use kubernetes); OpenSearch or Elasticsearch cluster tuning (use kubernetes); Prometheus or Grafana monitoring metrics (use kubernetes); general Python features or debugging outside the data layer (use programming)"
   pairs_with:
     - workflow
     - assessment
+    - programming
   complexity: medium
   category: analysis
 ---
 
 # Data Skill
 
-Two modes. Match the request to a section.
+Three modes. Match the request to a section.
 
 | Signal | Mode |
 |--------|------|
 | Analyze data, CSV, metrics, A/B test, trend, KPI, funnel, distribution | A. Data Analysis |
 | Enrich references, generate references, decompose skill, improve depth | B. Reference Enrichment |
+| Pipelines, warehouses, server database schema or tuning, SQLite/Peewee | C. Data Engineering |
 
 ---
 
@@ -209,6 +252,20 @@ Validate: `python3 scripts/validate-references.py --agent {name}` and `--check-d
 
 ---
 
+## C. Data Engineering
+
+Load the matching reference and follow its hard rules, gates, and blockers. When dispatch pays, use a `general-purpose` worker that loads this skill and the reference.
+
+| Signal | Reference |
+|--------|-----------|
+| ETL/ELT, dbt, Airflow, dimensional model, warehouse, lake, Kafka/Spark/Flink, data quality | `references/data.md` |
+| Postgres or MySQL schema, indexes, EXPLAIN, migrations, transactions | `references/database.md` |
+| SQLite, Peewee models, prefetch, playhouse migrations, `atomic()` | `references/sqlite-peewee.md` |
+
+Embedded SQLite goes to `sqlite-peewee.md`, not `database.md`: the server-database mandates misfire on SQLite.
+
+---
+
 ## Deep References
 
 All references are >100 lines of domain-specific content. Load as directed by sections above.
@@ -222,3 +279,6 @@ All references are >100 lines of domain-specific content. Load as directed by se
 | Writing new reference files | `references/reference-file-template.md` | 166 |
 | Running headless decomposition | `references/decomposition-prompt.md` | 205 |
 | Running headless enrichment | `references/enrichment-prompt.md` | 117 |
+| Data pipelines, ETL/ELT, dbt, Airflow, grain, SCD, warehouse, streaming | `references/data.md` | 27 (+7 in `data/`) |
+| Postgres/MySQL schema design, foreign keys, indexes, EXPLAIN, zero-downtime migrations | `references/database.md` | 108 (+1 in `database/`) |
+| SQLite, Peewee ORM, prefetch, N+1, `atomic()`, playhouse migrate, WAL, FTS5 | `references/sqlite-peewee.md` | 94 (+3 in `sqlite-peewee/`) |

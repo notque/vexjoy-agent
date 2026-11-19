@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
-"""Build Antigravity CLI and Python SDK subagent specifications from agent markdown definitions.
+"""Build Antigravity CLI and Python SDK subagent specifications for a skill-carried worker.
 
-Extracts persona details from agents/<name>.md:
-- YAML frontmatter (description, companion_skills, allowed-tools)
-- Specialist category and tool permissions (Implementer, Reviewer, Scout, Coordinator)
-- SystemPrompt combining agent body + agents/base-instructions.md
-- Outputs JSON payload ready for define_subagent and types.SubagentConfig / LocalAgentConfig
+The repo's specialist agents are retired (plans/009): the worker is a generic
+persona and the skill carries the domain. This builds that persona:
+
+- From a skill (`--skill <name>`, the normal path): name `<skill>-worker`, the
+  skill's description, a short SystemPrompt that tells the worker to follow the
+  skill's SKILL.md and its Reference Loading Table, plus
+  `skills/shared-patterns/base-instructions.md`.
+- From an agent file (`--agent <name|path>`): kept for private overlay agents
+  (agents/<name>.md installed beside the repo) and explicit paths. SystemPrompt
+  is the agent body plus the base instructions.
+
+Specialist category (Implementer, Reviewer, Scout, Coordinator) sets tool
+permissions. Outputs JSON ready for define_subagent and
+types.SubagentConfig / LocalAgentConfig.
 """
 
 from __future__ import annotations
@@ -18,6 +27,7 @@ from typing import Any
 
 # Resolve repo root relative to this script
 REPO_ROOT = Path(__file__).resolve().parent.parent
+BASE_INSTRUCTIONS_REL = Path("skills") / "shared-patterns" / "base-instructions.md"
 
 # Try to use shared frontmatter parser from scripts.lib
 try:
@@ -42,39 +52,30 @@ except ImportError:
             return None, body
 
 
-COORDINATOR_AGENTS: frozenset[str] = frozenset(
-    {
-        "project-coordinator-engineer",
-        "pipeline-orchestrator-engineer",
-        "research-coordinator-engineer",
-    }
-)
-
-SCOUT_AGENTS: frozenset[str] = frozenset(
-    {
-        "research-subagent-executor",
-    }
-)
+# Skills whose work is read-only review or external research. Category comes
+# from the skill name first, then its routing category.
+REVIEWER_SKILLS: frozenset[str] = frozenset({"review", "security", "code-quality"})
+SCOUT_SKILLS: frozenset[str] = frozenset({"research"})
+REVIEWER_CATEGORIES: frozenset[str] = frozenset({"review", "code-review", "security"})
+SCOUT_CATEGORIES: frozenset[str] = frozenset({"research"})
 
 
-def resolve_specialist_category(agent_name: str, frontmatter: dict[str, Any] | None = None) -> str:
-    """Classify agent into one of: implementer, reviewer, scout, coordinator."""
-    name_clean = agent_name.strip().lower()
-    if name_clean in COORDINATOR_AGENTS or "coordinator" in name_clean or "orchestrat" in name_clean:
+def resolve_specialist_category(name: str, frontmatter: dict[str, Any] | None = None) -> str:
+    """Classify a skill or agent into one of: implementer, reviewer, scout, coordinator."""
+    name_clean = name.strip().lower()
+    if "coordinator" in name_clean or "orchestrat" in name_clean:
         return "coordinator"
-    if name_clean in SCOUT_AGENTS or name_clean.startswith("research-subagent") or name_clean.endswith("-scout"):
+    if name_clean in SCOUT_SKILLS or name_clean.startswith("research-subagent") or name_clean.endswith("-scout"):
         return "scout"
-    if name_clean.startswith("reviewer-"):
+    if name_clean in REVIEWER_SKILLS or name_clean.startswith("reviewer-"):
         return "reviewer"
     if frontmatter:
         routing = frontmatter.get("routing") if isinstance(frontmatter.get("routing"), dict) else {}
         cat = str(routing.get("category") or frontmatter.get("category") or "").strip().lower()
-        if cat == "review":
+        if cat in REVIEWER_CATEGORIES:
             return "reviewer"
-        if cat == "research":
+        if cat in SCOUT_CATEGORIES:
             return "scout"
-        if cat == "meta" and ("coordinator" in name_clean or "orchestrat" in name_clean):
-            return "coordinator"
     return "implementer"
 
 
@@ -99,10 +100,10 @@ def resolve_tool_permissions(category: str) -> tuple[bool, bool, bool]:
     return True, False, False
 
 
-def compile_system_prompt(agent_body: str, base_instructions: str) -> str:
-    """Compile agent body and base instructions into a single SystemPrompt."""
+def compile_system_prompt(persona_body: str, base_instructions: str) -> str:
+    """Compile the persona body and base instructions into a single SystemPrompt."""
     parts = []
-    body_clean = agent_body.strip()
+    body_clean = persona_body.strip()
     if body_clean:
         parts.append(body_clean)
     base_clean = base_instructions.strip()
@@ -128,37 +129,82 @@ def resolve_agent_path(agent: str, repo_root: Path) -> Path:
     raise FileNotFoundError(f"Agent definition not found for '{agent}' (checked: {standard_path})")
 
 
+def resolve_skill_path(skill: str, repo_root: Path) -> Path:
+    """Resolve a skill name or path into its SKILL.md.
+
+    Checks a direct path, the installed flat layout (skills/<name>/SKILL.md),
+    then the repo's grouped layout (skills/<group>/<name>/SKILL.md).
+    """
+    candidate = Path(skill)
+    if candidate.is_file():
+        return candidate.resolve()
+    if candidate.is_dir() and (candidate / "SKILL.md").is_file():
+        return (candidate / "SKILL.md").resolve()
+
+    name = skill.strip().lower()
+    flat = repo_root / "skills" / name / "SKILL.md"
+    if flat.is_file():
+        return flat
+    grouped = sorted((repo_root / "skills").glob(f"*/{name}/SKILL.md"))
+    if grouped:
+        return grouped[0]
+    raise FileNotFoundError(f"Skill definition not found for '{skill}' (checked: {flat}, skills/*/{name}/SKILL.md)")
+
+
+def _read_base_instructions(root: Path) -> str:
+    path = root / BASE_INSTRUCTIONS_REL
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def _skill_persona(skill_name: str, description: str) -> str:
+    lines = [f"# {skill_name} worker", ""]
+    if description:
+        lines += [f"Domain: {description}", ""]
+    lines.append(
+        f"Load and follow the `{skill_name}` skill's SKILL.md before starting work, then read the references "
+        "its Reference Loading Table names for this task. The skill carries the domain rules."
+    )
+    return "\n".join(lines)
+
+
 def build_subagent_spec(
-    agent: str,
+    agent: str | None = None,
     *,
+    skill: str | None = None,
     repo_root: Path | None = None,
     category_override: str | None = None,
     enable_write_override: bool | None = None,
     enable_mcp_override: bool | None = None,
     enable_subagent_override: bool | None = None,
 ) -> dict[str, Any]:
-    """Build subagent specification dictionary from agent markdown file and base instructions."""
+    """Build a subagent specification from a skill (normal) or an agent file (private overlay)."""
     root = repo_root.resolve() if repo_root else REPO_ROOT
-    agent_path = resolve_agent_path(agent, root)
-    agent_name = agent_path.stem
+    if skill:
+        path = resolve_skill_path(skill, root)
+        fm, _body = parse_frontmatter(path.read_text(encoding="utf-8"))
+        fm = fm or {}
+        skill_name = str(fm.get("name") or path.parent.name).strip()
+        name = f"{skill_name}-worker"
+        description = " ".join(str(fm.get("description") or "").split())
+        persona = _skill_persona(skill_name, description)
+        companion_skills = [skill_name]
+        category_key = skill_name
+    elif agent:
+        path = resolve_agent_path(agent, root)
+        fm, persona = parse_frontmatter(path.read_text(encoding="utf-8"))
+        fm = fm or {}
+        name = str(fm.get("name") or path.stem).strip()
+        description = " ".join(str(fm.get("description") or "").split())
+        routing = fm.get("routing") if isinstance(fm.get("routing"), dict) else {}
+        companion_skills = fm.get("companion_skills") or routing.get("pairs_with") or []
+        if isinstance(companion_skills, str):
+            companion_skills = [companion_skills]
+        category_key = name
+    else:
+        raise ValueError("build_subagent_spec needs a skill or an agent")
 
-    text = agent_path.read_text(encoding="utf-8")
-    fm, body = parse_frontmatter(text)
-    if fm is None:
-        fm = {}
-
-    name = str(fm.get("name") or agent_name).strip()
-    description = str(fm.get("description") or "").strip()
-    # Normalize multiline description
-    description = " ".join(description.split())
-
-    routing = fm.get("routing") if isinstance(fm.get("routing"), dict) else {}
-    companion_skills = fm.get("companion_skills") or routing.get("pairs_with") or []
-    if isinstance(companion_skills, str):
-        companion_skills = [companion_skills]
     allowed_tools = fm.get("allowed-tools") or []
-
-    category = category_override or resolve_specialist_category(name, fm)
+    category = category_override or resolve_specialist_category(category_key, fm)
     write_tools, mcp_tools, subagent_tools = resolve_tool_permissions(category)
 
     if enable_write_override is not None:
@@ -168,12 +214,7 @@ def build_subagent_spec(
     if enable_subagent_override is not None:
         subagent_tools = enable_subagent_override
 
-    base_instructions_path = root / "agents" / "base-instructions.md"
-    base_instructions = ""
-    if base_instructions_path.is_file():
-        base_instructions = base_instructions_path.read_text(encoding="utf-8")
-
-    system_prompt = compile_system_prompt(body, base_instructions)
+    system_prompt = compile_system_prompt(persona, _read_base_instructions(root))
 
     define_subagent_payload = {
         "Name": name,
@@ -211,8 +252,10 @@ def build_subagent_spec(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--agent", required=True, help="Agent name or path to agents/<name>.md")
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--skill", help="Skill name or path to its SKILL.md (the normal worker persona)")
+    source.add_argument("--agent", help="Private overlay agent name or path to agents/<name>.md")
     parser.add_argument(
         "--format",
         choices=("json", "define_subagent", "sdk"),
@@ -240,6 +283,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         spec = build_subagent_spec(
             args.agent,
+            skill=args.skill,
             repo_root=args.repo_root,
             category_override=args.category,
             enable_write_override=args.enable_write_tools,

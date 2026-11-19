@@ -158,7 +158,8 @@ def validate_primary_docs_parse(repo_root: Path = REPO_ROOT) -> list[ValidationR
         except (OSError, ValueError) as exc:
             results.append((f"primary doc parses: {rel}", False, str(exc)))
         else:
-            results.append((f"primary doc parses: {rel}", count > 0, f"{count} {tool_type} entries"))
+            ok = count > 0 or tool_type in parse_docs._MAY_BE_EMPTY  # no repo agents since plans/009
+            results.append((f"primary doc parses: {rel}", ok, f"{count} {tool_type} entries"))
     return results
 
 

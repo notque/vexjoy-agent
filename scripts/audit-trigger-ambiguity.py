@@ -268,9 +268,13 @@ def rank(reportable: list[dict]) -> list[dict]:
 
 
 def build_report(skills_path: Path, agents_path: Path) -> dict:
-    """Load both indexes and compute the audit report. Raises on I/O error."""
+    """Load both indexes and compute the audit report. Raises on I/O error.
+
+    The agents index is optional: the repo's specialist agents are retired
+    (plans/009), so a missing agents index means only overlay agents, if any.
+    """
     skills = load_index(skills_path, "skills")
-    agents = load_index(agents_path, "agents")
+    agents = load_index(agents_path, "agents") if agents_path.is_file() else {}
     owner_map = build_owner_map(skills, agents)
     not_for_map = build_not_for_map(skills, agents)
     reportable, total = find_collisions(owner_map, not_for_map)

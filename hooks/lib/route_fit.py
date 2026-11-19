@@ -4,7 +4,10 @@ Every /do-dispatched agent is asked (``scripts/build-dispatch.py``
 ``INJ_ROUTE_FIT``) to close its reply with one line:
 
     route-fit: ok
-    route-fit: wrong-agent | wrong-skill | needs-coordinator | underspecified
+    route-fit: wrong-skill | needs-coordinator | underspecified
+
+``wrong-agent`` is no longer offered (the worker is always general-purpose
+since plans/009) but still parses from older replies.
 
 Two hooks read it, because the reply arrives at two different events:
 

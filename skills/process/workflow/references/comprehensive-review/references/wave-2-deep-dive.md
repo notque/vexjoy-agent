@@ -4,22 +4,24 @@ These agents receive Wave 0+1 aggregated findings as input. They perform targete
 
 **ALL 10 agents MUST be dispatched in ONE message for true parallel execution.**
 
+**Dispatch.** Each roster row is one fresh `general-purpose` worker (Agent tool `subagent_type: "general-purpose"`), so every lens reviews independently with no shared context. The reference column names the review reference that worker loads. Start each worker prompt with: "Call the Skill tool with `review`. Then read ~/.claude/skills/review/references/<reference> and follow it; load every file its Reference Loading Table matches, and apply only the <lens> lens."
+
 Review agents run on `opus` (the `work` role in `workflow-helpers.js`); pass the owner's model instead when the owner names one. Never use haiku or sonnet for code review.
 
 ## Agent Roster
 
-| # | Agent | Focus Area | Wave 1 Context Used |
+| # | Reference (worker loads) | Focus Area | Wave 1 Context Used |
 |---|-------|------------|---------------------|
-| 11 | `reviewer-code` (performance lens) | Performance | Architecture findings → focus on hot paths |
-| 12 | `reviewer-system` (concurrency lens) | Concurrency | Silent-failure + architecture findings → concurrent paths |
-| 13 | `reviewer-code` (api-contract lens) | API Contracts | Business-logic + type-design findings → contract-sensitive code |
-| 14 | `reviewer-code` (dependency-audit lens) | Dependencies | Docs-validator findings → dependency documentation gaps |
-| 15 | `reviewer-code` (error-messages lens) | Error Messages | Silent-failure + code-quality findings → error paths |
-| 16 | `reviewer-code` (dead-code lens) | Dead Code | Code-quality + docs-validator findings → abandoned artifacts |
-| 17 | `reviewer-code` (naming-consistency lens) | Naming | Code-quality + language-specialist findings → convention baselines |
-| 18 | `reviewer-system` (observability lens) | Observability | Silent-failure findings → observability gaps at failure points |
-| 19 | `reviewer-system` (config-safety lens) | Config Safety | Security + docs-validator findings → config security gaps |
-| 20 | `reviewer-domain` (migration-safety lens) | Migration Safety | API-contract + business-logic findings → migration-sensitive changes |
+| 11 | `reviewer-code.md` (performance lens) | Performance | Architecture findings → focus on hot paths |
+| 12 | `reviewer-system.md` (concurrency lens) | Concurrency | Silent-failure + architecture findings → concurrent paths |
+| 13 | `reviewer-system.md` (api-contract lens) | API Contracts | Business-logic + type-design findings → contract-sensitive code |
+| 14 | `reviewer-system.md` (dependency-audit lens) | Dependencies | Docs-validator findings → dependency documentation gaps |
+| 15 | `reviewer-system.md` (error-messages lens) | Error Messages | Silent-failure + code-quality findings → error paths |
+| 16 | `reviewer-code.md` (dead-code lens) | Dead Code | Code-quality + docs-validator findings → abandoned artifacts |
+| 17 | `reviewer-code.md` (naming-consistency lens) | Naming | Code-quality + language-specialist findings → convention baselines |
+| 18 | `reviewer-system.md` (observability lens) | Observability | Silent-failure findings → observability gaps at failure points |
+| 19 | `reviewer-code.md` (config-safety lens) | Config Safety | Security + docs-validator findings → config security gaps |
+| 20 | `reviewer-system.md` (migration-safety lens) | Migration Safety | API-contract + business-logic findings → migration-sensitive changes |
 
 ## Standard Agent Prompt Template
 
@@ -75,15 +77,15 @@ Return findings as:
 
 ## Agent-Specific Context Instructions
 
-| Agent | Extra Context Instructions |
+| Reference (lens) | Extra Context Instructions |
 |-------|--------------------------|
-| `reviewer-code` (performance) | Use Wave 0 per-package findings to identify packages with complexity issues. Use Wave 1 architecture findings to identify hot paths. Focus on algorithmic complexity, N+1 queries, allocation waste. **MCP**: For Go, use gopls `go_symbol_references` to trace hot path call chains |
-| `reviewer-system` (concurrency) | Use Wave 0 per-package findings for concurrent patterns within packages. Use Wave 1 silent-failure + architecture findings for cross-package concurrent paths. Focus on races, goroutine leaks, deadlocks. **MCP**: For Go, use gopls `go_diagnostics` to detect race condition warnings |
-| `reviewer-code` (api-contract) | Use Wave 0 per-package findings to understand internal API surfaces. Use Wave 1 business-logic + type-design findings for contract-sensitive endpoints. Focus on breaking changes, status codes. **MCP**: Use Context7 to verify API contract claims against library docs |
-| `reviewer-code` (dependency-audit) | Use Wave 1 docs-validator findings to cross-reference documented vs actual dependencies. Run govulncheck/npm audit/pip-audit. Focus on CVEs, licenses, deprecated packages. **MCP**: Use Context7 `resolve-library-id` + `query-docs` to verify dependency API usage. For Go, use gopls `go_vulncheck` for vulnerability scanning |
-| `reviewer-code` (error-messages) | Use Wave 0 per-package error handling patterns. Use Wave 1 silent-failure + code-quality findings. Focus on error message quality, actionability, consistency. |
-| `reviewer-code` (dead-code) | Use Wave 0 per-package findings to identify unused internal APIs between files. Use Wave 1 code-quality + docs-validator findings. Focus on unreachable code, unused exports. |
-| `reviewer-code` (naming-consistency) | Use Wave 0 per-package naming patterns to detect intra-package drift. Use Wave 1 code-quality + language-specialist findings. Focus on cross-package naming consistency. |
-| `reviewer-system` (observability) | Use Wave 0 per-package findings for packages missing instrumentation. Use Wave 1 silent-failure findings for error paths missing observability. Focus on RED metrics gaps. |
-| `reviewer-system` (config-safety) | Use Wave 0 per-package findings for hardcoded values within packages. Use Wave 1 security + docs-validator findings. Focus on secrets, missing env var validation. |
-| `reviewer-domain` (migration-safety) | Use Wave 1 api-contract + business-logic findings to identify migration-sensitive changes. Focus on reversible migrations, deprecation paths, rollback safety. |
+| `reviewer-code.md` (performance) | Use Wave 0 per-package findings to identify packages with complexity issues. Use Wave 1 architecture findings to identify hot paths. Focus on algorithmic complexity, N+1 queries, allocation waste. **MCP**: For Go, use gopls `go_symbol_references` to trace hot path call chains |
+| `reviewer-system.md` (concurrency) | Use Wave 0 per-package findings for concurrent patterns within packages. Use Wave 1 silent-failure + architecture findings for cross-package concurrent paths. Focus on races, goroutine leaks, deadlocks. **MCP**: For Go, use gopls `go_diagnostics` to detect race condition warnings |
+| `reviewer-system.md` (api-contract) | Use Wave 0 per-package findings to understand internal API surfaces. Use Wave 1 business-logic + type-design findings for contract-sensitive endpoints. Focus on breaking changes, status codes. **MCP**: Use Context7 to verify API contract claims against library docs |
+| `reviewer-system.md` (dependency-audit) | Use Wave 1 docs-validator findings to cross-reference documented vs actual dependencies. Run govulncheck/npm audit/pip-audit. Focus on CVEs, licenses, deprecated packages. **MCP**: Use Context7 `resolve-library-id` + `query-docs` to verify dependency API usage. For Go, use gopls `go_vulncheck` for vulnerability scanning |
+| `reviewer-system.md` (error-messages) | Use Wave 0 per-package error handling patterns. Use Wave 1 silent-failure + code-quality findings. Focus on error message quality, actionability, consistency. |
+| `reviewer-code.md` (dead-code) | Use Wave 0 per-package findings to identify unused internal APIs between files. Use Wave 1 code-quality + docs-validator findings. Focus on unreachable code, unused exports. |
+| `reviewer-code.md` (naming-consistency) | Use Wave 0 per-package naming patterns to detect intra-package drift. Use Wave 1 code-quality + language-specialist findings. Focus on cross-package naming consistency. |
+| `reviewer-system.md` (observability) | Use Wave 0 per-package findings for packages missing instrumentation. Use Wave 1 silent-failure findings for error paths missing observability. Focus on RED metrics gaps. |
+| `reviewer-code.md` (config-safety) | Use Wave 0 per-package findings for hardcoded values within packages. Use Wave 1 security + docs-validator findings. Focus on secrets, missing env var validation. |
+| `reviewer-system.md` (migration-safety) | Use Wave 1 api-contract + business-logic findings to identify migration-sensitive changes. Focus on reversible migrations, deprecation paths, rollback safety. |

@@ -117,7 +117,7 @@ EVENT_NAME = "PostToolUse"
 # agent prompt IT routes. Its presence is the SOLE signal that a dispatch is a
 # /do routing decision; agent + skill are read straight from it. Sub-agent
 # fan-out (pr-review reviewers, nested dispatches) carries no marker → skipped.
-#   [do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium
+#   [do-route] agent=general-purpose skill=testing complexity=Medium
 # skill may be empty/"-"/absent (agent-only routing). The same line may carry
 # optional tokens: health=/n=/fail=/action=/alts= (Step 1.5 gate inputs) and
 # stack={s1,s2} (the composed skill stack, instrumentation only).
@@ -197,10 +197,16 @@ _FAIL_RE = re.compile(r"\bfail=(\d+)", re.IGNORECASE)
 _ACTION_RE = re.compile(r"\baction=(keep|demote|tiebreak)", re.IGNORECASE)
 _ALTS_RE = re.compile(r"\balts=([a-z0-9:_,-]+)", re.IGNORECASE)
 
-# Fallback justification on the marker line: ` fallback=<slug>` (build-dispatch.py
-# emits it whenever the router picked general-purpose or coerced an unknown agent).
+# Fallback token on the marker line: ` fallback=<slug>`. build-dispatch.py emits it
+# only when it coerced an undispatchable agent name (`invalid-agent:<name>`, e.g. a
+# retired specialist); general-purpose is the normal worker since plans/009.
 # Independent \b token, same charset as alts= items. Absent => None.
 _FALLBACK_RE = re.compile(r"\bfallback=([a-z0-9][a-z0-9:_-]*)", re.IGNORECASE)
+
+# /d tokens (scripts/d_gate.py): ` router=d` marks a /d route (absent = /do)
+# and ` reason=<enum>` names why a /d route left the main loop. Marker line only.
+_ROUTER_RE = re.compile(r"\brouter=(do|d)\b", re.IGNORECASE)
+_DISPATCH_REASON_RE = re.compile(r"\breason=(fan-out|worktree|haiku-gather|verifier|overlay-agent)\b", re.IGNORECASE)
 
 # Handoff-completeness telemetry. Thin handoffs failed acceptance 3/3 and
 # rich ones passed 3/3 (scripts/routing-ab-results/handoff-context-v1), so
@@ -398,6 +404,18 @@ def parse_fallback_reason(marker_text: str) -> str | None:
     """
     line = _marker_line(marker_text)
     m = _FALLBACK_RE.search(line)
+    return m.group(1).lower() if m else None
+
+
+def parse_router(marker_text: str) -> str:
+    """`d` for a /d marker, else `do` (the token is absent on every /do marker)."""
+    m = _ROUTER_RE.search(_marker_line(marker_text))
+    return m.group(1).lower() if m else "do"
+
+
+def parse_dispatch_reason(marker_text: str) -> str | None:
+    """The /d dispatch reason off the marker line, or None (main loop, or /do)."""
+    m = _DISPATCH_REASON_RE.search(_marker_line(marker_text))
     return m.group(1).lower() if m else None
 
 
@@ -693,6 +711,7 @@ def main() -> None:
                 has_errors = detect_errors(event)
             key = build_routing_key(agent, skill)
             request_snippet = (description or marker_text)[:200].replace("\n", " ").strip()
+            router = parse_router(marker_text)
 
             from learning_db_v2 import record_learning
 
@@ -705,7 +724,7 @@ def main() -> None:
                     f"request: {request_snippet}"
                 ),
                 category="effectiveness",
-                tags=["routing", agent] + ([skill] if skill else []),
+                tags=["routing", agent] + ([skill] if skill else []) + (["router:d"] if router == "d" else []),
                 source="hook:routing-decision-recorder",
                 session_id=session_id or None,
             )
@@ -746,6 +765,8 @@ def main() -> None:
                 stack=stack,
                 pipeline=pipeline,
                 model=recorded_model,
+                router=router if router == "d" else None,
+                dispatch_reason=parse_dispatch_reason(marker_text),
                 health_at_decision=health["health"],  # real gate inputs from the marker (Step 1.5)
                 n=health["n"],
                 failure=health["failure"],

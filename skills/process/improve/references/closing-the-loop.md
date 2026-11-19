@@ -26,9 +26,12 @@ Check all before dispatch. On a failure, stop and say which one.
 
 ### Dispatch
 
-Dispatch one agent with `isolation: "worktree"`. Pick the domain agent for the
-plan's language (`python-general-engineer`, `golang-general-engineer`,
-`typescript-frontend-engineer`); use `general-purpose` only when none fits.
+Dispatch one fresh `general-purpose` agent with `isolation: "worktree"`. Its
+prompt starts by loading the reference for the plan's language
+(`~/.claude/skills/programming/references/python-general.md`,
+`~/.claude/skills/programming/references/golang-general.md`, or
+`~/.claude/skills/frontend/references/typescript-frontend.md`); skip the
+reference only when none fits.
 Model: `opus` at `medium`, or the model the user named for this run. Mark the
 plan IN PROGRESS in the index.
 

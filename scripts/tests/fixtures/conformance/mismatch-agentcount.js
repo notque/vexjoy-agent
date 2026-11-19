@@ -9,11 +9,11 @@ export const meta = {
   contract: {
     phases: ["wave-1"],
     roster: [
-      { agentType: "reviewer-system", skills: ["systematic-code-review"] },
-      { agentType: "reviewer-domain", skills: ["systematic-code-review"] },
-      { agentType: "reviewer-code", skills: ["systematic-code-review"] },
+      { agentType: "general-purpose", skills: ["systematic-code-review"] },
+      { agentType: "general-purpose", skills: ["systematic-code-review"] },
+      { agentType: "general-purpose", skills: ["systematic-code-review"] },
     ],
-    // Declares 3 static agents but the body only dispatches reviewer-system.
+    // Declares 3 static agents but the body only dispatches one general-purpose worker.
     agents: { static: 3, dynamic: false },
     dynamic: false,
   },
@@ -26,9 +26,9 @@ function enterPhase(title) {
 export default async function run({ scope } = {}) {
   enterPhase("wave-1");
   await agent({
-    prompt: `You are reviewer-system. Call the Skill tool with \`systematic-code-review\`. ${JSON.stringify(scope)}`,
+    prompt: `You are a general-purpose reviewer. Call the Skill tool with \`systematic-code-review\`. ${JSON.stringify(scope)}`,
     schema: { type: "object", required: ["verdict"], properties: { verdict: { type: "string", enum: ["APPROVE"] } } },
-    agentType: "reviewer-system",
+    agentType: "general-purpose",
   });
   return {};
 }

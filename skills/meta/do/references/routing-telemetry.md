@@ -31,31 +31,30 @@ Triggers: re-route, lazy re-dispatch, validator misroute, harness reject. A righ
 
 ---
 
-## Re-deriving the router's prose figures
+## Re-deriving routing figures
 
-SKILL.md quotes three telemetry figures: the floor of one filled surface, the Agent-greediness share, and the Pairing rule. Each is a DATED observation, not an invariant: no test pins it, because pinning a live DB read would make CI depend on runtime data. Re-measure before editing any of them — a swapped figure with no query behind it is how the earlier "82% carried a correct specialist skill" claim became unreproducible ("correct" is not a recorded column, so nothing could confirm or refute it).
+SKILL.md quotes no telemetry figures since the specialist agents retired (plans/009). Before quoting one, measure it again: a figure is a DATED observation, not an invariant, and no test pins it, because pinning a live DB read would make CI depend on runtime data.
 
-Source: `evidence_route_decisions` in `~/.claude/learning/learning.db` (two other learning.db files exist and lack this table). Read-only:
+Source: `evidence_route_decisions` in `~/.claude/learning/learning.db` (two other learning.db files exist and lack this table). Read-only.
+
+**The agent column after retirement.** `agent` reads `main` (work run in the /do thread) or `general-purpose` (the normal worker) on new rows, and the schema is unchanged. A `general-purpose` share is no longer a fallback rate: it is about 100% of dispatches by design. Rows before the retirement still name specialist agents, so split any trend at the retirement date. Count real fallbacks from the marker's `fallback=` token instead (the recorder's fallback reason; after retirement `build-dispatch.py` emits it only for a coerced agent name, as the `invalid` reason with the name appended):
 
 ```bash
 DB=~/.claude/learning/learning.db
-# general-purpose share  -> 21/303 = 6.9% (2026-11-07; 128/301 = 42.5% on 2026-08-15)
-sqlite3 "$DB" "SELECT COUNT(*) FILTER (WHERE agent='general-purpose'), COUNT(*) FROM evidence_route_decisions;"
-# named domain skill on those dispatches -> 16/21 = 76% (2026-11-07; 92/128 = 72% on 2026-08-15)
-sqlite3 "$DB" "SELECT COUNT(*) FILTER (WHERE skill IS NOT NULL AND skill NOT IN ('','-','workflow')), COUNT(*) FROM evidence_route_decisions WHERE agent='general-purpose';"
+sqlite3 "$DB" "SELECT agent, COUNT(*) FROM evidence_route_decisions GROUP BY agent ORDER BY 2 DESC;"
+python3 ~/.claude/scripts/learning-db.py route-health   # fallback reasons and route health
 ```
 
 State the metric as the query computes it. "Named domain skill, fallbacks excluded" is reproducible; "correct skill" is not.
 
-**Combination depth — the definition decides the number.** Depth counts filled slots with fallbacks excluded: agent named and other than `general-purpose`, skill named and other than `workflow` (the fallback skill; `process` before #993), pipeline present, stack present. The exclusion IS the metric: `general-purpose` plus the fallback skill is the impoverished route, so scoring those slots as filled would count the failure mode as a success. Counting any value present instead returned 2.48 and 10.3% on the 2026-08-15 rows (2.01 and 29.2% by this definition) — a healthier number for identical data, and the reason a depth figure quoted without its definition is worthless.
+**Combination depth — the definition decides the number.** Depth counts filled slots with fallbacks excluded: skill named and other than `workflow` (the fallback skill; `process` before #993), pipeline present, stack present. The agent slot no longer counts: every dispatch names `general-purpose`, so counting it would score every route one deeper for no routing work. Counting any value present instead of excluding fallbacks returned a healthier number for identical data (2.48 vs 2.01 on the 2026-08-15 rows, when the agent slot still counted), which is why a depth figure quoted without its definition is worthless.
 
 ```bash
 sqlite3 "$DB" "SELECT ROUND(AVG(depth),2), ROUND(100.0*SUM(depth<=1)/COUNT(*),1) FROM (
-  SELECT (agent IS NOT NULL AND agent NOT IN ('','-','general-purpose'))
-       + (skill IS NOT NULL AND skill NOT IN ('','-','workflow'))
+  SELECT (skill IS NOT NULL AND skill NOT IN ('','-','workflow'))
        + (pipeline IS NOT NULL AND pipeline NOT IN ('','-'))
        + (stack IS NOT NULL AND stack NOT IN ('','-','[]')) AS depth
-  FROM evidence_route_decisions);"   # -> 2.65 | 6.6   (2026-11-07, n=303)
+  FROM evidence_route_decisions);"
 ```
 
-Report depth against a REACHABLE maximum. On the 2026-08-15 rows `pipeline` and `matched_components` were NULL on all 301 — both columns landed after those rows were written — so the ceiling was 3, not 4. On the 2026-11-07 rows `pipeline` is set on 66 of 303, so the ceiling is 4 again. "Mean 2.01 of 4" overstates the shortfall, and "0% at depth 4" describes the schema rather than the router. SKILL.md therefore cites only the share at depth 0 or 1, which stays meaningful as the pipeline column fills because a new pipeline pick can only move a row up and out of that bucket. Confirm the ceiling before quoting the mean.
+Report depth against a REACHABLE maximum (3 slots). On the 2026-08-15 rows `pipeline` and `matched_components` were NULL on all 301, so those rows cannot exceed 2. Confirm the ceiling before quoting the mean.

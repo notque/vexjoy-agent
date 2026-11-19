@@ -35,6 +35,8 @@ def _isolate_jev_state(tmp_path, monkeypatch):
     state_dir = tmp_path / "jev_state"
     state_dir.mkdir()
     monkeypatch.setenv("JEV_STATE_DIR", str(state_dir))
+    # /d intent receipts (scripts/d_gate.py) stay inside the test's temp dir.
+    monkeypatch.setenv("VEXJOY_D_RECEIPT_DIR", str(tmp_path / "d_receipts"))
 
     # Clear in-process breaker so a previous test's trip does not leak.
     scripts_dir = Path(__file__).resolve().parents[1]

@@ -1,7 +1,6 @@
 ---
 description: "Trace pipeline test failures to generator root causes."
 user-invocable: false
-agent: pipeline-orchestrator-engineer
 allowed-tools:
   - Read
   - Write
@@ -55,7 +54,7 @@ This skill requires:
 - **Pipeline Spec Path**: Path to the Pipeline Spec JSON used to generate the pipelines
 - **Domain**: The domain name (e.g., `prometheus`, `rabbitmq`)
 
-These are provided by `pipeline-orchestrator-engineer` when invoking Phase 6 (RETRO).
+These are provided by the pipeline orchestrator (`pipeline-orchestrator.md`) when invoking Phase 6 (RETRO).
 
 ### Phase 1: INGEST (Load Test Results)
 
@@ -411,6 +410,6 @@ Save the report to the pipeline run directory alongside the test runner output.
 
 ## References
 
-- **Pipeline Orchestrator**: [agents/pipeline-orchestrator-engineer.md](../../agents/pipeline-orchestrator-engineer.md) -- The agent that invokes this skill as Phase 6
+- **Pipeline Orchestrator**: [pipeline-orchestrator.md](pipeline-orchestrator.md) -- The orchestrator reference that runs this skill as Phase 6
 - **Three-Layer Pattern ADR**: [adr/self-improving-pipeline-generator.md](../../adr/self-improving-pipeline-generator.md) -- Design rationale for Layer 1/2/3 discipline
 - **Workflow Skill**: [skills/process/workflow/SKILL.md](../SKILL.md) -- Consolidated workflow skill (replaces chain-composer, pipeline-scaffolder, pipeline-test-runner, domain-research)

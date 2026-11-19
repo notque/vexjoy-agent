@@ -1,7 +1,6 @@
 ---
 description: "5-phase hook creation pipeline with performance gates."
 user-invocable: false
-agent: hook-development-engineer
 allowed-tools:
   - Read
   - Bash
@@ -16,7 +15,7 @@ routing:
     - new hook formal
     - hook with gates
   pairs_with:
-    - hook-development-engineer
+    - toolkit
     - systematic-debugging
   complexity: Medium
   category: infrastructure
@@ -97,7 +96,7 @@ Output format: {"additionalContext": "..."}
 
 **Goal**: Write the hook Python file following established patterns.
 
-Dispatch to `hook-development-engineer` using the Agent tool with the spec from Phase 1. The spec is the brief; the engineer writes the code. The engineer is NOT in pipeline mode and cannot enforce lazy imports or the exit-0 pattern independently — you will validate these in Phase 3.
+Dispatch a `general-purpose` worker whose prompt starts "Read ~/.claude/skills/toolkit/references/hook-development.md and follow it", with the spec from Phase 1 as the brief; the worker writes the code. The worker is NOT in pipeline mode and cannot enforce lazy imports or the exit-0 pattern independently — you will validate these in Phase 3.
 
 **Required structure** (verify before accepting Phase 2 output):
 
@@ -294,13 +293,13 @@ Docs:
 **Cause**: Settings file has trailing commas, comments, or other non-standard JSON.
 **Solution**: Run `python3 -m json.tool .claude/settings.json` to identify the parse error location. Fix the JSON syntax error before proceeding. Do not write a broken settings file.
 
-### Error: Engineer produces hook without lazy imports
-**Cause**: The dispatch to `hook-development-engineer` in Phase 2 produces top-level imports that violate the performance budget. The engineer is not in pipeline mode and may not enforce the lazy-import constraint.
+### Error: Worker produces hook without lazy imports
+**Cause**: The Phase 2 hook worker produces top-level imports that violate the performance budget. The worker is not in pipeline mode and may not enforce the lazy-import constraint.
 **Solution**: Review the Phase 2 output before accepting it as complete. Move any non-stdlib top-level imports inside the functions that use them. Re-run Phase 3 performance check after refactoring.
 
 ---
 
 ## References
 
-- [Hook Development Engineer](../../agents/hook-development-engineer.md) - Agent dispatched in Phase 2 for implementation
+- [Hook development reference](../../../meta/toolkit/references/hook-development.md) - Loaded by the Phase 2 implementation worker
 - [Claude Code Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks) - Official hooks event types, JSON schemas, and registration format

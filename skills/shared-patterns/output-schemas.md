@@ -27,7 +27,7 @@ Standardized output patterns for different agent types. Agents SHOULD use the ap
 - [ ] [Follow-up if any]
 ```
 
-**Used by:** golang-general-engineer, python-general-engineer, typescript-frontend-engineer, database-engineer, kubernetes-helm-engineer, ansible-automation-engineer, and other implementation agents
+**Used by:** `programming` (`golang-general.md`, `python-general.md`), `frontend` (`typescript-frontend.md`), `data` (`database.md`), `kubernetes` (`kubernetes-helm.md`, `ansible-automation.md`), and other implementation references
 
 ---
 
@@ -53,7 +53,7 @@ Standardized output patterns for different agent types. Agents SHOULD use the ap
 - [ ] [Action item]
 ```
 
-**Used by:** performance-optimization-engineer, assessment, research-coordinator-engineer
+**Used by:** `frontend` (`performance-optimization.md`), `assessment`, `research` (`research-coordinator.md`)
 
 ---
 
@@ -95,7 +95,7 @@ Standardized output patterns for different agent types. Agents SHOULD use the ap
 - **NEEDS_CHANGES**: Issues found but not blocking, request changes
 - **BLOCK**: Critical issues, do not merge until resolved
 
-**Used by:** reviewer-system, reviewer-domain, review skill, all roaster agents
+**Used by:** `review` skill (`reviewer-system.md`, `reviewer-domain.md`), all roaster personas
 
 ---
 
@@ -129,7 +129,7 @@ Standardized output patterns for different agent types. Agents SHOULD use the ap
 - [Risk and mitigation]
 ```
 
-**Used by:** workflow-orchestrator skill, project-coordinator-engineer
+**Used by:** `workflow` skill (`project-coordinator.md`)
 
 ---
 
@@ -174,7 +174,7 @@ Standardized output patterns for different agent types. Agents SHOULD use the ap
 
 ## Extending Schemas
 
-Domain-specific agents may extend base schemas:
+Domain-specific references may extend base schemas:
 
 ```markdown
 ## [Base Schema Sections]
@@ -183,6 +183,6 @@ Domain-specific agents may extend base schemas:
 [Additional content for this domain]
 ```
 
-For example, `reviewer-system` extends Reviewer Schema with:
+For example, the `review` skill's `reviewer-system.md` extends Reviewer Schema with:
 - OWASP Top 10 Coverage
 - Compliance Status

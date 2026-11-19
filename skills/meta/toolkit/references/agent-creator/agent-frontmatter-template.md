@@ -2,6 +2,7 @@
 
 > **Scope**: Complete annotated YAML frontmatter template for vexjoy-agent operator `.md` files. Covers all required fields, valid values, complexity tier definitions, and INDEX.json registration.
 > **Load when**: writing agent frontmatter, auditing field compliance, or diagnosing routing failures.
+> **Overlay-only after plan 009**: repo agents are retired, so this template applies only to a private overlay agent the owner asked for. That file lives in `private-agents/` and is indexed into `agents/INDEX.local.json`. Repo domain expertise goes in a skill reference instead (`references/agent-creator.md`). The Description Craft section also applies to skill descriptions and Reference Loading Table signals.
 
 ---
 
@@ -115,7 +116,7 @@ A strong description does three jobs in 60–120 characters:
 |-----|-----------------|---------|
 | State the **intent** | The user goal, not internals | "Diagnose canary deployment health" |
 | Name **adjacent terms** | 2–3 phrases the user might actually say | "canary, rollout, traffic split" |
-| Mark a **false-positive boundary** | One thing this agent is NOT for, with a redirect | "Not for: editing manifests — see kubernetes-helm-engineer" |
+| Mark a **false-positive boundary** | One thing this agent is NOT for, with a redirect | "Not for: editing manifests — see the kubernetes skill" |
 
 ### Pattern
 
@@ -127,9 +128,9 @@ description: "<intent verb + domain object>: <2–3 adjacent terms>. Not for <of
 
 | Bad | Why it fails | Better |
 |-----|--------------|--------|
-| `"Helps with Kubernetes"` | No intent, no adjacent terms, no boundary | `"Diagnose canary rollouts: traffic-split health, baseline comparison, rollback signals. Not for manifest edits — see kubernetes-helm-engineer."` |
+| `"Helps with Kubernetes"` | No intent, no adjacent terms, no boundary | `"Diagnose canary rollouts: traffic-split health, baseline comparison, rollback signals. Not for manifest edits — see the kubernetes skill."` |
 | `"Use this skill when you need to write Go code"` | Banned "Use this skill when" prefix; no adjacent terms | `"Go feature work: idiomatic patterns, table-driven tests, error wrapping, race-free concurrency."` |
-| `"Reviews stuff"` | No domain, no intent, no adjacent terms | `"Code review: convention checks, dead-code detection, performance regressions. Not for security audits — see reviewer-system."` |
+| `"Reviews stuff"` | No domain, no intent, no adjacent terms | `"Code review: convention checks, dead-code detection, performance regressions. Not for security audits — see the security skill."` |
 
 ### Test the description against routing
 
@@ -178,16 +179,16 @@ for f in glob.glob('agents/*.md'):
 
 ## INDEX.json Registration
 
-After writing the agent file, register it in the routing index. The router cannot discover unregistered agents.
+After writing the overlay agent file, register it in the private-inclusive index. The router cannot discover unregistered agents.
 
 ```bash
-# Regenerate agents index
-python3 scripts/generate-agent-index.py
+# Regenerate the private-inclusive agents index (writes agents/INDEX.local.json)
+python3 scripts/generate-agent-index.py --include-private
 
 # Verify the new agent appears
 python3 -c "
 import json
-d = json.load(open('agents/INDEX.json'))
+d = json.load(open('agents/INDEX.local.json'))
 agents = d.get('agents', [])
 print(f'Registered: {len(agents)}')
 names = [a.get('name') for a in agents] if isinstance(agents, list) else list(agents.keys())
@@ -205,14 +206,14 @@ python3 scripts/generate-skill-index.py
 
 ## Post-Write Checklist
 
-After writing an agent `.md` file, run these in order:
+After writing an overlay agent `.md` file in `private-agents/`, run these in order (the `agents/*.md` paths in the commands above read `private-agents/*.md` for an overlay agent):
 
-1. YAML parse: `python3 -c "import yaml; yaml.safe_load(open('agents/{name}.md').read().split('---')[1])"`
+1. YAML parse: `python3 -c "import yaml; yaml.safe_load(open('private-agents/{name}.md').read().split('---')[1])"`
 2. Positive framing: `python3 scripts/validate_positive_instruction_docs.py` (scans all tracked .md files)
-3. Reference structure: `python3 scripts/validate-references.py --agent {name}` (if references/ exists)
+3. Reference structure: `python3 scripts/validate-references.py --agent {name} --agents-dir private-agents` (if references/ exists)
 4. pairs_with existence: verify each listed agent/skill exists on disk
-5. INDEX registration: `python3 scripts/generate-agent-index.py`
-6. Trigger conflicts: run duplicate trigger detection from `agents/toolkit-governance-engineer/references/routing-table-patterns.md`
+5. INDEX registration: `python3 scripts/generate-agent-index.py --include-private`
+6. Trigger conflicts: run duplicate trigger detection from `references/toolkit-governance/routing-table-patterns.md`
 7. Description triggers on adjacent terms: confirm 3 should-trigger phrases route to this agent and 2 near-miss phrases route elsewhere (mental pass at minimum)
 
 All seven steps must pass before the agent is committed.

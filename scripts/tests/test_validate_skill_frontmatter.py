@@ -549,7 +549,7 @@ class TestAgentDescription:
         assert any("Missing or empty description" in e for e in vsf.validate_agent(agent_file))
 
     def test_file_without_frontmatter_is_not_an_agent(self, tmp_path: Path) -> None:
-        shared = tmp_path / "agents" / "base-instructions.md"
+        shared = tmp_path / "agents" / "shared-prompt.md"
         shared.parent.mkdir(parents=True)
         shared.write_text("# Shared instructions\n", encoding="utf-8")
         assert vsf.validate_agent(shared) == []
@@ -561,6 +561,6 @@ class TestAgentDescription:
         assert "400 bytes" in result.stdout
 
     def test_every_repo_agent_passes(self) -> None:
+        # The repo ships no agents since plans/009; any that remain must pass.
         agents = sorted((SCRIPT.parent.parent / "agents").glob("*.md"))
-        assert agents
         assert [e for a in agents for e in vsf.validate_agent(a)] == []

@@ -42,6 +42,14 @@ routing:
     - "reorganize"
     - "structured pipeline"
     - "phased execution"
+    - "multi-agent"
+    - "task management"
+    - "agent coordination"
+    - "create pipeline"
+    - "new pipeline"
+    - "scaffold pipeline"
+    - "build pipeline"
+    - "pipeline creator"
   category: process
   pairs_with:
     - review
@@ -238,6 +246,15 @@ stop. Budget exhausted: report what worked and what remains.
 For structured multi-phase work that does not fit the four modes above. Identify
 the workflow from the table, load its reference, follow its phases exactly.
 
+### Worker Dispatch
+
+Repo agents are retired. A phase that dispatches a worker uses a fresh
+`general-purpose` agent and names its domain in the prompt: the Skill call,
+then "Read ~/.claude/skills/<skill>/references/<file> and follow it; load every
+file its Reference Loading Table matches." Each review or verification pass is
+its own fresh worker. `references/project-coordinator/agent-capability-map.md`
+maps task types to skill references.
+
 ### Cost Gate
 
 Ask first: does this need a multi-agent workflow? Skip the workflow when:
@@ -295,6 +312,8 @@ under `${CLAUDE_SKILL_DIR}`.
 | Orchestration | DAG examples | `references/dag-orchestration-examples.md` |
 | Orchestration | DAG advanced | `references/dag-orchestration-advanced.md` |
 | Orchestration | Feedback loop | `references/feedback-loop-construction.md` |
+| Orchestration | Multi-worker project coordination: task breakdown, dependencies, death-loop prevention | `references/project-coordinator.md` |
+| Creation | New multi-component pipeline: fan-out/fan-in scaffolding, reuse, routing integration | `references/pipeline-orchestrator.md` |
 
 ### Terminology
 

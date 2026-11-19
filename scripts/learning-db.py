@@ -21,7 +21,7 @@ Usage:
     python3 scripts/learning-db.py evidence-failures [--json]
     python3 scripts/learning-db.py evidence-decide AGENT:SKILL [--json]
     python3 scripts/learning-db.py review-roi [--json]
-    python3 scripts/learning-db.py record-review-fp --reviewer reviewer-code --finding "unused import" --reason "import used in test"
+    python3 scripts/learning-db.py record-review-fp --reviewer review --finding "unused import" --reason "import used in test"
     python3 scripts/learning-db.py review-fps [--json] [--min-confidence 0.5]
     python3 scripts/learning-db.py stack-usage [--json]
     python3 scripts/learning-db.py backfill-stack-usage [--force]
@@ -65,8 +65,16 @@ from learning_db_v2 import (
 _NON_ROUTE_KEY_PREFIXES = ("stack-usage:", "fallback-reason:")
 
 
+# routing-decision-recorder.py writes `routing-decision: agent=x skill=y
+# tool_errors=0 user_rerouted=0 request: ...`: space-separated k=v tokens, not
+# ` | ` pairs. No writer has produced `force_used` or `llm_override` since the
+# recorder took this shape, so those dimensions report "not instrumented".
+_VALUE_TOKEN_RE = re.compile(r"\b(tool_errors|user_rerouted)=(\d)\b")
+_UNINSTRUMENTED_DIMENSIONS = ("force-route", "override")
+
+
 def _route_records() -> list[dict[str, str | int]]:
-    """Route-decision rows, each parsed from its pipe-delimited value. Bookkeeping rows are dropped."""
+    """Route-decision rows, each parsed from its value (legacy ` | ` pairs and k=v tokens). Bookkeeping rows are dropped."""
     results = query_learnings(topic="routing", category="effectiveness", limit=10000, exclude_graduated=False)
     records: list[dict[str, str | int]] = []
     for r in results:
@@ -77,6 +85,11 @@ def _route_records() -> list[dict[str, str | int]]:
             if ": " in pair:
                 k, v = pair.split(": ", 1)
                 parsed[k.strip()] = v.strip()
+        head, _sep, request = r["value"].partition(" request: ")
+        for k, v in _VALUE_TOKEN_RE.findall(head):
+            parsed.setdefault(k, v)
+        if request and "request" not in parsed:
+            parsed["request"] = request.strip()
         records.append(parsed)
     return records
 
@@ -93,14 +106,14 @@ def _route_stats_report(records: list[dict[str, str | int]], dimension: str) -> 
         report["counts"] = [{"name": name, "count": count} for name, count in counts.most_common()]
     elif dimension == "force-route":
         force = sum(1 for r in records if r.get("force_used") == "1" or "force-route" in str(r.get("key", "")))
-        report.update(force_routed=force, scored=total - force)
+        report.update(force_routed=force, scored=total - force, instrumented=force > 0)
     elif dimension == "errors":
         report["errored"] = [
             {"key": str(r["key"]), "request": str(r.get("request", ""))} for r in records if r.get("tool_errors") == "1"
         ]
     elif dimension == "override":
         overrides = sum(1 for r in records if r.get("llm_override") == "1")
-        report.update(llm_override=overrides, phase0_as_is=total - overrides)
+        report.update(llm_override=overrides, phase0_as_is=total - overrides, instrumented=overrides > 0)
     return report
 
 
@@ -124,6 +137,12 @@ def cmd_route_stats(args: argparse.Namespace) -> None:
 
     if not records:
         print("No routing data found. Run sessions with /do to capture routing decisions.")
+        return
+    if dimension in _UNINSTRUMENTED_DIMENSIONS and not report.get("instrumented"):
+        print(
+            f"route-stats --by {dimension}: not instrumented. No recorder writes this field today; "
+            "a 0 here means unmeasured, not absent. Use scripts/router-metrics.py for router and execution splits."
+        )
         return
 
     total = len(records)
@@ -825,35 +844,55 @@ def _read_basis_counts() -> dict[str, int]:
 
 # ─── Counter-metrics to the fallback rate ────────────────────────────────────
 #
-# Fallback rate ALONE is gameable. A router told to minimize it can route
-# everything to one specialist (python-general-engineer is already 27.9% of
-# traffic) and score a perfect 0% with zero accuracy gain. So the fallback rate
-# is only ever printed alongside three counters that such a move would blow up:
-# top-2 concentration, distribution entropy, and the observed misroute /
-# route-fit negative rates. Read from evidence_route_decisions (one row per
-# dispatch), NOT from the aggregated learnings rows — those are one row per
-# route KEY, so they cannot measure traffic share.
-_FALLBACK_AGENT = "general-purpose"
-# High side only. Above the alarm the router is not routing. Both numbers are
-# starting values nobody measured; treat the label as a prompt to look, not a
-# verdict. There is no low alarm: a low fallback rate is the wanted result
-# (specialists took the work), and the old ALARM-LOW fired on it. A rate pushed
-# low by routing everything to one agent shows in top-2 concentration and
-# entropy, printed on the next lines.
+# Since the specialist agents retired (plans/009) every dispatch runs on the
+# built-in general-purpose worker (or the main thread) and the skill carries the
+# domain, so agent=general-purpose is the normal worker, not a fallback. A
+# fallback is now a COERCION: build-dispatch.py replaced an agent name that is
+# neither built-in nor a private overlay agent and appended
+# `fallback=invalid-agent:<name>` to the marker; routing-decision-recorder.py
+# counts each in a `fallback-reason:<slug>` learnings row. No schema change.
+#
+# The rate alone is gameable, so it prints beside counters over the SKILL
+# distribution (the routing choice that remains): top-2 concentration,
+# distribution entropy, and the observed misroute / route-fit negative rates.
+# Dispatch totals come from evidence_route_decisions (one row per dispatch),
+# not the aggregated learnings rows, which are one row per route KEY.
+_WORKER_AGENT = "general-purpose"
+_COERCION_REASON_PREFIX = "fallback-reason:invalid-agent:"
+# High side only. Above the alarm the router keeps naming agents that cannot be
+# dispatched. Both numbers are starting values nobody measured; treat the label
+# as a prompt to look, not a verdict. There is no low alarm: no coercions is the
+# wanted result.
 _FALLBACK_WATCH_HIGH = 15.0
 _FALLBACK_ALARM_HIGH = 20.0
-_TOP2_TARGET = 50.0  # top-2 agent share; above this the "distribution" is two agents
+_TOP2_TARGET = 50.0  # top-2 skill share; above this the "distribution" is two skills
 _ROUTE_FIT_BASIS_PREFIX = "route_fit:"
 
 
-def _read_agent_distribution() -> dict[str, int]:
-    """Dispatches per agent from evidence_route_decisions. {} on any error."""
+def _read_skill_distribution() -> dict[str, int]:
+    """Dispatches per skill from evidence_route_decisions ("-" for none). {} on any error."""
     try:
         with get_connection() as conn:
-            rows = conn.execute("SELECT agent, COUNT(*) AS n FROM evidence_route_decisions GROUP BY agent").fetchall()
-        return {row["agent"]: int(row["n"] or 0) for row in rows if row["agent"]}
+            rows = conn.execute(
+                "SELECT COALESCE(NULLIF(skill, ''), '-') AS skill, COUNT(*) AS n "
+                "FROM evidence_route_decisions GROUP BY 1"
+            ).fetchall()
+        return {row["skill"]: int(row["n"] or 0) for row in rows if row["skill"]}
     except Exception:
         return {}
+
+
+def _read_coercion_count() -> int:
+    """Invalid-agent coercions: summed `fallback-reason:invalid-agent:*` rows. 0 on error."""
+    try:
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT SUM(observation_count) AS n FROM learnings WHERE topic = 'routing' AND key LIKE ?",
+                (f"{_COERCION_REASON_PREFIX}%",),
+            ).fetchone()
+        return int(row["n"] or 0) if row else 0
+    except Exception:
+        return 0
 
 
 def _read_route_fit_counts() -> dict[str, int]:
@@ -899,15 +938,14 @@ def _fallback_band(pct: float) -> str:
     return "OK"
 
 
-def _routing_shape(dist: dict[str, int]) -> dict:
-    """Fallback rate + concentration + entropy for one agent distribution.
+def _routing_shape(dist: dict[str, int], coercions: int = 0) -> dict:
+    """Fallback (coercion) rate + skill concentration + skill entropy.
 
-    Entropy is Shannon over the agent traffic shares, in bits. It is the
-    counter-metric that cannot be gamed by shifting traffic: moving every
-    fallback onto ONE specialist lowers the fallback rate and lowers entropy at
-    the same time, so the trade shows up instead of reading as a win.
-    `effective_agents` (2**H) restates it as "this traffic behaves like N evenly
-    used agents" — comparable across different agent-roster sizes.
+    Entropy is Shannon over the skill traffic shares, in bits. It is the
+    counter-metric that cannot be gamed by shifting traffic: routing every
+    request to ONE catch-all skill lowers entropy, so the move shows up instead
+    of reading as a win. `effective_skills` (2**H) restates it as "this traffic
+    behaves like N evenly used skills".
     """
     total = sum(dist.values())
     if not total:
@@ -918,21 +956,21 @@ def _routing_shape(dist: dict[str, int]) -> dict:
     top2 = ordered[:2]
     entropy = -sum((n / total) * math.log2(n / total) for n in dist.values() if n > 0)
     max_entropy = math.log2(len(dist)) if len(dist) > 1 else 0.0
-    fallback_n = dist.get(_FALLBACK_AGENT, 0)
+    fallback_n = min(coercions, total)
     fallback_pct = fallback_n / total * 100
     return {
         "dispatch_total": total,
-        "distinct_agents": len(dist),
+        "distinct_skills": len(dist),
         "fallback_count": fallback_n,
         "fallback_rate_pct": round(fallback_pct, 1),
         "fallback_band": _fallback_band(fallback_pct),
-        "top2_agents": [name for name, _ in top2],
+        "top2_skills": [name for name, _ in top2],
         "top2_concentration_pct": round(sum(n for _, n in top2) / total * 100, 1),
         "top2_target_pct": _TOP2_TARGET,
-        "agent_entropy_bits": round(entropy, 2),
-        "agent_entropy_max_bits": round(max_entropy, 2),
-        "agent_entropy_normalized": round(entropy / max_entropy, 2) if max_entropy else None,
-        "effective_agents": round(2**entropy, 1),
+        "skill_entropy_bits": round(entropy, 2),
+        "skill_entropy_max_bits": round(max_entropy, 2),
+        "skill_entropy_normalized": round(entropy / max_entropy, 2) if max_entropy else None,
+        "effective_skills": round(2**entropy, 1),
     }
 
 
@@ -955,23 +993,23 @@ def _print_routing_shape(shape: dict, fit: dict, misroutes: int) -> None:
         print("Fallback rate: no dispatch rows yet (evidence_route_decisions is empty)")
         return
     print(
-        f"Fallback rate: {shape['fallback_count']}/{total} dispatches went to "
-        f"{_FALLBACK_AGENT} ({shape['fallback_rate_pct']:.1f}%) — {shape['fallback_band']}"
+        f"Fallback rate: {shape['fallback_count']}/{total} dispatches named an agent that could not be "
+        f"dispatched and fell back to {_WORKER_AGENT} ({shape['fallback_rate_pct']:.1f}%) — {shape['fallback_band']}"
     )
     print(
         f"  watch above {_FALLBACK_WATCH_HIGH:.0f}%; alarm above {_FALLBACK_ALARM_HIGH:.0f}% "
         "(unmeasured starting values); no low alarm, read a low rate against the two lines below"
     )
     print(
-        f"Top-2 agent concentration: {shape['top2_concentration_pct']:.1f}% "
-        f"({', '.join(shape['top2_agents'])}) — target below {_TOP2_TARGET:.0f}%"
+        f"Top-2 skill concentration: {shape['top2_concentration_pct']:.1f}% "
+        f"({', '.join(shape['top2_skills'])}) — target below {_TOP2_TARGET:.0f}%"
     )
-    norm = shape["agent_entropy_normalized"]
+    norm = shape["skill_entropy_normalized"]
     norm_text = f", normalized {norm:.2f}" if norm is not None else ""
     print(
-        f"Agent distribution entropy: {shape['agent_entropy_bits']:.2f} bits of "
-        f"{shape['agent_entropy_max_bits']:.2f} max{norm_text} across "
-        f"{shape['distinct_agents']} agents (effective agents {shape['effective_agents']:.1f})"
+        f"Skill distribution entropy: {shape['skill_entropy_bits']:.2f} bits of "
+        f"{shape['skill_entropy_max_bits']:.2f} max{norm_text} across "
+        f"{shape['distinct_skills']} skills (effective skills {shape['effective_skills']:.1f})"
     )
     if misroutes:
         print(f"Misroute rate: {misroutes}/{total} dispatches reported a misroute ({misroutes / total * 100:.1f}%)")
@@ -1031,6 +1069,10 @@ def cmd_route_health(args: argparse.Namespace) -> None:
         exclude_graduated=False,
         exclude_test_sources=False,
     )
+    # stack-usage:/fallback-reason: rows share the topic and category but are
+    # counters, not routes; they never get an outcome, so counting them inflated
+    # the "no outcome" share (43 of 133 rows on 2026-11-17).
+    results = [r for r in results if not str(r["key"]).startswith(_NON_ROUTE_KEY_PREFIXES)]
 
     total = len(results)
     if total == 0:
@@ -1080,10 +1122,9 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     corr_instrumented = bool(corrections)
     unattributed_corr = len(corr_sessions - routed_sessions)
 
-    # Fallback rate + its counter-metrics. Never report one without the others:
-    # the fallback rate on its own is minimized by routing everything to a
-    # single agent, which these three make visible.
-    shape = _routing_shape(_read_agent_distribution())
+    # Fallback (coercion) rate + its counter-metrics. Never report one without
+    # the others: the skill counters show traffic collapsing onto one skill.
+    shape = _routing_shape(_read_skill_distribution(), _read_coercion_count())
     fit = _route_fit_summary(_read_route_fit_counts())
     misroutes = _read_misroute_count()
     dispatch_total = shape.get("dispatch_total", 0)
@@ -1169,12 +1210,14 @@ def _read_handoff_report() -> dict:
     """Handoff-completeness summary over scored evidence_route_decisions rows.
 
     Scored means spec_score IS NOT NULL: /do Agent dispatches recorded after the
-    v10 migration with the kill switch off. Read-only.
+    v10 migration with the kill switch off. Main-thread routes (agent=main) are
+    excluded: their "prompt" is the bare marker, so they always score 0 and
+    have no handoff to measure. Read-only.
     """
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT spec_score, spec_missing, prompt_chars, outcome_basis, created_at "
-            "FROM evidence_route_decisions WHERE spec_score IS NOT NULL"
+            "FROM evidence_route_decisions WHERE spec_score IS NOT NULL AND agent != 'main'"
         ).fetchall()
     if not rows:
         return {"scored": 0}
@@ -1571,7 +1614,7 @@ def main():
 
     # record-routing-outcome
     p_rro = subparsers.add_parser("record-routing-outcome", help="Record routing decision outcome")
-    p_rro.add_argument("agent_skill", help="Routing key (e.g., golang-general-engineer:go-patterns)")
+    p_rro.add_argument("agent_skill", help="Routing key (e.g., general-purpose:programming)")
     p_rro_group = p_rro.add_mutually_exclusive_group(required=True)
     p_rro_group.add_argument("--success", action="store_true", help="Route succeeded")
     p_rro_group.add_argument("--failure", action="store_true", help="Route failed")
@@ -1580,7 +1623,7 @@ def main():
 
     # route-failure — orchestrator-reported routing failure (ADR: orchestrator-reported-route-failures)
     p_rf = subparsers.add_parser("route-failure", help="Record an orchestrator-reported routing failure")
-    p_rf.add_argument("agent_skill", help="Routing key (e.g., golang-general-engineer:go-patterns)")
+    p_rf.add_argument("agent_skill", help="Routing key (e.g., general-purpose:programming)")
     p_rf_reason = p_rf.add_mutually_exclusive_group(required=True)
     p_rf_reason.add_argument("--reason", help="Why the route failed (recorded with the event)")
     p_rf_reason.add_argument(
@@ -1615,7 +1658,7 @@ def main():
 
     # record-review-fp (structured review false-positive recording)
     p_rrfp = subparsers.add_parser("record-review-fp", help="Record a review false positive with full metadata")
-    p_rrfp.add_argument("--reviewer", required=True, help="Reviewer agent name (e.g., reviewer-code)")
+    p_rrfp.add_argument("--reviewer", required=True, help="Reviewer name (e.g., the review skill or a review lens)")
     p_rrfp.add_argument("--finding", required=True, help="The review finding text that was wrong")
     p_rrfp.add_argument("--reason", required=True, help="Why the finding was judged wrong")
     p_rrfp.add_argument("--source-file", help="Source file or skill the finding was about")

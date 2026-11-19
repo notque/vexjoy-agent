@@ -236,11 +236,12 @@ Locate ADR (user path, `.adr-session.json`, or ask). Validate via
 
 ### Phase 2: DISPATCH (parallel)
 
-Launch all 3 agents in ONE message. Load `references/adr-consultation/agent-prompts.md`
-for prompt templates:
-1. **Contrarian** (reviewer-perspectives): challenge assumptions, simpler alternatives
-2. **User advocate** (reviewer-perspectives): user impact, cognitive load
-3. **Meta-process** (reviewer-perspectives): system health, coupling, SPOF
+Launch all 3 agents in ONE message, each a fresh `general-purpose` worker that reads
+`~/.claude/skills/review/references/reviewer-perspectives.md` and applies one lens. Load
+`references/adr-consultation/agent-prompts.md` for prompt templates:
+1. **Contrarian** (`reviewer-perspectives.md`): challenge assumptions, simpler alternatives
+2. **User advocate** (`reviewer-perspectives.md`): user impact, cognitive load
+3. **Meta-process** (`reviewer-perspectives.md`): system health, coupling, SPOF
 
 For complex decisions, add 2 more agents (see agent-prompts.md).
 

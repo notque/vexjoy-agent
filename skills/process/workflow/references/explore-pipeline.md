@@ -27,7 +27,7 @@ routing:
     - "what is in this repo"
   pairs_with:
     - codebase-overview
-    - technical-documentation-engineer
+    - writing
   complexity: medium
   category: meta
 ---

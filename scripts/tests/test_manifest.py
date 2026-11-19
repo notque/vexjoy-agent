@@ -446,8 +446,8 @@ class TestCLIIntegration:
     """Integration tests running the script as a subprocess."""
 
     def test_snapshot_single_file(self) -> None:
-        """Snapshot a real agent file via CLI."""
-        result = run_script("snapshot", "agents/golang-general-engineer.md")
+        """Snapshot a real component file via CLI (the repo agents are retired; use a skill)."""
+        result = run_script("snapshot", "skills/meta/do/SKILL.md")
         assert ".claude/manifests/upgrade-" in result.stdout
 
         # Clean up created manifest and backup

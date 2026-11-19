@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: "Frontend: UI design, distinctive visual styles, HTML artifacts, Three.js 3D."
+description: "Frontend: UI design, distinctive visual styles, HTML artifacts, Three.js 3D, TypeScript/React/Next.js apps, e-commerce, portfolios, React Native, web performance."
 user-invocable: true
 allowed-tools:
   - Read
@@ -14,7 +14,7 @@ allowed-tools:
   - Skill
 routing:
   force_route: false
-  not_for: "game UI (use game-dev), backend work (use workflow), brand or logo design without code"
+  not_for: "game UI and combat rendering (use game-dev), backend work (use workflow), brand or logo design without code, TypeScript race conditions or runtime exceptions (use programming), backend or algorithmic performance in a specific language (use programming)"
   triggers:
     - "design"
     - "UX copy"
@@ -41,10 +41,47 @@ routing:
     - "powerpoint"
     - "slide deck"
     - "design critique"
+    - "react"
+    - "next.js"
+    - "frontend"
+    - ".tsx"
+    - "zod"
+    - "UI"
+    - "tailwind"
+    - "responsive"
+    - "animations"
+    - "portfolio"
+    - "gallery"
+    - "react portfolio"
+    - "art website"
+    - "image gallery"
+    - "lightbox"
+    - "next.js e-commerce"
+    - "nextjs ecommerce"
+    - "shopping cart"
+    - "stripe"
+    - "e-commerce"
+    - "online store"
+    - "product catalog"
+    - "react native"
+    - "expo"
+    - "reanimated"
+    - "flashlist"
+    - "hermes"
+    - "react-navigation"
+    - "gesture handler"
+    - "native stack"
+    - "core web vitals"
+    - "LCP"
+    - "bundle size"
+    - "render performance"
+    - "web performance"
+    - "lighthouse"
   category: frontend
   pairs_with:
-    - typescript-frontend-engineer
-    - ui-design-engineer
+    - code-quality
+    - programming
+    - testing
     - game-dev
 ---
 
@@ -53,7 +90,10 @@ routing:
 Four modes: **Design** (UX copy, design systems, critique, accessibility, handoff,
 research), **Distinctive** (surface check, then brand-led visual direction for
 landing and campaign pages), **HTML-Artifact** (self-contained HTML generation with 8 shapes), and
-**Three.js** (3D web apps in imperative, R3F, or WebGPU paradigms).
+**Three.js** (3D web apps in imperative, R3F, or WebGPU paradigms). App
+engineering (TypeScript, React, Next.js, commerce, portfolios, React Native, web
+performance) loads one reference from the App Engineering table. When dispatch
+pays, use a `general-purpose` worker that loads this skill and that reference.
 
 ## Load first for any UI work
 
@@ -69,6 +109,7 @@ Classify the request into one mode before loading references.
 | **DISTINCTIVE** | Frontend design, typography, visual identity, anti-cliche, text animation, card effects | `references/distinctive-frontend-design-refs/` per step |
 | **HTML-ARTIFACT** | HTML artifact, make HTML, as HTML, rich visualization, interactive document, pptx, deck | `references/html-artifact-refs/` per shape |
 | **THREEJS** | Three.js, 3D scene, WebGL, WebGPU, react three fiber, R3F, GLTF | `references/threejs-builder-refs/` per paradigm |
+| **APP ENGINEERING** | TypeScript, React, Next.js, Tailwind, Zod, e-commerce, Stripe, portfolio, gallery, React Native, Expo, Core Web Vitals, bundle size | One file from the App Engineering table below |
 
 ---
 
@@ -265,6 +306,19 @@ Remove debug helpers. Handle window resize. Verify visible lighting. Run the ver
 ## Deep References
 
 Load on demand when the task needs detailed patterns, examples, or specifications:
+
+### App Engineering
+
+Each file holds hard rules, workflow, and its own loading table for `references/<slug>/`.
+
+| Signal | Load |
+|--------|------|
+| TypeScript, React, Next.js, `.tsx`, Zod, tsconfig, React 19 migration, type-safe state or API clients, build config | `references/typescript-frontend.md` |
+| UI implementation: Tailwind, design tokens, responsive layout, accessibility, animations, interaction states, AI-slop cleanup | `references/ui-design.md` |
+| Portfolio, gallery, art website, image gallery, lightbox, artist site | `references/react-portfolio.md` |
+| Next.js e-commerce, shopping cart, Stripe, checkout, product catalog, online store, admin dashboard | `references/nextjs-ecommerce.md` |
+| React Native, Expo, Reanimated, FlashList, Hermes, react-navigation, gesture handler, native stack | `references/react-native.md` |
+| Core Web Vitals, LCP, INP, CLS, bundle size, render performance, Lighthouse, RUM, performance budgets | `references/performance-optimization.md` |
 
 ### Design Refs
 

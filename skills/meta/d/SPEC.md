@@ -1,15 +1,18 @@
-# SPEC: /d — session-pick router with Jev validation
+# SPEC: /d — session-pick router, main loop, Jev validation
 
 Maintenance contract. Load only when creating, evaluating, or redesigning
 this skill — not during ordinary routing (SKILL.md's phases are the runtime
 contract).
 
 ## Purpose
-Alternate entry point to `/do`. The session model picks the agent, skill, and
-pipeline from the full routing manifest with `/do`'s own rule text. Jev
-validates that the restated outcome survives the route and answers the
-attachment questions. Intent preservation is production behavior: the router
-must return the requested apple, not expand it into an orchard.
+Alternate entry point to `/do`, and the comparison arm for the single-loop
+setup (plans/009 L6). The session model picks the skill, pipeline, and stack
+from the full routing manifest with `/do`'s own rule text, then does the work
+in the main loop with the skill loaded. It dispatches only when a dispatch
+pays. Jev validates that the restated outcome survives the route and answers
+the attachment questions. Intent preservation is production behavior: the
+router must return the requested apple, not expand it into an orchard. The
+owner judges whether this setup beats `/do`.
 
 ## Scope
 - Run the force-route guard and one Jev attachment evaluation before the pick,
@@ -17,17 +20,23 @@ must return the requested apple, not expand it into an orchard.
 - Validate the pick against the live manifest and compute `attach` after it,
   via `scripts/jev-route.py --finalize`.
 - Print `/do`'s Phase 2 rule text for the pick, via `scripts/print-route-rules.py`.
-- Execute Phase 5 (Task Spec + `build-dispatch.py`) identically to `/do`.
+- Execute Phase 5 through `build-dispatch.py` with `"router": "d"`: main loop
+  by default; a dispatch names one reason (`fan-out`, `worktree`,
+  `haiku-gather`, `verifier`, `overlay-agent`) and hands the worker the
+  skill's references (optional for `overlay-agent`).
 
 ## Intent alignment
 Every `/d` route receives a required runtime intent restatement. One batched
 Jev judgment checks that the intended outcome and constraints survive routing;
 it reports scope loss, added work, route mismatch, and essential ambiguity
-without fabricating a task. The receipt for the agent's actual `PROPOSED_INTENT`
-satisfies the instruction gate. There is no hook-time baseline: the route does
-not exist until the session model picks it, so a baseline would judge an empty
-route. This is not hook enforcement, so the user remains the final backstop if
-an agent violates the contract.
+without fabricating a task. `jev-intent-align.py` writes a receipt on every
+path (hashes and verdict only, session-scoped temp dir, 6-hour life). The /d
+execute step refuses without a receipt matching `request_verbatim` and
+`intent`, on a clarification without `task_spec.clarification`, and on
+`review` with empty `gaps`, and prints the command to run. There is no
+hook-time baseline: the route does not exist until the session model picks it.
+The gate lives in a script the model calls, not in a hook: skipping the script
+skips the gate, so the user remains the final backstop.
 
 This is a production requirement grounded in repeated daily use: preventing
 unrequested scope expansion is the feature's primary value.
@@ -37,9 +46,10 @@ unrequested scope expansion is the feature's primary value.
   adds Jev's attachment answers and outcome validation.
 - Not a new manifest format, INDEX schema, or `build-dispatch.py` contract
   change.
-- Not a new telemetry/marker schema — dispatches still emit `[do-route]` via
-  the shared `build-dispatch.py`.
-- Jev does not pick the agent, skill, or pipeline. A 2026-10 paired
+- Not a new telemetry schema. `/d` emits the same `[do-route]` marker through
+  `build-dispatch.py` plus two additive tokens (`reason=`, `router=d`) that the
+  recorder writes to `route-events.jsonl` only. No SQLite column changes.
+- Jev does not pick the skill, pipeline, or workers. A 2026-10 paired
   measurement showed the session model with `/do`'s rule text beating Jev's
   two-stage pick (`references/jev-classifier-design.md`).
 
@@ -48,8 +58,10 @@ unrequested scope expansion is the feature's primary value.
    first. Its pr-workflow, pr-pipeline, and security matches override the
    picked skill and pipeline in `--finalize` (`/do` Phase 2 Step 1(a)). Other
    force matches are not carried into `JEV_RESULT`, matching `/do` Step 1(b).
-2. Every agent, skill, and pipeline name in the route is validated against the
-   live `AGENTS:`/`SKILLS:`/`PIPELINES:` manifest membership in `--finalize`.
+2. Every skill, worker skill, and pipeline name in the route is validated
+   against the live `SKILLS:`/`PIPELINES:` manifest membership in
+   `--finalize`. The agent is `general-purpose` unless the decision names a
+   private overlay agent; a retired or unknown agent name is dropped.
    A name outside it is dropped and listed in `problems`. `d` and `do` are
    never valid skills.
 3. The rule text is single-sourced. `/d` prints `/do`'s Phase 2 span with
@@ -62,7 +74,7 @@ unrequested scope expansion is the feature's primary value.
 5. `skills/meta/do/SKILL.md` and `commands/do.md` are never modified by this
    skill or its scripts.
 6. Jev failure never blocks routing. Without attachment evidence the route
-   keeps the pre-route stack and the agent domain floor. The Phase 2 validator
+   keeps the pre-route stack and the domain floor (the decision's own `stack`). The Phase 2 validator
    reports `unavailable`, and the request continues.
 7. `jev-route.py` uses the shared transport selector. A missing Gateway bridge
    or unavailable direct API must never crash `/d`.
@@ -72,13 +84,24 @@ unrequested scope expansion is the feature's primary value.
    never calls Jev. The Vercel transport is a supported production dependency.
 9. Every route carries `attach`: manifest-valid extra skills from code policy
    (`_attachments` in `jev-route.py`), at most three. `/d` passes it as the
-   dispatch `stack` unchanged. A route with no domain agent takes the primary
-   or attached skill's owning agent. An empty skill takes `workflow`.
+   dispatch `stack` unchanged. An empty skill takes `workflow`.
+10. `/d` executes in the main loop unless the decision says
+    `"execution": "dispatch"` with a `dispatch_reason` from
+    `d_gate.DISPATCH_REASONS` whose precondition holds, plus `references` from
+    the skill's `references/` directory when it has one (optional for
+    `overlay-agent`, whose precondition is that `agent` names a live private
+    overlay agent). `build-dispatch.py`
+    enforces this; Trivial routes go through the same call.
+11. `/do`'s `build-dispatch.py` output is byte-identical with and without the
+    `/d` mode: every `/d` rule is behind `"router": "d"`.
+12. A pipeline's phases run in order in the main loop; only an independent
+    fan-out or verifier phase leaves it.
 
 ## Dependencies
 - `scripts/jev-route.py`, `scripts/print-route-rules.py`, `scripts/jev_intent_align.py`
 - `scripts/pre-route.py`, `scripts/routing-manifest.py`, `scripts/get-routing-manifest.sh` (reused, unmodified)
-- `scripts/build-dispatch.py` (reused, unmodified — Phase 5)
+- `scripts/build-dispatch.py` (`"router": "d"` mode) and `scripts/d_gate.py` (receipt, dispatch reasons, references)
+- Metrics and evals: `scripts/router-metrics.py`, `scripts/golden_eval/` (`references/router-metrics.md`)
 - Jev transport selector (`scripts/jev_transport.py`), Vercel AI Gateway bridge
   (`scripts/jev_vercel.py` and `scripts/jev_gateway/jev_vercel_gateway.mjs`),
   direct client (`scripts/jev_router_common.py`), and their credentials
@@ -96,6 +119,12 @@ unrequested scope expansion is the feature's primary value.
 - The pick reads the whole manifest (about 10k tokens) and `/do`'s rule text
   (about 2k tokens) in the session. Jev's two-stage pick kept them out of the
   session; `/d` now spends that context for a higher pair accuracy.
+- Main-loop work grows the session context: every file the skill reads stays
+  in this thread. That is the trade the article names; fan-out stays available
+  when parallel parts need fresh context.
+- Skill-load accuracy is observable for main-loop routes only; a worker's
+  Skill calls mostly do not land under the parent session
+  (`references/router-metrics.md`).
 - The Jev attachment call adds network latency. Vercel is preferred in `auto`
   mode because it is the required, currently cost-free production path; direct
   Jev remains the explicit alternative.
@@ -110,6 +139,8 @@ unrequested scope expansion is the feature's primary value.
   credential redaction, and direct-transport parity remain covered.
 - Force-route, unavailable, error, and invalid-pick paths resolve according to
   their documented contracts.
+- `scripts/tests/test_d_gate.py`, `test_router_metrics.py`, and
+  `test_golden_eval.py` pass.
 - `scripts/tests/test_router_attachment_eval.py` passes, and a live run of
   `scripts/router_attachment/` does not drop below the last recorded run in
   `EVAL.md`.

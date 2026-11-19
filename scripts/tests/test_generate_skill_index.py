@@ -477,3 +477,31 @@ def test_agent_short_description_does_not_split_on_identifier_dots(description: 
 def test_agent_short_description_keeps_the_use_this_agent_clause() -> None:
     desc = "Use this agent when you need NodeJS API work: REST, auth, webhooks. Examples follow."
     assert gai.extract_short_description(desc) == "Use this agent when you need NodeJS API work: REST, auth, webhooks"
+
+
+# ---------------------------------------------------------------------------
+# generate-agent-index.py with no repo agents (plans/009 retirement)
+# ---------------------------------------------------------------------------
+
+
+def _run_agent_generator(repo: Path, *flags: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(AGENT_SCRIPT), "--repo-root", str(repo), *flags],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_agent_index_with_no_agents_dir_writes_an_empty_index(tmp_path: Path) -> None:
+    proc = _run_agent_generator(tmp_path)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    index = json.loads((tmp_path / "agents" / "INDEX.json").read_text(encoding="utf-8"))
+    assert index["agents"] == {}
+
+
+def test_agent_index_with_an_empty_agents_dir_writes_an_empty_index(tmp_path: Path) -> None:
+    (tmp_path / "agents").mkdir()
+    proc = _run_agent_generator(tmp_path)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert json.loads((tmp_path / "agents" / "INDEX.json").read_text(encoding="utf-8"))["agents"] == {}

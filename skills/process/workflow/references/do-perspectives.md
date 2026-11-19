@@ -227,7 +227,7 @@ test -f synthesis.md || { echo "GATE FAIL: synthesis.md missing"; exit 1; }
 ## Examples
 
 ### Example 1: Improve Agent from Article
-User says: "/do-perspectives technical-journalist-writer article.md"
+User says: "/do-perspectives skills/content/writing/references/technical-journalist-writer.md article.md"
 Actions:
 1. Verify agent exists, load article.md (VALIDATE)
 2. Analyze article through all 10 lenses (ANALYZE)

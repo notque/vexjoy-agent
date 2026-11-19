@@ -44,7 +44,7 @@ STUB_GENERATOR = textwrap.dedent(
     counter = base / "gen-count.txt"
     n = int(counter.read_text()) if counter.exists() else 0
     counter.write_text(str(n + 1))
-    print("AGENTS:\\n  demo\\n\\nSKILLS:")
+    print("SKILLS:\\n  demo\\n\\nPIPELINES:")
     print("marker: " + (base / "skills" / "INDEX.json").read_text().strip())
     sys.exit(0)
     """
@@ -65,8 +65,6 @@ def fake_home(tmp_path, monkeypatch):
     base = home / ".claude"
     (base / "skills").mkdir()
     (base / "skills" / "INDEX.json").write_text('{"skills": {"a": {}}}', encoding="utf-8")
-    (base / "agents").mkdir()
-    (base / "agents" / "INDEX.json").write_text('{"agents": {"x": {}}}', encoding="utf-8")
     pipeline_dir = base / "skills" / "workflow" / "references"
     pipeline_dir.mkdir(parents=True)
     (pipeline_dir / "pipeline-index.json").write_text('{"pipelines": {}}', encoding="utf-8")
@@ -91,7 +89,7 @@ def test_absent_cache_regenerates(fake_home):
     sdir = scripts_dir(fake_home)
     assert mc.refresh(sdir) == "refreshed"
     assert gen_count(fake_home) == 1
-    assert "AGENTS:" in mc.CACHE_FILE.read_text(encoding="utf-8")
+    assert "SKILLS:" in mc.CACHE_FILE.read_text(encoding="utf-8")
     assert mc.HASH_FILE.read_text(encoding="utf-8").strip() == mc.compute_input_hash(sdir)
     assert mc.refresh(sdir) == "fresh"
 

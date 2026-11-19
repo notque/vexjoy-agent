@@ -2,6 +2,7 @@
 
 > **Scope**: How to design activation evals (does the right agent get picked?) and output evals (does the picked agent do the work well?) for a vexjoy-agent operator. Both kinds of eval are designed at scaffold time, not retrofitted after routing failures appear.
 > **Load when**: scaffolding a new agent, debugging a routing miss, or auditing whether an existing agent's description still matches its body.
+> **After plan 009**: repo agents are retired, so in this repo the "agent" under test is a skill reference. Activation means the router picks the owning skill and the Reference Loading Table signal loads the reference; output means a main-thread or `general-purpose` run that loaded the reference delivers the work. The same method applies unchanged to a private overlay agent.
 
 ---
 
@@ -32,9 +33,9 @@ Every agent needs cases in all three columns. Three each is the floor; five each
 | **should-not-trigger** | Phrases that look related but belong to a different agent | Confirms the boundary clause excludes off-domain work |
 | **near-miss** | Phrases on the edge — same words, different intent | Confirms the description disambiguates rather than triggering on keyword overlap |
 
-### Worked example: `kubernetes-helm-engineer`
+### Worked example: `kubernetes` skill, `references/kubernetes-helm.md`
 
-Description: *"Kubernetes deployments and Helm charts: manifest authoring, values overrides, release upgrades, RBAC. Not for cluster diagnostics — see kubernetes-troubleshooter."*
+Loading-table signal: *"Kubernetes deployments and Helm charts: manifest authoring, values overrides, release upgrades, RBAC. Not for cluster diagnostics — see kubernetes-troubleshooter."*
 
 | Phrase | Class | Should this agent route? | Why |
 |--------|-------|--------------------------|-----|

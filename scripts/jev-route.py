@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Pre-route guard, Jev attachment evidence, and route finalization for /d.
 
-The session model picks the primary agent, skill, and pipeline from the full
-routing manifest, applying the rule text in `skills/meta/do/SKILL.md` Phase 2
+The session model picks the primary skill, pipeline, and any fan-out workers
+from the full routing manifest, applying the rule text in `skills/meta/do/SKILL.md` Phase 2
 (printed by `scripts/print-route-rules.py`). This script does the work around
 that pick. See `skills/meta/d/references/jev-classifier-design.md`.
 
@@ -24,9 +24,11 @@ Two modes, both exit 0 and print JSON to stdout:
     name against the live manifest (`/do` section validator), lets a safety
     force route override the skill and pipeline, fills a missing skill with
     `workflow`, and computes `attach` (extra skills that ride with the primary
-    skill) and, for a null or general-purpose agent, the skill's owning agent.
-    The output is the route JSON that `jev-intent-align.py --route-file` and
-    `build-dispatch.py` consume.
+    skill). The worker is the built-in `general-purpose` agent: the repo's
+    specialist agents are retired (plans/009) and the skill carries the domain.
+    A private overlay agent named in the decision is kept; any other agent
+    name is dropped with a problem. The output is the route JSON that
+    `jev-intent-align.py --route-file` and `build-dispatch.py` consume.
 
 Cost: one Jev evaluation per prepare, none per finalize. Every /d invocation
 adds one batched intent-alignment evaluation (`jev_intent_align.py`).
@@ -56,6 +58,7 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import jev_transport
+import routing_index_merge
 
 JEV_MODEL = "typesafe-ai/jev-1.14.0"
 
@@ -65,7 +68,7 @@ STACK_SIGNAL_THRESHOLD = 0.6
 DEFAULT_TIMEOUT = 6.5
 
 # Router entry points: skills whose job is to dispatch a request to another
-# skill or agent. Following a pick of `d` or `do` through build-dispatch.py's
+# skill. Following a pick of `d` or `do` through build-dispatch.py's
 # "Call the Skill tool with `d`" action would re-enter the router on the same
 # request. They are never valid routing targets.
 ROUTER_ENTRY_POINT_SKILLS = {"d", "do"}
@@ -146,17 +149,11 @@ DOMAIN_NOUL_INSTRUCTIONS = {
 }
 DOMAIN_NOUL_PREFIX = "domain__"
 
-# Deterministic domain floor: an agent whose whole domain is one umbrella
-# skill always carries that skill. Only unambiguous pairs belong here; mixed
-# agents (TypeScript, Python) rely on the domain Nouls above.
-DOMAIN_SKILL_BY_AGENT = {
-    "golang-general-engineer": "programming",
-    "kotlin-general-engineer": "programming",
-    "php-general-engineer": "programming",
-    "swift-general-engineer": "programming",
-    "kubernetes-helm-engineer": "kubernetes",
-    "ui-design-engineer": "frontend",
-}
+# The dispatch worker. Specialist agents are retired (plans/009); the skill
+# carries the domain. Built-ins are always valid; a private overlay agent is
+# valid when the agents index lists it and it is not a retired name.
+WORKER_AGENT = "general-purpose"
+BUILTIN_AGENTS = frozenset({"general-purpose", "claude", "explore", "plan", "statusline-setup"})
 
 # Stack signal -> callable skill (or shared pattern) it attaches.
 SIGNAL_SKILLS = {
@@ -166,23 +163,7 @@ SIGNAL_SKILLS = {
     "local_only": "local-only",
 }
 # research_needed is not mapped: it fires on ordinary diagnosis ("find why"),
-# and /d answers it with a research-coordinator-engineer fan-out, not a skill.
-
-# Agent default when the route has no domain agent (null or general-purpose):
-# the skill's owning agent, mirroring /do's Pairing rule.
-AGENT_BY_SKILL = {
-    "building-with-jev": "python-general-engineer",
-    "jev-design": "typescript-frontend-engineer",
-    "kubernetes": "kubernetes-helm-engineer",
-    "frontend": "ui-design-engineer",
-    "research": "research-coordinator-engineer",
-    "testing": "testing-automation-engineer",
-    "toolkit": "toolkit-governance-engineer",
-    "docs-sync-checker": "technical-documentation-engineer",
-    "security": "reviewer-system",
-    "review": "reviewer-code",
-    "writing": "technical-journalist-writer",
-}
+# and /d answers it with a fan-out of `research` workers, not an attachment.
 
 # Force routes that stay authoritative for their slot. Mirrors /do Phase 2
 # Step 1(a): only genuine git/PR work and security work override the semantic
@@ -259,7 +240,7 @@ def _run_pre_route(request_text: str) -> dict:
 
 
 def _load_manifest_entries() -> list[dict]:
-    """Live AGENTS:/SKILLS:/PIPELINES: membership via routing-manifest.py --json.
+    """Live SKILLS:/PIPELINES: membership via routing-manifest.py --json.
 
     Subprocess, not import: routing-manifest.py has a hyphenated filename.
     """
@@ -274,15 +255,29 @@ def _load_manifest_entries() -> list[dict]:
     return json.loads(proc.stdout)
 
 
-def _membership_sets(entries: list[dict]) -> tuple[set[str], set[str], set[str]]:
-    """Live AGENTS:/SKILLS:/PIPELINES: name sets. Router entry points are not skills."""
-    agent_names = {e["name"] for e in entries if e.get("type") == "agent"}
-    agent_names.add("general-purpose")  # built-in fallback agent, absent from the manifest
+def _load_overlay_agents() -> frozenset[str]:
+    """Dispatchable agent names: built-ins plus private overlay agents.
+
+    Reads the resolved agents index (installed first, else agents/INDEX.json
+    plus INDEX.local.json) and subtracts the retired repo agents, which a
+    stale install still lists. Never raises; a read failure leaves the built-ins.
+    """
+    rim = routing_index_merge
+    try:
+        # The same set the manifest's AGENTS: section and build-dispatch use.
+        return frozenset(set(rim.overlay_agent_items(rim.detect_target(__file__), REPO_ROOT)) | BUILTIN_AGENTS)
+    except Exception as exc:
+        print(f"[jev-route] agents index unreadable: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return BUILTIN_AGENTS
+
+
+def _membership_sets(entries: list[dict]) -> tuple[set[str], set[str]]:
+    """Live SKILLS:/PIPELINES: name sets. Router entry points are not skills."""
     skill_names = {
         e["name"] for e in entries if e.get("type") == "skill" and e["name"] not in ROUTER_ENTRY_POINT_SKILLS
     }
     pipeline_names = {e["name"] for e in entries if e.get("type") == "pipeline"}
-    return agent_names, skill_names, pipeline_names
+    return skill_names, pipeline_names
 
 
 def _noul(answers: dict, key: str) -> float:
@@ -489,15 +484,15 @@ def prepare(request_text: str, timeout: float, project: dict | None = None) -> d
 def _attachments(result: dict, skill_names: set[str]) -> list[str]:
     """Extra skills (and shared patterns) that ride with the primary skill. Pure policy.
 
-    Order: pre-route stack, the agent's domain floor, domain Nouls by score,
-    then stack signals. Unknown names are dropped; at most MAX_ATTACHMENTS
-    skills are kept (shared patterns such as local-only do not count).
+    Order: pre-route stack, the session's own stack (the domain floor: the
+    domain skill the session named beside a methodology skill, which used to
+    ride on the specialist agent pick), domain Nouls by score, then stack
+    signals. Unknown names are dropped; at most MAX_ATTACHMENTS skills are kept
+    (shared patterns such as local-only do not count).
     """
     primary = result.get("skill")
     candidates: list[str] = list(result.get("stack") or [])
-    floor = DOMAIN_SKILL_BY_AGENT.get(result.get("agent") or "")
-    if floor:
-        candidates.append(floor)
+    candidates += [str(name).strip() for name in result.get("session_stack") or [] if str(name).strip()]
     domain_scores = result.get("domain_scores") or {}
     candidates += [
         name for name, score in sorted(domain_scores.items(), key=lambda kv: -kv[1]) if score >= STACK_SIGNAL_THRESHOLD
@@ -522,60 +517,68 @@ def _attachments(result: dict, skill_names: set[str]) -> list[str]:
     return attach
 
 
-def _default_agent(result: dict) -> str | None:
-    """Owning agent for the primary or an attached skill when the route has no domain agent."""
-    for name in [result.get("skill")] + list(result.get("attach") or []):
-        agent = AGENT_BY_SKILL.get(name or "")
-        if agent:
-            return agent
-    return None
-
-
-def _derive_complexity(pipeline: str | None, agents: list[str], signals: dict | None) -> str:
+def _derive_complexity(pipeline: str | None, workers: list[dict], signals: dict | None) -> str:
     """Fallback when the decision carries no valid complexity."""
-    if pipeline or agents:
+    if pipeline or workers:
         return "complex"
     if any((signals or {}).values()):
         return "medium"
     return "simple"
 
 
-def finalize(prepared: dict, decision: dict, entries: list[dict]) -> dict:
+def _workers(raw: object, skill_names: set[str], problems: list[str]) -> list[dict]:
+    """Validate fan-out workers: ``[{"skill": ..., "scope": ...}]`` (a bare skill name also works).
+
+    Each worker is one more general-purpose dispatch with its own skill and
+    scope, beyond the primary. A worker whose skill is not in SKILLS is dropped.
+    """
+    workers: list[dict] = []
+    for item in raw if isinstance(raw, list) else []:
+        entry = item if isinstance(item, dict) else {"skill": item}
+        skill = _norm(entry.get("skill"))
+        scope = str(entry.get("scope") or "").strip()
+        if skill in skill_names:
+            workers.append({"skill": skill, "scope": scope})
+        else:
+            problems.append(f"worker skill {skill!r} is not in SKILLS")
+    return workers
+
+
+def finalize(
+    prepared: dict, decision: dict, entries: list[dict], known_agents: frozenset[str] | set[str] | None = None
+) -> dict:
     """Validate the session model's pick and build the route. Pure; never calls Jev.
 
-    `problems` lists every correction the caller should review: a name absent
-    from the live manifest was dropped, or general-purpose has no reason.
+    `known_agents` is the dispatchable agent set (built-ins plus private overlay
+    agents); None means the built-ins only. `problems` lists every correction
+    the caller should review: a name absent from the live manifest was dropped,
+    or an agent name that is not dispatchable fell back to the worker.
     """
-    agent_names, skill_names, pipeline_names = _membership_sets(entries)
+    skill_names, pipeline_names = _membership_sets(entries)
+    agent_names = (set(known_agents or ()) - routing_index_merge.RETIRED_AGENTS) | BUILTIN_AGENTS
     problems: list[str] = []
 
     agent = _norm(decision.get("agent"))
     skill = _norm(decision.get("skill"))
     pipeline = _norm(decision.get("pipeline"))
 
-    # /do section validator: an agent slot holding a skill name moves to the skill slot.
-    if agent and agent not in agent_names:
+    # /do section validator: an agent slot holding a skill name moves to the
+    # skill slot. Retired specialist agents and unknown names are not workers.
+    if agent and agent.lower() not in agent_names:
         if agent in skill_names:
             skill = skill or agent
-        problems.append(f"agent {agent!r} is not in AGENTS")
+        problems.append(f"agent {agent!r} is not dispatchable (retired or unknown); the worker is {WORKER_AGENT}")
         agent = None
+    agent = agent.lower() if agent else WORKER_AGENT
     if skill and skill not in skill_names:
         problems.append(f"skill {skill!r} is not in SKILLS")
         skill = None
     if pipeline and pipeline not in pipeline_names:
         problems.append(f"pipeline {pipeline!r} is not in PIPELINES")
         pipeline = None
-
-    raw_agents = decision.get("agents")
-    agents: list[str] = []
-    for item in raw_agents if isinstance(raw_agents, list) else []:
-        name = _norm(item)
-        if not name or name == agent or name in agents:
-            continue
-        if name in agent_names and name != "general-purpose":
-            agents.append(name)
-        else:
-            problems.append(f"fan-out agent {name!r} is not in AGENTS")
+    if decision.get("agents"):
+        problems.append("'agents' is retired; name fan-out as 'workers': [{skill, scope}]")
+    workers = _workers(decision.get("workers"), skill_names, problems)
 
     forced = prepared.get("forced") or {}
     forced_applied = False
@@ -587,51 +590,34 @@ def finalize(prepared: dict, decision: dict, entries: list[dict]) -> dict:
     if skill is None and FALLBACK_SKILL in skill_names:
         skill, skill_source = FALLBACK_SKILL, "fallback"
 
+    session_stack = decision.get("stack") if isinstance(decision.get("stack"), list) else []
     route: dict = {
-        "agent": agent,
         "skill": skill,
-        "pipeline": pipeline,
-        "agents": agents,
         "stack": list(prepared.get("stack") or []),
+        "session_stack": session_stack,
         "signals": prepared.get("signals"),
-        "signal_scores": prepared.get("signal_scores"),
         "domain_scores": prepared.get("domain_scores"),
     }
-    route["attach"] = _attachments(route, skill_names)
-    # The force route fixes the skill and pipeline only; the agent stays the
-    # session's pick (/do Phase 2 Step 1(a)).
-    route["agent_source"] = "session"
-    if agent in (None, "general-purpose"):
-        default = _default_agent(route)
-        if default:
-            route["agent"] = default
-            route["agent_source"] = "skill-default"
-        else:
-            route["agent"] = "general-purpose"
-            route["agent_source"] = "session"
-            if not _norm(decision.get("fallback_reason")):
-                problems.append("general-purpose needs a fallback_reason: general-purpose: <why no agent covers this>")
+    attach = _attachments(route, skill_names)
 
     complexity = _norm(decision.get("complexity"))
     if complexity not in VALID_COMPLEXITIES:
-        complexity = _derive_complexity(pipeline, agents, route["signals"])
+        complexity = _derive_complexity(pipeline, workers, route["signals"])
     confidence = _norm(decision.get("confidence"))
     return {
         "source": "pre-route-force" if forced_applied else "session",
-        "agent": route["agent"],
-        "agent_source": route["agent_source"],
+        "agent": agent,
         "skill": skill,
         "skill_source": skill_source,
         "pipeline": pipeline,
-        "agents": agents,
-        "attach": route["attach"],
+        "workers": workers,
+        "attach": attach,
         "stack": route["stack"],
         "complexity": complexity,
         "confidence": confidence if confidence in {"high", "medium", "low"} else "medium",
         "reasoning": str(decision.get("reasoning") or ""),
-        "fallback_reason": _norm(decision.get("fallback_reason")),
         "signals": route["signals"],
-        "signal_scores": route["signal_scores"],
+        "signal_scores": prepared.get("signal_scores"),
         "domain_scores": route["domain_scores"],
         "problems": problems,
     }
@@ -706,6 +692,7 @@ def main() -> int:
                 _read_json_object(args.result_file, "--result-file"),
                 _read_json_object(args.decision_file, "--decision-file"),
                 _load_manifest_entries(),
+                _load_overlay_agents(),
             )
         else:
             if not (args.request or args.request_file):

@@ -34,7 +34,7 @@ Complete guide to conventional commit format with real examples from this reposi
 - Adding completely new functionality
 - Creating new files that provide new capabilities
 - Examples:
-  - `feat: add golang-general-engineer agent`
+  - `feat: add golang-general reference to the programming skill`
   - `feat: implement git-commit-flow skill`
   - `feat: add /do smart routing command`
 

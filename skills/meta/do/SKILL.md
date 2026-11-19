@@ -1,6 +1,6 @@
 ---
 name: do
-description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
+description: "Classify user requests and route to the correct skill, pipeline, and stack. Primary entry point for all delegated work."
 user-invocable: true
 argument-hint: "<request>"
 allowed-tools:
@@ -14,7 +14,7 @@ routing:
   triggers:
     - "route task"
     - "classify request"
-    - "which agent"
+    - "which skill"
     - "delegate to skill"
     - "smart router"
   category: meta-tooling
@@ -22,9 +22,9 @@ routing:
 
 # /do - Smart Router
 
-ROUTER first, worker when dispatch does not pay. Classify → skill (+agent when dispatching) → execute or dispatch. Trivial and Simple on the Anthropic lane: the main thread loads the skill and does the work itself, because a dispatched worker cold-reloads about 20k tokens of instructions and re-reads files this thread already holds. Dispatch only when it pays: parallel fan-out (independent parts), long lanes (about 5+ files, or work that would bloat this thread's context), worktree isolation, or read-only Haiku gathering. Medium and Complex dispatch to agents. Exception: reading to fill the Task Spec is routing work — up to 5 files as excerpts; more → one read-only Explore dispatch whose deliverable is the excerpt list. Main: Classify→Select→Execute or Dispatch→Evaluate→Re-route→Report.
+ROUTER first, worker when dispatch does not pay. Classify → skill (+pipeline, stack) → execute or dispatch. No specialist agents: when dispatch pays, the worker is the built-in `general-purpose` agent and the skill carries the domain. Exception: a private overlay agent from the manifest's `AGENTS:` section that fits the request is the worker, and that pick alone makes dispatch pay (its file carries domain the main thread lacks). Trivial and Simple on the Anthropic lane: the main thread loads the skill and does the work itself, because a dispatched worker cold-reloads about 20k tokens of instructions and re-reads files this thread already holds. Dispatch only when it pays: parallel fan-out (independent parts), long lanes (about 5+ files, or work that would bloat this thread's context), worktree isolation, read-only Haiku gathering, or an overlay agent pick. Medium and Complex dispatch to `general-purpose` workers. Exception: reading to fill the Task Spec is routing work — up to 5 files as excerpts; more → one read-only Explore dispatch whose deliverable is the excerpt list. Main: Classify→Select→Execute or Dispatch→Evaluate→Re-route→Report.
 
-Do the whole thing (tests+docs). Product, not plan. Permanent solve over workaround. Search before building; test before shipping. Decompose into agent-sized tasks. The result reads as "that's done," not "that's a start." Partial → follow-up. Inject Simple+. Confidence in handling Medium+ directly is a signal to route.
+Do the whole thing (tests+docs). Product, not plan. Permanent solve over workaround. Search before building; test before shipping. Decompose into worker-sized tasks. The result reads as "that's done," not "that's a start." Partial → follow-up. Inject Simple+. Confidence in handling Medium+ directly is a signal to route.
 
 Dense-Complete Writing (`build-dispatch.py` injects; `skills/shared-patterns/dense-complete-writing.md`). User: banners+summary. Internal: JSON/reasoning/stacking (Verbose overrides).
 
@@ -43,18 +43,18 @@ After Phase 2: `===` routing banner. Both required.
 
 Read CLAUDE.md (or GEMINI.md on Antigravity CLI) first.
 
-| Complexity | Agent | Skill | Direct |
+| Complexity | Worker | Skill | Direct |
 |---|---|---|---|
 | Trivial | No | No | Main thread; ONLY user-named file by path |
 | Simple | Only when dispatch pays | Yes | Main thread (Anthropic lane); dispatch when it pays |
-| Medium | Required | Required | Route |
-| Complex | 2+ | 2+ | Route |
+| Medium | `general-purpose` | Required | Route |
+| Complex | 2+ `general-purpose` | 2+ | Route |
 
 Beyond user-named file = Simple+: pick and load a skill, emit the marker, then execute or route. Uncertain → UP. Depth: `references/progressive-depth.md`. NOT Trivial: repos/URLs, opinions, git, codebase Qs, process, comparisons.
 
-Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→research-coordinator-engineer; coord→project-coordinator-engineer; plan+exec→process; feature→workflow (.feature/→feature-state.py status). Force Direct: OFF.
+Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→`research` workers; coordination→`workflow`; plan+exec→process; feature→workflow (.feature/→feature-state.py status). Force Direct: OFF.
 
-**Creation Detection**: create/scaffold/build/"add new"/"new [component]" targeting agent/skill/pipeline/hook/feature/plugin/workflow/voice. Any of these + Simple+ → `is_creation=true`, Phase 4 Step 0. Not: debug/review/fix/refactor/explain/audit.
+**Creation Detection**: create/scaffold/build/"add new"/"new [component]" targeting skill/pipeline/hook/feature/plugin/workflow/voice. Any of these + Simple+ → `is_creation=true`, Phase 4 Step 0. Not: debug/review/fix/refactor/explain/audit.
 
 **Gate**: Complexity set. Creation → `[CREATION REQUEST DETECTED]`. Trivial: direct. Simple+: Phase 2.
 
@@ -62,7 +62,7 @@ Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→r
 
 ### Phase 2: ROUTE
 
-**Goal**: fill every slot the request earns — agent(s), skill, pipeline. The semantic self-route is PRIMARY and runs FIRST — the orchestrator reads the manifest in-session and decides for itself, with no routing sub-dispatch (self-route beat the Haiku hop by +8.1 accuracy points, zero new safety misses: `scripts/routing-ab-results/self-route-v1/VERDICT.md`). `pre-route.py` is a guardrail that runs AFTER the semantic decision and never short-circuits it.
+**Goal**: fill every slot the request earns — skill, pipeline, fan-out workers. The semantic self-route is PRIMARY and runs FIRST — the orchestrator reads the manifest in-session and decides for itself, with no routing sub-dispatch (self-route beat the Haiku hop by +8.1 accuracy points, zero new safety misses: `scripts/routing-ab-results/self-route-v1/VERDICT.md`). `pre-route.py` is a guardrail that runs AFTER the semantic decision and never short-circuits it.
 
 **Contract: read for INTENT.** Route on what the user MEANS. Trigger keywords are hints, never gates. Plain or non-native phrasing routes as well as jargon: "send my commits to the server" routes like "git push". Cost: one manifest read per request — measured and accepted.
 
@@ -85,26 +85,24 @@ Hold the decision internally as JSON. It stays unprinted; the `[do-route]` marke
 
 ```
 {
-  "agent": "primary agent-name or null",
-  "agents": ["extra agent names for parallel fan-out; [] when one agent covers it"],
   "skill": "skill-name or null",
   "pipeline": "pipeline-name or null",
+  "workers": [{"skill": "<SKILLS: name>", "scope": "files or part this worker owns"}],
   "reasoning": "one sentence why",
   "confidence": "high/medium/low"
 }
 ```
 
+`workers` holds EXTRA fan-out workers beyond the primary; `[]` when one worker covers it. Every worker is `general-purpose`. Add `"agent": "<AGENTS: name>"` only when the manifest has an `AGENTS:` section (private overlay agents, shown only when the request names their domain) and one of its agents fits the request better than `general-purpose` with the skill; keep a `skill` too. `build-dispatch.py` validates it and coerces any other name.
+
 **Routing rules (ALL apply):**
 
 ```
 SECTION-INTEGRITY RULE (HARD CONSTRAINT — never violate):
-- `agent` must be a name listed in the manifest's AGENTS: section, or null. Do not put a skill name in `agent`.
-- `skill` must be a name listed in the SKILLS: section, or null. Do not put an agent name in `skill`.
+- `skill` and every `workers[].skill` must be names listed in the SKILLS: section, or null.
 - `pipeline` must be a name listed in the PIPELINES: section, or null.
-- If no agent fits, return `"agent": null` — DO NOT promote a skill into the `agent` slot. The router falls back to a default agent (e.g. `general-purpose`) and pairs it with your chosen skill.
-- Skills marked FORCE are still skills, not agents. They fill the `skill` slot only. Example: `deploy` is a SKILL — on a match set `"skill": "deploy"` and pick a separate agent (or null) for `agent`.
-- Pipelines marked FORCE are still pipelines. They fill the `pipeline` slot only, and the run still needs its own `agent` and `skill`.
-- Every name in `agents` must also be an AGENTS: name, and distinct from `agent`.
+- Skills marked FORCE fill the `skill` slot only. Pipelines marked FORCE fill the `pipeline` slot only, and the run still needs its own `skill`.
+- `agent` must be a name listed in the AGENTS: section, or absent. The public manifest has no AGENTS: section; it appears only for private overlay agents. Never put a retired specialist agent name (e.g. `golang-general-engineer`) anywhere; name the skill that now holds its content.
 
 FORCE-ROUTE RULE: manifest entries marked FORCE — in SKILLS: or in PIPELINES: — are selected when their domain clearly matches the user's intent. FORCE matching is semantic, not keyword-based — match what the user means, not individual words:
 - "push my changes" → pr-workflow ✓ (git push) | "push back on this design" → NOT pr-workflow (means resist)
@@ -121,13 +119,13 @@ The user saying the word "pipeline" is one signal among these, never the gate. E
 - "comprehensive review of these 8 files" → comprehensive-review ✓ (outranked by `right-size-review.py` when a real diff exists: `tier_signal: true`)
 - "add caching to the API and update the docs" → quality-loop ✓ (implement → review → document; nobody said "pipeline")
 - "help me understand how auth works across this repo" → explore-pipeline ✓ (parallel exploration; a plain pipeline earns the pick on shape, no FORCE flag needed)
-Return null when the whole job is one step for one agent: "fix the typo on line 42 of foo.py", "debug this failing test", "review this 10-line function".
+Return null when the whole job is one step for one worker: "fix the typo on line 42 of foo.py", "debug this failing test", "review this 10-line function".
 
-MULTI-AGENT RULE: `agents` holds EXTRA agents beyond `agent`; `[]` when one agent covers the work. Fan out when the parts run at once against separate files: 2+ independent failures, 3+ independent subtasks, per-package or per-language review, gather from several domains. Keep a single agent when the parts touch the same files or each step consumes the previous step's output. Complex (Phase 1) starts from fan-out and justifies staying single. When an approved plan, job package, or specification defines multiple subagents (e.g. Subagents A/B/C/D), all defined subagents must be dispatched individually; collapsing them into a single monolithic subagent dispatch is strictly prohibited.
+FAN-OUT RULE: `workers` holds EXTRA `general-purpose` workers beyond the primary, each with its own `skill` and `scope`; `[]` when one worker covers the work. Fan out when the parts run at once against separate files: 2+ independent failures, 3+ independent subtasks, per-package or per-language review, gather from several domains. Keep a single worker when the parts touch the same files or each step consumes the previous step's output. Complex (Phase 1) starts from fan-out and justifies staying single. When an approved plan, job package, or specification defines multiple subagents (e.g. Subagents A/B/C/D), all defined subagents must be dispatched individually; collapsing them into a single monolithic subagent dispatch is strictly prohibited.
 
 SPECIFICITY RULES:
-- Pick the most specific match. "Go tests" → golang-general-engineer + programming, not general-purpose.
-- Agent handles the domain. Skill handles the methodology. Pick both when possible.
+- Pick the most specific match. "Go tests" → skill testing + stack programming.
+- The domain skill (programming, frontend, kubernetes, data, ...) carries what the retired specialist agents held; a methodology skill (testing, review, debugging) sets the method. When both apply, one is `skill` and the other rides in Phase 3 `stack`.
 - Prefer entries whose description semantically matches the request, not just keyword overlap.
 - A task verb in the request (review, debug, refactor, test) prefers the skill matching that verb.
 - GENUINE git / version-control operations — actually pushing code, committing files, opening or merging a pull request — select pr-workflow. Metaphorical uses ("commit to a decision", "merge ideas in your head", "push back on a proposal") do not route to pr-workflow.
@@ -138,68 +136,39 @@ SPECIFICITY RULES:
 
 | Surface | Answers | Slot |
 |---|---|---|
-| Agent | who owns the domain | `agent`, plus `agents` for fan-out |
-| Skill | which methodology runs | `skill` |
+| Workers | parallel `general-purpose` dispatches for fan-out, each with its own skill and scope | `workers` |
+| Skill | which domain or methodology runs | `skill` |
 | Pipeline | which phase structure holds the work | `pipeline` |
 | Stack | which extra rigor rides along | Phase 3 `stack` |
 
-One surface filled is the FLOOR, not the ceiling — and 6.6% of dispatches sit at or below it (20/303, `evidence_route_decisions` 2026-09-21 to 2026-11-07, query in `references/routing-telemetry.md`; a fallback agent or fallback skill counts as unfilled). Combine upward: Simple = agent+skill. Medium = agent+skill+stack. Complex = 2+ agents (`agent` plus `agents`), 2+ skills (`skill` plus Phase 3 `stack`), and a pipeline unless one phase truly covers the work — which is how Phase 1's "2+/2+" row is satisfied with one `skill` string.
+One surface filled is the FLOOR, not the ceiling (a fallback skill counts as unfilled). Combine upward: Simple = skill. Medium = skill+stack (domain skill plus methodology). Complex = 2+ workers (primary plus `workers`), 2+ skills (`skill` plus Phase 3 `stack`), and a pipeline unless one phase truly covers the work — which is how Phase 1's "2+/2+" row is satisfied with one `skill` string.
 
 Composition rules:
-- A pipeline names the phases; the agent and skill still fill their slots and run inside those phases. Picking a pipeline replaces neither.
+- A pipeline names the phases; the skill still fills its slot and runs inside those phases. Picking a pipeline does not replace it.
 - Stack always composes: anti-rationalization-core rides every route, and Phase 3 adds the rest.
 - A FORCE skill and a FORCE pipeline matching together is legal — different slots, both get filled.
 - Contradictory pairs, keep one: `quick` with any pipeline (quick means one step — drop the pipeline); comprehensive-review with `right-size-review.py` (a real diff, `tier_signal: true`, wins); `workflow` as fallback beside a real domain skill (the fallback yields); two pipelines (pick the outer one, nest the other through Step 1c).
 
 **Step 0b: Apply the routing decision**
 
-Use the `agent` and `skill` fields directly. Low confidence → verify against the INDEX files.
+Use the `skill`, `pipeline`, and `workers` fields directly. Low confidence → verify against `skills/INDEX.json`.
 
-**Skill-greediness gate (HARD — non-negotiable for Simple+).** Null skill → pick: review→review, debug→workflow (systematic-debugging pipeline), refactor→workflow (systematic-refactoring pipeline), audit→review (whole-repo→review), explain→assessment, compare→assessment (agent A/Bs→toolkit), plan→workflow, loop→workflow, TDD→testing. Fallback: `workflow`.
-
-**Agent-greediness gate (HARD — non-negotiable for Simple+).** `general-purpose` is the last resort, not the default. Measured share of dispatches: 6.9% (21/303, `evidence_route_decisions` 2026-09-21 to 2026-11-07, query in `references/routing-telemetry.md`), down from 42.5% (128/301) on 2026-08-15. Target band: unmeasured -- see the `learning-db.py` route health report for the current band and its provenance. A null `agent` works this table before `general-purpose` is permitted:
-
-| Domain signal in the request | Agent |
-|---|---|
-| Go | golang-general-engineer |
-| Python | python-general-engineer |
-| TypeScript UI, React, bundling, state | typescript-frontend-engineer |
-| TypeScript runtime bug, async race, type error | typescript-debugging-engineer |
-| Node backend, REST, auth, webhooks | nodejs-api-engineer |
-| Swift, Kotlin, PHP | swift-general-engineer, kotlin-general-engineer, php-general-engineer |
-| SQL schema, query plans, migrations | database-engineer (SQLite + Peewee → sqlite-peewee-engineer) |
-| ETL, warehouse, stream processing | data-engineer |
-| Kubernetes, Helm, Ansible | kubernetes-helm-engineer, ansible-automation-engineer |
-| Metrics and dashboards, search clusters, message queues | prometheus-grafana-engineer, opensearch-elasticsearch-engineer, rabbitmq-messaging-engineer |
-| This toolkit: Python hooks | hook-development-engineer |
-| This toolkit: skills, agents, routing tables, ADRs, INDEX files | toolkit-governance-engineer |
-| Harness or toolkit upgrade sweep | system-upgrade-engineer |
-| Tests, coverage, E2E | testing-automation-engineer |
-| Web performance; design system and accessibility | performance-optimization-engineer, ui-design-engineer |
-| React Native, Expo | react-native-engineer |
-| API docs and runbooks; explainers and articles | technical-documentation-engineer, technical-journalist-writer |
-| Review: quality / system + security / ADR + business logic / perspectives | reviewer-code, reviewer-system, reviewer-domain, reviewer-perspectives |
-| Broad investigation; agent coordination; pipeline scaffolding | research-coordinator-engineer, project-coordinator-engineer, pipeline-orchestrator-engineer |
-| MCP servers | mcp-local-docs-engineer |
-
-No row fits → read the manifest's AGENTS: section again and match on description before falling back.
-
-**Pairing rule (the measured defect).** 76% of those 21 (16) carried a named domain skill, fallbacks excluded (72% of 128 on 2026-08-15): the router read the domain and had no slot to say so. A specific domain skill therefore obliges a matching domain agent — or a stated reason no agent covers it.
-
-**Fallback reason.** Every `general-purpose` pick carries a written reason, one line, in both places the dispatch records it: the Step 3 banner's `-> Agent:` why field, and the `fallback_reason` field handed to `build-dispatch.py`. Shape: `general-purpose: <why no listed agent covers this domain>`. A pick with no reason is a routing bug — return to the table.
+**Skill-greediness gate (HARD — non-negotiable for Simple+).** Null skill → pick: review→review, debug→workflow (systematic-debugging pipeline), refactor→workflow (systematic-refactoring pipeline), audit→review (whole-repo→review), explain→assessment, compare→assessment (component A/Bs→toolkit), plan→workflow, loop→workflow, TDD→testing. Fallback: `workflow`.
 
 **Section validator (before dispatch):**
 
 ```
-agents = tokens(manifest, "AGENTS:", "SKILLS:")
+agents = tokens(manifest, "AGENTS:", "SKILLS:")   # empty when no AGENTS: section
 skills = tokens(manifest, "SKILLS:", "PIPELINES:")
-if route.agent not in agents:
-    if route.agent in skills: route.skill ||= route.agent
-    route.agent = None; record_misroute(...)
-route.agent ||= "general-purpose"
+pipelines = tokens(manifest, "PIPELINES:", END)
+if route.agent not in agents: route.agent = None    # general-purpose worker
+if route.skill not in skills: route.skill = None; record_misroute(...)
+route.workers = [w for w in route.workers if w.skill in skills]
+if route.pipeline not in pipelines: route.pipeline = None
+route.skill ||= "workflow"
 ```
 
-No pair→general-purpose+workflow. `[cross-repo]`→`.claude/agents/`. Code→domain agents.
+No skill→`workflow`. `[cross-repo]`→`.claude/agents/` (that repo's own agents). Code→the domain skill.
 
 **Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
 
@@ -213,7 +182,7 @@ rm -f "$REQUEST_FILE"
 
 → `PRE_ROUTE_RESULT`.
 
-- **(a) Safety-critical force-route override — the one case that beats Step 0.** `"confidence": "high"` with a `force_route` match for `pr-workflow` or a security skill overrides a disagreeing semantic pick: genuine push, commit, create-PR, and merge work, and security work, must hit the quality gates (lint, tests, CI). Record `match_type`. The agent stays the Step 0 pick, or the Agent-greediness table result when Step 0 returned null.
+- **(a) Safety-critical force-route override — the one case that beats Step 0.** `"confidence": "high"` with a `force_route` match for `pr-workflow` or a security skill overrides a disagreeing semantic pick: genuine push, commit, create-PR, and merge work, and security work, must hit the quality gates (lint, tests, CI). Record `match_type`. The workers stay the Step 0 pick.
 - **(b) Every other result keeps the Step 0 decision.** Phrase and unigram guards inside `pre-route.py` already suppress idiom false positives ("fish out", metaphorical commit/merge), so a guarded or non-matching result leaves the semantic pick standing. Matching only force-routes is by design — the semantic route owns the long tail.
 
 **Step 2: Apply skill override** — a task verb in the request ("review", "debug", "refactor", "TDD") sets the skill from the Skill-greediness gate list in Step 0b.
@@ -225,7 +194,7 @@ rm -f "$REQUEST_FILE"
  ROUTING: [brief summary]
 ===================================================================
  Selected:
-   -> Agent: [name] - [why]
+   -> Worker: [main | general-purpose] - [why]
    -> Skill: [name] - [why]
    -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/process/workflow/references/pipeline-index.json)
    -> Extra Rigor: [verification patterns for code/security/testing when needed]
@@ -233,9 +202,9 @@ rm -f "$REQUEST_FILE"
 ===================================================================
 ```
 
-Trivial: `Classification: Trivial - [reason]`, `Handling directly`. Main-thread Simple: the banner shows `-> Agent: main - main thread, dispatch does not pay`.
+Trivial: `Classification: Trivial - [reason]`, `Handling directly`. Main-thread Simple: the banner shows `-> Worker: main - main thread, dispatch does not pay`.
 
-**Gate**: Agent (or `main`) and skill set, banner shown. Phase 3.
+**Gate**: Worker (`main` or `general-purpose`) and skill set, banner shown. Phase 3.
 
 ---
 
@@ -247,7 +216,7 @@ Stack on signals.
 |---|---|
 | Substantive | Retro knowledge when material |
 | "with tests"/"production ready" | testing |
-| "research needed"/"investigate first" | research-coordinator-engineer |
+| "research needed"/"investigate first" | `research` skill; fan out `research` workers per source group |
 | Comprehensive/thorough/full review or 5+ files, no diff | review (Security, BizLogic, Arch) |
 | Multi-file review, real diff | `right-size-review.py`; pass its tier only when `tier_signal: true` (else pass no tier: every wave). Prose T1→3,T2→12,T3→17,T4→27; native 4/4/7/13. CRITICAL+1. Outranks comprehensive-review. |
 | Complex implementation | Offer process |
@@ -256,7 +225,7 @@ Stack on signals.
 | Needed knowledge or approval exists with another person | `workflow` — `skills/process/workflow/references/pl-human-source-elicitation.md` |
 | Observation can settle a high impact uncertainty | `workflow` — `skills/process/workflow/references/pl-empirical-prototype.md` |
 | Objective with done-criteria / "loop until done" | Stack `workflow` |
-| Protected PR/security intent with a Go source operand | Keep `pr-workflow`/`security` primary and stack `programming` from `PRE_ROUTE_RESULT.stack` or router `pairs_with` |
+| Protected PR/security intent with a Go source operand | Keep `pr-workflow`/`security` primary and stack `programming` from `PRE_ROUTE_RESULT.stack` or the skill's `pairs_with` |
 
 Review overlap: real-diff row wins; fallback only without diff.
 
@@ -298,11 +267,11 @@ Reuse reads only while their source and task context remain unchanged; a fresh w
 
 **Step 1: Plan** (Simple+) — `task_plan.md`; skip Trivial.
 
-**Step 1b: Quality-loop** (Medium+ code mod) — `references/quality-loop.md` 14 phases. P2 agent: the implementation agent. Force-route in loop. Skip non-code/Trivial/Simple.
+**Step 1b: Quality-loop** (Medium+ code mod) — `references/quality-loop.md` 14 phases. P2 worker: `general-purpose` with the implementation skill. Force-route in loop. Skip non-code/Trivial/Simple.
 
 **Step 1c: Workflow** — Pipeline pick or Complex no pick or explicit → `${CLAUDE_SKILL_DIR}/references/workflow-dispatch.md`. Both 1b+1c → quality-loop OUTER, workflow in IMPLEMENT.
 
-**Step 2: Invoke agent**
+**Step 2: Invoke worker**
 
 **Main thread (Trivial, and Simple when dispatch does not pay; Anthropic lane):** run `build-dispatch.py` with `{"execution": "main", "skill": "<skill, or - for Trivial>", "complexity": "<trivial|simple>", "task_spec": {"intent": "..."}}` and no model fields. It prints `[do-route] agent=main skill={s} complexity={c} model=inherit health=- exec=main` plus the Skill-tool calls, and feeds the marker to `routing-decision-recorder`, so telemetry counts the route (`--no-record` skips that). Then call the Skill tool as printed and do the work in this thread. Do not dispatch an Agent for it.
 
@@ -312,7 +281,7 @@ Reuse reads only while their source and task context remain unchanged; a fresh w
 DISPATCH_JSON=$(mktemp)
 cat > "$DISPATCH_JSON" << 'DISPATCH_EOF'
 {
-  "agent": "<agent>", "skill": "<skill; omit when agent-only>",
+  "skill": "<skill>",
   "pipeline": "<pipeline; omit when Phase 2 returned null>",
   "complexity": "<trivial|simple|medium|complex>",
   "model": "<haiku|opus|fable from Model choice, or gemini-3.8-flash|gemini-4-argon|gemini-4-argon-high>",
@@ -320,7 +289,6 @@ cat > "$DISPATCH_JSON" << 'DISPATCH_EOF'
   "provider": "<anthropic|openai|google|antigravity|other>",
   "manual_model_override": false,
   "health": "-",
-  "fallback_reason": "<REQUIRED when agent=general-purpose; omit otherwise>",
   "stack": ["s1","s2"],
   "task_spec": {"request_verbatim": "<user message, unchanged>", "intent": "...",
                 "constraints": "<applicable rules, limits, and authorization>",
@@ -336,13 +304,13 @@ python3 "$SDIR/build-dispatch.py" --json-file "$DISPATCH_JSON"
 rm -f "$DISPATCH_JSON"
 ```
 
-`agent`/`skill`/`complexity`: Phase 2 (null→`-`). `pipeline`: the Phase 2 pick, passed so the marker carries it; omit when null. The builder validates each name against its index, then emits this exact action contract once per callable skill, primary first with ordered stack de-duplication: `Call the Skill tool with \`skill-name\`.` Shared-pattern stack entries remain prompt injections. Agents and pipelines stay out of Skill-tool calls. Fan-out: one call per agent, same `skill`/`pipeline`. `model`: **required Medium+**; pick from **Model choice** below. Override rules: `references/model-selection.md`. `provider` describes the active harness, not an installed directory. `health`: `-` (in-context weights read retired — `docs/route-loop-validation.md`). `fallback_reason`: the Agent-greediness gate's one-line reason, any prose; `build-dispatch.py` slugifies it and appends `fallback=<slug>` to the marker so every fallback is countable. Dispatch fails without it. `stack`: Phase 3. `task_spec`: mandatory Simple+ (Phase 3 Step G); the script rejects an empty spec at Medium+; creation+"match ADR". `thinking_override`: slow=security/arch/5+files; fast=lookups.
+`skill`/`complexity`: Phase 2 (null→`-`). `agent`: omit; the builder defaults it to `general-purpose`. Pass it only for a private overlay agent from the manifest's AGENTS: section; any other name (a retired specialist, a typo) becomes `general-purpose` with `fallback=invalid-agent:<name>` on the marker. `pipeline`: the Phase 2 pick, passed so the marker carries it; omit when null. The builder validates each name against its index, then emits this exact action contract once per callable skill, primary first with ordered stack de-duplication: `Call the Skill tool with \`skill-name\`.` Shared-pattern stack entries remain prompt injections. Pipelines stay out of Skill-tool calls. Fan-out: one call per worker, each with its own `skill` and `files`. `model`: **required Medium+**; pick from **Model choice** below. Override rules: `references/model-selection.md`. `provider` describes the active harness, not an installed directory. `health`: `-` (in-context weights read retired — `docs/route-loop-validation.md`). `stack`: Phase 3. `task_spec`: mandatory Simple+ (Phase 3 Step G); the script rejects an empty spec at Medium+; creation+"match ADR". `thinking_override`: slow=security/arch/5+files; fast=lookups.
 
 `[do-route]` = SOLE signal for `routing-decision-recorder`. Sub-agents excluded.
 
 **PR work briefs:** put in `constraints`: commit locally, report the SHA, never push or open a PR without the coordinator's go-ahead.
 
-**Fallback:** `[do-route] agent={a} skill={s|-} complexity={c}[ pipeline={p}] health=- model={m|-}`, Task Spec inline, dispatch.
+**Fallback:** `[do-route] agent=general-purpose skill={s|-} complexity={c}[ pipeline={p}] health=- model={m|-}`, Task Spec inline, dispatch.
 
 **Model choice.** Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
 
@@ -351,7 +319,7 @@ rm -f "$DISPATCH_JSON"
 | read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
 | code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
 | high-risk: auth, data, security, concurrency, irreversible | opus / medium, then high |
-| major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
+| major refactor or migration, architecture planning, lead of a many-worker fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
 Sonnet is no row's default. When the owner names a model for the task ("use fable for everything"), pass that model on every dispatch with `manual_model_override=true`.
 
@@ -361,7 +329,7 @@ Escalate on a miss, when an objective check fails (tests, `tsc`, `ruff`, accepta
 
 Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 and 2026-11-09 orders, which win where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
-**Antigravity CLI (`agy`) & Google AI (Argon):** When `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`. Set `provider="google"` in `build-dispatch.py` (`low-risk` = `gemini-3.8-flash` / `low`, `standard` = `gemini-4-argon` / `medium`, `high-risk` = `gemini-4-argon-high` / `high`, `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`). For all Simple+ tasks (Simple, Medium, Complex), dispatch subagents via native Antigravity primitives (register specialist via `define_subagent` from `agents/*.md` if not already defined, dispatch via `invoke_subagent` with `Workspace="inherit"` for single-agent tasks, `Workspace="branch"|"share"` for parallel code isolation, `send_message` for stateful continuation, `manage_subagents` for 3-strike circuit breaking) or Python `run_workflow` (`skills/process/workflow/references/fan-out-workflow.py`). The MULTI-AGENT RULE (Phase 2) applies. Escalation order: `gemini-3.8-flash` → `gemini-4-argon` → `gemini-4-argon-high`. On Antigravity, only Trivial tasks execute directly in the main thread; the Anthropic-lane main-thread rule for Simple tasks does not apply here. For deep autonomous work (`/goal`), enforce Phase 4.5 verification before emitting `<!-- GOAL_COMPLETE -->`.
+**Antigravity CLI (`agy`) & Google AI (Argon):** When `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`. Set `provider="google"` in `build-dispatch.py` (`low-risk` = `gemini-3.8-flash` / `low`, `standard` = `gemini-4-argon` / `medium`, `high-risk` = `gemini-4-argon-high` / `high`, `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`). For all Simple+ tasks (Simple, Medium, Complex), dispatch subagents via native Antigravity primitives (register the worker persona via `define_subagent` from `build-subagent-spec.py --skill <skill>` if not already defined, dispatch via `invoke_subagent` with `Workspace="inherit"` for single-agent tasks, `Workspace="branch"|"share"` for parallel code isolation, `send_message` for stateful continuation, `manage_subagents` for 3-strike circuit breaking) or Python `run_workflow` (`skills/process/workflow/references/fan-out-workflow.py`). The FAN-OUT RULE (Phase 2) applies. Escalation order: `gemini-3.8-flash` → `gemini-4-argon` → `gemini-4-argon-high`. On Antigravity, only Trivial tasks execute directly in the main thread; the Anthropic-lane main-thread rule for Simple tasks does not apply here. For deep autonomous work (`/goal`), enforce Phase 4.5 verification before emitting `<!-- GOAL_COMPLETE -->`.
 
 The marker records the requested selection, not an observed worker model. Report actual identity only from harness metadata. Use scripts for deterministic work. Session configuration stays under the user's control. Codex prompts stay read-only and public unless the task requires otherwise.
 
@@ -370,19 +338,19 @@ The marker records the requested selection, not an observed worker model. Report
 | Verbs | Mode |
 |---|---|
 | list/count/extract/inventory/search/check/find/grep | Scripts when deterministic; otherwise readers → synthesis, model per **Model choice** |
-| review/audit/assess/analyze/debug/investigate/evaluate | Single agent, model per **Model choice** |
+| review/audit/assess/analyze/debug/investigate/evaluate | Single worker, model per **Model choice** |
 
 Simple: main thread unless dispatch pays (Phase 1). Medium: one direct dispatch. Feature-branch; mods commit. `isolation:"worktree"`→`flags.worktree`. Non-org: 3 reviews→fix→PR. Org: confirm git.
 
-**Step 3: Multi-part / fan-out** — deps sequential; independent parallel (agent count: the roster rule in `references/workflow-dispatch.md`). Phase 2 `agents` → ONE `build-dispatch.py` call and ONE Agent dispatch per agent: N agents = N calls = N markers, one marker each. Emit the parallel Agent calls in a single message. Each agent gets its own `files` and scope. Sequential stages pass relevant prior results and evidence locations; synthesis receives the findings and access to evidence from every required stage. Packing several markers into one Bash/Workflow script keeps them recorded but forfeits route-fit scoring, which reads a lone marker per event.
+**Step 3: Multi-part / fan-out** — deps sequential; independent parallel (worker count: the roster rule in `references/workflow-dispatch.md`). Phase 2 `workers` → ONE `build-dispatch.py` call and ONE `general-purpose` Agent dispatch per worker, each with its own `skill`: N workers = N calls = N markers, one marker each. Emit the parallel Agent calls in a single message. Each worker gets its own `files` and scope. Sequential stages pass relevant prior results and evidence locations; synthesis receives the findings and access to evidence from every required stage. Packing several markers into one Bash/Workflow script keeps them recorded but forfeits route-fit scoring, which reads a lone marker per event.
 
-**Complex fan-in report** — when 2+ agents feed one synthesized report, run one self-review pass on the draft before delivery: `skills/shared-patterns/report-self-review.md` (one separate dispatch, no marker, `model: opus`). Not for Trivial, Simple, or Medium routes.
+**Complex fan-in report** — when 2+ workers feed one synthesized report, run one self-review pass on the draft before delivery: `skills/shared-patterns/report-self-review.md` (one separate dispatch, no marker, `model: opus`). Not for Trivial, Simple, or Medium routes.
 
 **Step 4: Auto-Pipeline Fallback** (no match, Simple+) — skill `workflow` with pipeline `auto-pipeline`. None → closest+`workflow`. Never empty skill.
 
 **Lazy-completion check.** "Done" on enumerable → compare scope; short → reject, re-dispatch (`references/lazy-completion-detector.md`). Re-dispatch → route failure.
 
-**Gate**: Agent invoked, results delivered.
+**Gate**: Work executed or worker dispatched, results delivered.
 
 ---
 
@@ -400,6 +368,6 @@ On any routing error → load `${CLAUDE_SKILL_DIR}/references/error-handling.md`
 
 - `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`
 - `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`
-- `agents/INDEX.json`, `skills/INDEX.json`
+- `skills/INDEX.json`
 - `skills/process/workflow/SKILL.md`, `skills/process/workflow/references/pipeline-index.json`
 - `scripts/routing-manifest.py`

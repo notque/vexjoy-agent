@@ -24,7 +24,7 @@ When reviewing Go code, watch for these patterns that linters miss:
 - [ ] Sentinels compared with `errors.Is`, never `==` or error-string matching
 - [ ] Every exported name has a doc comment starting with the name
 - **Red flag**: a hand-written 405 without an `Allow` header; a Go 1.22+ `ServeMux` already sends 405 with `Allow`
-- Full rules with before/after code: `agents/golang-general-engineer/references/go-modern-code.md`
+- Full rules with before/after code: `~/.claude/skills/programming/references/golang-general/go-modern-code.md`
 
 ## Resource Management
 - [ ] Is `defer f.Close()` placed AFTER error check?

@@ -143,6 +143,6 @@ Focus on:
 
 ## Dispatch Instruction
 
-**Dispatch all agents in a single message using the Task tool with `subagent_type=golang-general-engineer`.**
+**Dispatch all agents in a single message using the Agent tool with `subagent_type=general-purpose`.** Put this line before the Standard Dispatch Prompt in each: "Read ~/.claude/skills/programming/references/golang-general.md and follow it; load every file its Reference Loading Table matches."
 
 Gate: All agents dispatched. Proceed to Phase 3.

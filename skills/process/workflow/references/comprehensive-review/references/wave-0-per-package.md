@@ -4,10 +4,10 @@
 
 | Language | Discovery Command | Agent Type | Min Package Size |
 |----------|-------------------|------------|-----------------|
-| Go | `find . -name "*.go" -path "*/internal/*" \| xargs dirname \| sort -u` | `golang-general-engineer` | 1 file |
-| Go (also) | `find . -name "*.go" -not -path "*/internal/*" -not -path "*/vendor/*" \| xargs dirname \| sort -u` | `golang-general-engineer` | 1 file |
-| Python | `find . -name "__init__.py" \| xargs dirname \| sort -u` | `python-general-engineer` | 1 file |
-| TypeScript | `find . -name "index.ts" -o -name "index.tsx" \| xargs dirname \| sort -u` | `typescript-frontend-engineer` | 1 file |
+| Go | `find . -name "*.go" -path "*/internal/*" \| xargs dirname \| sort -u` | `general-purpose` + `programming` skill, `references/golang-general.md` | 1 file |
+| Go (also) | `find . -name "*.go" -not -path "*/internal/*" -not -path "*/vendor/*" \| xargs dirname \| sort -u` | `general-purpose` + `programming` skill, `references/golang-general.md` | 1 file |
+| Python | `find . -name "__init__.py" \| xargs dirname \| sort -u` | `general-purpose` + `programming` skill, `references/python-general.md` | 1 file |
+| TypeScript | `find . -name "index.ts" -o -name "index.tsx" \| xargs dirname \| sort -u` | `general-purpose` + `frontend` skill, `references/typescript-frontend.md` | 1 file |
 
 Full discovery commands (excluding vendor/venv/git):
 
@@ -24,11 +24,11 @@ find . -name "index.ts" -o -name "index.tsx" | grep -v node_modules | xargs dirn
 
 ## Agent Selection by Language
 
-| Language | Agent |
+| Language | Worker |
 |----------|-------|
-| Go | `golang-general-engineer` |
-| Python | `python-general-engineer` |
-| TypeScript | `typescript-frontend-engineer` |
+| Go | `general-purpose` + `programming` skill, `references/golang-general.md` |
+| Python | `general-purpose` + `programming` skill, `references/python-general.md` |
+| TypeScript | `general-purpose` + `frontend` skill, `references/typescript-frontend.md` |
 | Mixed | Use language of majority files in that package |
 
 Review agents run on `opus` (the `work` role in `workflow-helpers.js`); pass the owner's model instead when the owner names one. Never use haiku or sonnet for code review.
@@ -40,7 +40,7 @@ Dispatch up to 10 agents per message. If more than 10 packages are discovered, u
 - Batch 2: packages 11-20 (dispatch in ONE message after batch 1 completes)
 - Continue until all packages are covered
 
-Each per-package agent gets this prompt:
+Each per-package worker is a fresh `general-purpose` agent. Its prompt starts by calling the Skill tool with the row's skill and reading `~/.claude/skills/<skill>/<reference>`, then continues with this prompt:
 
 ```
 PER-PACKAGE DEEP REVIEW — Wave 0

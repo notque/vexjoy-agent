@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.1
+# hook-version: 1.2.2
 """
 PreToolUse:Agent Hook: Reference Loading Enforcer
 
@@ -64,8 +64,8 @@ _INJECTION_MARKER = "reference loading"
 
 # The instruction to inject into agent prompts.
 _REFERENCE_LOADING_INSTRUCTION = (
-    "REFERENCE LOADING REQUIREMENT: Consult the Reference Loading Table in your "
-    "agent .md file or skill SKILL.md and read the references that match this task "
+    "REFERENCE LOADING REQUIREMENT: Consult the Reference Loading Table in each loaded "
+    "skill's SKILL.md and read the references that match this task "
     "— they carry the domain patterns and detection commands your output needs."
 )
 

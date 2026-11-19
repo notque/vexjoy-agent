@@ -2,7 +2,6 @@
 name: video-editing
 description: "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion."
 user-invocable: false
-agent: python-general-engineer
 allowed-tools:
   - Read
   - Write
@@ -42,7 +41,7 @@ routing:
     - download subtitles
     - what does this video say
   pairs_with:
-    - typescript-frontend-engineer
+    - frontend
     - research
 ---
 
@@ -134,7 +133,7 @@ Steps: batch-cut from EDL with while loop (libx264/aac, `-avoid_negative_ts make
 
 **When to use**: Only when rough-cut.mp4 requires programmatic elements (animated titles, lower thirds, caption tracks, brand overlays). If rough-cut.mp4 is sufficient, skip to Phase 6.
 
-**Constraint**: Layer 4 requires TypeScript/React. Hand off to `typescript-frontend-engineer` for TSX work; return to `python-general-engineer` for Phase 5 onward.
+**Constraint**: Layer 4 requires TypeScript/React. For the TSX work, load the `frontend` skill and its `typescript-frontend.md` reference; from Phase 5 onward, load `programming` and its `python-general.md` reference.
 
 Steps: initialize Remotion (`npm create video@latest` first time; otherwise `npm install @remotion/cli @remotion/player remotion`), scaffold composition (see `references/remotion-scaffold.md`), render with `npx remotion render`. Full command block: `references/phase-commands.md` -> Phase 4.
 

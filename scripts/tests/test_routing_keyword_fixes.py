@@ -279,8 +279,8 @@ def test_private_names_from_installed_owner(tmp_path: Path, monkeypatch: pytest.
 def test_old_agent_name_maps_to_current_name() -> None:
     assert rim.canonical_agent_name("ui-frontend-engineer") == "ui-design-engineer"
     assert rim.canonical_agent_name("golang-general-engineer") == "golang-general-engineer"
-    for new in rim.AGENT_ALIASES.values():
-        assert (REPO / "agents" / f"{new}.md").is_file(), new
+    # Alias targets may be retired agents (plans/009): the alias still
+    # attributes routing history, so the target need not exist on disk.
 
 
 def test_routing_history_attributes_old_agent_name_to_renamed_agent() -> None:

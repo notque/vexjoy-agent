@@ -3,7 +3,6 @@ name: research
 description: "Research: structured investigation, fact-checking, explanation traces."
 user-invocable: true
 argument-hint: "<research topic or claim to verify>"
-agent: research-coordinator-engineer
 context: fork
 allowed-tools:
   - Read
@@ -43,6 +42,13 @@ routing:
     - "explain decision"
     - "show decisions"
     - "trace log"
+    - "research topic"
+    - "multi-source analysis"
+    - "investigate question"
+    - "synthesize sources"
+    - "comprehensive analysis"
+    - "research subtask"
+    - "delegated research"
   category: research
   pairs_with:
     - review
@@ -67,6 +73,9 @@ Default: Research Pipeline.
 
 ## Mode A: Research Pipeline
 
+Load `references/research-coordinator.md` and follow it: CLASSIFY -> PLAN -> EXECUTE -> SYNTHESIZE. The coordinator runs in this thread and writes the report itself. Each research stream is a fresh `general-purpose` worker whose prompt starts: "Read ~/.claude/skills/research/references/research-subagent-executor.md and follow it; load every file its Reference Loading Table matches." Dispatch independent streams in one message; 20 workers maximum. Save the report to `research/{topic}/report.md`, every factual claim cited.
+
+**Gate**: Every worker returned or its gap is stated; the report cites source and passage for each claim.
 
 ---
 
@@ -176,6 +185,8 @@ Lead with the answer to the user's specific question, then offer surrounding con
 
 | Signal | Reference | Content |
 |--------|-----------|---------|
+| Research pipeline: classify, plan, dispatch, synthesize | `references/research-coordinator.md` | Coordinator method, worker dispatch, report format; sub-files in `references/research-coordinator/` |
+| Running one delegated research stream (worker) | `references/research-subagent-executor.md` | OODA loop, tool budget, source quality; sub-files in `references/research-subagent-executor/` |
 | Event field schema, health states, join rules | `references/trace-schema.md` | DECISION/OUTCOME field semantics |
 | Diagnosing thin trace data, consumer mistakes | `references/preferred-patterns.md` | Failure mode catalog for log reading |
 | Parse/read errors, missing log, unmatched outcomes | `references/error-handling.md` | Error-fix mappings for trace reading |

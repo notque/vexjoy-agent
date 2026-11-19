@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.1.0
 """
 UserPromptSubmit Hook: Dynamic Skill/Agent Evaluation
 
@@ -17,44 +17,21 @@ from hook_utils import hook_error
 
 REPO_ROOT = Path(__file__).parent.parent
 
-# Complete agent routing guide with when-to-use descriptions
-AGENT_ROUTING = {
-    # Language/Framework Experts
-    "golang-general-engineer": "Go development, concurrency, testing, interfaces",
-    "python-general-engineer": "Python development, async, typing, pytest",
-    "python-openstack-engineer": "OpenStack Python, oslo libraries, Tempest",
-    "typescript-frontend-engineer": "TypeScript, React, type safety, Zod",
-    "typescript-debugging-engineer": "TypeScript debugging, race conditions, async issues",
-    "nodejs-api-engineer": "Node.js backends, Express, auth, webhooks",
-    "nextjs-ecommerce-engineer": "Next.js e-commerce, Stripe, cart, checkout",
-    "react-portfolio-engineer": "React portfolios, galleries, image optimization",
-    # Infrastructure
-    "kubernetes-helm-engineer": "K8s, Helm charts, deployments, troubleshooting",
-    "ansible-automation-engineer": "Ansible playbooks, roles, automation",
-    "prometheus-grafana-engineer": "Monitoring, alerting, dashboards, metrics",
-    "opensearch-elasticsearch-engineer": "Search clusters, indexing, queries",
-    "rabbitmq-messaging-engineer": "Message queues, routing, clustering",
-    # Data & Docs
-    "database-engineer": "PostgreSQL, Prisma, schema design, optimization",
-    "sqlite-peewee-engineer": "SQLite, Peewee ORM, migrations",
-    "technical-documentation-engineer": "API docs, READMEs, technical writing",
-    "technical-journalist-writer": "Technical articles, journalism, explainers",
-    # UI/Performance
-    "ui-design-engineer": "UI/UX, Tailwind, accessibility, animations",
-    "performance-optimization-engineer": "Core Web Vitals, bundle size, caching",
-    "testing-automation-engineer": "Unit/E2E tests, Playwright, CI pipelines",
-    # Meta/Creation
-    "skill-creator": "Create new Claude skills",
-    "hook-development-engineer": "Create Claude Code hooks, event handlers",
-    "mcp-local-docs-engineer": "Build MCP servers for documentation",
-    # Coordination
-    "research-coordinator-engineer": "Complex research, multi-source analysis",
-    "project-coordinator-engineer": "Multi-agent orchestration, TodoWrite",
-    # Consolidated reviewers
-    "reviewer-code": "Code quality, style, sustainability, precision",
-    "reviewer-domain": "Business logic, ADR compliance, production readiness",
-    "reviewer-perspectives": "Contrarian analysis, user advocacy, process review",
-    "reviewer-system": "Security, concurrency, silent failures, config safety",
+# Domain skills. The repo's specialist agents are retired (plans/009): the
+# worker is the built-in general-purpose agent and a domain skill carries the
+# domain that an agent used to hold.
+DOMAIN_SKILLS = {
+    "programming": "Go, Python, Rust, Kotlin, Swift, PHP, TypeScript debugging, OpenStack, Node APIs, MCP servers",
+    "frontend": "TypeScript UI, React, Next.js, React Native, design systems, web performance",
+    "game-dev": "PixiJS rendering, Rive animation, combat effects",
+    "kubernetes": "K8s, Helm, Ansible, Prometheus/Grafana, OpenSearch, RabbitMQ, Perses",
+    "data": "Pipelines, schema design, query plans, SQLite/Peewee",
+    "testing": "Unit/E2E tests, Playwright, coverage",
+    "review": "Code, system, domain, and multi-perspective review",
+    "research": "Multi-source research and synthesis",
+    "workflow": "Multi-step coordination and pipeline scaffolding",
+    "toolkit": "Skills, hooks, routing tables, ADRs, toolkit upgrades",
+    "writing": "Technical docs, articles, explainers",
 }
 
 # Complete skill routing guide
@@ -136,22 +113,14 @@ def get_evaluation_prompt(complexity: str) -> str:
     """Generate skill evaluation injection prompt."""
 
     # Group agents by category for readability
-    agent_sections = """
-**Agents by Domain:**
-- Go: golang-general-engineer
-- Python: python-general-engineer, python-openstack-engineer (OpenStack)
-- TypeScript/React: typescript-frontend-engineer, typescript-debugging-engineer (bugs)
-- Node.js: nodejs-api-engineer, nextjs-ecommerce-engineer, react-portfolio-engineer
-- Infra: kubernetes-helm-engineer, ansible-automation-engineer
-- Monitoring: prometheus-grafana-engineer, opensearch-elasticsearch-engineer
-- Data: database-engineer (PostgreSQL), sqlite-peewee-engineer
-- Docs: technical-documentation-engineer, technical-journalist-writer
-- UI: ui-design-engineer, performance-optimization-engineer
-- Testing: testing-automation-engineer
-- Meta: skill-creator, hook-development-engineer
-- Research: research-coordinator-engineer, project-coordinator-engineer
-- Review: reviewer-code, reviewer-domain, reviewer-perspectives, reviewer-system
+    agent_sections = (
+        """
+**Domain skills (worker: general-purpose; the skill carries the domain):**
+"""
+        + "\n".join(f"- {name}: {desc}" for name, desc in DOMAIN_SKILLS.items())
+        + """
 - Critique: roast skill (5 personas: contrarian, newcomer, builder, senior, pedant)"""
+    )
 
     skill_sections = """
 **Skills by Purpose:**
@@ -182,7 +151,7 @@ EVALUATE before responding:
 
 {systematic}
 
-Route with: `skill: [name]` or Task tool with subagent_type
+Route with: `skill: [name]`; dispatch the general-purpose agent with that skill
 </skill-evaluation-protocol>"""
 
 

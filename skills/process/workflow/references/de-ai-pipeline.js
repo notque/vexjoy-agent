@@ -28,6 +28,7 @@
 import {
   mandatoryInjections,
   modelFor,
+  referenceDirective,
   skillDirectives,
   validateAgentName,
   validateModelOverride,
@@ -72,7 +73,10 @@ export const meta = {
 // dispatched FROM that roster variable — the fully-dynamic structural invariant.
 // Use public indexed components so the workflow remains portable. writing
 // carries the anti-AI editing workflow through its loaded voice references.
-const FIX_AGENT = "technical-journalist-writer";
+// Repo agents are retired (plan 009): the worker is general-purpose and loads
+// the technical-journalism reference that the retired agent body became.
+const FIX_AGENT = "general-purpose";
+const FIX_REF = { skill: "writing", file: "technical-journalist-writer.md" };
 const FIX_SKILLS = ["writing", "testing"];
 const MAX_ITERATIONS = 3;
 
@@ -166,8 +170,9 @@ function fixRoster(errorFiles, hitsByFile, override) {
 // embeds the /do completeness/density/base-instructions/reference-loading block.
 function fixPrompt(r) {
   return (
-    `You are ${r.agentType}, fixing AI writing patterns in one file.` +
+    `You are a writing worker, fixing AI writing patterns in one file.` +
     skillDirectives(r.skills) +
+    referenceDirective(FIX_REF) +
     `\nFile: ${r.file}\nDetected pattern hits (typed):\n${JSON.stringify(r.hits)}\n` +
     `Rephrase each genuine AI tell while preserving ALL factual content — never ` +
     `remove information to dodge a pattern. Leave protected zones unchanged (code ` +

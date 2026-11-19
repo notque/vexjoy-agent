@@ -1,7 +1,7 @@
 """Session-model route pick for /d, used by the eval drivers.
 
 In production the session model reads /d's SKILL.md, the routing manifest, and
-/do's rule text, then picks the agent, skill, and pipeline. The eval drivers
+/do's rule text, then picks the skill, pipeline, and stack. The eval drivers
 stand in for that session with `claude -p`: the system prompt holds the same
 three texts, the user prompt holds the request and the prepared JEV_RESULT, and
 the reply is the decision JSON. `jev-route.py --finalize` then validates the
@@ -33,8 +33,8 @@ _JSON_RE = re.compile(r"\{.*\}", re.S)
 D_PROMPT = """You are executing the /d skill for the user request below. Its SKILL.md, /do's routing rules, and the routing
 manifest are in your system prompt. Phase 1 step 1 already ran: JEV_RESULT is given. You cannot run tools and must not
 execute the task. Apply Phase 1 step 2 exactly as SKILL.md instructs, then output ONLY the decision JSON object, with
-these keys: {"agent": ..., "agents": [...], "skill": ..., "pipeline": ..., "complexity": ..., "confidence": ...,
-"reasoning": ..., "fallback_reason": ...}. No prose, no code fences.
+these keys: {"skill": ..., "pipeline": ..., "stack": [...], "workers": [{"skill": ..., "scope": ...}],
+"complexity": ..., "confidence": ..., "reasoning": ...}. No prose, no code fences.
 
 User request:
 <request>
@@ -164,7 +164,7 @@ def call_model(sys_file: Path, prompt: str, model: str, scratch: Path) -> tuple[
 def finalize(prepared: dict, decision: dict | None) -> dict:
     """The production finalize step, called in-process."""
     module = _load_jev_route()
-    return module.finalize(prepared, decision or {}, module._load_manifest_entries())
+    return module.finalize(prepared, decision or {}, module._load_manifest_entries(), module._load_overlay_agents())
 
 
 def pick_route(
@@ -177,7 +177,7 @@ def pick_route(
     """prepare -> session-model pick -> finalize for one request.
 
     Returns the finalized route plus `prepared`, `decision`, `cost_usd`, and `usage`. A model reply that is not
-    JSON yields an empty decision, so finalize still fills the skill and the agent.
+    JSON yields an empty decision, so finalize still fills the skill and the worker.
     """
     scratch = scratch or Path(tempfile.gettempdir()) / "d-route-eval"
     scratch.mkdir(parents=True, exist_ok=True)

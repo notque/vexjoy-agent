@@ -27,19 +27,28 @@ import skillIndex from "../../../INDEX.json" with { type: "json" };
 
 const NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 
-function indexNames(index, key, label) {
+// Throws on an unreadable index. An empty one throws too unless allowEmpty is
+// set: with repo agents retired, a clone with no private overlay agents has an
+// empty agent index, and the built-in agents still resolve.
+function indexNames(index, key, label, allowEmpty = false) {
   const entries = index && index[key];
   if (!entries || typeof entries !== "object" || Array.isArray(entries)) {
     throw new Error(`Trusted ${label} index is unreadable or empty.`);
   }
   const names = Object.keys(entries);
-  if (names.length === 0) {
+  if (names.length === 0 && !allowEmpty) {
     throw new Error(`Trusted ${label} index is unreadable or empty.`);
   }
   return new Set(names);
 }
 
-const KNOWN_AGENTS = indexNames(agentIndex, "agents", "agent");
+// Harness-provided agent types. Repo agents are retired (plan 009): every
+// pipeline worker runs as `general-purpose` and takes its domain from the skill
+// reference its prompt names (referenceDirective). Private overlay agents still
+// resolve through agents/INDEX.json.
+export const WORKER = "general-purpose";
+const BUILTIN_AGENTS = new Set([WORKER, "Explore", "Plan"]);
+const KNOWN_AGENTS = new Set([...indexNames(agentIndex, "agents", "agent", true), ...BUILTIN_AGENTS]);
 const KNOWN_SKILLS = indexNames(skillIndex, "skills", "skill");
 
 // --- Model choice -------------------------------------------------------------
@@ -127,31 +136,54 @@ export function branchRule(branch) {
 }
 
 // --- Engineer selection -------------------------------------------------------
-// Map a file path (a bare path or `path:line`) to the engineer agent that edits
-// that file type. Returns undefined when no listed engineer fits; the caller
-// then dispatches without agentType.
-const ENGINEER_BY_EXTENSION = {
-  py: "python-general-engineer",
-  go: "golang-general-engineer",
-  ts: "typescript-frontend-engineer",
-  tsx: "typescript-frontend-engineer",
-  jsx: "typescript-frontend-engineer",
-  js: "nodejs-api-engineer",
-  mjs: "nodejs-api-engineer",
-  cjs: "nodejs-api-engineer",
-  rs: "rust-general-engineer",
-  kt: "kotlin-general-engineer",
-  swift: "swift-general-engineer",
-  php: "php-general-engineer",
-  md: "technical-documentation-engineer",
+// Repo specialist agents are retired (plan 009), so no file type maps to an
+// engineer agent: every fix worker is `general-purpose` and takes its domain
+// from referenceForPath(). Kept as an export so existing callers
+// (`engineerForPath(x) ?? WORKER`) keep working; it always returns undefined,
+// even when a stale agents/INDEX.json still lists a retired agent.
+export function engineerForPath(path) {
+  void path;
+  return undefined;
+}
+
+// The skill reference a fix worker loads for a file path, as {skill, file}, or
+// undefined when no reference fits. Paths follow plan 009's agent-to-skill map.
+const REFERENCE_BY_EXTENSION = {
+  py: { skill: "programming", file: "python-general.md" },
+  go: { skill: "programming", file: "golang-general.md" },
+  ts: { skill: "frontend", file: "typescript-frontend.md" },
+  tsx: { skill: "frontend", file: "typescript-frontend.md" },
+  jsx: { skill: "frontend", file: "typescript-frontend.md" },
+  rs: { skill: "programming", file: "rust-general.md" },
+  kt: { skill: "programming", file: "kotlin-general.md" },
+  swift: { skill: "programming", file: "swift-general.md" },
+  php: { skill: "programming", file: "php-general.md" },
+  md: { skill: "writing", file: "technical-documentation.md" },
 };
 
-export function engineerForPath(path) {
+export function referenceForPath(path) {
   if (typeof path !== "string") return undefined;
   const file = path.replace(/:\d+.*$/, "");
   const match = /\.([A-Za-z0-9]+)$/.exec(file);
-  const name = match ? ENGINEER_BY_EXTENSION[match[1].toLowerCase()] : undefined;
-  return name && KNOWN_AGENTS.has(name) ? name : undefined;
+  return match ? REFERENCE_BY_EXTENSION[match[1].toLowerCase()] : undefined;
+}
+
+const REF_FILE_RE = /^[a-z0-9][a-z0-9-]*\.md$/;
+
+// The instruction that gives a general-purpose worker its domain: read one
+// skill reference and load what its Reference Loading Table matches. `skill`
+// is an indexed skill; `file` is a references/ file name. Returns "" for
+// undefined so callers can pass referenceForPath() output straight through.
+export function referenceDirective(ref) {
+  if (ref === undefined) return "";
+  const [skill] = validateSkillNames([ref.skill], "reference.skill");
+  if (typeof ref.file !== "string" || !REF_FILE_RE.test(ref.file)) {
+    throw new TypeError(`reference.file: invalid reference ${JSON.stringify(ref.file)}.`);
+  }
+  return (
+    `\nRead ~/.claude/skills/${skill}/references/${ref.file} and follow it; ` +
+    `load every file its Reference Loading Table matches.`
+  );
 }
 
 export function validateAgentName(name, label = "agentType") {
@@ -235,10 +267,11 @@ export function mandatoryInjections() {
     `- Deliver the finished product. Ship the complete thing.\n` +
     `- Write dense: high fidelity, minimum words. Cut filler, prefer tables over ` +
     `paragraphs, report what changed — not how.\n` +
-    `- Before starting work, also load \`agents/base-instructions.md\` for ` +
+    `- Before starting work, also load \`skills/shared-patterns/base-instructions.md\` for ` +
     `universal operational rules.\n` +
-    `- Before starting work, read your agent .md file to find the Reference ` +
-    `Loading Table. Load EVERY reference file whose signal matches this task. ` +
-    `Load greedily — if multiple signals match, load all matching references.`
+    `- Before starting work, read the skill reference your prompt names and ` +
+    `find its Reference Loading Table. Load EVERY reference file whose signal ` +
+    `matches this task. Load greedily — if multiple signals match, load all ` +
+    `matching references.`
   );
 }

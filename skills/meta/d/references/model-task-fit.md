@@ -15,7 +15,7 @@ Owner (notque), verbatim, 2026-11-09: "Also I prefer opus 5.5 medium over high".
 | Read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
 | Code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
 | High-risk: auth, data, security, concurrency, irreversible | opus / medium, then high |
-| Major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
+| Major refactor or migration, architecture planning, lead of a many-worker fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
 Sonnet is no row's default.
 

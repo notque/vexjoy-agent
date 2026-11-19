@@ -30,6 +30,7 @@
 import {
   mandatoryInjections,
   modelFor,
+  referenceDirective,
   skillDirectives,
   validateModelOverride,
 } from "./workflow-helpers.js";
@@ -58,9 +59,9 @@ export const meta = {
     // per element). The distinct scanner lens is a RUNTIME property of the prompt,
     // so the static roster is three identical-type entries (type + skills + count).
     roster: [
-      { agentType: "research-subagent-executor", skills: ["assessment"] },
-      { agentType: "research-subagent-executor", skills: ["assessment"] },
-      { agentType: "research-subagent-executor", skills: ["assessment"] },
+      { agentType: "general-purpose", skills: ["assessment"] },
+      { agentType: "general-purpose", skills: ["assessment"] },
+      { agentType: "general-purpose", skills: ["assessment"] },
     ],
     // The SCAN barrier dispatches exactly the fixed 3 on every run (static).
     agents: { static: 3, dynamic: false },
@@ -77,12 +78,20 @@ export const meta = {
 // pattern/quality analysis references. The literal skill names live in
 // these `skills: [...]` arrays so the conformance gate resolves them; the body
 // emits the directives by delegating each entry's list to skillDirectives().
+// Repo agents are retired (plan 009). Scanners and the coordinator are fresh
+// general-purpose workers that load the research-skill references the retired
+// research-subagent-executor and research-coordinator-engineer bodies became;
+// the assessment skill carries the exploration method.
+const ROLE_REFS = {
+  "scanner": { skill: "research", file: "research-subagent-executor.md" },
+  "coordinator": { skill: "research", file: "research-coordinator.md" },
+};
 const AGENT_SKILLS = {
-  "research-subagent-executor": ["assessment"],
-  "research-coordinator-engineer": ["assessment"],
+  "scanner": ["assessment"],
+  "coordinator": ["assessment"],
 };
 
-const COORDINATOR_AGENT = "research-coordinator-engineer";
+const WORKER_AGENT = "general-purpose";
 
 // The three fixed SCAN scanners (the prose Phase 1). Each is a distinct read-only
 // lens dispatched in one parallel barrier; minimum 2-of-3 is the prose gate, but
@@ -240,9 +249,10 @@ function enterPhase(title) {
 // Each scanner gets a DISTINCT lens and returns its own typed result.
 function scanPrompt(lens, scope) {
   return (
-    `You are a read-only codebase scanner (research-subagent-executor). Explore ` +
+    `You are a read-only codebase scanner. Explore ` +
     `and report only; leave all files unchanged.` +
-    skillDirectives(AGENT_SKILLS["research-subagent-executor"]) +
+    skillDirectives(AGENT_SKILLS["scanner"]) +
+    referenceDirective(ROLE_REFS["scanner"]) +
     `\nYour scanner lens: ${lens}.\nExplore this scope:\n${JSON.stringify(scope)}\n` +
     `Return typed observations with concrete file paths as evidence. Stay within ` +
     `your lens — the coordinator maps and analyzes across scanners.` +
@@ -256,7 +266,8 @@ function scanPrompt(lens, scope) {
 function coordinatorPrompt(task, payload) {
   return (
     task +
-    skillDirectives(AGENT_SKILLS[COORDINATOR_AGENT]) +
+    skillDirectives(AGENT_SKILLS["coordinator"]) +
+    referenceDirective(ROLE_REFS["coordinator"]) +
     `\n${JSON.stringify(payload)}` +
     mandatoryInjections()
   );
@@ -291,7 +302,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
         prompt: scanPrompt(s.lens, scope),
         schema: SCAN_SCHEMA,
         model: modelFor("gather", modelOverride),
-        agentType: "research-subagent-executor",
+        agentType: "general-purpose",
       }),
     ),
   );
@@ -310,7 +321,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
       ),
       schema: MAP_SCHEMA,
       model: modelFor("lead", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -329,7 +340,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
       ),
       schema: ANALYZE_SCHEMA,
       model: modelFor("work", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -353,7 +364,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
         ),
         schema: COMPILE_SCHEMA,
         model: modelFor("work", modelOverride),
-        agentType: COORDINATOR_AGENT,
+        agentType: WORKER_AGENT,
       });
     }
 
@@ -369,7 +380,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
         ),
         schema: ASSESS_SCHEMA,
         model: modelFor("work", modelOverride),
-        agentType: COORDINATOR_AGENT,
+        agentType: WORKER_AGENT,
       });
     }
 
@@ -385,7 +396,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
         ),
         schema: SYNTHESIZE_SCHEMA,
         model: modelFor("work", modelOverride),
-        agentType: COORDINATOR_AGENT,
+        agentType: WORKER_AGENT,
       });
     }
 
@@ -401,7 +412,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
         ),
         schema: REFINE_SCHEMA,
         model: modelFor("work", modelOverride),
-        agentType: COORDINATOR_AGENT,
+        agentType: WORKER_AGENT,
       });
     }
   }
@@ -421,7 +432,7 @@ export default async function run({ scope, tier, deep, modelOverride } = {}) {
       ),
       schema: REPORT_SCHEMA,
       model: modelFor("lead", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 

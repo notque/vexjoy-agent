@@ -35,5 +35,5 @@ sync_score = (total_tools - total_issues) / total_tools * 100
 ## Exceptions
 
 - `promoted_to` skills and symlinked (private) skills or agents are never expected in a catalog.
-- `agents/*.md` files without frontmatter (for example `agents/base-instructions.md`, a shared prompt) are not agents.
+- `agents/*.md` files without frontmatter (a shared prompt, for example) are not agents. The shared worker prompt lives at `skills/shared-patterns/base-instructions.md`, and the repo ships no agents since the retirement in plans/009.
 - There is no ignore file. To hide a tool, promote or remove it.

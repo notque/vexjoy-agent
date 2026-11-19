@@ -11,7 +11,6 @@ allowed-tools:
   - Edit
   - Task
   - Skill
-agent: python-general-engineer
 routing:
   force_route: true
   not_for: "code review with findings (use review), security scanning (use security)"

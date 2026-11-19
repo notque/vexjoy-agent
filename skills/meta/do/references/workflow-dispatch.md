@@ -73,9 +73,9 @@ Inline `script:` shape (exact Skill-tool calls in EVERY worker, count from the r
 
 ```js
 const ROSTER = [/* dictated count, NOT model-chosen */
-  {agentType: "reviewer-system",       skills: ["review", "testing"], lens: "security"},
-  {agentType: "reviewer-domain",       skills: ["review", "testing"], lens: "domain"},
-  {agentType: "reviewer-perspectives", skills: ["review", "testing"], lens: "newcomer"},
+  {agentType: "general-purpose", skills: ["review", "testing"], lens: "security", ref: "reviewer-system.md"},
+  {agentType: "general-purpose", skills: ["review", "testing"], lens: "domain",   ref: "reviewer-domain.md"},
+  {agentType: "general-purpose", skills: ["review", "testing"], lens: "newcomer", ref: "reviewer-perspectives.md"},
 ];
 const findings = await parallel(ROSTER.map(r => async () => {
   const prompt = `${skillDirectives(r.skills)}\n${buildPrompt(r)}`;
@@ -83,4 +83,4 @@ const findings = await parallel(ROSTER.map(r => async () => {
 }));
 ```
 
-Catching a model-chosen N (`parallel(Array.from({length: N}, ...))`) or a missing exact Skill-tool call means **stop and rebuild the script from the roster rule above**.
+Every worker is `general-purpose`; the lens reference (from the `review` skill's `references/`) carries what the retired reviewer agent held. Catching a model-chosen N (`parallel(Array.from({length: N}, ...))`) or a missing exact Skill-tool call means **stop and rebuild the script from the roster rule above**.

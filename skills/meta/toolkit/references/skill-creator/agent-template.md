@@ -2,6 +2,8 @@
 
 This template combines Anthropic's skill-building best practices with our agent strengths.
 
+**Overlay-only after plan 009.** Repo agents are retired: repo domain expertise goes in a skill reference (see `skills/meta/toolkit/references/agent-creator.md`). Use this template only for a private overlay agent the owner asked for. Its file lives in `private-agents/` (the `agents/` paths below read `private-agents/` for an overlay agent) and is indexed into `agents/INDEX.local.json` with `python3 scripts/generate-agent-index.py --include-private`. The consolidation rule below still holds: one domain gets one home, and in the repo that home is a skill reference.
+
 ## Structure Overview
 
 ```

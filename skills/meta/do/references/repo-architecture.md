@@ -1,13 +1,12 @@
 # Repository Architecture
 
-This repository contains agents, skills, and hooks for Claude Code.
+This repository contains skills, pipelines, hooks, and scripts for Claude Code. The repo ships no specialist agents (retired in plans/009): the dispatch worker is the built-in `general-purpose` agent and the skill carries the domain. Private overlay agents (`agents/INDEX.local.json`) still install and validate when named.
 
 ## Component Types
 
 | Component | Location | Purpose | Format |
 |-----------|----------|---------|--------|
-| **Agent** | `agents/*.md` or `agents/<name>/` | Domain expert (e.g., Go, Python, K8s) | Markdown with YAML frontmatter |
-| **Skill** | `skills/*/SKILL.md` | Workflow methodology (e.g., TDD, debugging) | Markdown with YAML frontmatter |
+| **Skill** | `skills/*/SKILL.md` | Domain (e.g., Go, Python, K8s) or methodology (e.g., TDD, debugging) | Markdown with YAML frontmatter |
 | **Pipeline** | `skills/process/workflow/references/*.md` | Multi-phase structured workflow (same format as skills) | Markdown with YAML frontmatter |
 | **Hook** | `hooks/*.py` | Event-driven automation | Python script |
 | **Script** | `scripts/*.py`, `scripts/*.sh` | Deterministic operations | Python or shell script |
@@ -22,44 +21,43 @@ name: skill-name
 description: Brief purpose description
 user-invocable: false    # Hide from slash menu (internal skills)
 context: fork            # Run in isolated sub-agent context
-agent: golang-general-engineer  # Declare executor agent
 model: opus              # Optional; omit to inherit. opus | fable | inherit; haiku only with a read-only `tools:` list; never sonnet (`/do` SKILL.md, Model choice)
 allowed-tools:           # YAML list format
   - Read
   - Write
   - Bash
-hooks:                   # Agent-specific lifecycle hooks
+hooks:                   # Skill-specific lifecycle hooks
   PostToolUse:
     - type: command
       command: python3 -c "..."
       timeout: 3000
-routing:                 # Agent routing metadata (agents only)
+routing:                 # Routing metadata
   triggers: [keyword1, keyword2]
-  pairs_with: [skill1, skill2]
+  pairs_with: [skill1, skill2]  # skills or pipelines only
   complexity: Simple | Medium | Complex
   category: domain | devops | meta
 ---
 ```
 
-## Agent Reference Files
+## Skill Reference Files
 
-Agents use the same progressive disclosure pattern as skills. Domain knowledge lives in `references/` subdirectories, loaded on demand based on task context.
+Skills use progressive disclosure. Domain knowledge lives in `references/`, loaded on demand based on task context. A retired agent's body lives at `<skill>/references/<slug>.md` and its references at `<skill>/references/<slug>/`.
 
 ### Structure
 
 ```
-agents/
-├── react-native-engineer.md              # Agent body (< 300 lines)
-└── react-native-engineer/
-    └── references/
+skills/frontend/frontend/
+├── SKILL.md                              # Skill body with the Reference Loading Table
+└── references/
+    ├── react-native.md                   # Former agent body, loaded for React Native tasks
+    └── react-native/
         ├── list-performance.md           # Loaded for list/scroll tasks
-        ├── animation-patterns.md         # Loaded for animation tasks
         └── navigation-patterns.md        # Loaded for navigation tasks
 ```
 
-### Reference Loading Table (mandatory for agents with references)
+### Reference Loading Table (mandatory for skills with references)
 
-Every agent with a `references/` directory MUST have a reference loading table in its body. The table maps task keywords to specific reference files so the model knows WHICH file to load for the current task — not all of them.
+Every skill with a `references/` directory MUST have a reference loading table in its SKILL.md. `build-dispatch.py` tells every worker to consult it. The table maps task keywords to specific reference files so the model knows WHICH file to load for the current task — not all of them.
 
 ```markdown
 | Task involves | Load reference |
@@ -69,7 +67,7 @@ Every agent with a `references/` directory MUST have a reference loading table i
 | Navigation, screens, routing | `navigation-patterns.md` |
 ```
 
-Without this table, the agent either loads nothing (missing context) or everything (wasted tokens). Both defeat progressive disclosure.
+Without this table, the worker either loads nothing (missing context) or everything (wasted tokens). Both defeat progressive disclosure.
 
 ### Reference File Standards
 
@@ -78,14 +76,14 @@ Without this table, the agent either loads nothing (missing context) or everythi
 | **Size** | <= 500 lines per file. Split at ~400 if growing. |
 | **Framing** | Joy-checked: lead with what patterns ENABLE, not what they PREVENT. Use "Instead of:" / "Use:" not "Bad:" / "Good:" or "Incorrect:" / "Correct:". |
 | **Structure** | Each section: `## Title` + `**Impact:** LEVEL` + explanation + code examples |
-| **Isolation** | Reference only files in the same agent's directory. No cross-agent references. |
-| **Comment header** | First line after title: `<!-- Loaded by {agent-name} when task involves {domain} -->` |
+| **Isolation** | Reference only files in the same skill's directory. No cross-skill references. |
+| **Comment header** | First line after title: `<!-- Loaded by {skill-name} when task involves {domain} -->` |
 
 ### Validation
 
 Run `scripts/validate-references.py --all` to check:
 - Every declared reference file exists on disk
-- Every file on disk is declared in the agent body
+- Every file on disk is declared in the SKILL.md body
 - Structural compliance (headings, content, code examples)
 
 Run `scripts/validate-references.py --check-size` to check reference size limits (500 lines) against the dated debt register and flag empty `references/` dirs.
@@ -94,12 +92,11 @@ Run `python3 -m pytest scripts/tests/test_reference_loading.py` to verify:
 - Reference loading tables are complete
 - Keyword→reference mapping selects the right files
 
-### When Creating a New Agent
+### When Adding Domain Knowledge
 
-1. Create the agent `.md` file with frontmatter and workflow phases
-2. Create `agents/{name}/references/` directory
-3. Add reference files (one per domain concern, <= 500 lines each)
-4. Add a reference loading table to the agent body mapping keywords → files
-5. Register in `agents/INDEX.json` via `scripts/generate-agent-index.py`
-6. Run `scripts/validate-references.py --agent {name}` to verify
-7. Add test cases to `scripts/tests/test_reference_loading.py`
+Add it to the skill that owns the domain; do not create a repo agent.
+
+1. Add reference files under `skills/<group>/<skill>/references/` (one per domain concern, <= 500 lines each)
+2. Add rows to the skill's reference loading table mapping keywords → files
+3. Regenerate `skills/INDEX.json` via `scripts/generate-skill-index.py` when frontmatter changes
+4. Run `scripts/validate-references.py --all` to verify

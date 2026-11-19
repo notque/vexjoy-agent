@@ -9,7 +9,7 @@ Pattern: uses `claude -p` so generation runs through Claude Code directly.
 
 Usage:
     python3 skills/meta/toolkit/scripts/agent-comparison/generate_variant.py \
-        --target agents/golang-general-engineer.md \
+        --target skills/programming/programming/references/golang-general.md \
         --goal "improve error handling instructions" \
         --current-content "..." \
         --failures '[...]' \

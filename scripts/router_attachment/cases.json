@@ -1,15 +1,12 @@
 {
  "version": "1.0",
- "description": "Labeled router-attachment eval: expected agent and skill attachments per request for /d and /do. See README.md for label rules.",
+ "description": "Labeled router-attachment eval: expected skill attachments per request for /d and /do. See README.md for label rules.",
  "cases": [
   {
    "id": "go-write-01",
    "split": "dev",
    "domain": "go",
    "request": "Add a /healthz endpoint to our Go HTTP server in cmd/api that reports database connectivity",
-   "agents": [
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -20,7 +17,6 @@
     "testing",
     "code-quality"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -29,9 +25,6 @@
    "split": "dev",
    "domain": "go",
    "request": "Fix the data race in our Go worker pool and add a regression test",
-   "agents": [
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -45,7 +38,6 @@
     "workflow",
     "code-quality"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -54,10 +46,6 @@
    "split": "dev",
    "domain": "go",
    "request": "Write table-driven tests for the parser package in internal/parse (Go)",
-   "agents": [
-    "golang-general-engineer",
-    "testing-automation-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -70,7 +58,6 @@
     "workflow",
     "code-quality"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -79,11 +66,6 @@
    "split": "dev",
    "domain": "go",
    "request": "Review my Go changes in pkg/cache for concurrency bugs before I merge",
-   "agents": [
-    "reviewer-code",
-    "reviewer-system",
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "review"
@@ -96,7 +78,6 @@
     "security",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -105,9 +86,6 @@
    "split": "dev",
    "domain": "go",
    "request": "golangci-lint is failing on 14 files after the upgrade, clean them up",
-   "agents": [
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -119,7 +97,6 @@
    "acceptable": [
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -128,9 +105,6 @@
    "split": "dev",
    "domain": "python",
    "request": "Add a --dry-run flag to scripts/cleanup.py that prints what would be deleted",
-   "agents": [
-    "python-general-engineer"
-   ],
    "required": [
     [
      "workflow",
@@ -142,7 +116,6 @@
    "acceptable": [
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -151,9 +124,6 @@
    "split": "dev",
    "domain": "python",
    "request": "Our FastAPI endpoint returns 500 when the payload has unicode, find and fix it",
-   "agents": [
-    "python-general-engineer"
-   ],
    "required": [
     [
      "debugging",
@@ -164,7 +134,6 @@
     "testing",
     "code-quality"
    ],
-   "forbid_agents": [],
    "forbid_skills": [
     "programming"
    ],
@@ -175,11 +144,6 @@
    "split": "dev",
    "domain": "python",
    "request": "Write pytest coverage for the record functions in hooks/lib/learning_db_v2.py",
-   "agents": [
-    "python-general-engineer",
-    "testing-automation-engineer",
-    "hook-development-engineer"
-   ],
    "required": [
     [
      "testing"
@@ -188,7 +152,6 @@
    "acceptable": [
     "code-quality"
    ],
-   "forbid_agents": [],
    "forbid_skills": [
     "programming"
    ],
@@ -199,10 +162,6 @@
    "split": "dev",
    "domain": "python",
    "request": "Review scripts/jev_transport.py for code smells and bad error handling",
-   "agents": [
-    "reviewer-code",
-    "python-general-engineer"
-   ],
    "required": [
     [
      "review"
@@ -211,7 +170,6 @@
    "acceptable": [
     "code-quality"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -220,16 +178,12 @@
    "split": "dev",
    "domain": "python",
    "request": "Add a migration to our peewee models that adds an index on user.email",
-   "agents": [
-    "sqlite-peewee-engineer"
-   ],
    "required": [],
    "acceptable": [
     "workflow",
     "data",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -238,10 +192,6 @@
    "split": "dev",
    "domain": "frontend",
    "request": "Add a React settings page with a dark mode toggle",
-   "agents": [
-    "typescript-frontend-engineer",
-    "ui-design-engineer"
-   ],
    "required": [
     [
      "frontend"
@@ -252,7 +202,6 @@
     "workflow",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -261,10 +210,6 @@
    "split": "dev",
    "domain": "frontend",
    "request": "tsc --noEmit throws 40 type errors after bumping TypeScript to 5.9, fix them",
-   "agents": [
-    "typescript-frontend-engineer",
-    "typescript-debugging-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -275,7 +220,6 @@
     "debugging",
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -284,10 +228,6 @@
    "split": "dev",
    "domain": "frontend",
    "request": "Redesign the pricing page so it stops looking like generic AI output: stronger typography, spacing, and hierarchy",
-   "agents": [
-    "ui-design-engineer",
-    "typescript-frontend-engineer"
-   ],
    "required": [
     [
      "frontend"
@@ -297,7 +237,6 @@
     "workflow",
     "review"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -306,10 +245,6 @@
    "split": "dev",
    "domain": "frontend",
    "request": "Our React app shows stale data after a fast tab switch; looks like an async race in a useEffect",
-   "agents": [
-    "typescript-debugging-engineer",
-    "typescript-frontend-engineer"
-   ],
    "required": [
     [
      "debugging",
@@ -321,7 +256,6 @@
     "frontend",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -330,10 +264,6 @@
    "split": "dev",
    "domain": "frontend",
    "request": "Audit our signup form for WCAG accessibility problems and fix them",
-   "agents": [
-    "ui-design-engineer",
-    "typescript-frontend-engineer"
-   ],
    "required": [
     [
      "frontend"
@@ -344,7 +274,6 @@
     "workflow",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -353,9 +282,6 @@
    "split": "dev",
    "domain": "testing",
    "request": "Add Playwright end-to-end tests for the checkout flow",
-   "agents": [
-    "testing-automation-engineer"
-   ],
    "required": [
     [
      "testing"
@@ -365,7 +291,6 @@
     "frontend",
     "programming"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -374,9 +299,6 @@
    "split": "dev",
    "domain": "jev",
    "request": "Write a Jev program that classifies support tickets into billing, shipping, or account",
-   "agents": [
-    "python-general-engineer"
-   ],
    "required": [
     [
      "building-with-jev"
@@ -386,7 +308,6 @@
     "testing",
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -395,9 +316,6 @@
    "split": "dev",
    "domain": "jev",
    "request": "Our Jev scam detector has too many false positives; tune the question design and criteria",
-   "agents": [
-    "python-general-engineer"
-   ],
    "required": [
     [
      "building-with-jev"
@@ -407,7 +325,6 @@
     "testing",
     "data"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -416,11 +333,6 @@
    "split": "dev",
    "domain": "jev",
    "request": "Grill this migration plan with Jev before we start: docs/plan.md",
-   "agents": [
-    "reviewer-perspectives",
-    "research-coordinator-engineer",
-    "general-purpose"
-   ],
    "required": [
     [
      "grill-jev"
@@ -430,7 +342,6 @@
     "assessment",
     "review"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -439,10 +350,6 @@
    "split": "dev",
    "domain": "jev",
    "request": "Use Jev to pick shadcn components and a style recipe for a new admin dashboard",
-   "agents": [
-    "typescript-frontend-engineer",
-    "ui-design-engineer"
-   ],
    "required": [
     [
      "jev-design"
@@ -452,7 +359,6 @@
     "frontend",
     "building-with-jev"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -461,9 +367,6 @@
    "split": "dev",
    "domain": "hooks",
    "request": "Write a PostToolUse hook that warns when an edit adds a TODO without an issue link",
-   "agents": [
-    "hook-development-engineer"
-   ],
    "required": [],
    "acceptable": [
     "testing",
@@ -471,7 +374,6 @@
     "toolkit",
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -480,9 +382,6 @@
    "split": "dev",
    "domain": "hooks",
    "request": "Our SessionStart hook times out on cold start; find why and fix it",
-   "agents": [
-    "hook-development-engineer"
-   ],
    "required": [
     [
      "debugging",
@@ -492,7 +391,6 @@
    "acceptable": [
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -501,9 +399,6 @@
    "split": "dev",
    "domain": "toolkit",
    "request": "Add the new kotlin agent to the routing tables and regenerate INDEX.json",
-   "agents": [
-    "toolkit-governance-engineer"
-   ],
    "required": [
     [
      "toolkit"
@@ -512,7 +407,6 @@
    "acceptable": [
     "docs-sync-checker"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -521,10 +415,6 @@
    "split": "dev",
    "domain": "toolkit",
    "request": "Create a new skill for writing Terraform modules",
-   "agents": [
-    "toolkit-governance-engineer",
-    "pipeline-orchestrator-engineer"
-   ],
    "required": [
     [
      "toolkit"
@@ -533,7 +423,6 @@
    "acceptable": [
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -542,16 +431,12 @@
    "split": "dev",
    "domain": "docs",
    "request": "Write API reference docs for the /v2/orders endpoints",
-   "agents": [
-    "technical-documentation-engineer"
-   ],
    "required": [],
    "acceptable": [
     "writing",
     "docs-sync-checker",
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -560,10 +445,6 @@
    "split": "dev",
    "domain": "docs",
    "request": "Check whether README.md and docs/REFERENCE.md still match the scripts that exist",
-   "agents": [
-    "technical-documentation-engineer",
-    "toolkit-governance-engineer"
-   ],
    "required": [
     [
      "docs-sync-checker"
@@ -572,7 +453,6 @@
    "acceptable": [
     "assessment"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -581,9 +461,6 @@
    "split": "dev",
    "domain": "docs",
    "request": "Write an explainer blog post on why we moved from REST polling to webhooks",
-   "agents": [
-    "technical-journalist-writer"
-   ],
    "required": [
     [
      "writing",
@@ -593,7 +470,6 @@
    "acceptable": [
     "research"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -602,9 +478,6 @@
    "split": "dev",
    "domain": "research",
    "request": "Research how other CLI agents route requests to tools and summarize the tradeoffs with sources",
-   "agents": [
-    "research-coordinator-engineer"
-   ],
    "required": [
     [
      "research"
@@ -613,7 +486,6 @@
    "acceptable": [
     "assessment"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -622,10 +494,6 @@
    "split": "dev",
    "domain": "research",
    "request": "Fact-check the performance numbers in this draft announcement",
-   "agents": [
-    "research-coordinator-engineer",
-    "research-subagent-executor"
-   ],
    "required": [
     [
      "research"
@@ -634,7 +502,6 @@
    "acceptable": [
     "writing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -643,9 +510,6 @@
    "split": "dev",
    "domain": "k8s",
    "request": "A pod keeps crashlooping with OOMKilled in the staging namespace, figure out why",
-   "agents": [
-    "kubernetes-helm-engineer"
-   ],
    "required": [
     [
      "kubernetes"
@@ -654,7 +518,6 @@
    "acceptable": [
     "debugging"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -663,9 +526,6 @@
    "split": "dev",
    "domain": "k8s",
    "request": "Write a Helm chart for the notifier service with an HPA and a PodDisruptionBudget",
-   "agents": [
-    "kubernetes-helm-engineer"
-   ],
    "required": [
     [
      "kubernetes"
@@ -675,7 +535,6 @@
     "workflow",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -684,9 +543,6 @@
    "split": "dev",
    "domain": "k8s",
    "request": "Lock down RBAC so the ci service account can only read configmaps",
-   "agents": [
-    "kubernetes-helm-engineer"
-   ],
    "required": [
     [
      "kubernetes"
@@ -695,7 +551,6 @@
    "acceptable": [
     "security"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -704,16 +559,12 @@
    "split": "dev",
    "domain": "sql",
    "request": "This Postgres query on orders takes 9s; explain the plan and add the right index",
-   "agents": [
-    "database-engineer"
-   ],
    "required": [],
    "acceptable": [
     "workflow",
     "debugging",
     "data"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -722,15 +573,11 @@
    "split": "dev",
    "domain": "sql",
    "request": "Write a zero-downtime Postgres migration that splits users.name into first and last name columns",
-   "agents": [
-    "database-engineer"
-   ],
    "required": [],
    "acceptable": [
     "workflow",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -739,9 +586,6 @@
    "split": "dev",
    "domain": "mixed",
    "request": "Add rate limiting to our Go API and update the API docs",
-   "agents": [
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -753,7 +597,6 @@
     "writing",
     "docs-sync-checker"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -762,10 +605,6 @@
    "split": "dev",
    "domain": "mixed",
    "request": "Our Go operator's reconcile loop hammers the apiserver; fix it and adjust the deployment's resource limits",
-   "agents": [
-    "golang-general-engineer",
-    "kubernetes-helm-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -778,7 +617,6 @@
     "debugging",
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -787,9 +625,6 @@
    "split": "dev",
    "domain": "mixed",
    "request": "Refactor scripts/routing-manifest.py into smaller functions, keep behavior identical, with tests",
-   "agents": [
-    "python-general-engineer"
-   ],
    "required": [
     [
      "workflow"
@@ -802,7 +637,6 @@
     "code-quality",
     "review"
    ],
-   "forbid_agents": [],
    "forbid_skills": [
     "programming"
    ],
@@ -813,10 +647,6 @@
    "split": "dev",
    "domain": "mixed",
    "request": "Check our Go auth middleware for injection and token leakage issues",
-   "agents": [
-    "reviewer-system",
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "security"
@@ -828,7 +658,6 @@
    "acceptable": [
     "review"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -837,9 +666,6 @@
    "split": "dev",
    "domain": "git",
    "request": "Commit these changes and open a PR",
-   "agents": [
-    "*"
-   ],
    "required": [
     [
      "pr-workflow"
@@ -850,7 +676,6 @@
     "testing",
     "review"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -859,11 +684,6 @@
    "split": "dev",
    "domain": "near-miss",
    "request": "Go ahead and tighten the wording in the intro of docs/PHILOSOPHY.md",
-   "agents": [
-    "technical-documentation-engineer",
-    "technical-journalist-writer",
-    "toolkit-governance-engineer"
-   ],
    "required": [
     [
      "writing",
@@ -871,9 +691,6 @@
     ]
    ],
    "acceptable": [],
-   "forbid_agents": [
-    "golang-general-engineer"
-   ],
    "forbid_skills": [
     "programming"
    ],
@@ -884,11 +701,6 @@
    "split": "dev",
    "domain": "near-miss",
    "request": "Push back on this plan to rewrite the scheduler in Rust: what are the risks?",
-   "agents": [
-    "reviewer-perspectives",
-    "research-coordinator-engineer",
-    "general-purpose"
-   ],
    "required": [
     [
      "assessment"
@@ -897,7 +709,6 @@
    "acceptable": [
     "review"
    ],
-   "forbid_agents": [],
    "forbid_skills": [
     "pr-workflow"
    ],
@@ -908,10 +719,6 @@
    "split": "dev",
    "domain": "near-miss",
    "request": "Fix the flaky Python test in tests/test_cache.py",
-   "agents": [
-    "python-general-engineer",
-    "testing-automation-engineer"
-   ],
    "required": [
     [
      "testing"
@@ -921,7 +728,6 @@
     "debugging",
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [
     "programming"
    ],
@@ -932,9 +738,6 @@
    "split": "dev",
    "domain": "near-miss",
    "request": "Review the readability of this TypeScript util, naming and structure only",
-   "agents": [
-    "reviewer-code"
-   ],
    "required": [
     [
      "review"
@@ -944,7 +747,6 @@
     "programming",
     "code-quality"
    ],
-   "forbid_agents": [],
    "forbid_skills": [
     "security"
    ],
@@ -955,9 +757,6 @@
    "split": "ood",
    "domain": "go",
    "request": "the thing in cmd/worker that reads from the queue sometimes deadlocks, can you sort it out? it's golang",
-   "agents": [
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -968,7 +767,6 @@
     "workflow",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -977,9 +775,6 @@
    "split": "ood",
    "domain": "go",
    "request": "pls make my api handler in main.go return json errors instead of plain text",
-   "agents": [
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -989,7 +784,6 @@
     "workflow",
     "quick"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -998,10 +792,6 @@
    "split": "ood",
    "domain": "go",
    "request": "I need unit tests for internal/billing, there are no *_test.go files there yet",
-   "agents": [
-    "golang-general-engineer",
-    "testing-automation-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -1013,7 +803,6 @@
    "acceptable": [
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1022,11 +811,6 @@
    "split": "ood",
    "domain": "go",
    "request": "can u look over what I changed in the .go files before I ship it",
-   "agents": [
-    "reviewer-code",
-    "reviewer-system",
-    "golang-general-engineer"
-   ],
    "required": [
     [
      "review"
@@ -1039,7 +823,6 @@
     "testing",
     "security"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1048,11 +831,6 @@
    "split": "ood",
    "domain": "python",
    "request": "my django view is slow when listing 10k rows, speed it up",
-   "agents": [
-    "python-general-engineer",
-    "performance-optimization-engineer",
-    "database-engineer"
-   ],
    "required": [
     [
      "workflow",
@@ -1062,7 +840,6 @@
    "acceptable": [
     "data"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1071,10 +848,6 @@
    "split": "ood",
    "domain": "frontend",
    "request": "the button on the landing page looks cheap and the colors clash, make it look like a real product",
-   "agents": [
-    "ui-design-engineer",
-    "typescript-frontend-engineer"
-   ],
    "required": [
     [
      "frontend"
@@ -1083,7 +856,6 @@
    "acceptable": [
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1092,11 +864,6 @@
    "split": "ood",
    "domain": "frontend",
    "request": "the search box component re-renders like crazy on every keystroke (tsx), fix it",
-   "agents": [
-    "typescript-frontend-engineer",
-    "typescript-debugging-engineer",
-    "performance-optimization-engineer"
-   ],
    "required": [
     [
      "frontend",
@@ -1108,7 +875,6 @@
    "acceptable": [
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1117,9 +883,6 @@
    "split": "ood",
    "domain": "jev",
    "request": "build me something with TypeSafe's judgment model that flags risky pull requests",
-   "agents": [
-    "python-general-engineer"
-   ],
    "required": [
     [
      "building-with-jev"
@@ -1129,7 +892,6 @@
     "review",
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1138,9 +900,6 @@
    "split": "ood",
    "domain": "hooks",
    "request": "the thing that runs when claude starts a session is slow, fix it",
-   "agents": [
-    "hook-development-engineer"
-   ],
    "required": [
     [
      "debugging",
@@ -1150,7 +909,6 @@
    "acceptable": [
     "testing"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1159,9 +917,6 @@
    "split": "ood",
    "domain": "k8s",
    "request": "our pods get evicted every night around 2am",
-   "agents": [
-    "kubernetes-helm-engineer"
-   ],
    "required": [
     [
      "kubernetes"
@@ -1170,7 +925,6 @@
    "acceptable": [
     "debugging"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1179,16 +933,12 @@
    "split": "ood",
    "domain": "sql",
    "request": "which of our postgres tables are missing indexes that the slow queries need?",
-   "agents": [
-    "database-engineer"
-   ],
    "required": [],
    "acceptable": [
     "data",
     "assessment",
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1197,9 +947,6 @@
    "split": "ood",
    "domain": "research",
    "request": "dig into what people say about bun vs node for backend servers and give me a recommendation with links",
-   "agents": [
-    "research-coordinator-engineer"
-   ],
    "required": [
     [
      "research"
@@ -1208,7 +955,6 @@
    "acceptable": [
     "assessment"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1217,10 +963,6 @@
    "split": "ood",
    "domain": "go",
    "request": "Por favor, escribe pruebas para el paquete Go de pagos",
-   "agents": [
-    "golang-general-engineer",
-    "testing-automation-engineer"
-   ],
    "required": [
     [
      "programming"
@@ -1232,7 +974,6 @@
    "acceptable": [
     "workflow"
    ],
-   "forbid_agents": [],
    "forbid_skills": [],
    "notes": ""
   },
@@ -1241,10 +982,6 @@
    "split": "ood",
    "domain": "near-miss",
    "request": "go through the README and fix anything that's out of date",
-   "agents": [
-    "technical-documentation-engineer",
-    "toolkit-governance-engineer"
-   ],
    "required": [
     [
      "docs-sync-checker",
@@ -1253,9 +990,6 @@
    ],
    "acceptable": [
     "assessment"
-   ],
-   "forbid_agents": [
-    "golang-general-engineer"
    ],
    "forbid_skills": [
     "programming"

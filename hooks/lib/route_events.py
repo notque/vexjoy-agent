@@ -76,6 +76,8 @@ def record_decision_event(
     stack: list[str] | None = None,
     pipeline: str | None = None,
     model: str | None = None,
+    router: str | None = None,
+    dispatch_reason: str | None = None,
     health_at_decision: float | None = None,
     n: int | None = None,
     failure: int | None = None,
@@ -106,6 +108,8 @@ def record_decision_event(
     audit instead of dropped. stack is the parsed ` stack={s1,s2}` marker token;
     written only when present, so stack-free markers write unchanged events.
     pipeline is the parsed ` pipeline=<name>` token, written on the same terms.
+    router (`d`) and dispatch_reason come from the /d-only ` router=` and
+    ` reason=` tokens; absent router means /do. Written only when present.
     """
     event: dict[str, Any] = {
         "type": "decision",
@@ -130,6 +134,10 @@ def record_decision_event(
         event["pipeline"] = pipeline
     if model is not None:
         event["model"] = model
+    if router:
+        event["router"] = router
+    if dispatch_reason:
+        event["dispatch_reason"] = dispatch_reason
     _append(event)
 
 

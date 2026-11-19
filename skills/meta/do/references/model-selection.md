@@ -12,7 +12,7 @@ Owner order 2026-11-01 plus the effort ladder from Anthropic's model guide (2026
 | low-risk | `haiku` / `low` | Read-only gathering only (locate, lookup, cite lines, excerpts, research fetch, log reading). An Opus thread judges the result. |
 | standard | `opus` / `medium` | Code writing and edits, debugging, features, deciding reviews, decisions, and any task no other row fits. Start at medium, then high. |
 | high-risk | `opus` / `medium` | Auth, data, security, concurrency, irreversible changes. Start at medium, then high. |
-| max-power | `fable` / `high` | Major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, a long unattended run, or Opus at high fell short. Requires `manual_model_override=true`; state the justification in task_spec intent. Start an explicit `fable` pick at medium, then high. |
+| max-power | `fable` / `high` | Major refactor or migration, architecture planning, lead of a many-worker fan-out, deep research synthesis, quantitative analysis, a long unattended run, or Opus at high fell short. Requires `manual_model_override=true`; state the justification in task_spec intent. Start an explicit `fable` pick at medium, then high. |
 
 `opus`/`high` is no tier's default. It stays valid as an explicit pick and as the escalation step after a failed `opus`/`medium` attempt: pass `model: "opus"` with `model_effort: "high"` and no `model_policy`.
 
@@ -20,7 +20,7 @@ Sonnet is no tier's default. Anthropic suggests Sonnet for well-scoped coding, d
 
 Escalate on a miss (an objective check fails, or a Jev blocker Noul is 0.6 or higher), in this order:
 
-1. Give the agent a way to verify its work: a test, build, or script.
+1. Give the worker a way to verify its work: a test, build, or script.
 2. Raise effort one level, up to high.
 3. Move to the next model up at a lower effort: `haiku` -> `opus`/`medium` -> `opus`/`high` -> `fable`/`medium` -> `fable`/`high`.
 

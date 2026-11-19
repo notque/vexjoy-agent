@@ -22,12 +22,12 @@ There is no `agents/README.md` or `commands/README.md`. Never create one to sati
 | `deploy` | Deploy and infrastructure: web deploy, cron, package install, shell configuration. | `/deploy` |
 ```
 
-`docs/routing-map.md`, `## AGENTS (N)` section: the first cell is the bare agent name.
+`docs/routing-map.md`, `## AGENTS (N)` section: the first cell is the bare agent name. The repo ships no agents since plan 009, so rows appear only for private overlay agents.
 
 ```markdown
 | name | when to call (description) | triggers | FORCE | not_for | pairs_with |
 |---|---|---|---|---|---|
-| golang-general-engineer | Go development: features, debugging, code review, performance | go, golang | | ... | programming |
+| my-overlay-engineer | Go development: features, debugging, code review, performance | go, golang | | ... | programming |
 ```
 
 `docs/REFERENCE.md`, `## Slash Commands` section: the first cell is the backticked `/command`. Rows whose first cell is not a `/command` (for example the "Available via `/do` Routing" table) are ignored.

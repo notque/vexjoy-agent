@@ -10,10 +10,11 @@
 //
 // The prose pipeline MANDATES a minimum of 3 parallel research agents (sequential
 // research is forbidden — A/B-validated). This workflow honors that as a FIXED
-// 3-agent GATHER barrier of research-subagent-executor specialists (the
+// 3-agent GATHER barrier of general-purpose workers that load the
+// research-subagent-executor reference (the
 // static-roster shape, like comprehensive-review-workflow.js Wave 1), then runs a
-// dynamic SYNTHESIZE/VALIDATE/DELIVER tail through the research-coordinator-
-// engineer (the prose pipeline's owning agent). The prose SCOPE phase is a
+// dynamic SYNTHESIZE/VALIDATE/DELIVER tail through a worker that loads the
+// research-coordinator reference (the prose pipeline's owning role). The prose SCOPE phase is a
 // deterministic decision step (angle + depth selection from a fixed table), so it
 // runs in-body before the barrier — no LLM round-trip (PHILOSOPHY: everything
 // deterministic should be).
@@ -27,6 +28,7 @@
 import {
   mandatoryInjections,
   modelFor,
+  referenceDirective,
   skillDirectives,
   validateModelOverride,
 } from "./workflow-helpers.js";
@@ -34,7 +36,7 @@ import {
 export const meta = {
   name: "research-pipeline",
   description:
-    "Formal research pipeline as a deterministic native Workflow: a deterministic scope step then GATHER -> SYNTHESIZE -> VALIDATE -> DELIVER. GATHER is a mandatory parallel barrier of >=3 research-subagent-executor specialists (distinct angles, no shared file), each attaching its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections; the research-coordinator-engineer then synthesizes the typed findings in-memory, runs a source-quality VALIDATE gate, and DELIVERs the report. Mirrors research-pipeline.md; that markdown flow stays the cross-harness floor.",
+    "Formal research pipeline as a deterministic native Workflow: a deterministic scope step then GATHER -> SYNTHESIZE -> VALIDATE -> DELIVER. GATHER is a mandatory parallel barrier of >=3 general-purpose workers that load the research-subagent-executor reference (distinct angles, no shared file), each attaching its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections; a worker loading the research-coordinator reference then synthesizes the typed findings in-memory, runs a source-quality VALIDATE gate, and DELIVERs the report. Mirrors research-pipeline.md; that markdown flow stays the cross-harness floor.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stage 3). STATIC validation pins the phases + the FIXED 3-agent GATHER
@@ -47,15 +49,15 @@ export const meta = {
     // Phase titles entered at runtime via enterPhase(). GATHER (the barrier) is
     // the first entered phase; the deterministic scope step precedes it in-body.
     phases: ["gather", "synthesize", "validate", "deliver"],
-    // GATHER is a FIXED barrier: 3 research-subagent-executor agents on every run
+    // GATHER is a FIXED barrier: 3 general-purpose research workers on every run
     // (the minimum-3 mandate from the prose pipeline). Each carries a `skills` LIST
     // (the full stack attached via one exact Skill-tool call per element). Distinct angles are a
     // RUNTIME property of the prompt, not the roster shape, so the static roster is
     // three identical-type entries (the gate pins the type + skills + count).
     roster: [
-      { agentType: "research-subagent-executor", skills: ["research", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["research", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["research", "testing"] },
+      { agentType: "general-purpose", skills: ["research", "testing"] },
+      { agentType: "general-purpose", skills: ["research", "testing"] },
+      { agentType: "general-purpose", skills: ["research", "testing"] },
     ],
     // The GATHER barrier dispatches at least the fixed 3 on every run (static).
     agents: { static: 3, dynamic: false },
@@ -75,13 +77,22 @@ export const meta = {
 // emits the directives by delegating each entry's list to skillDirectives().
 const AGENT_SKILLS = {
   "research-subagent-executor": ["research", "testing"],
-  "research-coordinator-engineer": ["research", "testing"],
+  "research-coordinator": ["research", "testing"],
+};
+
+// Repo agents are retired (plan 009). Gather workers and the coordinator are
+// fresh general-purpose agents; each takes its role from a research-skill
+// reference (referenceDirective).
+const ROLE_REFS = {
+  "research-subagent-executor": { skill: "research", file: "research-subagent-executor.md" },
+  "research-coordinator": { skill: "research", file: "research-coordinator.md" },
 };
 
 // The mandated minimum gather size; a deeper request scales angles ABOVE this
 // floor (the prose depth setting), never below it.
 const MIN_GATHER_AGENTS = 3;
-const COORDINATOR_AGENT = "research-coordinator-engineer";
+const COORDINATOR_ROLE = "research-coordinator";
+const WORKER_AGENT = "general-purpose";
 
 // Default research angles (mirrors the prose angle table). One distinct angle per
 // gather agent; deeper depth adds more from the tail of this list.
@@ -188,8 +199,9 @@ function enterPhase(title) {
 // distinct perspectives.
 function gatherPrompt(angle, scope) {
   return (
-    `You are the "${angle}" research agent (research-subagent-executor).` +
+    `You are the "${angle}" research worker.` +
     skillDirectives(AGENT_SKILLS["research-subagent-executor"]) +
+    referenceDirective(ROLE_REFS["research-subagent-executor"]) +
     `\nYour angle: investigate the "${angle}" dimension of this research scope:\n` +
     `${JSON.stringify(scope)}\n` +
     `Return ONLY findings within your angle. Rate each claim's evidence strength ` +
@@ -205,7 +217,8 @@ function gatherPrompt(angle, scope) {
 function coordinatorPrompt(task, payload) {
   return (
     task +
-    skillDirectives(AGENT_SKILLS[COORDINATOR_AGENT]) +
+    skillDirectives(AGENT_SKILLS[COORDINATOR_ROLE]) +
+    referenceDirective(ROLE_REFS[COORDINATOR_ROLE]) +
     `\n${JSON.stringify(payload)}` +
     mandatoryInjections()
   );
@@ -256,7 +269,7 @@ export default async function run({ scope, tier, depth, modelOverride } = {}) {
         prompt: gatherPrompt(angle, scope),
         schema: RAW_RESEARCH_SCHEMA,
         model: modelFor("gather", modelOverride),
-        agentType: "research-subagent-executor",
+        agentType: "general-purpose",
       }),
     ),
   );
@@ -277,7 +290,7 @@ export default async function run({ scope, tier, depth, modelOverride } = {}) {
       ),
       schema: SYNTHESIS_SCHEMA,
       model: modelFor("lead", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -296,7 +309,7 @@ export default async function run({ scope, tier, depth, modelOverride } = {}) {
       ),
       schema: VALIDATION_SCHEMA,
       model: modelFor("work", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -314,7 +327,7 @@ export default async function run({ scope, tier, depth, modelOverride } = {}) {
       ),
       schema: REPORT_SCHEMA,
       model: modelFor("lead", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 

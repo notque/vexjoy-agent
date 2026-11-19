@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""Router-attachment eval: does /d or /do attach the right agent and skills?
+"""Router-attachment eval: does /d or /do attach the right skills?
+
+The repo's specialist agents are retired (plans/009): the worker is the
+built-in general-purpose agent and the skills carry the domain, so a case
+scores on its skill groups and forbidden skills only. The report counts the
+worker share (routes on general-purpose) instead of agent accuracy.
 
 Routers under test:
   d-prepare  jev-route.py prepare output only (safety force route and attachment
              evidence). Writes the JEV_RESULT that d-model replays.
   d-model    a model plays the /d session: it reads /d's SKILL.md, /do's routing
-             rules, and the routing manifest, picks the agent, skill, and
-             pipeline, and `jev-route.py --finalize` adds the attachments
+             rules, and the routing manifest, picks the skill, pipeline, and
+             stack, and `jev-route.py --finalize` adds the attachments
              (scripts/d_route_model.py).
   do-model   a model applies /do's SKILL.md to the routing manifest plus the
              pre-route.py result and emits the build-dispatch decision.
@@ -64,7 +69,6 @@ def load_catalog() -> dict[str, set[str]]:
     entries = json.loads(proc.stdout)
     patterns = {p.stem for p in (REPO / "skills" / "shared-patterns").glob("*.md")}
     return {
-        "agents": {e["name"] for e in entries if e["type"] == "agent"} | {"general-purpose"},
         "skills": {e["name"] for e in entries if e["type"] == "skill"},
         "pipelines": {e["name"] for e in entries if e["type"] == "pipeline"},
         "patterns": patterns,
@@ -96,8 +100,7 @@ def score_case(case: dict, decision: dict | None, patterns: set[str] | frozenset
     """Score one decision against one labeled case. Pure function."""
     if not decision:
         decision = {}
-    agent = (decision.get("agent") or "general-purpose").strip()
-    agent_ok = ("*" in case["agents"] or agent in case["agents"]) and agent not in case.get("forbid_agents", [])
+    worker = (decision.get("agent") or "general-purpose").strip()
     attached = attached_skills(decision, patterns)
     allowed = {s for g in case["required"] for s in g} | set(case.get("acceptable", []))
     groups_hit = sum(1 for g in case["required"] if any(s in attached for s in g))
@@ -107,15 +110,14 @@ def score_case(case: dict, decision: dict | None, patterns: set[str] | frozenset
         "id": case["id"],
         "split": case["split"],
         "domain": case["domain"],
-        "agent": agent,
-        "agent_ok": agent_ok,
+        "worker": worker,
         "attached": attached,
         "groups_total": len(case["required"]),
         "groups_hit": groups_hit,
         "attached_n": len(attached),
         "attached_correct": len(correct),
         "forbidden_hit": forbidden_hit,
-        "full": agent_ok and groups_hit == len(case["required"]) and not forbidden_hit,
+        "full": groups_hit == len(case["required"]) and not forbidden_hit,
     }
 
 
@@ -130,13 +132,13 @@ def aggregate(scores: list[dict]) -> dict:
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     return {
         "n": n,
-        "agent_acc": round(sum(s["agent_ok"] for s in scores) / n, 3),
         "skill_recall": round(recall, 3),
         "skill_precision": round(precision, 3),
         "skill_f1": round(f1, 3),
         "full_attach": round(sum(s["full"] for s in scores) / n, 3),
         "forbidden_hits": sum(len(s["forbidden_hit"]) for s in scores),
-        "general_purpose": sum(s["agent"] == "general-purpose" for s in scores),
+        "general_purpose": sum(s["worker"] == "general-purpose" for s in scores),
+        "worker_share": round(sum(s["worker"] == "general-purpose" for s in scores) / n, 3),
     }
 
 
@@ -147,7 +149,7 @@ def report(rows: list[dict], cases: list[dict], patterns: set[str]) -> dict:
     for split in ("dev", "ood"):
         out[split] = aggregate([s for s in scores if s["split"] == split])
     out["misses"] = [
-        {k: s[k] for k in ("id", "agent", "agent_ok", "attached", "groups_hit", "groups_total", "forbidden_hit")}
+        {k: s[k] for k in ("id", "worker", "attached", "groups_hit", "groups_total", "forbidden_hit")}
         for s in scores
         if not s["full"]
     ]
@@ -179,7 +181,7 @@ DO_PROMPT = """You are executing the /do skill (its SKILL.md and the routing man
 user request below. You cannot run tools: the manifest text is already provided, and PRE_ROUTE_RESULT is the output of
 pre-route.py for this request. Do not execute the task. Apply Phases 1-3 exactly as SKILL.md instructs, then output
 ONLY the JSON decision object you would pass to build-dispatch.py in Phase 4, restricted to these keys:
-{"agent": ..., "agents": [...], "skill": ..., "pipeline": ..., "stack": [...]}
+{"skill": ..., "pipeline": ..., "stack": [...], "workers": [...]}
 No prose, no code fences.
 
 User request:
@@ -219,7 +221,7 @@ def d_model_decision(route: dict) -> dict:
         "skill": route.get("skill"),
         "pipeline": route.get("pipeline"),
         "stack": list(route.get("attach") or []) or list(route.get("stack") or []),
-        "agents": route.get("agents") or [],
+        "workers": route.get("workers") or [],
     }
 
 

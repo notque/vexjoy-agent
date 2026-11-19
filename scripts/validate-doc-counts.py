@@ -5,8 +5,10 @@ Greps docs/ + root markdown for "N agents", "N skills", "N hooks", "N scripts",
 "N pipelines", "N hook events", "N hook registrations", "N banned patterns",
 "N AI patterns", and verifies each count against what the toolkit ships:
 
-- agents: ``agents/*.md`` files whose frontmatter has a ``name`` (so
-  ``agents/base-instructions.md`` is not an agent);
+- agents: ``agents/*.md`` files whose frontmatter has a ``name`` (a file
+  without one is not an agent). The repo ships none since the specialist
+  agents retired (plans/009), so the true count is 0 and a missing
+  ``agents/`` directory counts as 0;
 - skills: ``SKILL.md`` files with a ``name`` and no ``promoted_to`` (a promoted
   husk leaves skills/INDEX.json and routing, so it leaves the count too);
 - hooks: hook files registered in ``.claude/settings.json``, each counted once;

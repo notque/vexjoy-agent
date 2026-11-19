@@ -11,7 +11,6 @@ allowed-tools:
   - Edit
   - Task
   - Agent
-agent: reviewer-system
 routing:
   force_route: true
   not_for: "general code review (use review), non-security quality checks (use code-quality) — only for security-specific work: vulnerability scanning, threat modeling, supply-chain audits, auth reviews"
@@ -39,7 +38,6 @@ routing:
   category: security
   pairs_with:
     - review
-    - reviewer-system
 ---
 
 # Security Skill

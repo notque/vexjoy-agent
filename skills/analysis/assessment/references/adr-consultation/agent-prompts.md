@@ -2,9 +2,11 @@
 
 Full prompt templates for the three standard consultation agents. Load this reference before Phase 2 DISPATCH.
 
+Each agent is a fresh `general-purpose` worker. Start each prompt with: "Read ~/.claude/skills/review/references/reviewer-perspectives.md and follow it; load every file its Reference Loading Table matches." Then add the template for its lens.
+
 ---
 
-## Agent 1: reviewer-perspectives (contrarian lens)
+## Agent 1: reviewer-perspectives.md (contrarian lens)
 
 Lens: Challenge assumptions, find simpler alternatives, validate premises.
 
@@ -45,7 +47,7 @@ Structure your response as:
 
 ---
 
-## Agent 2: reviewer-perspectives (user-advocate lens)
+## Agent 2: reviewer-perspectives.md (user-advocate lens)
 
 Lens: Evaluate user impact, UX complexity cost, whether this makes the system harder to use.
 
@@ -86,7 +88,7 @@ Structure your response as:
 
 ---
 
-## Agent 3: reviewer-perspectives (meta-process lens)
+## Agent 3: reviewer-perspectives.md (meta-process lens)
 
 Lens: System health, single points of failure, architecture alignment, hidden coupling.
 
@@ -135,4 +137,4 @@ Structure your response as:
 
 ## Complex Mode (5 agents)
 
-For Complex decisions (new subsystem, major API change), add `reviewer-system` and a second domain expert in addition to the standard 3 agents. Enable with "complex consultation" or "full consultation".
+For Complex decisions (new subsystem, major API change), add a `general-purpose` worker loading `~/.claude/skills/review/references/reviewer-system.md` and a second domain expert (a worker loading the matching skill reference) in addition to the standard 3 agents. Enable with "complex consultation" or "full consultation".

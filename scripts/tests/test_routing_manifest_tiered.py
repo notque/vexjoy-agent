@@ -49,7 +49,6 @@ def _entry(
         "description": description,
         "triggers": [],
         "category": extra.get("category", ""),
-        "agent": extra.get("agent"),
         "model": None,
         "pairs_with": extra.get("pairs_with", []),
         "force_route": force_route,
@@ -58,8 +57,6 @@ def _entry(
 
 
 ENTRIES = [
-    _entry("alpha-agent", "agent", "Agent for alpha domain tasks plus extra trailing words"),
-    _entry("beta-agent", "agent", "Agent for beta domain tasks plus extra trailing words"),
     _entry("cold-skill", "skill", "Never routed skill with a very long description tail", category="misc"),
     _entry("hot-skill", "skill", "Recently routed skill with a very long description tail", category="misc"),
     _entry(
@@ -74,8 +71,7 @@ ENTRIES = [
     _entry(
         "paired-cold-skill",
         "skill",
-        "Cold skill that declares an agent pairing here",
-        agent="alpha-agent",
+        "Cold skill that once declared an agent pairing here",
         category="misc",
     ),
     _entry(
@@ -181,7 +177,8 @@ def test_stub_entries_parse() -> None:
     # Section structure intact: every entry name still present.
     for e in ENTRIES:
         assert e["name"] in tiered
-    assert tiered.index("AGENTS:") < tiered.index("SKILLS:") < tiered.index("PIPELINES:")
+    assert "AGENTS:" not in tiered
+    assert tiered.index("SKILLS:") < tiered.index("PIPELINES:")
 
 
 def test_force_route_always_full() -> None:
@@ -193,23 +190,22 @@ def test_force_route_always_full() -> None:
 
 
 def test_working_set_entries_full() -> None:
-    tiered = rm.format_tiered(ENTRIES, working_set={"hot-skill", "alpha-agent"})
+    tiered = rm.format_tiered(ENTRIES, working_set={"hot-skill", "alpha-agent"})  # agent names are inert
     lines = tiered.splitlines()
     hot = next(line for line in lines if line.startswith("  hot-skill"))
     assert "Recently routed skill with a very long description tail" in hot
     assert "(misc)" in hot
-    alpha = next(line for line in lines if line.startswith("  alpha-agent"))
-    assert "Agent for alpha domain tasks plus extra trailing words" in alpha
+    assert not any(line.startswith("  alpha-agent") for line in lines)
     cold = next(line for line in lines if line.startswith("  cold-skill"))
     assert cold.strip() == "cold-skill — Never routed skill with a very"
 
 
-def test_stub_skill_keeps_agent_pairing() -> None:
-    """Stub skill lines carry agent= — dropping it made the router return agent: null."""
+def test_stub_skill_carries_no_agent_pairing() -> None:
+    """Specialist agents are retired (plans/009): no line renders agent=."""
     tiered = rm.format_tiered(ENTRIES, working_set=set())
     line = next(ln for ln in tiered.splitlines() if ln.startswith("  paired-cold-skill"))
-    assert "agent=alpha-agent" in line
-    assert "Cold skill that declares an agent" in line  # first 6 words kept
+    assert "agent=" not in tiered
+    assert "Cold skill that once declared an" in line  # first 6 words kept
     assert "pairing here" not in line  # description still truncated
 
 
@@ -218,12 +214,6 @@ def test_stub_skill_keeps_not_for() -> None:
     line = next(ln for ln in tiered.splitlines() if ln.startswith("  guarded-cold-skill"))
     assert "NOT: metaphorical uses of guard" in line
     assert "clause tail" not in line  # description still truncated
-
-
-def test_agent_stub_stays_name_and_description() -> None:
-    tiered = rm.format_tiered(ENTRIES, working_set=set())
-    line = next(ln for ln in tiered.splitlines() if ln.startswith("  beta-agent"))
-    assert line.strip() == "beta-agent — Agent for beta domain tasks plus"
 
 
 def test_pipelines_always_full() -> None:

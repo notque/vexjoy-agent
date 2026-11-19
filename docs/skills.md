@@ -25,7 +25,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 | Skill | Description | Invoke |
 |-------|-------------|--------|
 | `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analysis, multi-perspective critique. | `/assessment` |
-| `data` | Data analysis and reference enrichment. | `/data` |
+| `data` | Data analysis, reference enrichment, and data engineering: pipelines and warehouses, server database design and tuning, SQLite with Peewee. | `/data` |
 
 ---
 
@@ -79,7 +79,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 
 | Skill | Description | Invoke |
 |-------|-------------|--------|
-| `frontend` | Frontend: UI design, distinctive visual styles, HTML artifacts, Three.js 3D. | `/frontend` |
+| `frontend` | Frontend: UI design, distinctive visual styles, HTML artifacts, Three.js 3D, TypeScript/React/Next.js apps, e-commerce, portfolios, React Native, web performance. | `/frontend` |
 | `jev-design` | Design React interfaces with the full shadcn/ui catalog. | `/jev-design` |
 
 ---
@@ -99,7 +99,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 |-------|-------------|--------|
 | `browser-jev-automation` | Jev-driven browser automation: Jev picks operations, programs execute, a text model writes field values only when Jev cannot pick one from the goal. |  |
 | `deploy` | Deploy and infrastructure: web deploy, cron, package install, shell configuration. | `/deploy` |
-| `kubernetes` | Kubernetes operations: debugging, security, RBAC, and infrastructure tooling. |  |
+| `kubernetes` | Kubernetes and infrastructure operations: cluster debugging, security and RBAC, manifests and Helm charts, Ansible, Prometheus/Grafana, Perses, Ope... |  |
 
 ---
 
@@ -119,8 +119,8 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 | `auto-dream` | Background memory consolidation — overnight review, merge, and injection payload for memory files. | `/auto-dream` |
 | `building-with-jev` | Write, compose, integrate, and improve programs that call Jev, TypeSafe's System One judgment model. |  |
 | `codex` | Run benchmark-selected GPT-5.6 work through the Codex CLI. |  |
-| `d` | Request router: picks the agent, skill, and pipeline with /do's rules, then uses Jev to validate the requested outcome and attach extra skills. | `/d` |
-| `do` | Classify user requests and route to the correct agent + skill. | `/do` |
+| `d` | Router that runs the work in the main loop: picks skill, pipeline, and stack with /do's rules; Jev checks intent and attaches skills. | `/d` |
+| `do` | Classify user requests and route to the correct skill, pipeline, and stack. | `/do` |
 | `docs-sync-checker` | Detect documentation drift against filesystem state. |  |
 | `grill-jev` | Broad Jev interrogation: generate up to 50 context-specific questions about a plan, spec, design, code artifact, or any topic — using all primitive... | `/grill-jev` |
 | `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | `/toolkit` |
@@ -138,7 +138,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 | `pr-workflow` | Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining. | `/pr-workflow` |
 | `process` | Process: retrospectives, session handoff, pair programming, subagent-driven development, condition-based waiting. | `/process` |
 | `quick` | Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full. | `/quick` |
-| `testing` | Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing. |  |
+| `testing` | Testing: TDD, E2E, test automation strategy (Vitest, coverage, CI), preferred patterns, test-value audits, verification, agent testing. |  |
 | `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | `/workflow` |
 
 ---
@@ -147,7 +147,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 
 | Skill | Description | Invoke |
 |-------|-------------|--------|
-| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. |  |
+| `programming` | Language rules, workflows, and tooling: Go, Python, Rust, Kotlin, Swift, PHP, TypeScript type checks and debugging, OpenStack Python, MCP local-docs servers, Node.js backend APIs. |  |
 
 ---
 

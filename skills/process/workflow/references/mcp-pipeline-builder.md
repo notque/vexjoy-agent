@@ -3,7 +3,6 @@ description: "Convert any repository into a registered MCP server."
 user-invocable: false
 argument-hint: "<repo-url-or-path>"
 command: /mcp-pipeline
-agent: mcp-local-docs-engineer
 routing:
   triggers:
     - mcp pipeline

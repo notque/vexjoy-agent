@@ -16,6 +16,15 @@ _spec.loader.exec_module(audit)
 REPO_AGENTS = SCRIPT_PATH.parent.parent / "agents"
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _known_role(monkeypatch) -> None:
+    """The repo role table is empty (agents retired); tests use one fixture role."""
+    monkeypatch.setitem(audit.AGENT_ROLES, "golang-general-engineer", "code-modifier")
+
+
 def write_agent(agents: Path, name: str, *, tools: bool, named: bool = True) -> Path:
     lines = ["---"]
     if named:
@@ -81,8 +90,12 @@ def test_fix_adds_the_skill_tool(tmp_path: Path) -> None:
     assert "  - Skill\n" in agent.read_text(encoding="utf-8")
 
 
-def test_role_table_names_only_agents_on_disk_and_known_roles() -> None:
-    on_disk = {path.stem for path in REPO_AGENTS.glob("*.md")}
-
-    assert sorted(set(audit.AGENT_ROLES) - on_disk) == []
+def test_role_table_names_only_known_roles() -> None:
     assert sorted(set(audit.AGENT_ROLES.values()) - set(audit.ROLE_TOOLS)) == []
+
+
+def test_repo_role_table_is_empty_after_retirement() -> None:
+    spec = importlib.util.spec_from_file_location("audit_tool_restrictions_fresh", SCRIPT_PATH)
+    fresh = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fresh)
+    assert fresh.AGENT_ROLES == {}

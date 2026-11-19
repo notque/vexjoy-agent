@@ -86,23 +86,23 @@ If user describes a concept rather than pointing to a file, search the repo for 
 
 **Goal**: Launch 5 agents in parallel, each embodying a roaster persona, analyzing the target with full evidence-gathering discipline.
 
-Launch 5 general-purpose agents in parallel via Task tool. Load the full persona specification from the corresponding agent file into each prompt.
+Launch 5 general-purpose agents in parallel via Task tool. Each prompt starts: "Read ~/.claude/skills/review/references/<file> and follow it; load every file its Reference Loading Table matches", with the review reference named below, then the persona lens.
 
 **The 5 parallel tasks:**
 
-1. **Skeptical Senior** (`agents/reviewer-code.md`, senior lens)
+1. **Skeptical Senior** (`review` `reviewer-code.md`, senior lens)
    Focus: Sustainability, maintenance burden, long-term viability
 
-2. **Well-Actually Pedant** (`agents/reviewer-code.md`, pedant lens)
+2. **Well-Actually Pedant** (`review` `reviewer-code.md`, pedant lens)
    Focus: Precision, intellectual honesty, terminological accuracy
 
-3. **Enthusiastic Newcomer** (`agents/reviewer-perspectives.md`, newcomer lens)
+3. **Enthusiastic Newcomer** (`review` `reviewer-perspectives.md`, newcomer lens)
    Focus: Onboarding experience, documentation clarity, accessibility
 
-4. **Contrarian Provocateur** (`agents/reviewer-perspectives.md`, contrarian lens)
+4. **Contrarian Provocateur** (`review` `reviewer-perspectives.md`, contrarian lens)
    Focus: Fundamental assumptions, alternative approaches
 
-5. **Pragmatic Builder** (`agents/reviewer-domain.md`, pragmatic-builder lens)
+5. **Pragmatic Builder** (`review` `reviewer-domain.md`, pragmatic-builder lens)
    Focus: Production readiness, operational concerns
 
 **Each agent must:**
@@ -265,9 +265,9 @@ Solution:
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/multi-persona-critique/roast-report-template.md`: Full report output template with tone transformation rules
 - `${CLAUDE_SKILL_DIR}/references/personas.md`: Persona specifications, prompt template, and claim format
-- `agents/reviewer-code.md`: Code quality reviewer (senior and pedant lenses)
-- `agents/reviewer-perspectives.md`: Perspectives reviewer (newcomer and contrarian lenses)
-- `agents/reviewer-domain.md`: Domain reviewer (pragmatic-builder lens)
+- `~/.claude/skills/review/references/reviewer-code.md`: Code quality reviewer (senior and pedant lenses)
+- `~/.claude/skills/review/references/reviewer-perspectives.md`: Perspectives reviewer (newcomer and contrarian lenses)
+- `~/.claude/skills/review/references/reviewer-domain.md`: Domain reviewer (pragmatic-builder lens)
 
 ### Dependencies
 - **Read-Only Inspection (this skill's `SKILL.md`)**: Enforces no-modification guardrails during analysis

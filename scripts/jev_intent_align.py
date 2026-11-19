@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import d_gate
 import jev_router_common
 import jev_transport
 
@@ -40,12 +41,14 @@ YES_THRESHOLD = 0.60
 CORE_ALIGNMENT_THRESHOLD = 0.50
 MAX_ALIGNMENT_STATE_CHARS = 180_000
 # v2 (2026-09-22): route state carries attached skills and fan-out agents.
-QUESTIONS_VERSION = "d-intent-v2"
+# v3 (2026-11-17): fan-out is general-purpose workers, each with its own skill
+# and scope (plans/009 retired the specialist agents).
+QUESTIONS_VERSION = "d-intent-v3"
 
 
 def proposed_intent(request: str, route: dict[str, Any]) -> str:
     """Produce a conservative intent candidate when the caller has none."""
-    route_bits = [str(route.get(key)).strip() for key in ("agent", "skill", "pipeline") if route.get(key)]
+    route_bits = [str(route.get(key)).strip() for key in ("skill", "pipeline") if route.get(key)]
     method = ", ".join(route_bits) if route_bits else "direct handling"
     return (
         f"Fulfill the user's request: {request}. Use {method} only as the execution method; "
@@ -60,12 +63,12 @@ def _noul(question: str, *paths: str) -> dict[str, Any]:
 def build_payload(request: str, intent: str, route: dict[str, Any]) -> dict[str, Any]:
     """Build one evidence state and all independent validation questions."""
     route_state = {key: route.get(key) for key in ("agent", "skill", "pipeline", "complexity", "source", "reasoning")}
-    # Attached skills and fan-out agents are part of the route's coverage; without
+    # Attached skills and fan-out workers are part of the route's coverage; without
     # them a mixed request (Go fix plus Kubernetes limits) looks uncovered.
     route_state["attached_skills"] = list(route.get("attach") or [])
-    route_state["fanout_agents"] = list(route.get("agents") or [])
+    route_state["fanout_workers"] = [w for w in route.get("workers") or [] if isinstance(w, dict)]
     route_state["validation_context"] = (
-        "The route was selected by a deterministic force-route guard or a manifest-validated Jev classifier. Treat opaque agent and skill labels as valid execution methods unless the route visibly conflicts with the user request. The route covers the work of its agent, its skill, every attached skill, and every fan-out agent."
+        "The route was selected by a deterministic force-route guard or a manifest-validated Jev classifier. Treat opaque skill labels as valid execution methods unless the route visibly conflicts with the user request. The worker is a general-purpose agent that loads the skill. The route covers the work of its skill, every attached skill, and every fan-out worker's skill and scope."
     )
     state = {"user_request": request, "proposed_intent": intent, "selected_route": route_state}
     questions = {
@@ -240,6 +243,10 @@ def _finish_receipt(
     }
     normalized.update(result)
     result = normalized
+    # The /d execute step (build-dispatch.py "router": "d") reads this receipt.
+    # Written on every path, unavailable and error included: a Jev outage
+    # never blocks, it only has to be reported.
+    d_gate.write_receipt(request, candidate, result, phase)
     if _record_intent_alignment is None:
         return result
     scores = result.get("scores") if isinstance(result.get("scores"), dict) else None

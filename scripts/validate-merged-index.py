@@ -15,7 +15,11 @@ indexes (merge logic shared via routing_index_merge.py):
   D2 DEAD-AGENT-REF — skill `agent` field names no agent in the merged
                       agents index, no agents/*.md on disk, and no
                       harness builtin (BUILTIN_AGENTS, as in
-                      validate-do-references.py).
+                      validate-do-references.py). A name in
+                      routing_index_merge.RETIRED_AGENTS (plans/009) is a
+                      WARN RETIRED-AGENT-REF instead: the pairing is dead,
+                      the dispatch falls back to general-purpose, and the
+                      skill's frontmatter should drop it.
   D3/D4 MISSING-FIELD — entry has no `category`, or neither `description`
                       nor `short_description`.
   D5 NOT-PREFIX     — `not_for` starts with "NOT: "; routing-manifest.py
@@ -60,7 +64,7 @@ from pathlib import Path
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-from routing_index_merge import is_overlay_item, load_index_items
+from routing_index_merge import RETIRED_AGENTS, is_overlay_item, load_index_items
 
 # scripts/lib holds the shared helper; append so it shadows nothing.
 sys.path.append(str(_SCRIPTS_DIR / "lib"))
@@ -69,7 +73,7 @@ from index_freshness import ensure_fresh_indexes
 
 # Harness-provided agents outside agents/INDEX.json (same set as
 # validate-do-references.py).
-BUILTIN_AGENTS = frozenset({"general-purpose"})
+BUILTIN_AGENTS = frozenset({"general-purpose", "claude", "explore", "plan", "statusline-setup", "Explore", "Plan"})
 
 _LEVEL_RANK = {"CRITICAL": 0, "ERROR": 1, "WARN": 2}
 
@@ -77,7 +81,7 @@ _LEVEL_RANK = {"CRITICAL": 0, "ERROR": 1, "WARN": 2}
 @dataclass(frozen=True)
 class Finding:
     level: str  # CRITICAL | ERROR | WARN
-    cls: str  # PHANTOM | DEAD-AGENT-REF | MISSING-FIELD | NOT-PREFIX | UNKNOWN-CATEGORY
+    cls: str  # PHANTOM | DEAD-AGENT-REF | RETIRED-AGENT-REF | MISSING-FIELD | NOT-PREFIX | UNKNOWN-CATEGORY
     name: str  # entry name
     detail: str
 
@@ -131,9 +135,9 @@ def resolvable(file_field: str, repo_root: Path, claude_dir: Path) -> bool:
 
 
 def known_agents(agents: dict, repo_root: Path) -> set[str]:
-    """Union: merged agents-index names, agents/*.md stems on disk, builtins."""
+    """Union: merged agents-index names, agents/*.md stems on disk, builtins; retired names removed."""
     on_disk = {p.stem for p in (repo_root / "agents").glob("*.md")}
-    return set(agents) | on_disk | BUILTIN_AGENTS
+    return (set(agents) | on_disk | BUILTIN_AGENTS) - RETIRED_AGENTS
 
 
 def check_entry(
@@ -170,7 +174,16 @@ def check_entry(
 
     if agent_names is not None:
         agent_ref = entry.get("agent")
-        if agent_ref and agent_ref not in agent_names:
+        if agent_ref and agent_ref in RETIRED_AGENTS:
+            findings.append(
+                Finding(
+                    "WARN",
+                    "RETIRED-AGENT-REF",
+                    name,
+                    f"agent '{agent_ref}' is a retired repo agent (plans/009); drop the frontmatter pairing",
+                )
+            )
+        elif agent_ref and agent_ref not in agent_names:
             findings.append(
                 Finding(
                     "ERROR",

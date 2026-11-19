@@ -108,7 +108,24 @@ def _load_index_names(path: Path, key: str) -> frozenset[str]:
         return frozenset()
 
 
-KNOWN_AGENTS = _load_index_names(AGENT_INDEX, "agents")
+# Harness built-ins the Agent tool always accepts. The repo's specialist agents
+# are retired (plans/009): a workflow worker is general-purpose and its skill
+# carries the domain. Private overlay agents still come from the index; retired
+# names a stale index still lists are subtracted.
+BUILTIN_AGENTS = frozenset({"general-purpose", "claude", "explore", "plan", "statusline-setup", "Explore", "Plan"})
+sys.path.append(str(REPO_ROOT / "scripts"))
+try:
+    from routing_index_merge import RETIRED_AGENTS
+except ImportError:  # pragma: no cover - shipped alongside
+    RETIRED_AGENTS = frozenset()
+
+
+def _known_agents(path: Path = AGENT_INDEX) -> frozenset[str]:
+    """Dispatchable agents: built-ins plus non-retired index names (overlay agents)."""
+    return frozenset((_load_index_names(path, "agents") - RETIRED_AGENTS) | BUILTIN_AGENTS)
+
+
+KNOWN_AGENTS = _known_agents()
 KNOWN_SKILLS = _load_index_names(SKILL_INDEX, "skills")
 _COMPONENT_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
@@ -150,8 +167,8 @@ _VALIDATE_ROSTER_CALL = re.compile(r"(?<!function )\bvalidateRoster\(")
 # the Stage-2.5 multi-skill roster shape (skill -> skills LIST).
 _SKILLS_ARRAY = re.compile(r"""\bskills\s*:\s*\[([^\]]*)\]""")
 # A map-value array literal: ``"key": ["a", "b"]`` — the AGENT_SKILLS-style map
-# from agent name to its skill stack. The roster entries reference this map
-# (``skills: AGENT_SKILLS["reviewer-system"]``), so the literal names live in the
+# from a roster key to its skill stack. The roster entries reference this map
+# (``skills: AGENT_SKILLS["security"]``), so the literal names live in the
 # map value array, not on the entry. Capture the inner array body.
 _MAP_ARRAY = re.compile(r"""["'`][\w.\-/]+["'`]\s*:\s*\[([^\]]*)\]""")
 # A single quoted string literal (used to pull names out of a skills:[...] body).
@@ -486,9 +503,7 @@ def _static_checks(source: str, contract: dict) -> tuple[list[str], list[str]]:
     src_agent_types = extract_agent_types(body)
     src_skills = extract_skill_tokens(body)
 
-    labels.append("roster registry: SHAPE+SKILLS (trusted agents/INDEX.json + skills/INDEX.json)")
-    if not KNOWN_AGENTS:
-        errors.append("trusted agent index is unreadable or empty")
+    labels.append("roster registry: SHAPE+SKILLS (built-in or overlay agents + skills/INDEX.json)")
     if not KNOWN_SKILLS:
         errors.append("trusted skill index is unreadable or empty")
     for index, entry in enumerate(roster):
@@ -740,7 +755,7 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     if regenerated:
-        KNOWN_AGENTS = _load_index_names(AGENT_INDEX, "agents")
+        KNOWN_AGENTS = _known_agents()
         KNOWN_SKILLS = _load_index_names(SKILL_INDEX, "skills")
 
     target = Path(args.dir)

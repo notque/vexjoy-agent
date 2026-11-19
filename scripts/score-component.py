@@ -5,11 +5,11 @@ Checks structural quality of agent and skill markdown files without any LLM call
 Pure filesystem validation against the component rubric defined in ADR-031.
 
 Usage:
-    python3 scripts/score-component.py agents/golang-general-engineer.md
+    python3 scripts/score-component.py skills/meta/do/SKILL.md
     python3 scripts/score-component.py --all-agents
     python3 scripts/score-component.py --all-skills
     python3 scripts/score-component.py --all-agents --all-skills --json
-    python3 scripts/score-component.py agents/golang-general-engineer.md --check-secrets
+    python3 scripts/score-component.py agents/<overlay-agent>.md --check-secrets
 
 Exit codes:
     0 — All scored components grade B or above
@@ -289,6 +289,14 @@ def check_error_handling_section(content: str) -> CheckResult:
     return CheckResult("Error handling section", 10, 0, "No '## Error*' or '## Failure Mode*' heading found")
 
 
+def _display(path: Path) -> str:
+    """Repo-relative path when *path* sits in the repo, else the path as given (overlay files)."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _index_path(kind: str) -> Path:
     """Index for *kind*: ``$VEXJOY_INDEX_DIR/<kind>.json`` when set and present,
     the same override the routing readers honor, else ``<repo>/<kind>/INDEX.json``."""
@@ -360,7 +368,7 @@ def check_routing_registration(component_type: str, file_path: Path, fm: dict | 
 
 def check_reference_files(component_type: str, file_path: Path) -> CheckResult:
     """Check: Has reference files directory (10 pts)."""
-    # Agents: refs live in {agent-name}/references/ (e.g., golang-general-engineer/references/)
+    # Agents: refs live in {agent-name}/references/ (e.g., agents/<name>/references/; private overlay agents only since plans/009)
     # Skills: refs live in the skill directory (e.g., skills/meta/do/references/)
     if component_type == "agent":
         refs_dir = file_path.parent / file_path.stem / "references"
@@ -369,8 +377,8 @@ def check_reference_files(component_type: str, file_path: Path) -> CheckResult:
 
     if refs_dir.is_dir():
         ref_count = len(list(refs_dir.iterdir()))
-        return CheckResult("Reference files", 10, 10, f"{ref_count} files in {refs_dir.relative_to(REPO_ROOT)}")
-    return CheckResult("Reference files", 10, 0, f"No references/ directory at {refs_dir.relative_to(REPO_ROOT)}")
+        return CheckResult("Reference files", 10, 10, f"{ref_count} files in {_display(refs_dir)}")
+    return CheckResult("Reference files", 10, 0, f"No references/ directory at {_display(refs_dir)}")
 
 
 def check_workflow_instructions(content: str) -> CheckResult:
@@ -438,7 +446,7 @@ def check_broken_internal_links(content: str, file_path: Path) -> CheckResult:
         # Also try relative to repo root (some links use repo-relative paths)
         resolved_from_root = (REPO_ROOT / link).resolve()
 
-        # Also try relative to the component subdir (e.g., golang-general-engineer/ for golang-general-engineer.md)
+        # Also try relative to the component subdir (e.g., <name>/ for <name>.md)
         resolved_from_component = (base_dir / file_path.stem / link).resolve()
         if resolved.exists() or resolved_from_root.exists() or resolved_from_component.exists():
             valid += 1
@@ -514,7 +522,7 @@ def score_component(file_path: Path, do_check_secrets: bool = False) -> Componen
     fm = extract_frontmatter(content)
 
     score = ComponentScore(
-        file_path=str(file_path.relative_to(REPO_ROOT)),
+        file_path=_display(file_path),
         component_type=component_type,
     )
 
@@ -625,9 +633,9 @@ def score_to_dict(score: ComponentScore) -> dict:
 def find_all_agents() -> list[Path]:
     """Find all agent markdown files (excludes non-routable files).
 
-    base-instructions.md is a shared preamble included by agents, not a
-    routable agent itself (no frontmatter, no routing entry). Scoring it
-    produces guaranteed false failures.
+    The repo's specialist agents are retired (plans/009), so this is normally
+    empty; base-instructions.md moved to skills/shared-patterns/ and stays
+    excluded here for older checkouts.
     """
     agents_dir = REPO_ROOT / "agents"
     if not agents_dir.is_dir():
@@ -658,7 +666,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 scripts/score-component.py agents/golang-general-engineer.md\n"
+            "  python3 scripts/score-component.py skills/meta/do/SKILL.md\n"
             "  python3 scripts/score-component.py --all-agents\n"
             "  python3 scripts/score-component.py --all-skills --json\n"
             "  python3 scripts/score-component.py --all-agents --all-skills --check-secrets\n"
@@ -735,6 +743,14 @@ def main() -> int:
             unique_targets.append(t)
 
     if not unique_targets:
+        if args.all_agents or args.all_skills:
+            # The repo ships no agents since plans/009; an empty batch is not an error.
+            if args.json_output:
+                empty = {"total_components": 0, "passing": 0, "failing": 0, "message": "no components found"}
+                print(json.dumps({"results": [], "summary": empty}, indent=2))
+            else:
+                print("No components found to score.")
+            return 0
         print("Error: No files to score. Provide file paths or use --all-agents / --all-skills.", file=sys.stderr)
         return 2
 

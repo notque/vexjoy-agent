@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Tests for the route-health counter-metrics to the fallback rate.
 
-The fallback rate alone is gameable: a router told to minimize it can route
-every request to one specialist and score 0% with no accuracy gain. These tests
-pin the counters that make that trade visible — top-2 concentration, agent
-distribution entropy, the misroute rate, and the route-fit negative rate — and
-pin the fallback labels (watch above 15%, alarm above 20%, no low alarm). They
+Since the specialist agents retired (plans/009), general-purpose is the normal
+worker; a fallback is an invalid-agent coercion (`fallback-reason:invalid-agent:*`
+rows). The rate alone is gameable, so these tests pin the counters over the
+skill distribution — top-2 concentration, skill entropy, the misroute rate, and
+the route-fit negative rate — and pin the fallback labels (watch above 15%,
+alarm above 20%, no low alarm). They
 also pin "not instrumented" for the two rates no hook writes, and the
 route-signal verdict that route-health prints.
 
@@ -54,11 +55,11 @@ def _seed_dispatches(ldb, agent: str, n: int, skill: str = "quick") -> None:
     )
     for i in range(n):
         ldb.record_evidence_route_decision(
-            session_id=f"s-{agent}-{i}",
+            session_id=f"s-{agent}-{skill}-{i}",
             agent=agent,
             skill=skill,
             complexity="medium",
-            decision_id=f"{agent}:{i}",
+            decision_id=f"{agent}:{skill}:{i}",
         )
 
 
@@ -98,23 +99,35 @@ def _json(env_dir: str) -> dict:
     return json.loads(res.stdout)
 
 
-# --- fallback rate and its band ---------------------------------------------
+# --- fallback (coercion) rate and its band ----------------------------------
+
+
+def _seed_coercions(ldb, n: int, name: str = "golang-general-engineer") -> None:
+    """n invalid-agent coercions, as routing-decision-recorder.py counts them."""
+    for _ in range(n):
+        ldb.record_learning(
+            topic="routing",
+            key=f"fallback-reason:invalid-agent:{name}",
+            value=f"fallback-reason: invalid-agent:{name}",
+            category="effectiveness",
+            tags=["fallback-reason"],
+            source="hook:routing-decision-recorder",
+        )
 
 
 @pytest.mark.parametrize(
     ("fallback_n", "other_n", "band"),
     [
-        (45, 55, "ALARM-HIGH"),  # 45% — the live 44.6% regression
-        (18, 82, "WATCH"),  # 18% — above the watch line, below the alarm
-        (12, 88, "OK"),  # 12%
-        (5, 95, "OK"),  # 5% — low is the wanted result, never an alarm
-        (0, 100, "OK"),  # 0% — the counters below carry the gaming check
+        (45, 55, "ALARM-HIGH"),
+        (18, 82, "WATCH"),  # above the watch line, below the alarm
+        (12, 88, "OK"),
+        (0, 100, "OK"),  # no coercions is the wanted result, never an alarm
     ],
 )
-def test_fallback_band_labels(fallback_n, other_n, band, db_env):
+def test_fallback_band_counts_coercions_not_the_worker(fallback_n, other_n, band, db_env):
     ldb = db_env["ldb"]
-    _seed_dispatches(ldb, "general-purpose", fallback_n)
-    _seed_dispatches(ldb, "python-general-engineer", other_n)
+    _seed_dispatches(ldb, "general-purpose", fallback_n + other_n)
+    _seed_coercions(ldb, fallback_n)
 
     data = _json(db_env["env_dir"])
     assert data["fallback_count"] == fallback_n
@@ -122,12 +135,37 @@ def test_fallback_band_labels(fallback_n, other_n, band, db_env):
     assert data["fallback_band"] == band
 
 
+def test_general_purpose_traffic_alone_is_not_a_fallback(db_env):
+    """Every dispatch on the normal worker, no coercions: 0% fallback."""
+    _seed_dispatches(db_env["ldb"], "general-purpose", 60)
+    _seed_dispatches(db_env["ldb"], "main", 40)
+    data = _json(db_env["env_dir"])
+    assert data["fallback_count"] == 0
+    assert data["fallback_rate_pct"] == 0.0
+    assert data["fallback_band"] == "OK"
+
+
+def test_other_fallback_reasons_are_not_coercions(db_env):
+    """Old-contract reasons (no-specialist-match) do not count as coercions."""
+    ldb = db_env["ldb"]
+    _seed_dispatches(ldb, "general-purpose", 10)
+    ldb.record_learning(
+        topic="routing",
+        key="fallback-reason:no-specialist-match",
+        value="fallback-reason: no-specialist-match",
+        category="effectiveness",
+        source="hook:routing-decision-recorder",
+    )
+    assert _json(db_env["env_dir"])["fallback_count"] == 0
+
+
 def test_human_output_prints_the_band_explicitly(db_env):
-    _seed_dispatches(db_env["ldb"], "general-purpose", 45)
-    _seed_dispatches(db_env["ldb"], "python-general-engineer", 55)
+    _seed_dispatches(db_env["ldb"], "general-purpose", 100)
+    _seed_coercions(db_env["ldb"], 45)
 
     out = _run(db_env["env_dir"]).stdout
     assert "Fallback rate:" in out
+    assert "could not be dispatched" in out
     assert "ALARM-HIGH" in out
     assert "watch above 15%" in out
     assert "alarm above 20%" in out
@@ -139,69 +177,63 @@ def test_human_output_prints_the_band_explicitly(db_env):
 # --- the counters that make the fallback rate ungameable ---------------------
 
 
-def test_routing_everything_to_one_specialist_scores_zero_fallback_but_fails_the_counters(db_env):
-    """The exact gaming move: 0% fallback, and every counter says so."""
-    _seed_dispatches(db_env["ldb"], "python-general-engineer", 100)
+def test_routing_everything_to_one_skill_scores_zero_fallback_but_fails_the_counters(db_env):
+    """The gaming move: 0% fallback, and every counter says so."""
+    _seed_dispatches(db_env["ldb"], "general-purpose", 100, skill="workflow")
 
     data = _json(db_env["env_dir"])
     assert data["fallback_rate_pct"] == 0.0
-    # No low alarm: the three counters below expose the move, not the band.
     assert data["fallback_band"] == "OK"
     assert data["top2_concentration_pct"] == 100.0
-    assert data["agent_entropy_bits"] == 0.0
-    assert data["effective_agents"] == 1.0
+    assert data["skill_entropy_bits"] == 0.0
+    assert data["effective_skills"] == 1.0
 
 
 def test_top2_concentration_and_entropy_on_a_spread_distribution(db_env):
     ldb = db_env["ldb"]
-    for agent in ("python-general-engineer", "golang-general-engineer", "hook-development-engineer", "claude"):
-        _seed_dispatches(ldb, agent, 25)
+    for skill in ("programming", "testing", "review", "frontend"):
+        _seed_dispatches(ldb, "general-purpose", 25, skill=skill)
 
     data = _json(db_env["env_dir"])
-    assert data["distinct_agents"] == 4
+    assert data["distinct_skills"] == 4
     assert data["top2_concentration_pct"] == 50.0
-    # Four agents, evenly used => exactly 2 bits, fully normalized.
-    assert data["agent_entropy_bits"] == 2.0
-    assert data["agent_entropy_max_bits"] == 2.0
-    assert data["agent_entropy_normalized"] == 1.0
-    assert data["effective_agents"] == 4.0
+    # Four skills, evenly used => exactly 2 bits, fully normalized.
+    assert data["skill_entropy_bits"] == 2.0
+    assert data["skill_entropy_max_bits"] == 2.0
+    assert data["skill_entropy_normalized"] == 1.0
+    assert data["effective_skills"] == 4.0
 
 
-def test_top2_concentration_names_the_two_agents(db_env):
+def test_top2_concentration_names_the_two_skills(db_env):
     ldb = db_env["ldb"]
-    _seed_dispatches(ldb, "python-general-engineer", 50)
-    _seed_dispatches(ldb, "general-purpose", 30)
-    _seed_dispatches(ldb, "golang-general-engineer", 20)
+    _seed_dispatches(ldb, "general-purpose", 50, skill="programming")
+    _seed_dispatches(ldb, "main", 30, skill="quick")
+    _seed_dispatches(ldb, "general-purpose", 20, skill="review")
 
     data = _json(db_env["env_dir"])
-    assert data["top2_agents"] == ["python-general-engineer", "general-purpose"]
+    assert data["top2_skills"] == ["programming", "quick"]
     assert data["top2_concentration_pct"] == 80.0
     assert data["top2_target_pct"] == 50.0
     out = _run(db_env["env_dir"]).stdout
-    assert "Top-2 agent concentration: 80.0%" in out
+    assert "Top-2 skill concentration: 80.0%" in out
     assert "target below 50%" in out
-    assert "Agent distribution entropy:" in out
+    assert "Skill distribution entropy:" in out
 
 
-def test_shifting_fallback_traffic_onto_one_agent_lowers_entropy(db_env, tmp_path, monkeypatch):
-    """ "Fallback went down" cannot be claimed when traffic merely moved."""
+def test_collapsing_traffic_onto_one_skill_lowers_entropy(db_env):
+    """A drop in coercions cannot hide traffic collapsing onto a catch-all skill."""
     ldb = db_env["ldb"]
-    _seed_dispatches(ldb, "general-purpose", 40)
-    _seed_dispatches(ldb, "python-general-engineer", 30)
-    _seed_dispatches(ldb, "golang-general-engineer", 30)
+    _seed_dispatches(ldb, "general-purpose", 40, skill="workflow")
+    _seed_dispatches(ldb, "general-purpose", 30, skill="programming")
+    _seed_dispatches(ldb, "general-purpose", 30, skill="testing")
     before = _json(db_env["env_dir"])
 
-    # Same traffic, fallbacks re-routed wholesale to the incumbent specialist.
     with ldb.get_connection() as conn:
-        conn.execute(
-            "UPDATE evidence_route_decisions SET agent = ? WHERE agent = ?",
-            ("python-general-engineer", "general-purpose"),
-        )
+        conn.execute("UPDATE evidence_route_decisions SET skill = ? WHERE skill = ?", ("workflow", "programming"))
         conn.commit()
     after = _json(db_env["env_dir"])
 
-    assert after["fallback_rate_pct"] < before["fallback_rate_pct"]
-    assert after["agent_entropy_bits"] < before["agent_entropy_bits"]
+    assert after["skill_entropy_bits"] < before["skill_entropy_bits"]
     assert after["top2_concentration_pct"] > before["top2_concentration_pct"]
 
 

@@ -100,6 +100,7 @@ def assemble(args):
         "subdomain_name": args.subdomain,
         "task_type": args.task_type,
         "agent_name": args.agent,
+        "pairs_with": args.pairs_with,
         "operator_profile": args.profile,
         "description": args.description or f"{title_case(args.name)} pipeline",
         "skill_name_title": title_case(args.name),
@@ -138,7 +139,17 @@ Examples:
     parser.add_argument("--domain", help="Domain name")
     parser.add_argument("--subdomain", help="Subdomain name")
     parser.add_argument("--task-type", dest="task_type", default="generation", help="Task type (default: generation)")
-    parser.add_argument("--agent", default="general-engineer", help="Agent name to bind (default: general-engineer)")
+    parser.add_argument(
+        "--agent",
+        default="general-purpose",
+        help="Worker type for dispatched phases (default: general-purpose); not written to frontmatter",
+    )
+    parser.add_argument(
+        "--pairs-with",
+        dest="pairs_with",
+        default="",
+        help="Comma-separated skills for routing.pairs_with, such as the skill that holds the domain reference",
+    )
     parser.add_argument(
         "--profile",
         default="personal",

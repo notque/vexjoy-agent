@@ -2,7 +2,6 @@
 name: markdown-converter
 description: "Convert PDF, Office, HTML, data, media, ZIP to Markdown."
 user-invocable: false  # default -- router-dispatched, not user-typed
-agent: python-general-engineer
 allowed-tools:
   - Bash
   - Read

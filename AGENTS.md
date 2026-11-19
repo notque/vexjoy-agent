@@ -5,18 +5,20 @@ rules live in CLAUDE.md (Claude Code) and GEMINI.md (Antigravity CLI / Argon).
 
 ## How this toolkit works
 
-The toolkit uses **agents, skills, hooks, and scripts** to absorb complexity
+The toolkit uses **skills, pipelines, hooks, and scripts** to absorb complexity
 that would otherwise fall on the user. Behavioral enforcement lives in these
 mechanisms, not in this file.
 
-**Route to agents when it pays.** The main thread is an orchestrator. It
-classifies requests, picks the skill, dispatches agents, and evaluates results.
-Medium and Complex work goes to specialized agents. Which Trivial and Simple
+**Dispatch workers when it pays.** The main thread is an orchestrator. It
+classifies requests, picks the skill, dispatches workers, and evaluates results.
+The repo ships no specialist agents: Medium and Complex work goes to the
+built-in `general-purpose` agent with the skill loaded, and the skill carries
+the domain. Which Trivial and Simple
 work the main thread runs itself is set per tool: see your tool's instruction
 file (CLAUDE.md or GEMINI.md) for dispatch mechanics.
 
-**Load only what you need.** Context is a scarce resource. Agents carry domain
-knowledge, skills carry methodology, and reference files carry deep content,
+**Load only what you need.** Context is a scarce resource. Skills carry domain
+knowledge and methodology, and reference files carry deep content,
 all loaded on demand. Load only the context required for the current task.
 
 **LLMs orchestrate, programs execute.** If a process is deterministic and
@@ -182,11 +184,10 @@ green status before merging.
   `skills/analysis/assessment/SKILL.md`. An ADR named in code, comments, or
   docs (`ADR-103`, an `adr/` path) is not in a clone: cite it by name as
   local-only, and never link to it.
-- **Agent reference files:** validate with
-  `python3 scripts/validate-references.py --agent <name>`, or run the CI
-  checks `--check-do-framing`, `--check-placeholders`, `--check-size`, and
-  `--check-skill-calls`. With no flag it prints usage and exits 2. See
-  `agents/toolkit-governance-engineer.md`.
+- **Reference files:** run the CI checks
+  `python3 scripts/validate-references.py --check-do-framing`,
+  `--check-placeholders`, `--check-size`, and `--check-skill-calls`. With no
+  flag it prints usage and exits 2. See `skills/meta/toolkit/SKILL.md`.
 - **GM evidence and closure:** large GM programs use the canonical registry,
   snapshot, and validator owned by `gm-brilliant-implementation`; this file
   does not redefine that domain contract.

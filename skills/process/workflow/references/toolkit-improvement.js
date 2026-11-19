@@ -12,10 +12,11 @@
 // The prose pipeline MANDATES that all agents within an evaluation wave dispatch
 // in a single message for true parallelism, with Wave 1 = 10 foundation
 // evaluators (the prose agent-roster.md). This workflow honors that as a FIXED
-// 10-agent EVALUATE barrier of research-subagent-executor specialists (the
+// 10-agent EVALUATE barrier of general-purpose evaluators that load the
+// research-subagent-executor reference (the
 // static-roster shape, like comprehensive-review-workflow.js Wave 1), then runs a
 // dynamic tail (research/synthesize/critique/report/adr/implement/validate/
-// remediate/record) through the research-coordinator-engineer (the synthesis +
+// remediate/record) through a worker that loads the research-coordinator reference (the synthesis +
 // governance owner). The prose deep-dive Wave 2 + adversarial Wave 3 scale ABOVE
 // the fixed-10 floor and run as additional barriers; the ADR + IMPLEMENT fan-outs
 // are one-agent-per-cluster (data-driven). REMEDIATE runs only on a validation
@@ -43,6 +44,7 @@ import {
   editBlocker,
   mandatoryInjections,
   modelFor,
+  referenceDirective,
   skillDirectives,
   tierOrFull,
   validateAgentName,
@@ -52,7 +54,7 @@ import {
 export const meta = {
   name: "toolkit-improvement",
   description:
-    "Toolkit continuous-improvement pipeline as a deterministic native Workflow: EVALUATE -> RESEARCH -> SYNTHESIZE -> CRITIQUE -> REPORT -> ADR -> IMPLEMENT -> VALIDATE -> REMEDIATE -> RECORD. Evaluate-only by default: the run stops after REPORT, and ADR through RECORD run only with implement: true plus a non-default work branch. EVALUATE is a mandatory parallel barrier of 10 research-subagent-executor foundation evaluators (distinct dimensions); deep-dive + adversarial waves follow and run by default; an explicit tier below 4 drops them. The research-coordinator-engineer then researches ecosystem practice, synthesizes + de-dupes findings, applies skeptical critique, and reports the decision surface. With implement set, it writes one ADR per cluster the critique kept, domain engineers implement each ADR on the work branch, the governance engineer validates and remediates, and the coordinator records the reusable patterns. maxAgents caps total dispatch. Each agent attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors toolkit-improvement.md; that markdown flow stays the cross-harness floor.",
+    "Toolkit continuous-improvement pipeline as a deterministic native Workflow: EVALUATE -> RESEARCH -> SYNTHESIZE -> CRITIQUE -> REPORT -> ADR -> IMPLEMENT -> VALIDATE -> REMEDIATE -> RECORD. Evaluate-only by default: the run stops after REPORT, and ADR through RECORD run only with implement: true plus a non-default work branch. EVALUATE is a mandatory parallel barrier of 10 general-purpose foundation evaluators that load the research-subagent-executor reference (distinct dimensions); deep-dive + adversarial waves follow and run by default; an explicit tier below 4 drops them. A worker loading the research-coordinator reference then researches ecosystem practice, synthesizes + de-dupes findings, applies skeptical critique, and reports the decision surface. With implement set, it writes one ADR per cluster the critique kept, domain workers (each loading its skill reference) implement each ADR on the work branch, a governance worker validates and remediates, and the coordinator records the reusable patterns. maxAgents caps total dispatch. Each agent attaches its full skill stack (one exact Skill-tool call per skill) plus the /do mandatory injections. Mirrors toolkit-improvement.md; that markdown flow stays the cross-harness floor.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stage 3). STATIC validation pins the phases + the FIXED 10-agent EVALUATE
@@ -80,23 +82,23 @@ export const meta = {
       "remediate",
       "record",
     ],
-    // EVALUATE is a FIXED barrier: 10 research-subagent-executor foundation
+    // EVALUATE is a FIXED barrier: 10 general-purpose foundation
     // evaluators on every run (the prose Wave 1 of 10 dimensions). Each carries a
     // `skills` LIST (the full evaluation stack attached via one exact Skill-tool call per
     // element). The distinct evaluation dimension is a RUNTIME property of the
     // prompt, not the roster shape, so the static roster is ten identical-type
     // entries (the gate pins the type + skills + count).
     roster: [
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
-      { agentType: "research-subagent-executor", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
+      { agentType: "general-purpose", skills: ["toolkit", "testing"] },
     ],
     // The EVALUATE barrier dispatches at least the fixed 10 on every run (static).
     agents: { static: 10, dynamic: false },
@@ -120,22 +122,34 @@ export const meta = {
 // delegating each entry's list to skillDirectives().
 const AGENT_SKILLS = {
   "research-subagent-executor": ["toolkit", "testing"],
-  "research-coordinator-engineer": ["toolkit", "testing"],
-  "toolkit-governance-engineer": ["toolkit", "testing"],
-  "hook-development-engineer": ["programming", "testing"],
-  "python-general-engineer": ["programming", "testing"],
+  "research-coordinator": ["toolkit", "testing"],
+  "toolkit-governance": ["toolkit", "testing"],
+  "hook-development": ["programming", "testing"],
+  "python-general": ["programming", "testing"],
 };
+
+// Repo agents are retired (plan 009). Every role runs as a fresh general-purpose
+// worker and takes its domain from the skill reference below (referenceDirective),
+// the reference the retired agent body became. The prompt scopes each job.
+const ROLE_REFS = {
+  "research-subagent-executor": { skill: "research", file: "research-subagent-executor.md" },
+  "research-coordinator": { skill: "research", file: "research-coordinator.md" },
+  "toolkit-governance": { skill: "toolkit", file: "toolkit-governance.md" },
+  "hook-development": { skill: "toolkit", file: "hook-development.md" },
+  "python-general": { skill: "programming", file: "python-general.md" },
+};
+const WORKER_AGENT = "general-purpose";
 
 // The mandated minimum EVALUATE size: the prose Wave 1 of 10 foundation
 // dimensions, all dispatched in one parallel barrier. Deeper runs scale ABOVE
 // this floor with the deep-dive + adversarial waves, never below it.
 const MIN_EVALUATE_AGENTS = 10;
-const COORDINATOR_AGENT = "research-coordinator-engineer";
+const COORDINATOR_AGENT = "research-coordinator";
 // Edits to skills, agents, routing, and docs, plus the VALIDATE and REMEDIATE
 // passes, go to the governance engineer. The coordinator never edits files.
-const GOVERNANCE_AGENT = "toolkit-governance-engineer";
-const HOOK_AGENT = "hook-development-engineer";
-const PYTHON_AGENT = "python-general-engineer";
+const GOVERNANCE_AGENT = "toolkit-governance";
+const HOOK_AGENT = "hook-development";
+const PYTHON_AGENT = "python-general";
 
 // Total agents one run may dispatch when the caller sets no `maxAgents`. A
 // tier-4 evaluation uses 29, which leaves room for a small implement tail.
@@ -380,8 +394,9 @@ function evaluatorPrompt(dimension, wave, scope, priorFindings) {
     ? `\nPrior-wave findings (do not duplicate; ${wave === "adversarial" ? "challenge these" : "focus on what they missed"}):\n${JSON.stringify(priorFindings)}`
     : "";
   return (
-    `You are a ${wave} toolkit evaluator (research-subagent-executor).` +
+    `You are a ${wave} toolkit evaluator.` +
     skillDirectives(AGENT_SKILLS["research-subagent-executor"]) +
+    referenceDirective(ROLE_REFS["research-subagent-executor"]) +
     `\nYour evaluation dimension: ${dimension}.\nEvaluate this toolkit scope:\n` +
     `${JSON.stringify(scope)}\n` +
     `Report only findings you have verified by reading the actual source file. ` +
@@ -393,12 +408,13 @@ function evaluatorPrompt(dimension, wave, scope, priorFindings) {
   );
 }
 
-// Build a prompt for a named agent: task, that agent's skill stack, the typed
-// payload, and the mandatory injections. Same context as a direct /do dispatch.
+// Build a prompt for a named role: task, that role's skill stack and reference,
+// the typed payload, and the mandatory injections. Same context as a direct /do dispatch.
 function agentPrompt(agentName, task, payload) {
   return (
     task +
     skillDirectives(AGENT_SKILLS[agentName]) +
+    referenceDirective(ROLE_REFS[agentName]) +
     `\n${JSON.stringify(payload)}` +
     mandatoryInjections()
   );
@@ -422,7 +438,7 @@ async function runWave(dimensions, wave, scope, priorFindings, modelOverride) {
         prompt: evaluatorPrompt(dimension, wave, scope, priorFindings),
         schema: EVALUATION_SCHEMA,
         model: modelFor("work", modelOverride),
-        agentType: "research-subagent-executor",
+        agentType: "general-purpose",
       }),
     ),
   );
@@ -633,7 +649,7 @@ export default async function run({
       ),
       schema: RESEARCH_SCHEMA,
       model: modelFor("work", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -653,7 +669,7 @@ export default async function run({
       ),
       schema: SYNTHESIS_SCHEMA,
       model: modelFor("lead", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
     synthesis = withClusterIds(synthesis);
   }
@@ -676,7 +692,7 @@ export default async function run({
       ),
       schema: CRITIQUE_SCHEMA,
       model: modelFor("work", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -697,7 +713,7 @@ export default async function run({
       ),
       schema: REPORT_SCHEMA,
       model: modelFor("lead", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -759,7 +775,7 @@ export default async function run({
           ),
           schema: ADR_SCHEMA,
           model: modelFor("work", modelOverride),
-          agentType: COORDINATOR_AGENT,
+          agentType: WORKER_AGENT,
         }),
       ),
     );
@@ -774,11 +790,12 @@ export default async function run({
   if (adrs.length > 0 && budget.remaining() >= minTailBudget) {
     const rawImpl = await boundedParallel(
       cap.take(adrs, "implement", (a) => a.title).map((adr) => () => {
-        const implementer = validateAgentName(implementerFor(adr), "implementer");
+        const implementer = implementerFor(adr);
+        const implementerAgent = validateAgentName(WORKER_AGENT, "implementer");
         return agent({
           prompt: agentPrompt(
             implementer,
-            `You are ${implementer}. Implement this ADR end-to-end: read each ` +
+            `You are the ${implementer} implementer. Implement this ADR end-to-end: read each ` +
               `component before editing, execute every decision task, run ` +
               `language-appropriate tests after each change, and report a log ` +
               `(outcome, changes, test results, any blocked tasks). Stay within ` +
@@ -789,7 +806,7 @@ export default async function run({
           ),
           schema: IMPLEMENT_SCHEMA,
           model: modelFor("work", modelOverride),
-          agentType: implementer,
+          agentType: implementerAgent,
         });
       }),
     );
@@ -812,7 +829,7 @@ export default async function run({
       ),
       schema: VALIDATE_SCHEMA,
       model: modelFor("work", modelOverride),
-      agentType: GOVERNANCE_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -841,7 +858,7 @@ export default async function run({
       ),
       schema: REMEDIATE_SCHEMA,
       model: modelFor("work", modelOverride),
-      agentType: GOVERNANCE_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 
@@ -861,7 +878,7 @@ export default async function run({
       ),
       schema: RECORD_SCHEMA,
       model: modelFor("lead", modelOverride),
-      agentType: COORDINATOR_AGENT,
+      agentType: WORKER_AGENT,
     });
   }
 

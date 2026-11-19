@@ -42,7 +42,7 @@ In this harness use the Chrome DevTools MCP tools:
 
 Read long tasks, layout thrash (forced reflow), and script-evaluation share.
 Frame-rate work reads the frame timeline, not the summary score. Pair with the
-`performance-optimization-engineer` agent for Core Web Vitals domain judgment.
+`frontend` skill reference `performance-optimization.md` for Core Web Vitals domain judgment.
 
 ## Bundle size
 

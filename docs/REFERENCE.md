@@ -13,7 +13,7 @@ read_when:
 
 ## Slash Commands
 
-The primary entry point is `/do`, which routes your request to the appropriate agent and skill.
+The primary entry point is `/do`, which routes your request to the appropriate skill and pipeline.
 
 ### Core Entry Points
 | Command | Purpose | Example |
@@ -49,7 +49,7 @@ These workflows are activated through `/do` with natural language:
 | Verification | `/do verify before marking done` | `testing` |
 | Code linting | `/do lint src/` | `code-quality` |
 | Multi-step task planning | `/do plan the payment system` | `workflow` |
-| Go code review | `/do review this Go code` | `review` with `golang-general-engineer` |
+| Go code review | `/do review this Go code` | `review` with `programming` stacked |
 | Check CI status | `/do check CI status` | `pr-workflow` |
 | Comment quality | `/do check comment quality` | `comment-quality` |
 
@@ -57,14 +57,14 @@ The router decides by meaning, so the right column is the usual route, not a gua
 
 ---
 
-## Agents, Skills, and Triggers
+## Skills, Pipelines, and Triggers
 
 The catalogs are generated from frontmatter, so they stay current:
 
-- [routing-map.md](routing-map.md): every agent, skill, and pipeline with its triggers, force-route flag, `not_for`, and `pairs_with`.
+- [routing-map.md](routing-map.md): every skill and pipeline with its triggers, force-route flag, `not_for`, and `pairs_with`.
 - [skills.md](skills.md): every routed skill by category.
 
-Ask for an agent by name ("Use the golang-general-engineer agent"), or let `/do` pick one.
+Ask for a skill by name ("use the programming skill"), or let `/do` pick one. The repo ships no specialist agents: dispatched work runs on the built-in `general-purpose` agent with the skill loaded.
 
 ---
 
@@ -94,10 +94,10 @@ What do you need?
 │   ├─ Lint ────────────────────► /do lint this project
 │   └─ Verify ──────────────────► /do verify this is correct
 │
-├─ Deep domain expertise ───────► "Use the [X] agent"
-│   ├─ Go code ─────────────────► golang-general-engineer
-│   ├─ Kubernetes ──────────────► kubernetes-helm-engineer
-│   └─ React ───────────────────► react-portfolio-engineer
+├─ Deep domain expertise ───────► /do names the domain skill
+│   ├─ Go code ─────────────────► programming
+│   ├─ Kubernetes ──────────────► kubernetes
+│   └─ React ───────────────────► frontend
 │
 ├─ Complex multi-step task ─────► /do plans first
 │   └─ Writes task_plan.md for Simple+ work
@@ -149,7 +149,7 @@ The installer merges only `hooks` and `env` from the repo settings. Keys such as
 | read-only gathering: locate, lookup, cite lines, excerpts, research fetch, log reading | haiku |
 | code writing and edits, debugging, features, reviews that decide, decisions, no row fits | opus / medium, then high |
 | high-risk: auth, data, security, concurrency, irreversible | opus / medium, then high |
-| major refactor or migration, architecture planning, lead of a many-agent fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
+| major refactor or migration, architecture planning, lead of a many-worker fan-out, deep research synthesis, quantitative analysis, long unattended run, or Opus at high fell short | fable / medium, then high |
 
 Sonnet is no task's default. Opus starts at medium on every row, high-risk included (owner, 2026-11-09: "Also I prefer opus 5.5 medium over high"); high is the step after a failed medium attempt. Prices, effort trade-offs, and the evidence: [model task fit](../skills/meta/d/references/model-task-fit.md).
 

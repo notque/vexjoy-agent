@@ -1,6 +1,8 @@
 # Pipeline Architecture Rules
 
-These rules are enforced by `pipeline-scaffolder` when generating pipeline components. Every scaffolded agent, skill, and hook MUST comply.
+These rules are enforced by `pipeline-scaffolder` when generating pipeline components. Every scaffolded skill, skill reference, and hook MUST comply.
+
+Repo agents are retired (plan 009). Domain expertise goes in a skill reference (or a new skill), and dispatched work runs on a fresh `general-purpose` worker told which reference to load. Rules below that name agents apply to the domain reference in the repo, and to an agent file only when the owner asks for a private overlay agent (`agents/INDEX.local.json`).
 
 ---
 
@@ -13,7 +15,8 @@ These rules are enforced by `pipeline-scaffolder` when generating pipeline compo
 | Component Type | Purpose | NOT Its Purpose |
 |---------------|---------|-----------------|
 | Hook | Detect environment, inject context | Execute logic, make decisions |
-| Agent | Coordinate domain work | Scaffold other agents, manage routing |
+| Domain reference | Hold domain expertise that skills load | Define phases, manage routing |
+| Overlay agent (owner-requested only) | Coordinate domain work | Scaffold other agents, manage routing |
 | Skill | Define methodology and phases | Implement business logic directly |
 | Script | Deterministic mechanical work | Interpret results, make judgments |
 
@@ -21,12 +24,14 @@ These rules are enforced by `pipeline-scaffolder` when generating pipeline compo
 
 ---
 
-## Rule 2: Agent Size Limits
+## Rule 2: Domain Reference and Agent Size Limits
+
+A domain reference must pass `python3 scripts/validate-references.py --check-size`; move depth into a subdirectory it loads on demand. The rows below apply to the domain reference, and the YAML row only to an overlay agent.
 
 | Constraint | Limit | Enforcement |
 |-----------|-------|-------------|
-| Main agent file | 10,000 words max | Hard gate — move to references/ |
-| YAML description | 3 example blocks | Required by agent template |
+| Main agent file (overlay) | 10,000 words max | Hard gate — move to references/ |
+| YAML description (overlay agent) | 3 example blocks | Required by agent template |
 | Hardcoded behaviors | 3-5 items | Excess indicates over-engineering |
 | Capabilities list | 4-6 items | More suggests scope creep |
 | Pattern coverage | 3+ items | Minimum for quality |
@@ -77,15 +82,15 @@ Every skill MUST have:
 
 ## Rule 5: Fan-Out/Fan-In Pattern
 
-Pipelines are **component graphs**, not fixed triples. A pipeline may require multiple agents, multiple skills, multiple hooks, multiple scripts, and reference documentation for each.
+Pipelines are **component graphs**, not fixed triples. A pipeline may require multiple domain references, multiple skills, multiple hooks, multiple scripts, and reference documentation for each.
 
 ```
 Phase 1: DISCOVER (sequential — needs full context)
     ↓
 Phase 2: SCAFFOLD (fan-out — group by creator type)
-    ├─ skill-creator:             Agent A, Agent B, Agent C (1..N)
+    ├─ skill-creator:             Domain reference A, B, C (1..N)
     ├─ skill-creator:   Skill X, Skill Y (1..M)
-    ├─ hook-development-engineer: Hook 1, Hook 2 (1..K)
+    ├─ general-purpose + toolkit/references/hook-development.md: Hook 1, Hook 2 (1..K)
     └─ Direct:                    Script 1, Script 2 (1..J)
     ↓ (fan-in — wait for all)
 Phase 3: INTEGRATE (sequential — wire component graph)
@@ -96,7 +101,7 @@ Phase 4: VERIFY (sequential — validate all components + relationships)
 **Rules**:
 - Fan-out ONLY for genuinely independent work items
 - Group by creator type: one sub-agent per type handles all components of that type
-- For large pipelines, split further: one sub-agent per complex agent
+- For large pipelines, split further: one sub-agent per complex domain reference
 - Each fan-out sub-agent receives the Discovery Report AND full Component Manifest
 - Fan-in waits for ALL sub-agents before proceeding
 - Maximum 10 parallel sub-agents (system limit)
@@ -108,12 +113,12 @@ Phase 4: VERIFY (sequential — validate all components + relationships)
 
 Every pipeline MUST be routable via `/do`. This means:
 
-1. Agent has `routing:` metadata in YAML frontmatter with `triggers`, `pairs_with`, `complexity`, `category`
-2. Skill has trigger keywords in its description
+1. Skill has `routing:` metadata in YAML frontmatter with `triggers`, `pairs_with`, `complexity`, `category`
+2. Skill has trigger keywords in its description, and its Reference Loading Table names the domain reference
 3. `routing-table-updater` is invoked to add entries to:
    - `skills/meta/do/SKILL.md` (main routing tables)
    - `skills/meta/do/references/routing-tables.md` (extended tables)
-   - `agents/INDEX.json` (agent registry)
+   - `skills/INDEX.json` (skill registry; `agents/INDEX.local.json` only for an owner-requested overlay agent)
 
 **BANNED**: Creating a pipeline that requires manual routing table edits.
 
@@ -122,7 +127,7 @@ Every pipeline MUST be routable via `/do`. This means:
 ## Rule 7: No Dead Code
 
 Every generated component must be:
-- Referenced by at least one other component (agent binds skill, hook triggers agent)
+- Referenced by at least one other component (skill loads domain reference, hook triggers skill)
 - Routable via `/do` triggers
 - Documented in a `commands/` manifest
 
@@ -134,11 +139,12 @@ Every generated component must be:
 
 | Component | Pattern | Examples |
 |-----------|---------|----------|
-| Agent | `{domain}-{function}-engineer` | `migration-safety-engineer`, `review-pipeline-engineer` |
+| Domain reference | `{domain}-domain-knowledge.md` or `{domain}-{function}.md` | `migration-domain-knowledge.md`, `prometheus-grafana.md` |
+| Overlay agent (owner-requested only) | `{domain}-{function}-engineer` | `migration-safety-engineer`, `review-pipeline-engineer` |
 | Skill | `{pipeline-name}` or `{domain}-{function}` | `pipeline-scaffolder`, `migration-validator` |
 | Hook | `{pipeline-name}-detector.py` | `pipeline-context-detector.py`, `migration-detector.py` |
 | Command | `{action}-{noun}.md` | `create-pipeline.md`, `run-migration.md` |
-| References dir | `references/` under agent or skill | `agents/{name}/references/`, `skills/{name}/references/` |
+| References dir | `references/` under the skill (or under an overlay agent) | `skills/{name}/references/`, `private-agents/{name}/references/` |
 
 ---
 
@@ -146,7 +152,7 @@ Every generated component must be:
 
 Before creating any component, check:
 
-1. Does an agent with overlapping triggers already exist?
+1. Does a skill reference covering the same domain already exist?
 2. Does a skill with the same methodology already exist?
 3. Does a hook detecting the same environment already exist?
 
@@ -161,7 +167,7 @@ If YES to any: **bind the existing component** rather than creating a new one. D
 Every pipeline — both the Pipeline Creator itself and every pipeline it generates — MUST produce an Architectural Decision Record (ADR).
 
 ### Pipeline Creator ADR (Phase 0)
-The `pipeline-orchestrator-engineer` creates `adr/pipeline-{name}.md` BEFORE discovery. This ADR is a living document updated at each phase. It serves as the pipeline's single source of truth.
+The pipeline orchestrator (`pipeline-orchestrator.md`) creates `adr/pipeline-{name}.md` BEFORE discovery. This ADR is a living document updated at each phase. It serves as the pipeline's single source of truth.
 
 ### Generated Pipeline ADR
 Every pipeline created by the Pipeline Creator MUST include ADR creation as its own Phase 0. The generated skill's instructions MUST include:
@@ -192,7 +198,7 @@ Before finalizing any scaffolded component, check:
 
 | Rationalization | Required Action |
 |-----------------|-----------------|
-| "This agent needs both X and Y responsibilities" | Split into two agents |
+| "This domain reference needs both X and Y responsibilities" | Split into two references |
 | "The hook is too simple to create" | Create it anyway — hooks are the pipeline's eyes |
 | "We can skip routing integration for now" | No — unroutable pipelines are dead code |
 | "This skill doesn't need phase gates" | Yes it does — gates prevent runaway execution |
@@ -306,7 +312,7 @@ The gap is NOT in accuracy or structure (both tied within 0.10). It's entirely i
 | Type compatibility matrix | `step-menu.md` Type Compatibility Matrix | `pipeline-spec-format.md` Step Family table, `artifact-utils.py` TYPE_COMPAT |
 | Canonical chain templates | `canonical-chains.md` | `pipeline-spec-format.md` Task Type table |
 | Artifact schema definitions | `pipeline-spec-format.md` Output Schema enum | `artifact-utils.py` VALID_SCHEMAS |
-| Architecture constraints | `architecture-rules.md` | All generated skills and agents |
+| Architecture constraints | `architecture-rules.md` | All generated skills and domain references |
 | Operator profiles | `pipeline-spec-format.md` Operator Profile enum | `hooks/operator-context-detector.py` |
 
 **Process for updates**:
@@ -335,7 +341,15 @@ The gap is NOT in accuracy or structure (both tied within 0.10). It's entirely i
 | `architecture-rules.md` | Constraints that apply to all generated components |
 | Every existing component it references | Prevent drift from existing implementations |
 
-### For Agents
+### For Domain References
+| File | Why |
+|------|-----|
+| The pipeline ADR | Context and decisions |
+| The owning skill's `SKILL.md` and Reference Loading Table | Where the reference is loaded and which signals load it |
+| `architecture-rules.md` | Constraints |
+| Every skill that loads it | Verify skill references are accurate |
+
+### For Overlay Agents (owner-requested only)
 | File | Why |
 |------|-----|
 | The pipeline ADR | Context and decisions |

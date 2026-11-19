@@ -17,7 +17,9 @@ force-route guarantee, pinned by the ADR corpus tests
 (test_pre_route_pr_workflow/planning/public_web_deploy).
 
 Output contract (stable): matched, agent, skill, confidence, match_type,
-reasoning. Consumers: skills/meta/do/SKILL.md Phase 2, routing-ab-test.py,
+reasoning. `agent` is a skill's own agent pairing when it names a dispatchable
+agent, else null: the repo's specialist agents are retired (plans/009), so no
+agents index is read and a retired pairing is dropped. Consumers: skills/meta/do/SKILL.md Phase 2, routing-ab-test.py,
 router-self-audit.py (load_entries).
 
 Usage:
@@ -53,6 +55,7 @@ PR_CREATE_INTENT_RE = re.compile(
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+from routing_index_merge import RETIRED_AGENTS as _RETIRED_AGENTS
 from routing_index_merge import detect_target as _detect_target
 from routing_index_merge import gate_private_entries as _gate_private_entries
 from routing_index_merge import load_index_items as _load_index_items
@@ -66,10 +69,9 @@ _INDEX_TARGET = _detect_target(__file__)
 
 # INDEX.json is a generated artifact (untracked). When the tracked path is
 # missing — fresh checkout, no install.sh run — regenerate it on the fly from
-# SKILL.md/agent frontmatter via these generators.
+# SKILL.md frontmatter via these generators.
 _INDEX_GENERATORS = {
     "skills": REPO_ROOT / "scripts" / "generate-skill-index.py",
-    "agents": REPO_ROOT / "scripts" / "generate-agent-index.py",
 }
 
 
@@ -108,7 +110,6 @@ def _ensure_index(index_type: str, path: Path) -> None:
 
 INDEX_PATHS = {
     "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
-    "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
     "pipelines": (
         REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
         None,
@@ -667,10 +668,16 @@ class ScoredMatch:
     score: float = 0.0
 
 
+def _pairing(agent: object) -> str | None:
+    """A skill's agent pairing, or None when absent or a retired specialist agent."""
+    name = str(agent).strip() if agent else ""
+    return name if name and name not in _RETIRED_AGENTS else None
+
+
 def load_entries() -> list[dict]:
     """Load all INDEX entries into a flat list.
 
-    Skills, agents, and FORCE pipelines are loaded. Non-force pipeline entries
+    Skills and FORCE pipelines are loaded (no agents: plans/009). Non-force pipeline entries
     are skipped: build_match_table filters on force_route anyway, and loading
     24 non-force pipelines only to discard them wastes cycles.
     """
@@ -691,7 +698,7 @@ def load_entries() -> list[dict]:
                         "name": name,
                         "type": "pipeline",
                         "triggers": triggers,
-                        "agent": data.get("agent"),
+                        "agent": _pairing(data.get("agent")),
                         "force_route": True,
                     }
                 )
@@ -712,9 +719,9 @@ def load_entries() -> list[dict]:
             triggers.extend(t for t in SUPPLEMENTAL_TRIGGERS.get(name, ()) if t not in triggers)
             entry = {
                 "name": name,
-                "type": "skill" if index_type == "skills" else "agent",
+                "type": "skill",
                 "triggers": triggers,
-                "agent": data.get("agent"),
+                "agent": _pairing(data.get("agent")),
                 "force_route": bool(data.get("force_route", False)),
                 "description": data.get("description") or "",
             }

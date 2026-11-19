@@ -239,7 +239,8 @@ def main() -> int:
     args = parser.parse_args()
 
     targets = scan_targets()
-    empty = sorted({"agent", "skill", "workflow_ref", "dispatch_script"} - {kind for kind, _, _ in targets})
+    # No "agent" class: the public agents retired (plans/009), so agents/ may be empty or absent.
+    empty = sorted({"skill", "workflow_ref", "dispatch_script"} - {kind for kind, _, _ in targets})
     if empty:
         print(f"error: no files found for target class(es): {', '.join(empty)}", file=sys.stderr)
         return 2

@@ -169,7 +169,7 @@ def extract_domain_keywords(description: str, name: str) -> List[str]:
     tech_matches = re.findall(tech_pattern, description, re.IGNORECASE)
     keywords.extend(tech_matches)
 
-    # Extract from name (e.g., "golang-general-engineer" → "Golang")
+    # Extract from name (e.g., "golang-review" → "Golang")
     name_lower = name.lower()
     if "golang" in name_lower or "go-" in name_lower:
         keywords.append("Go")

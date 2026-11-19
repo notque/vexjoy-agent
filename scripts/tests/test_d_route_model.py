@@ -14,7 +14,6 @@ sys.path.insert(0, str(SCRIPTS))
 import d_route_model as drm
 
 ENTRIES = [
-    {"name": "python-general-engineer", "type": "agent"},
     {"name": "workflow", "type": "skill"},
     {"name": "testing", "type": "skill"},
 ]
@@ -28,7 +27,7 @@ def test_default_stand_in_model_is_the_decision_model() -> None:
 def test_system_text_holds_the_skill_the_rules_and_the_manifest() -> None:
     with mock.patch.object(drm, "manifest_for", return_value="AGENTS: a\nSKILLS: b\nPIPELINES: c"):
         text = drm.system_text("fix it")
-    assert "# /d — Jev Router" in text
+    assert "# /d — Jev router, main loop" in text
     assert "SECTION-INTEGRITY RULE" in text
     assert "AGENTS: a" in text
     assert text.index("SECTION-INTEGRITY RULE") < text.index("AGENTS: a")
@@ -49,15 +48,22 @@ def _pick(decision: dict | None, tmp_path: Path) -> dict:
         mock.patch.object(drm, "call_model", return_value=(decision, 0.05, "raw text", {"output_tokens": 9})),
         mock.patch.object(drm, "_load_jev_route", return_value=real),
         mock.patch.object(real, "_load_manifest_entries", return_value=ENTRIES),
+        mock.patch.object(real, "_load_overlay_agents", return_value=real.BUILTIN_AGENTS),
     ):
         return drm.pick_route("fix it", model="sonnet", scratch=tmp_path, prepared=prepared)
 
 
 def test_pick_route_finalizes_the_model_decision(tmp_path: Path) -> None:
-    route = _pick({"agent": "python-general-engineer", "skill": "workflow", "reasoning": "r"}, tmp_path)
-    assert (route["agent"], route["skill"], route["attach"]) == ("python-general-engineer", "workflow", ["testing"])
+    route = _pick({"skill": "workflow", "reasoning": "r"}, tmp_path)
+    assert (route["agent"], route["skill"], route["attach"]) == ("general-purpose", "workflow", ["testing"])
     assert route["cost_usd"] == 0.05
     assert route["decision"]["skill"] == "workflow"
+
+
+def test_a_retired_agent_pick_never_reaches_the_route(tmp_path: Path) -> None:
+    route = _pick({"agent": "python-general-engineer", "skill": "workflow"}, tmp_path)
+    assert route["agent"] == "general-purpose"
+    assert any("not dispatchable" in p for p in route["problems"])
 
 
 def test_a_reply_that_is_not_json_still_yields_a_route(tmp_path: Path) -> None:

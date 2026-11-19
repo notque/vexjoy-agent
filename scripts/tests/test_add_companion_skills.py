@@ -19,12 +19,12 @@ def test_classify_pairs_keeps_agents_and_pipelines_out_of_skills():
     indexes = (
         {"testing": {}},
         {"feature-pipeline": {}},
-        {"reviewer-code": {}},
+        {"acme-overlay-engineer": {}},
     )
-    assert acs.classify_pairs(["testing", "feature-pipeline", "reviewer-code"], indexes) == (
+    assert acs.classify_pairs(["testing", "feature-pipeline", "acme-overlay-engineer"], indexes) == (
         ["testing"],
         ["feature-pipeline"],
-        ["reviewer-code"],
+        ["acme-overlay-engineer"],
     )
 
 
@@ -48,7 +48,9 @@ def test_skill_section_uses_exact_action_contract():
 
 
 def test_agent_and_pipeline_sections_contain_no_skill_call():
-    agent = acs.build_section(["reviewer-code"], "Agents", {"reviewer-code": {"short_description": "Review."}})
+    agent = acs.build_section(
+        ["acme-overlay-engineer"], "Agents", {"acme-overlay-engineer": {"short_description": "Review."}}
+    )
     pipeline = acs.build_section(
         ["feature-pipeline"], "Pipelines", {"feature-pipeline": {"description": "Feature phases."}}
     )

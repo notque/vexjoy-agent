@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """Generate a compact routing manifest for the /do router (orchestrator self-route).
 
-Reads skills/INDEX.json, agents/INDEX.json, and pipeline-index.json,
-then outputs a compact text manifest that an LLM can parse efficiently.
+Reads skills/INDEX.json and pipeline-index.json, then outputs a compact text
+manifest that an LLM can parse efficiently. The repo's specialist agents are
+retired (plans/009): routing picks a skill, pipeline, and stack, and the worker
+is the built-in general-purpose agent. The public manifest has no AGENTS:
+section. Private overlay agents (routing_index_merge.overlay_agent_items: the
+resolved agents index minus retired and built-in names) render in an
+overlay-only AGENTS: section, and only with --request/--request-file, when the
+request names their domain (the same private gate as overlay skills). With no
+request no agent renders, so the session cache never holds one.
 
 Usage:
     python3 scripts/routing-manifest.py
@@ -23,20 +30,19 @@ manifest (no flag).
 
 Line format (default/full manifest):
 
-    AGENTS:
-      name [pairs_with] — description NOT: excluded t:phrase|phrase
+    AGENTS:            (overlay agents only; absent when none is gated in)
+      name — description NOT: excluded t:phrase|phrase
     SKILLS:
-      name FORCE agent=x (category) — description NOT: excluded t:phrase|phrase
+      name FORCE (category) — description NOT: excluded t:phrase|phrase
     PIPELINES:
       name FORCE (category) — description NOT: excluded t:phrase|phrase
 
 Pipeline lines share the skill grammar so the router reads one line format
-across all three sections: ``FORCE`` marks a force-route entry the router
-must select, and the curated ``t:`` phrases carry the discriminating signal.
-Pipelines declare no agent pairing, so the skill line's ``agent=`` slot is
-absent. All three sections render in every mode — the /do section validator
-tokenizes the text between the AGENTS:/SKILLS:/PIPELINES: headers, so the
-order and spelling of those headers are load-bearing.
+across both sections: ``FORCE`` marks a force-route entry the router must
+select, and the curated ``t:`` phrases carry the discriminating signal. Both
+sections render in every mode — the /do section validator tokenizes the text
+between the AGENTS:/SKILLS:/PIPELINES: headers, so the order and spelling of
+those headers are load-bearing. AGENTS:, when present, always comes first.
 
 The trailing ``t:`` field carries up to TRIGGER_CAP hand-curated trigger
 phrases from INDEX.json — the discriminating signal the router needs to
@@ -70,6 +76,7 @@ from routing_index_merge import detect_target as _detect_target
 from routing_index_merge import gate_private_entries as _gate_private_entries
 from routing_index_merge import load_index_items as _load_index_items
 from routing_index_merge import load_items_for as _load_items_for
+from routing_index_merge import overlay_agent_items as _overlay_agent_items
 from routing_index_merge import private_names_for as _private_names_for
 
 # Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
@@ -87,7 +94,7 @@ from learning_db_v2 import get_db_dir
 WORKING_SET_WINDOW_SECONDS = 30 * 86400
 STUB_DESC_WORDS = 6
 
-# Trigger phrases rendered per AGENTS/SKILLS line. The manifest is injected on
+# Trigger phrases rendered per SKILLS/PIPELINES line. The manifest is injected on
 # every routing decision, so this is a byte budget, not a preference: measured
 # against the 37,367-byte no-trigger manifest, top-3 costs +19%, top-5 +29%,
 # and all 1,791 curated phrases +80%. Top-5 is the chosen trade. Tune here.
@@ -98,13 +105,18 @@ TRIGGER_SEP = "|"
 
 INDEX_PATHS = {
     "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
-    "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
     "pipelines": (REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json", None),
 }
 
 
 def load_entries() -> list[dict]:
-    """Load all INDEX entries into a flat list."""
+    """Load all skill and pipeline INDEX entries into a flat list.
+
+    No agent entries: the specialist agents are retired. A skill's legacy
+    ``agent`` pairing is not carried, and ``pairs_with`` keeps only names that
+    are skills or pipelines here, so a retired agent name never reaches the
+    router through either field.
+    """
     entries = []
 
     for index_type, (tracked, local_name) in INDEX_PATHS.items():
@@ -120,7 +132,6 @@ def load_entries() -> list[dict]:
                 "description": data.get("description") or data.get("short_description", ""),
                 "triggers": data.get("triggers", []),
                 "category": data.get("category", ""),
-                "agent": data.get("agent"),
                 "model": data.get("model"),
                 "pairs_with": data.get("pairs_with", []),
                 "force_route": bool(data.get("force_route", False)),
@@ -141,6 +152,37 @@ def load_entries() -> list[dict]:
                 entry["private"] = True
             entries.append(entry)
 
+    known = {e["name"] for e in entries}
+    for e in entries:
+        e["pairs_with"] = [p for p in e["pairs_with"] if p in known]
+    return entries
+
+
+def load_overlay_agent_entries() -> list[dict]:
+    """Private overlay agents as manifest entries, every one flagged ``private``.
+
+    Retired repo agents never appear, even when a stale installed index lists
+    them (routing_index_merge.overlay_agent_items subtracts RETIRED_AGENTS).
+    The caller gates these on the request before rendering.
+    """
+    entries = []
+    for name, data in sorted(_overlay_agent_items(_INDEX_TARGET, REPO_ROOT).items()):
+        desc = data.get("description") or data.get("short_description") or ""
+        not_for = data.get("not_for")
+        entry: dict = {
+            "name": name,
+            "type": "agent",
+            # Index descriptions can span lines; one manifest line per entry.
+            "description": " ".join(str(desc).split()),
+            "triggers": [t for t in data.get("triggers") or [] if isinstance(t, str)],
+            "category": data.get("category", ""),
+            "pairs_with": [],
+            "force_route": False,
+            "private": True,
+        }
+        if isinstance(not_for, str) and not_for.strip():
+            entry["not_for"] = " ".join(not_for.split())
+        entries.append(entry)
     return entries
 
 
@@ -153,6 +195,7 @@ def _names_from_key(key: str, names: set[str]) -> None:
     """Add the agent and skill names from an `agent:skill` route key.
 
     A renamed agent's old name maps to its current name (AGENT_ALIASES).
+    Agent names in the set are harmless: only skill names match an entry.
     """
     for i, part in enumerate(key.split(":", 1)):
         part = part.strip()
@@ -226,13 +269,11 @@ def select_triggers(entry: dict, reserved: set[str], cap: int | None = None) -> 
     Two classes of phrase are dropped before the cap applies:
 
     - A phrase equal to a component name in the OTHER section. The /do section
-      validator decides `route.agent in agents` by tokenizing the text between
-      the AGENTS: and SKILLS: headers, so a skill name printed inside an agent
-      line would validate that skill as an agent (agent kotlin-general-engineer
-      carried trigger "kotlin", once also a skill). Dropping them keeps trigger
-      text out of that check. It does not make the check exact: an agent's
-      [pairs_with] brackets and descriptions also print skill names inside the
-      AGENTS section.
+      validator tokenizes the text between the SKILLS: and PIPELINES: headers,
+      so a pipeline name printed inside a skill line (or the reverse) would
+      validate in the wrong slot. Dropping them keeps trigger text out of that
+      check. It does not make the check exact: descriptions can still print
+      names from the other section.
     - A phrase already present verbatim in the description, which spends bytes
       to repeat a token the router can already read on the same line.
     """
@@ -258,17 +299,50 @@ def format_triggers(entry: dict, reserved: set[str]) -> str:
 def _stub_line(entry: dict) -> str:
     """One-line stub: name + router-critical metadata + first STUB_DESC_WORDS description words.
 
-    Skill stubs keep the agent= pairing and not_for — dropping them made the
-    router return the right skill with agent: null (tiered-v1 REJECT).
-    Agent stubs stay name + truncated description.
+    Skill stubs keep not_for (tiered-v1 REJECT showed stubs need the router-
+    critical fields).
     """
     desc = " ".join(str(entry["description"]).split()[:STUB_DESC_WORDS])
     if entry["type"] != "skill":
         return f"  {entry['name']} — {desc}"
-    agent_str = f" agent={entry['agent']}" if entry.get("agent") else ""
     not_for = entry.get("not_for", "")
     not_for_str = f" NOT: {not_for}" if not_for else ""
-    return f"  {entry['name']}{agent_str} — {desc}{not_for_str}"
+    return f"  {entry['name']} — {desc}{not_for_str}"
+
+
+def _skill_line(entry: dict, reserved: set[str] | None, truncate: bool = False) -> str:
+    """Render one SKILLS line: ``name[ FORCE][ (category)] — desc[ NOT: x][ t:...]``.
+
+    `reserved` holds the pipeline names; a trigger equal to one is dropped. Pass
+    None to omit the trigger field (compact mode).
+    """
+    desc = entry["description"]
+    not_for = entry.get("not_for", "")
+    if truncate:
+        desc = truncate_desc(desc)
+        not_for = truncate_desc(not_for, 40) if not_for else ""
+    force_str = " FORCE" if entry.get("force_route") else ""
+    cat_str = f" ({entry['category']})" if entry.get("category") else ""
+    not_for_str = f" NOT: {not_for}" if not_for else ""
+    trig_str = format_triggers(entry, reserved) if reserved is not None else ""
+    return f"  {entry['name']}{force_str}{cat_str} — {desc}{not_for_str}{trig_str}"
+
+
+def _agent_line(entry: dict, reserved: set[str] | None, truncate: bool = False) -> str:
+    """Render one AGENTS line (overlay agents only): ``name — desc[ NOT: x][ t:...]``.
+
+    `reserved` holds the skill and pipeline names; a trigger equal to one is
+    dropped so the section validator never reads it as an agent. Pass None to
+    omit the trigger field (compact mode).
+    """
+    desc = entry["description"]
+    not_for = entry.get("not_for", "")
+    if truncate:
+        desc = truncate_desc(desc)
+        not_for = truncate_desc(not_for, 40) if not_for else ""
+    not_for_str = f" NOT: {not_for}" if not_for else ""
+    trig_str = format_triggers(entry, reserved) if reserved is not None else ""
+    return f"  {entry['name']} — {desc}{not_for_str}{trig_str}"
 
 
 def _pipeline_line(entry: dict, reserved: set[str] | None, truncate: bool = False) -> str:
@@ -278,14 +352,13 @@ def _pipeline_line(entry: dict, reserved: set[str] | None, truncate: bool = Fals
     load-bearing and were previously dropped: ``FORCE`` is what lets the
     router's "manifest entries marked FORCE MUST be selected" rule fire on a
     pipeline at all, and the curated triggers are the only signal separating
-    two pipelines whose descriptions read alike. The skill line's ``agent=``
-    slot is absent because pipelines declare no agent pairing.
+    two pipelines whose descriptions read alike.
 
     `reserved` holds the names owned by the other sections; a trigger equal to
     one of them is dropped, because the section validator tokenizes between
     headers and would read that name as a pipeline. Pass None to omit the
     trigger field entirely — compact mode does, for the same byte budget that
-    keeps triggers off its agent and skill lines.
+    keeps triggers off its skill lines.
     """
     desc = entry["description"]
     not_for = entry.get("not_for", "")
@@ -313,31 +386,13 @@ def format_tiered(entries: list[dict], working_set: set[str]) -> str:
     names = section_names(entries)
 
     for e in entries:
-        name = e["name"]
-        full = name in working_set or e.get("force_route", False)
-
+        full = e["name"] in working_set or e.get("force_route", False)
         if e["type"] == "pipeline":
             pipelines.append(_pipeline_line(e, names["agent"] | names["skill"]))
-            continue
-        if not full:
-            (agents if e["type"] == "agent" else skills).append(_stub_line(e))
-            continue
-
-        desc = e["description"]
-        pairs = ", ".join(e["pairs_with"][:3]) if e["pairs_with"] else ""
-        not_for = e.get("not_for", "")
-        not_for_str = f" NOT: {not_for}" if not_for else ""
-
-        if e["type"] == "agent":
-            pairs_str = f" [{pairs}]" if pairs else ""
-            trig_str = format_triggers(e, names["skill"])
-            agents.append(f"  {name}{pairs_str} — {desc}{not_for_str}{trig_str}")
-        else:
-            force_str = " FORCE" if e.get("force_route") else ""
-            agent_str = f" agent={e['agent']}" if e.get("agent") else ""
-            cat_str = f" ({e['category']})" if e.get("category") else ""
-            trig_str = format_triggers(e, names["agent"])
-            skills.append(f"  {name}{force_str}{agent_str}{cat_str} — {desc}{not_for_str}{trig_str}")
+        elif e["type"] == "skill":
+            skills.append(_skill_line(e, names["agent"] | names["pipeline"]) if full else _stub_line(e))
+        elif e["type"] == "agent":
+            agents.append(_agent_line(e, names["skill"] | names["pipeline"]))
 
     sections = []
     if agents:
@@ -353,10 +408,10 @@ def format_tiered(entries: list[dict], working_set: set[str]) -> str:
 def format_compact(entries: list[dict]) -> str:
     """Format entries as a compact text manifest for LLM consumption.
 
-    Two sections: agents (with paired skills) and skills. Both carry a trailing
-    ``t:`` trigger field — the curated phrases are what let the router tell two
-    same-domain entries apart, so they render here even though they cost bytes.
-    One line per entry.
+    Two sections: skills and pipelines. Both carry a trailing ``t:`` trigger
+    field — the curated phrases are what let the router tell two same-domain
+    entries apart, so they render here even though they cost bytes. One line
+    per entry.
     """
     agents = []
     skills = []
@@ -364,25 +419,12 @@ def format_compact(entries: list[dict]) -> str:
     names = section_names(entries)
 
     for e in entries:
-        name = e["name"]
-        desc = e["description"]
-        pairs = ", ".join(e["pairs_with"][:3]) if e["pairs_with"] else ""
-
-        not_for = e.get("not_for", "")
-        not_for_str = f" NOT: {not_for}" if not_for else ""
-
-        if e["type"] == "agent":
-            pairs_str = f" [{pairs}]" if pairs else ""
-            trig_str = format_triggers(e, names["skill"])
-            agents.append(f"  {name}{pairs_str} — {desc}{not_for_str}{trig_str}")
-        elif e["type"] == "pipeline":
+        if e["type"] == "pipeline":
             pipelines.append(_pipeline_line(e, names["agent"] | names["skill"]))
-        else:
-            force_str = " FORCE" if e.get("force_route") else ""
-            agent_str = f" agent={e['agent']}" if e.get("agent") else ""
-            cat_str = f" ({e['category']})" if e.get("category") else ""
-            trig_str = format_triggers(e, names["agent"])
-            skills.append(f"  {name}{force_str}{agent_str}{cat_str} — {desc}{not_for_str}{trig_str}")
+        elif e["type"] == "skill":
+            skills.append(_skill_line(e, names["agent"] | names["pipeline"]))
+        elif e["type"] == "agent":
+            agents.append(_agent_line(e, names["skill"] | names["pipeline"]))
 
     sections = []
     if agents:
@@ -412,31 +454,20 @@ def format_compact_mode(entries: list[dict], request_text: str = "") -> str:
     against. `request_text` is accepted and unused here; main() applies the
     private-entry gate to `entries` before any formatter runs.
 
-    Triggers stay off these lines, matching the agent and skill lines above —
-    compact mode exists to shrink the manifest.
+    Triggers stay off these lines, matching the skill lines above — compact
+    mode exists to shrink the manifest.
     """
     agents = []
     skills = []
     pipelines = []
 
     for e in entries:
-        name = e["name"]
-        desc = truncate_desc(e["description"])
-        pairs = ", ".join(e["pairs_with"][:3]) if e["pairs_with"] else ""
-
-        not_for = e.get("not_for", "")
-        not_for_str = f" NOT: {truncate_desc(not_for, 40)}" if not_for else ""
-
-        if e["type"] == "agent":
-            pairs_str = f" [{pairs}]" if pairs else ""
-            agents.append(f"  {name}{pairs_str} — {desc}{not_for_str}")
-        elif e["type"] == "pipeline":
+        if e["type"] == "pipeline":
             pipelines.append(_pipeline_line(e, None, truncate=True))
-        else:
-            force_str = " FORCE" if e.get("force_route") else ""
-            agent_str = f" agent={e['agent']}" if e.get("agent") else ""
-            cat_str = f" ({e['category']})" if e.get("category") else ""
-            skills.append(f"  {name}{force_str}{agent_str}{cat_str} — {desc}{not_for_str}")
+        elif e["type"] == "skill":
+            skills.append(_skill_line(e, None, truncate=True))
+        elif e["type"] == "agent":
+            agents.append(_agent_line(e, None, truncate=True))
 
     sections = []
     if agents:
@@ -452,8 +483,8 @@ def format_compact_mode(entries: list[dict], request_text: str = "") -> str:
 def _drop_gated_pairs(gated: list[dict], everything: list[dict]) -> list[dict]:
     """Remove the names the private gate dropped from every surviving entry's pairs_with.
 
-    Without this an agent line's [pairs_with] brackets still printed a private
-    skill the gate had hidden, so the name reached the router anyway.
+    Without this a surviving entry's pairs_with (in --json output) still named
+    a private skill the gate had hidden, so the name reached the router anyway.
     """
     removed = {e["name"] for e in everything} - {e["name"] for e in gated}
     if not removed:
@@ -503,6 +534,9 @@ def main() -> int:
             except OSError:
                 request = ""  # unreadable request: no domain named, so no private entry
         if request is not None:
+            # Overlay agents join only for a request, so they always pass the
+            # private gate and never reach the request-less session cache.
+            entries = entries + load_overlay_agent_entries()
             entries = _drop_gated_pairs(_gate_private_entries(entries, request), entries)
 
         if args.json:
@@ -520,7 +554,7 @@ def main() -> int:
             f"[routing-manifest] FALLBACK: {type(exc).__name__}: {exc}",
             file=sys.stderr,
         )
-        print("AGENTS:\n\nSKILLS:\n\nPIPELINES:")
+        print("SKILLS:\n\nPIPELINES:")
 
     return 0
 

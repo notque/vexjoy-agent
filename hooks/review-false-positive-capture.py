@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.3
+# hook-version: 1.0.4
 """
 UserPromptSubmit Hook: Capture review false-positive signals.
 
@@ -59,7 +59,10 @@ FP_PATTERNS = [
     r"\bnot\s+actually\s+a\s+(bug|issue|problem)\b",
 ]
 
-# Best-effort extraction of reviewer agent name from prompt text.
+# Best-effort extraction of the reviewer label from prompt text. The four
+# reviewer-* names are review lenses in skills/review/review/references/ (the
+# reviewer agents retired into the review skill, plans/009), still how review
+# output names its source.
 _REVIEWER_AGENTS = [
     "reviewer-code",
     "reviewer-domain",
@@ -108,7 +111,7 @@ def generate_key(text: str) -> str:
 
 
 def extract_reviewer(text: str) -> str:
-    """Best-effort reviewer agent name from prompt text."""
+    """Best-effort reviewer lens label from prompt text."""
     m = _REVIEWER_PATTERN.search(text)
     return m.group(1).lower() if m else "unknown"
 

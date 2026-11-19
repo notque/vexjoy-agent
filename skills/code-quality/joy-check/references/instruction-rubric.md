@@ -88,7 +88,7 @@ write docs, handle ANY Simple+ task directly.
 ```markdown
 **The main thread delegates to agents:** code reading (Explore agent), file
 edits (domain agents), test runs (agent with skill), documentation
-(technical-documentation-engineer), all Simple+ tasks.
+(`writing` skill, `technical-documentation.md`), all Simple+ tasks.
 ```
 
 **Why the second works:** Tells the LLM exactly where each task type goes instead of listing what's forbidden.

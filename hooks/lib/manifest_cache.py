@@ -3,9 +3,11 @@
 Keeps a disk copy of `routing-manifest.py` output so /do Phase 2 reads a
 file instead of starting Python. Staleness = sha256 over the generator's
 inputs: routing-manifest.py, routing_index_merge.py, skills/INDEX.json,
-skills/INDEX.local.json, agents/INDEX.json, agents/INDEX.local.json,
-pipeline-index.json, and the installed indexes ``<index dir>/{skills,agents}.json``
-(installer spec 7.2) — missing files are skipped, so the digest is
+skills/INDEX.local.json, pipeline-index.json, and the installed index
+``<index dir>/skills.json`` (installer spec 7.2). The cached (request-less)
+manifest lists no agents: the specialist agents retired (plans/009) and
+overlay agents render only for a request, which bypasses the cache. So agent
+indexes are not inputs — missing files are skipped, so the digest is
 byte-identical to the bash check in scripts/get-routing-manifest.sh:
 `cat <inputs> 2>/dev/null | sha256sum`. Keep both sides in step.
 
@@ -64,11 +66,8 @@ def input_paths(scripts_dir: Path) -> list[Path]:
         base / "scripts" / "routing_index_merge.py",
         base / "skills" / "INDEX.json",
         base / "skills" / "INDEX.local.json",
-        base / "agents" / "INDEX.json",
-        base / "agents" / "INDEX.local.json",
         base / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
         index_dir / "skills.json",
-        index_dir / "agents.json",
     ]
 
 

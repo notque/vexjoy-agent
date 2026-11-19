@@ -52,15 +52,14 @@ class TestTriggerRendering:
         out = rm.format_compact(entries)
         assert " t:do the thing|thing time" in out
 
-    def test_agent_line_carries_triggers(self, tmp_path, monkeypatch) -> None:
-        entries = _entries(
-            tmp_path,
-            monkeypatch,
-            {},
-            {"alpha-agent": {"file": "agents/a.md", "description": "An agent.", "triggers": ["ship it", "ship code"]}},
-        )
-        out = rm.format_compact(entries)
-        assert " t:ship it|ship code" in out
+    def test_no_agent_entries_or_section(self, tmp_path, monkeypatch) -> None:
+        """Specialist agents are retired (plans/009): the manifest has no AGENTS: section."""
+        assert "agents" not in rm.INDEX_PATHS
+        entries = _entries(tmp_path, monkeypatch, {"alpha": _skill(triggers=["ship it"])})
+        assert {e["type"] for e in entries} == {"skill"}
+        for out in (rm.format_compact(entries), rm.format_compact_mode(entries), rm.format_tiered(entries, set())):
+            assert "AGENTS:" not in out
+            assert "agent=" not in out
 
     def test_cap_limits_emitted_triggers(self, tmp_path, monkeypatch) -> None:
         many = [f"phrase {i}" for i in range(20)]
@@ -84,16 +83,9 @@ class TestTriggerSelection:
     """Two phrases are dropped before the cap applies."""
 
     def test_cross_section_name_is_dropped(self, tmp_path, monkeypatch) -> None:
-        """A skill name inside an agent line would validate that skill as an agent."""
-        entries = _entries(
-            tmp_path,
-            monkeypatch,
-            {"kotlin": _skill(description="Kotlin methodology.")},
-            {"kotlin-general-engineer": {"file": "agents/k.md", "description": "Kotlin dev.", "triggers": ["kotlin"]}},
-        )
-        names = rm.section_names(entries)
-        agent = next(e for e in entries if e["type"] == "agent")
-        assert rm.select_triggers(agent, names["skill"]) == []
+        """A pipeline name inside a skill line would validate that pipeline as a skill."""
+        entries = _entries(tmp_path, monkeypatch, {"kotlin": _skill(description="Kotlin.", triggers=["writing"])})
+        assert rm.select_triggers(entries[0], {"writing"}) == []
 
     def test_phrase_already_in_description_is_dropped(self, tmp_path, monkeypatch) -> None:
         entries = _entries(
@@ -126,8 +118,11 @@ class TestSizeBudget:
             rm.TRIGGER_CAP = original
 
         assert baseline > 0
-        growth = (with_triggers - baseline) / baseline
-        assert growth < 0.30, f"triggers grew the manifest {growth:.1%}; budget is +28% at cap {original}"
+        # Absolute bytes, not a ratio: retiring the agents removed the AGENTS:
+        # section, which shrank the baseline (40.6 KB -> 19.9 KB) and would
+        # inflate any ratio. Before retirement triggers added 10,271 bytes.
+        added = with_triggers - baseline
+        assert added < 10_500, f"triggers added {added} bytes at cap {original}; budget is 10,500"
 
     @pytest.mark.usefixtures("use_public_index")
     def test_compact_mode_stays_trigger_free(self) -> None:
@@ -144,3 +139,26 @@ class TestSizeBudget:
         entries = _entries(tmp_path, monkeypatch, {"hot": _skill(triggers=["some phrase"], force_route=True)})
         line = next(ln for ln in rm.format_compact(entries).splitlines() if ln.startswith("  hot"))
         assert line in rm.format_tiered(entries, set())
+
+
+@pytest.mark.usefixtures("use_public_index")
+def test_live_manifest_has_no_agents_section_or_retired_names() -> None:
+    """Text and --json output: no AGENTS: section, no agent entries, no retired agent names."""
+    import subprocess
+    import sys
+
+    from routing_index_merge import RETIRED_AGENTS
+
+    text = subprocess.run(
+        [sys.executable, str(SCRIPT)], capture_output=True, text=True, check=True, cwd=REPO_ROOT
+    ).stdout
+    assert "SKILLS:" in text and "AGENTS:" not in text and " agent=" not in text
+    entries = json.loads(
+        subprocess.run(
+            [sys.executable, str(SCRIPT), "--json"], capture_output=True, text=True, check=True, cwd=REPO_ROOT
+        ).stdout
+    )
+    assert entries and {e["type"] for e in entries} <= {"skill", "pipeline"}
+    for e in entries:
+        assert "agent" not in e
+        assert not set(e.get("pairs_with") or []) & RETIRED_AGENTS, e["name"]

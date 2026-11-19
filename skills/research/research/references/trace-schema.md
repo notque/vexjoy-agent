@@ -31,7 +31,7 @@ One per /do-routed dispatch, captured from the `[do-route]` marker at record tim
 
 **Example** (illustrative values):
 ```json
-{"type":"decision","ts":1751400000.123,"session":"abc123","request_snippet":"fix the failing router test","agent":"python-general-engineer","skill":"pr-workflow","complexity":"Medium","health_at_decision":0.62,"n":7,"failure":1,"action":"keep","alternates":["python-general-engineer:python-quality-gate"],"gate_inputs_present":true}
+{"type":"decision","ts":1751400000.123,"session":"abc123","request_snippet":"fix the failing router test","agent":"general-purpose","skill":"pr-workflow","complexity":"Medium","health_at_decision":0.62,"n":7,"failure":1,"action":"keep","alternates":["general-purpose:python-quality-gate"],"gate_inputs_present":true}
 ```
 
 | Field | Type | Semantics |
@@ -72,7 +72,7 @@ One per finalized dispatch. Outcome resolution happens on a later user prompt, s
 
 **Example** (illustrative values):
 ```json
-{"type":"outcome","ts":1751400900.456,"session":"abc123","key":"python-general-engineer:pr-workflow","outcome":"success","reason":"acceptance","routing_relevant":true}
+{"type":"outcome","ts":1751400900.456,"session":"abc123","key":"general-purpose:pr-workflow","outcome":"success","reason":"acceptance","routing_relevant":true}
 ```
 
 | Field | Type | Semantics |

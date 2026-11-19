@@ -57,6 +57,11 @@ _NAME_CELL = {
 
 _SEPARATOR = re.compile(r"^\|[\s:|-]+\|$")
 
+# Types whose catalog may legitimately be empty: the repo ships no agents since
+# the specialist agents retired (plans/009), so docs/routing-map.md has no
+# AGENTS section. Any other empty catalog is still a parser/doc mismatch.
+_MAY_BE_EMPTY = frozenset({"agent"})
+
 
 class EmptyCatalogError(ValueError):
     """A primary doc exists but yields 0 entries for its type."""
@@ -124,6 +129,8 @@ class DocumentationParser:
             if match:
                 entries.append({"name": match.group(1), "source": rel})
         self.log(f"Found {len(entries)} {tool_type} entries in {rel}")
+        if not entries and tool_type in _MAY_BE_EMPTY:
+            return entries
         if not entries:
             section = _SECTIONS[tool_type] or "the whole file"
             raise EmptyCatalogError(

@@ -87,9 +87,11 @@ granular enough to complete in a single agent dispatch._
 | 2 | `[agent-name]` | `[skill-name]` | [What this step accomplishes] |
 | ... | ... | ... | ... |
 
-_Select agents from `agents/INDEX.json`. Select skills from `skills/INDEX.json`
-and `skills/INDEX.json (workflow section)`. Prefer specialized agents over general-purpose.
-If no suitable agent exists, note the gap — it may itself warrant a new agent._
+_Repo agents are retired (plan 009): the agent column is `main` or `general-purpose`
+(or a private overlay agent from `agents/INDEX.local.json`), and the domain comes from
+the skill and its reference. Select skills from `skills/INDEX.json` and
+`skills/INDEX.json (workflow section)`. If no skill reference covers the step, note the
+gap — it may itself warrant a new skill reference._
 
 ### Implementation Task List
 

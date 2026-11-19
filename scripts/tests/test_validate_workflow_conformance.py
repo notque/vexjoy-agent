@@ -77,6 +77,7 @@ def conformance_tree(public_index_dir, tmp_path_factory) -> Path:
     (root / "scripts").mkdir()
     shutil.copy2(SCRIPT, root / "scripts" / SCRIPT.name)
     shutil.copy2(REPO_ROOT / "scripts" / "conformance-harness.mjs", root / "scripts")
+    shutil.copy2(REPO_ROOT / "scripts" / "routing_index_merge.py", root / "scripts")
     (root / "scripts" / "lib").mkdir()
     shutil.copy2(REPO_ROOT / "scripts" / "lib" / "index_freshness.py", root / "scripts" / "lib")
     shutil.copytree(REAL_WORKFLOW_DIR, root / "skills" / "process" / "workflow" / "references")
@@ -92,9 +93,7 @@ def _run_against_public_index(conformance_tree, monkeypatch):
     this = sys.modules[__name__]
     monkeypatch.setattr(this, "RUN_SCRIPT", conformance_tree / "scripts" / SCRIPT.name)
     monkeypatch.setattr(this, "RUN_WORKFLOW_DIR", conformance_tree / "skills" / "process" / "workflow" / "references")
-    monkeypatch.setattr(
-        vwc, "KNOWN_AGENTS", vwc._load_index_names(conformance_tree / "agents" / "INDEX.json", "agents")
-    )
+    monkeypatch.setattr(vwc, "KNOWN_AGENTS", vwc._known_agents(conformance_tree / "agents" / "INDEX.json"))
     monkeypatch.setattr(
         vwc, "KNOWN_SKILLS", vwc._load_index_names(conformance_tree / "skills" / "INDEX.json", "skills")
     )
@@ -134,7 +133,7 @@ def _run_helper(skills):
     )
 
 
-def _run_fan_out(roster, synth_agent="research-coordinator-engineer"):
+def _run_fan_out(roster, synth_agent="general-purpose"):
     """Execute fan-out with recording mocks and return its fail-closed trace."""
     workflow = RUN_WORKFLOW_DIR / "fan-out-workflow.js"
     script = """
@@ -214,7 +213,7 @@ def test_extract_skills_list_from_roster_entry():
     (
         ([], "at least one skill"),
         (["not-an-indexed-skill"], "unknown skill"),
-        (["reviewer-system"], "agent, not a skill"),
+        (["general-purpose"], "agent, not a skill"),
         ([42], "skill name must be a string"),
     ),
 )
@@ -231,36 +230,36 @@ def test_skill_directives_rejects_untrusted_or_empty_names(skills, message):
     (
         (
             [
-                {"agentType": "reviewer-system", "skills": ["review"]},
+                {"agentType": "general-purpose", "skills": ["review"]},
                 {"agentType": "not-an-indexed-agent", "skills": ["review"]},
             ],
-            "research-coordinator-engineer",
+            "general-purpose",
             "unknown agent",
         ),
         (
             [
-                {"agentType": "reviewer-system", "skills": ["review"]},
-                {"agentType": "reviewer-code", "skills": ["not-an-indexed-skill"]},
+                {"agentType": "general-purpose", "skills": ["review"]},
+                {"agentType": "general-purpose", "skills": ["not-an-indexed-skill"]},
             ],
-            "research-coordinator-engineer",
+            "general-purpose",
             "unknown skill",
         ),
         (
-            [{"agentType": "reviewer-system", "skills": ["review"]}],
+            [{"agentType": "general-purpose", "skills": ["review"]}],
             "not-an-indexed-agent",
             "unknown agent",
         ),
         (
             [{"agentType": "review", "skills": ["testing"]}],
-            "research-coordinator-engineer",
+            "general-purpose",
             "skill, not an agent",
         ),
         (
             [
-                {"agentType": "reviewer-system", "skills": ["review"]},
-                {"agentType": "reviewer-code", "skills": []},
+                {"agentType": "general-purpose", "skills": ["review"]},
+                {"agentType": "general-purpose", "skills": []},
             ],
-            "research-coordinator-engineer",
+            "general-purpose",
             "at least one skill",
         ),
     ),
@@ -287,8 +286,8 @@ def test_fully_dynamic_roster_requires_registry_validation_call():
     ("agent_type", "skills", "message"),
     (
         ("not-an-indexed-agent", ["review"], "unknown agent"),
-        ("reviewer-system", ["reviewer-code"], "agent, not a skill"),  # reviewer-code is an agent name, not a skill
-        ("reviewer-system", [], "at least one skill"),
+        ("general-purpose", ["general-purpose"], "agent, not a skill"),  # an agent name, not a skill
+        ("general-purpose", [], "at least one skill"),
     ),
 )
 def test_static_contract_rejects_untrusted_wrong_type_or_empty_roster_entries(agent_type, skills, message):
@@ -847,7 +846,7 @@ def test_toolkit_improvement_implement_gate_blocks(args, reason):
 
 
 @pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
-def test_toolkit_improvement_implement_runs_on_a_work_branch_with_domain_engineers():
+def test_toolkit_improvement_implement_runs_on_a_work_branch_with_domain_skills():
     rc, out = _run_harness(TOOLKIT, "unset", args={"implement": True, "branch": "fix/eval-1"}, stubs=IMPLEMENT_STUBS)
     assert rc == 0 and not out["errors"], out["errors"]
     trace = out["traces"]["unset"]
@@ -862,19 +861,15 @@ def test_toolkit_improvement_implement_runs_on_a_work_branch_with_domain_enginee
     assert not any('"dismissed"' in p for p in adr_prompts)
     assert '"crit-hook"' in adr_prompts[0] and '"low-doc"' in adr_prompts[2]
 
-    # Each ADR goes to the engineer for its components, never the coordinator.
-    assert [a["agentType"] for a in by_phase["implement"]] == [
-        "hook-development-engineer",
-        "python-general-engineer",
-        "toolkit-governance-engineer",
-    ]
+    # Each ADR goes to a general-purpose worker whose skills carry the domain.
+    assert [a["agentType"] for a in by_phase["implement"]] == ["general-purpose"] * 3
     assert by_phase["implement"][0]["skills"] == ["programming", "testing"]
     assert by_phase["implement"][2]["skills"] == ["toolkit", "testing"]
     for a in by_phase["implement"] + by_phase["remediate"]:
         assert "git branch --show-current" in a["prompt"], a["agentType"]
         assert "`fix/eval-1`" in a["prompt"]
         assert a["model"] == "opus"
-    assert [a["agentType"] for a in by_phase["validate"] + by_phase["remediate"]] == ["toolkit-governance-engineer"] * 2
+    assert [a["agentType"] for a in by_phase["validate"] + by_phase["remediate"]] == ["general-purpose"] * 2
     for a in trace["agents"]:
         assert a["agentType"] and a["skills"], a["phase"]
 
@@ -1050,9 +1045,9 @@ def test_comprehensive_review_verify_and_fix_agents_carry_agent_and_skills():
     verify = [a for a in agents if a["phase"] == "verify"]
     fix = [a for a in agents if a["phase"] == "fix"]
     assert len(verify) == 1 and len(fix) == 1, [(a["phase"], a["agentType"]) for a in agents]
-    assert verify[0]["agentType"] == "reviewer-perspectives"
+    assert verify[0]["agentType"] == "general-purpose"
     assert verify[0]["skills"] == ["assessment", "testing"]
-    assert fix[0]["agentType"] == "python-general-engineer"
+    assert fix[0]["agentType"] == "general-purpose"
     assert fix[0]["skills"] == ["programming", "testing"]
     assert "git branch --show-current" in fix[0]["prompt"] and "`fix/review-1`" in fix[0]["prompt"]
     assert "never commit or push" in fix[0]["prompt"]
