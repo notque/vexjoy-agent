@@ -696,11 +696,13 @@ def plan_target(
             base.op, base.reason = "skip", "user-edited copy; not removed"
         elif d in desire.filtered:
             base.reason = PROFILE_REASON
+        elif led.kind == "agent" and led.owner == "public" and _retired_agent(dest):
+            # An unedited install of an agent retired by plans/009 (link or copy) is cleanup,
+            # outside the cap. Any other source shrink still trips it, so a bad checkout cannot
+            # mass-remove. User-edited copies were skipped above.
+            base.reason = RETIRED_REASON
         elif os.path.islink(dest) and not os.path.exists(dest):
-            # A dangling link to a retired agent (plans/009) is cleanup, outside the cap. Any
-            # other source shrink still trips the cap, so a bad checkout cannot mass-remove.
-            retired = led.kind == "agent" and _retired_agent(dest) and link_points_into(dest, roots)
-            base.reason = RETIRED_REASON if retired else "dangling link"
+            base.reason = "dangling link"
         else:
             base.reason = "no longer desired"
         tp.actions.append(base)

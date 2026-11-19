@@ -13,6 +13,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 # vexinstall_support puts scripts/ on sys.path, so vexinstall comes through it, never imported first.
 from scripts.tests.vexinstall_support import (
     GIT_ENV,
@@ -388,7 +390,8 @@ def test_no_stale_warning_when_the_clone_is_current(world: Env, tmp_path: Path) 
 # F: agents retired by plans/009 leave dangling links that sync cleans, outside the cap
 
 
-def test_sync_cleans_retired_agent_links_without_tripping_the_cap(world: Env) -> None:
+@pytest.mark.parametrize("mode", ["symlink", "copy"])
+def test_sync_cleans_retired_agents_without_tripping_the_cap(world: Env, mode: str) -> None:
     """Before: sync refused the whole plan ('mass-removal cap exceeded') and synced nothing."""
     from routing_index_merge import RETIRED_AGENTS
 
@@ -396,13 +399,13 @@ def test_sync_cleans_retired_agent_links_without_tripping_the_cap(world: Env) ->
     for n in names:
         (world.repo / "agents" / f"{n}.md").write_text(f"---\nname: {n}\ndescription: {n}\n---\n# {n}\n")
     commit_all(world.repo, "add agents")
-    _ok(world.run("apply", "--target", "claude"))
+    _ok(world.run("apply", "--target", "claude", "--mode", mode))
     links = [world.root("claude") / "agents" / f"{n}.md" for n in names]
-    assert all(os.path.islink(p) for p in links)
+    assert all(os.path.lexists(p) for p in links)
 
     git(world.repo, "rm", "-q", *[f"agents/{n}.md" for n in names])
     commit_all(world.repo, "retire agents")
-    res = world.run("sync", "--target", "claude")
+    res = world.run("sync", "--target", "claude", "--mode", mode)
 
     _ok(res)
     assert not any("mass-removal cap" in line for line in res.err), res.err

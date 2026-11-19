@@ -632,7 +632,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     cleaned = [d for tp in report["diff"].values() for d in tp.get("cleaned", []) if not os.path.lexists(d["dest"])]
     if cleaned:
         res.out.append(
-            f"[{label}] cleaned {len(cleaned)} leftover(s) of older installs (dangling links, legacy category"
+            f"[{label}] cleaned {len(cleaned)} leftover(s) of older installs (dangling links, retired agents, legacy category"
             f" entries); undo with restore-trash {ts}"
         )
     not_registered = list((report.get("settings") or {}).get("not_registered", []))
