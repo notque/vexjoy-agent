@@ -11,6 +11,11 @@ instruction the model can act on:
    and `task_spec.intent`, and prints the command to run.
 2. Dispatch reason. A /d dispatch must name one allowed reason, and the reason's
    precondition must hold. The worker must get the skill and its references.
+   `context-budget` is measured: `task_spec.files` must name at least 10
+   existing files or 50 KB.
+3. Verification. A Medium or Complex /d route names `task_spec.acceptance` up
+   front, plus `task_spec.scenario` when its files touch the installer, hooks,
+   or routing scripts. build-dispatch prints the closing verifier step.
 
 This is a check the model can skip by not calling the script, so it is a
 tool-enforced gate, not a hook boundary. Receipts hold hashes and verdicts only,
@@ -46,9 +51,45 @@ DISPATCH_REASONS: dict[str, str] = {
     "haiku-gather": "read-only gathering on haiku (model haiku)",
     "verifier": "an independent reviewer or verifier of work already done (task_spec.acceptance names what to check)",
     "overlay-agent": "work the manifest's AGENTS: section matches, run by that private overlay agent (agent names a live overlay agent)",
+    "context-budget": (
+        "one long job whose reading would flood this thread and is not needed afterwards: task_spec.files lists "
+        "at least 10 existing files or 50 KB, and task_spec.acceptance says what the worker hands back"
+    ),
 }
 # Reasons whose worker carries its own domain: `references` is optional for them.
 REFERENCES_OPTIONAL_REASONS = frozenset({"overlay-agent"})
+
+# context-budget: the measured floor for a dispatch that only saves main-loop context.
+BUDGET_MIN_FILES = 10
+BUDGET_MIN_BYTES = 50 * 1024
+_BUDGET_WALK_CAP = 20000
+
+# Paths whose changes need a real-scenario check before /d reports done: the installer,
+# hooks, and the routing scripts. Unit tests passed on every one of the two blocking
+# bugs PR #1156's reviewer found; only an install-then-upgrade run caught them.
+SCENARIO_PREFIXES = (
+    "hooks/",
+    "scripts/vexinstall/",
+    "skills/meta/d/",
+    "skills/meta/do/",
+)
+SCENARIO_FILES = frozenset(
+    {
+        "install.sh",
+        "install.ps1",
+        "scripts/build-dispatch.py",
+        "scripts/d_gate.py",
+        "scripts/d-preflight.py",
+        "scripts/jev-route.py",
+        "scripts/jev_intent_align.py",
+        "scripts/jev-intent-align.py",
+        "scripts/pre-route.py",
+        "scripts/routing-manifest.py",
+        "scripts/get-routing-manifest.sh",
+        "scripts/routing_index_merge.py",
+    }
+)
+VERIFY_COMPLEXITIES = frozenset({"medium", "complex"})
 
 ALIGN_HINT = (
     'python3 "$SDIR/jev-intent-align.py" --request-file "$REQUEST_FILE" --route-file "$ROUTE_FILE" '
@@ -218,7 +259,10 @@ def resolve_references(
 
 
 def check_dispatch(
-    decision: dict, model: str | None, overlay_agents: frozenset[str] | set[str] = frozenset()
+    decision: dict,
+    model: str | None,
+    overlay_agents: frozenset[str] | set[str] = frozenset(),
+    base: Path | None = None,
 ) -> str | None:
     """Return None when the dispatch reason and its precondition hold, else the instruction to act on.
 
@@ -244,6 +288,10 @@ def check_dispatch(
         return "dispatch_reason fan-out needs this worker's own scope in task_spec.ownership or task_spec.files."
     if reason == "verifier" and not str(spec.get("acceptance") or "").strip():
         return "dispatch_reason verifier needs task_spec.acceptance: what the verifier checks."
+    if reason == "context-budget":
+        problem = check_budget(spec, base or Path.cwd())
+        if problem:
+            return problem
     if reason == "overlay-agent":
         agent = str(decision.get("agent") or "").strip().lower()
         if not agent or agent not in {str(a).lower() for a in overlay_agents}:
@@ -252,3 +300,140 @@ def check_dispatch(
                 f"manifest's AGENTS: section lists); got {decision.get('agent')!r}. Otherwise run in the main loop."
             )
     return None
+
+
+def split_paths(raw: object) -> list[str]:
+    """`task_spec.files` as a list: a list, or a string split on commas, whitespace, and newlines.
+
+    A `path:10-40` line range is cut to the path.
+    """
+    items = raw if isinstance(raw, list) else re.split(r"[,\s]+", str(raw or ""))
+    out: list[str] = []
+    for item in items:
+        text = str(item).strip().strip("`'\"")
+        text = re.sub(r":\d+(-\d+)?$", "", text)
+        if text and text not in out:
+            out.append(text)
+    return out
+
+
+def _inside(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def measure_scope(raw: object, base: Path) -> tuple[int, int]:
+    """(file count, bytes) of the existing files and dirs `raw` names, inside `base` only.
+
+    `base` is the repo root: a path that resolves outside it (`~`, `/`, `..`)
+    counts nothing, so the floor cannot be met by pointing at the home dir.
+    Every entry visited, skipped ones included, counts toward the walk cap.
+    """
+    root = base.resolve()
+    count = size = visited = 0
+    seen: set[Path] = set()
+    for name in split_paths(raw):
+        try:
+            path = Path(name)
+            path = (path if path.is_absolute() else root / path).resolve()
+            if not _inside(path, root):
+                continue
+            targets = [path] if path.is_file() else path.rglob("*") if path.is_dir() else []
+            for target in targets:
+                visited += 1
+                if visited > _BUDGET_WALK_CAP:
+                    return count, size
+                try:
+                    if not target.is_file():
+                        continue
+                    real = target.resolve()
+                    if real in seen or "/.git/" in str(real) or not _inside(real, root):
+                        continue
+                    seen.add(real)
+                    size += real.stat().st_size
+                    count += 1
+                except OSError:
+                    continue
+        except OSError:
+            continue
+    return count, size
+
+
+def check_budget(spec: dict, base: Path) -> str | None:
+    """None when task_spec names a reading load big enough to justify a context-budget dispatch."""
+    if not str(spec.get("acceptance") or "").strip():
+        return "dispatch_reason context-budget needs task_spec.acceptance: what the worker hands back to this thread."
+    count, size = measure_scope(spec.get("files"), base)
+    if count >= BUDGET_MIN_FILES or size >= BUDGET_MIN_BYTES:
+        return None
+    return (
+        f"dispatch_reason context-budget needs task_spec.files to name at least {BUDGET_MIN_FILES} existing files "
+        f"or {BUDGET_MIN_BYTES // 1024} KB; it names {count} files, {size // 1024} KB (measured from {base}). "
+        "A job that small runs in the main loop."
+    )
+
+
+def _scenario_hit(rel: str) -> bool:
+    rel = rel.strip("/")
+    if rel in SCENARIO_FILES or rel.startswith(SCENARIO_PREFIXES):
+        return True
+    return any(rel == p.rstrip("/") for p in SCENARIO_PREFIXES)
+
+
+def scenario_paths(raw: object, base: Path | None = None) -> list[str]:
+    """The named paths that need a real-scenario check (installer, hooks, routing scripts).
+
+    Relative paths are read from the repo root. An absolute path inside `base`
+    is made relative to it; one outside it (another checkout or worktree)
+    matches when any of its trailing segments does, erring toward a check.
+    """
+    root = (base or Path.cwd()).resolve()
+    hits: list[str] = []
+    for name in split_paths(raw):
+        text = name.replace("\\", "/")
+        if text.startswith("/"):
+            try:
+                rel = str(Path(text).resolve().relative_to(root))
+            except (ValueError, OSError):
+                parts = [p for p in text.split("/") if p]
+                rel = next(("/".join(parts[i:]) for i in range(len(parts)) if _scenario_hit("/".join(parts[i:]))), text)
+        else:
+            rel = re.sub(r"^(\./)+", "", text)
+        if _scenario_hit(rel) and rel not in hits:
+            hits.append(rel.strip("/"))
+    return hits
+
+
+def check_verify(complexity: str, spec: dict, base: Path | None = None) -> str | None:
+    """Medium and Complex /d work names its acceptance up front; risky paths also name a real scenario."""
+    if complexity not in VERIFY_COMPLEXITIES:
+        return None
+    if not str(spec.get("acceptance") or "").strip():
+        return (
+            f"A {complexity} /d route needs task_spec.acceptance: the command or check that proves the work, "
+            "which an independent verifier runs before you report done."
+        )
+    hits = scenario_paths(spec.get("files"), base)
+    if hits and not str(spec.get("scenario") or "").strip():
+        shown = ", ".join(hits[:5]) + (" ..." if len(hits) > 5 else "")
+        return (
+            f"task_spec.files touches {shown}. Set task_spec.scenario to a real-scenario check, not only unit "
+            "tests: for example install origin/main into a temporary HOME, switch to the branch, and run sync "
+            "and doctor; or run the hook against a fresh `git archive` export."
+        )
+    return None
+
+
+def verify_step(spec: dict) -> str:
+    """The closing step build-dispatch prints for a Medium or Complex /d route."""
+    scenario = str(spec.get("scenario") or "").strip()
+    check = str(spec.get("acceptance") or "").strip()
+    tail = f" It also runs the real scenario: {scenario.rstrip('.')}." if scenario else ""
+    return (
+        "Before you report done: dispatch one independent verifier (build-dispatch.py with execution dispatch, "
+        "dispatch_reason verifier, a model per Model choice, and the same acceptance). Give it the change, not "
+        f"your conclusion. It checks: {check}.{tail} Fix what it confirms, then report its verdict."
+    )

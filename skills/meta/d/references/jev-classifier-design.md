@@ -25,7 +25,8 @@ each handoff is a lossy summary and each nested loop adds latency. Keep a
 subagent only when the main loop degrades from context bloat, parallel work
 needs fresh disposable context, or tool choice and instructions conflict; an
 independent verifier also earns one. `/d` encodes that as dispatch reasons
-(`fan-out`, `worktree`, `haiku-gather`, `verifier`, plus `overlay-agent` for a
+(`fan-out`, `worktree`, `haiku-gather`, `verifier`, `context-budget` for one
+long job whose reading would bloat the main loop, plus `overlay-agent` for a
 private overlay agent the manifest lists), each with a precondition
 `d_gate.py` checks. `/do` keeps its own rule (Trivial and Simple in the main
 thread, Medium and Complex dispatched), so the two routers are the two arms of

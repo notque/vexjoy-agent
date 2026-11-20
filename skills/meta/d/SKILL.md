@@ -1,6 +1,6 @@
 ---
 name: d
-version: "3.0.0"
+version: "3.1.0"
 description: "Router that runs the work in the main loop: picks skill, pipeline, and stack with /do's rules; Jev checks intent and attaches skills."
 user-invocable: true
 argument-hint: "[request]"
@@ -71,6 +71,11 @@ JSON, unprinted:
  "reasoning": "<one sentence>"}
 ```
 
+When `JEV_RESULT.error` is set, add `"signals": {...}` with your own true/false
+for `tests_requested`, `research_needed`, `comprehensive_review`,
+`local_only`, and `objective_loop_worthy` (`/do`'s Phase 3 signals);
+finalize attaches from them instead of Jev's.
+
 `stack` names the domain skill when `skill` is a methodology (Go debugging:
 `skill` debugging, `stack` programming). `workers` holds independent parts
 per `/do`'s FAN-OUT RULE, `[]` when one thread covers it. Add `"agent":
@@ -91,6 +96,18 @@ checks names against the live manifest, applies the safety force route, fills
 an empty skill with `workflow`, and builds `attach`. `problems` set: fix the
 decision and finalize once more; carry what remains into `task_spec.gaps`. An
 `error` key with no route fields: use your decision with `attach` `[]`.
+
+**Step 4 — Preflight.** Simple and above, once you know the paths you will
+create or change:
+
+```bash
+python3 "$SDIR/d-preflight.py" --paths <planned paths>
+```
+
+It names each safety gate those paths will hit and its cost (an ADR and its
+3-reviewer consultation, a commit blocked on a key-shaped string or a private
+name). Advisory, exit 0. Act on it now: pick the cheaper path or plan the
+cost into the work, instead of meeting the gate mid-commit.
 
 ---
 
@@ -204,8 +221,14 @@ python3 "$SDIR/build-dispatch.py" --json-file "$DISPATCH_FILE"
  "stack": ["<ROUTE.attach, in order>", "anti-rationalization-core"],
  "task_spec": {"request_verbatim": "<user message, unchanged>", "intent": "<PROPOSED_INTENT>",
                "constraints": "<rules, limits, authorization>", "gaps": "<open alignment issues>",
-               "acceptance": "<command> -> <expected>"}}
+               "acceptance": "<command> -> <expected>", "files": "<planned paths>",
+               "scenario": "<real-scenario check, when files touch installer/hooks/routing>"}}
 ```
+
+Medium and Complex main routes also need `task_spec.acceptance` (the check
+that proves the work), and `task_spec.scenario` when `files` touch the
+installer, hooks, or routing scripts: a real-scenario run, not only unit tests.
+The script refuses without them and prints the closing verifier step.
 
 It prints the marker (`router=d`, recorded for telemetry), the Skill-tool
 calls, the pipeline's phases, the reference-loading rule, and the local-only
@@ -224,6 +247,7 @@ pipeline phase in order.
 | `haiku-gather` | read-only gathering (locate, cite, excerpt, fetch) that this thread judges | `model: "haiku"` |
 | `verifier` | an independent reviewer or verifier of work already done | `task_spec.acceptance` |
 | `overlay-agent` | `ROUTE.agent` is a private overlay agent (not `general-purpose`) | `"agent": "<ROUTE.agent>"`, a live overlay agent |
+| `context-budget` | one long job whose reading would flood this thread and is not needed afterwards | `task_spec.files` names 10+ existing files or 50+ KB (measured); `acceptance` says what comes back |
 
 A dispatch also needs `references`: one or more files from the skill's
 `references/` directory, so the `general-purpose` worker gets the skill and
@@ -258,6 +282,14 @@ Main-loop work runs on the session model; the table sets each dispatch's model.
 
 ---
 
+### Post-execute: VERIFY (Medium and Complex)
+
+Before you report done, run the closing step build-dispatch printed: one
+`verifier` dispatch that gets the change, not your conclusion, and runs
+`acceptance` and `scenario`. Fix what it confirms, re-run the failed check,
+and report its verdict. Unit tests passing is not the verdict: both blocking
+bugs in PR #1156 passed 8,038 tests and fell to an install-then-upgrade run.
+
 ### Post-execute: GRILL-JEV
 
 When the work produced a plan, spec, or design (`task_plan.md`, a spec file, or
@@ -284,5 +316,5 @@ apply `skills/shared-patterns/jev-production-lessons.md`.
 - `${CLAUDE_SKILL_DIR}/references/jev-classifier-design.md`: contract, what Jev decides, what code enforces
 - `${CLAUDE_SKILL_DIR}/references/model-task-fit.md`: model per task type, re-measure method
 - `${CLAUDE_SKILL_DIR}/SPEC.md`, `${CLAUDE_SKILL_DIR}/EVAL.md`: maintenance contract and evals (load only to change or evaluate /d)
-- Scripts: `jev-route.py`, `print-route-rules.py`, `jev-intent-align.py`, `d_gate.py`, `build-dispatch.py`, `router-metrics.py`
+- Scripts: `jev-route.py`, `print-route-rules.py`, `jev-intent-align.py`, `d_gate.py`, `build-dispatch.py`, `d-preflight.py`, `router-metrics.py`
 - Rule text: `skills/meta/do/SKILL.md` Phase 2, printed by `print-route-rules.py`
