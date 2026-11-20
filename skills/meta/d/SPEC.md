@@ -28,8 +28,8 @@ owner judges whether this setup beats `/do`.
 - Report gate costs for planned paths before work, via `scripts/d-preflight.py`.
 
 ## Intent alignment
-Every `/d` route but a Trivial skip (no skill, no pipeline, no safety force
-route) receives a required runtime intent restatement. One batched
+Every `/d` route, Trivial included, receives a required runtime intent
+restatement. One batched
 Jev judgment checks that the intended outcome and constraints survive routing;
 it reports scope loss, added work, route mismatch, and essential ambiguity
 without fabricating a task. `jev-intent-align.py` writes a receipt on every
@@ -100,12 +100,8 @@ unrequested scope expansion is the feature's primary value.
     `/d` mode: every `/d` rule is behind `"router": "d"`.
 12. A pipeline's phases run in order in the main loop; only an independent
     fan-out or verifier phase leaves it.
-13. A Trivial main-loop route with no skill, no pipeline, no safety force
-    route (pre-route run by `build-dispatch.py` on `request_verbatim`, failing
-    closed on any guard error), and a request naming no git, release, secret,
-    security, or destructive work (`d_gate.sensitive_request`) skips the
-    intent validator and carries `intent=skipped`. Every other route,
-    force routes included, needs a receipt.
+13. Every `/d` route needs an intent receipt, Trivial and force routes
+    included. No route skips the intent validator.
 14. A Medium or Complex main-loop route needs `task_spec.acceptance`, plus
     `task_spec.scenario` when `task_spec.files` touches the installer, hooks,
     or routing scripts (`d_gate.SCENARIO_PREFIXES`/`SCENARIO_FILES`). It
@@ -119,7 +115,7 @@ unrequested scope expansion is the feature's primary value.
 ## Dependencies
 - `scripts/jev-route.py`, `scripts/print-route-rules.py`, `scripts/jev_intent_align.py`
 - `scripts/pre-route.py`, `scripts/routing-manifest.py`, `scripts/get-routing-manifest.sh` (reused, unmodified)
-- `scripts/build-dispatch.py` (`"router": "d"` mode) and `scripts/d_gate.py` (receipt, trivial skip, dispatch reasons, references, verify)
+- `scripts/build-dispatch.py` (`"router": "d"` mode) and `scripts/d_gate.py` (receipt, dispatch reasons, references, verify)
 - `scripts/d-preflight.py` (imports `pretool-unified-gate.py`, `pretool-adr-creation-gate.py`, `pretool-synthesis-gate.py`, `pretool-private-name-leak-gate.py` read-only; runs `security-review-scan.py`)
 - Metrics and evals: `scripts/router-metrics.py`, `scripts/golden_eval/` (`references/router-metrics.md`)
 - Jev transport selector (`scripts/jev_transport.py`), Vercel AI Gateway bridge

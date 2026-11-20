@@ -209,9 +209,8 @@ _ROUTER_RE = re.compile(r"\brouter=(do|d)\b", re.IGNORECASE)
 _DISPATCH_REASON_RE = re.compile(
     r"\breason=(fan-out|worktree|haiku-gather|verifier|overlay-agent|context-budget)\b", re.IGNORECASE
 )
-# /d flags: ` intent=skipped` (trivial route, no intent validator) and
-# ` verify=required` (Medium/Complex main route that closes with a verifier).
-_D_FLAG_RE = re.compile(r"\b(intent=skipped|verify=required)\b", re.IGNORECASE)
+# /d flag: ` verify=required` (Medium/Complex main route that closes with a verifier).
+_D_FLAG_RE = re.compile(r"\b(verify=required)\b", re.IGNORECASE)
 
 # Handoff-completeness telemetry. Thin handoffs failed acceptance 3/3 and
 # rich ones passed 3/3 (scripts/routing-ab-results/handoff-context-v1), so
@@ -419,7 +418,7 @@ def parse_router(marker_text: str) -> str:
 
 
 def parse_d_flags(marker_text: str) -> list[str] | None:
-    """The /d flags on a marker line (`intent=skipped`, `verify=required`), or None when absent."""
+    """The /d flags on a marker line (`verify=required`), or None when absent."""
     flags = [m.group(1).lower() for m in _D_FLAG_RE.finditer(_marker_line(marker_text))]
     return flags or None
 

@@ -49,8 +49,7 @@ are omitted. The CLI then feeds the marker to hooks/routing-decision-recorder.py
 marker gains `router=d` (and `reason=<dispatch_reason>` on a dispatch) before
 `exec=main`. Before any output it requires an intent receipt from
 jev-intent-align.py matching task_spec.request_verbatim and task_spec.intent,
-except a trivial main-loop route with no skill, no pipeline, and no safety force
-route (marker `intent=skipped`). A Medium or Complex main-loop route needs
+on every route, Trivial included. A Medium or Complex main-loop route needs
 task_spec.acceptance (plus task_spec.scenario when task_spec.files touches the
 installer, hooks, or routing scripts) and gets the closing verifier step
 (marker `verify=required`). A
@@ -813,43 +812,6 @@ def resolve_router(decision: dict) -> str:
         raise InputError(str(exc)) from None
 
 
-def _safety_forced(request: str) -> object:
-    """The /d safety force route (git, PR, security) for a request, from pre-route.py and jev-route's filter.
-
-    Never calls Jev. Fails closed: an empty request, a pre-route run that
-    exits non-zero or prints no JSON, or a guard that cannot load counts as
-    forced, so a broken install never lets a route skip the intent validator.
-    """
-    if not request.strip():
-        return True
-    try:
-        import importlib.util
-        import tempfile
-
-        here = Path(__file__).resolve().parent
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as tmp:
-            tmp.write(request)
-        try:
-            proc = subprocess.run(
-                [sys.executable, str(here / "pre-route.py"), "--request-file", tmp.name, "--json-compact"],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-        finally:
-            os.unlink(tmp.name)
-        pre_route = json.loads(proc.stdout)
-        if proc.returncode != 0 or not isinstance(pre_route, dict) or "matched" not in pre_route:
-            return True
-        spec = importlib.util.spec_from_file_location("jev_route_guard", here / "jev-route.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module._forced(pre_route)
-    except Exception:
-        return True
-
-
 def _repo_top() -> Path:
     """The git top level of the cwd (the repo the route works in), else the cwd."""
     try:
@@ -859,14 +821,6 @@ def _repo_top() -> Path:
     except (OSError, subprocess.SubprocessError):
         top = ""
     return Path(top) if top else Path.cwd()
-
-
-def d_intent_skipped(decision: dict) -> bool:
-    """True when this /d route skips the intent validator (d_gate.trivial_skip, checked against the request)."""
-    spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
-    if not d_gate.trivial_skip(decision, None):
-        return False
-    return not _safety_forced(str(spec.get("request_verbatim") or ""))
 
 
 def d_verify_required(decision: dict) -> bool:
@@ -883,12 +837,9 @@ def check_d_route(decision: dict) -> list[str]:
     hand over the skill reference.
     """
     spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
-    if d_intent_skipped(decision):
-        decision["_d_intent_skipped"] = True
-    else:
-        problem = d_gate.check_receipt(spec)
-        if problem:
-            raise InputError(problem)
+    problem = d_gate.check_receipt(spec)
+    if problem:
+        raise InputError(problem)
     if resolve_execution(decision) == "main":
         if decision.get("dispatch_reason"):
             raise InputError("dispatch_reason applies only to execution='dispatch'; drop it for a main-loop route")
@@ -1085,8 +1036,6 @@ def build_marker(decision: dict) -> str:
         reason = str(decision.get("dispatch_reason") or "").strip().lower()
         if not main_thread and reason in d_gate.DISPATCH_REASONS:
             parts.append(f"reason={reason}")
-        if decision.get("_d_intent_skipped"):
-            parts.append("intent=skipped")
         if main_thread and d_verify_required(decision):
             parts.append("verify=required")
         parts.append(f"router={_ROUTER_D}")

@@ -7,7 +7,6 @@ router so /do and /d compare on the same definitions:
 - decisions: routed requests (one `[do-route]` marker each)
 - main_share / dispatch_share: where the work ran (`agent=main` vs a worker)
 - dispatch_reasons: why a /d route left the main loop (`reason=` token)
-- intent_skipped_rate: /d routes that skipped the intent validator (`intent=skipped`)
 - verify: verify=required routes followed by a verifier dispatch in the same session
 - pipeline_rate: share of decisions that picked a pipeline
 - skill_load: did the session call the Skill tool with the routed skill
@@ -161,7 +160,6 @@ def summarize(decisions: list[dict], calls: dict[str, list[tuple[float, str]]]) 
             "pipeline_rate": _rate(sum(1 for d in rows if d["pipeline"]), len(rows)),
             "pipelines": dict(Counter(d["pipeline"] for d in rows if d["pipeline"])),
             "skill_load": skill_load,
-            "intent_skipped_rate": _rate(sum(1 for d in rows if "intent=skipped" in d.get("d_flags", [])), len(rows)),
             "verify": _verify_followthrough(rows),
         }
     return out
@@ -201,9 +199,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  main {m['main_share']} | dispatch {m['dispatch_share']} | reasons {m['dispatch_reasons']}")
         print(f"  pipeline picked {m['pipeline_rate']} {m['pipelines']}")
         v = m["verify"]
-        print(
-            f"  intent skipped {m['intent_skipped_rate']} | verifier after verify=required {v['verified']}/{v['required']}"
-        )
+        print(f"  verifier after verify=required {v['verified']}/{v['required']}")
         for kind in ("main", "dispatch"):
             s = m["skill_load"][kind]
             print(f"  skill loaded ({kind}): {s['loaded']}/{s['n']} ({s['rate']})")

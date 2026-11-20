@@ -113,17 +113,14 @@ cost into the work, instead of meeting the gate mid-commit.
 
 ### Phase 1T: TRIVIAL
 
-Trivial with no skill and no pipeline, and `JEV_RESULT.forced` null: skip
-Phase 2. Run `build-dispatch.py` with `"execution": "main", "skill": "-",
-"complexity": "trivial"` (Phase 5 shape); it checks the request against the
-safety force route and a git, release, secret, and security word list itself,
-marks `intent=skipped`, and asks for a receipt when either matches. Otherwise run Phase 2 with
-`{"complexity": "trivial"}` as the route file first. Show `Classification:
-Trivial`, then answer or do the one-line action. Skip Phases 3-4.
+Run Phase 2 with `{"complexity": "trivial"}` as the route file, then
+`build-dispatch.py` with `"execution": "main", "skill": "-", "complexity":
+"trivial"` (Phase 5 shape). Show `Classification: Trivial`, then answer or do
+the one-line action. Skip Phases 3-4.
 
 ---
 
-### Phase 2: ALIGN INTENT (every route but a Phase 1T skip)
+### Phase 2: ALIGN INTENT (every route)
 
 Write `PROPOSED_INTENT`: one or two sentences stating the outcome and each
 deliverable the request names or directly requires. Copy every explicit

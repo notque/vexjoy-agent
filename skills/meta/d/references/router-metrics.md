@@ -34,7 +34,6 @@ router token, so start comparisons at `--since` the install date.
 | `main_share` / `dispatch_share` | decisions with `agent=main` / with a worker |
 | `dispatch_reasons` | `/d` `reason=` token per dispatch (`fan-out`, `worktree`, `haiku-gather`, `verifier`, `overlay-agent`, `context-budget`); `/do` dispatches read `unstated` |
 | `pipeline_rate` | decisions whose marker carries `pipeline=` |
-| `intent_skipped_rate` | `/d` decisions marked `intent=skipped` (Trivial, no skill, no pipeline, no safety force route) |
 | `verify` | `/d` main routes marked `verify=required`, and how many saw a `reason=verifier` dispatch later in the same session |
 | `skill_load.main` | main-loop decisions where the session called the Skill tool with the routed skill within -2 to +30 minutes |
 | `skill_load.dispatch` | same for dispatches; a lower bound, because a worker's Skill calls mostly do not land under the parent session (29 of 329 observed on 2026-11-17) |

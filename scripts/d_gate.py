@@ -16,8 +16,6 @@ instruction the model can act on:
 3. Verification. A Medium or Complex /d route names `task_spec.acceptance` up
    front, plus `task_spec.scenario` when its files touch the installer, hooks,
    or routing scripts. build-dispatch prints the closing verifier step.
-4. Trivial skip. A trivial main-loop route with no skill, no pipeline, and no
-   safety force route needs no intent receipt (`trivial_skip`).
 
 This is a check the model can skip by not calling the script, so it is a
 tool-enforced gate, not a hook boundary. Receipts hold hashes and verdicts only,
@@ -439,39 +437,3 @@ def verify_step(spec: dict) -> str:
         "dispatch_reason verifier, a model per Model choice, and the same acceptance). Give it the change, not "
         f"your conclusion. It checks: {check}.{tail} Fix what it confirms, then report its verdict."
     )
-
-
-# Words that keep a trivial request on the intent validator even when pre-route
-# finds no force route ("push", "rebase onto main", "rotate the api key").
-# Broad on purpose: a false refusal costs one validator call.
-_SENSITIVE_RE = re.compile(
-    r"\b(git|gh|push\w*|commit\w*|merg\w*|rebas\w*|squash\w*|amend\w*|revert\w*|cherry-pick|stash\w*|reset|"
-    r"pr|prs|pull requests?|branch\w*|tag\w*|releas\w*|publish\w*|deploy\w*|ship\w*|"
-    r"secrets?|keys?|tokens?|credentials?|passwords?|auth\w*|security|vuln\w*|audit\w*|"
-    r"delete\w*|drop|rm|chmod|chown|sudo|cron\w*|systemctl|nginx|firewall|ssh)\b",
-    re.IGNORECASE,
-)
-
-
-def sensitive_request(request: str) -> bool:
-    """True for an empty request or one naming git, release, secret, security, or destructive work."""
-    return not request.strip() or bool(_SENSITIVE_RE.search(request))
-
-
-def trivial_skip(decision: dict, forced: object) -> bool:
-    """True when a /d route may skip the intent validator.
-
-    Deterministic only: complexity trivial, main loop, no skill, no pipeline,
-    no safety force route, and a request that names no git, release, secret,
-    security, or destructive work. Fails closed: an unknown guard result
-    (`forced` truthy) or an empty request keeps the validator.
-    """
-    if forced:
-        return False
-    spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
-    if sensitive_request(str(spec.get("request_verbatim") or "")):
-        return False
-    complexity = str(decision.get("complexity") or "").strip().lower()
-    skill = str(decision.get("skill") or "-").strip().lower()
-    execution = str(decision.get("execution") or "main").strip().lower()
-    return complexity == "trivial" and skill in ("", "-") and not decision.get("pipeline") and execution == "main"

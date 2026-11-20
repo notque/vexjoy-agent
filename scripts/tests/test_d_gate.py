@@ -184,34 +184,19 @@ def test_unresolvable_skill_dir_refuses_instead_of_passing(tmp_path: Path) -> No
     assert refs == [] and "cannot find skill" in problem
 
 
-def test_d_trivial_without_skill_skips_the_intent_validator() -> None:
-    """Changed on purpose (plan: /d upgrade): a plain trivial route needs no receipt and says so."""
-    trivial = {"router": "d", "skill": "-", "complexity": "trivial", "task_spec": {"request_verbatim": "what is 2+2"}}
-    out = _preamble(trivial)
-    assert out.startswith("[do-route] agent=main skill=- complexity=trivial")
-    assert "intent=skipped router=d exec=main" in out.splitlines()[0]
+def test_d_trivial_goes_through_the_gate() -> None:
+    _receipt()
+    out = _preamble(_decision(skill="-", complexity="trivial"))
+    assert out.startswith("[do-route] agent=main skill=- complexity=trivial") and "router=d exec=main" in out
+    assert "intent=skipped" not in out
 
 
-@pytest.mark.parametrize(
-    "overrides",
-    [
-        {"skill": "programming"},
-        {"pipeline": "systematic-debugging"},
-        {"task_spec": {"request_verbatim": "push my changes and open a PR", "intent": "x"}},
-    ],
-    ids=["with-skill", "with-pipeline", "safety-force-route"],
-)
-def test_trivial_skip_never_covers_a_skill_pipeline_or_safety_route(overrides: dict) -> None:
-    trivial = {"router": "d", "skill": "-", "complexity": "trivial", "task_spec": {"request_verbatim": "what is 2+2"}}
-    trivial.update(overrides)
-    with pytest.raises(bd.InputError, match=r"jev-intent-align\.py|task_spec\.intent"):
+@pytest.mark.parametrize("request_text", ["what is 2+2", "thanks", "push my changes and open a PR", ""])
+def test_d_trivial_never_skips_the_intent_validator(request_text: str) -> None:
+    """Owner, 2026-11-19: every /d route runs the intent check, Trivial included."""
+    trivial = {"router": "d", "skill": "-", "complexity": "trivial", "task_spec": {"request_verbatim": request_text}}
+    with pytest.raises(bd.InputError, match=r"jev-intent-align\.py|task_spec\.intent|request_verbatim"):
         _preamble(trivial)
-
-
-def test_safety_guard_failure_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(bd, "_safety_forced", lambda _request: True)
-    with pytest.raises(bd.InputError, match=r"task_spec\.intent"):
-        _preamble({"router": "d", "skill": "-", "complexity": "trivial", "task_spec": {"request_verbatim": "hi"}})
 
 
 # ------------------------------------------------------------------ verify
@@ -388,9 +373,6 @@ def test_recorder_reads_router_and_reason_tokens() -> None:
 
 
 def test_recorder_reads_d_flags_and_context_budget() -> None:
-    assert recorder.parse_d_flags(
-        "[do-route] agent=main skill=- complexity=trivial intent=skipped router=d exec=main"
-    ) == ["intent=skipped"]
     marker = "[do-route] agent=main skill=x complexity=medium verify=required router=d exec=main"
     assert recorder.parse_d_flags(marker) == ["verify=required"]
     assert recorder.parse_d_flags("[do-route] agent=main skill=x exec=main") is None
@@ -399,53 +381,20 @@ def test_recorder_reads_d_flags_and_context_budget() -> None:
     )
 
 
-def test_router_metrics_counts_skips_and_verifier_followthrough() -> None:
+def test_router_metrics_counts_verifier_followthrough() -> None:
     metrics = _load(SCRIPTS / "router-metrics.py", "router_metrics_d")
     row = {"session": "s", "router": "d", "agent": "main", "skill": "x", "pipeline": None, "dispatch_reason": None}
     rows = [
         {**row, "ts": 1.0, "d_flags": ["verify=required"]},
         {**row, "ts": 2.0, "agent": "general-purpose", "dispatch_reason": "verifier", "d_flags": []},
         {**row, "ts": 3.0, "session": "t", "d_flags": ["verify=required"]},
-        {**row, "ts": 4.0, "skill": "-", "d_flags": ["intent=skipped"]},
     ]
     out = metrics.summarize(rows, {})["d"]
     assert out["verify"] == {"required": 2, "verified": 1, "rate": metrics._rate(1, 2)}
-    assert out["intent_skipped_rate"] == metrics._rate(1, 4)
+    assert "intent_skipped_rate" not in out
 
 
 # ------------------------------------------------------------------ verifier findings (PR review of the /d upgrade)
-
-
-@pytest.mark.parametrize(
-    "request_text",
-    [
-        "push",
-        "can you commit this",
-        "merge the PR",
-        "open a pull request",
-        "gh pr create",
-        "amend the last commit",
-        "rebase onto main",
-        "rotate the api key",
-        "deploy to prod",
-        "publish the branch",
-        "",
-    ],
-)
-def test_trivial_skip_refuses_git_release_secret_and_empty_requests(request_text: str) -> None:
-    trivial = {"router": "d", "skill": "-", "complexity": "trivial", "task_spec": {"request_verbatim": request_text}}
-    with pytest.raises(bd.InputError, match=r"jev-intent-align\.py|task_spec\.intent|request_verbatim"):
-        _preamble(trivial)
-
-
-def test_safety_guard_fails_closed_when_pre_route_breaks(monkeypatch: pytest.MonkeyPatch) -> None:
-    class Broken:
-        returncode = 1
-        stdout = "not json"
-
-    monkeypatch.setattr(bd.subprocess, "run", lambda *_a, **_k: Broken())
-    assert bd._safety_forced("what is 2+2") is True
-    assert bd._safety_forced("") is True
 
 
 def test_scenario_paths_read_absolute_worktree_and_bare_dir_paths(tmp_path: Path) -> None:
