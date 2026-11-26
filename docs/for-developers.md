@@ -164,7 +164,7 @@ Fixtures: `scripts/tests/fixtures/` for script test data. Hook tests inline thei
 
 **Scripts are deterministic.** No LLM calls. No judgment. If it involves reasoning, it is an agent or skill.
 
-**50ms hook budget.** Hooks fire on every tool call or prompt. Keep them fast. Profile with `scripts/benchmark-hooks.py` if uncertain.
+**50ms hook budget.** Hooks fire on every tool call or prompt. Keep them fast. Profile with `python3 scripts/benchmark-hooks.py`; it runs registered hooks in an isolated HOME and marks medians over 50 ms.
 
 **Multiple Claude Code accounts.** Run 10+ isolated accounts on one machine using `CLAUDE_CONFIG_DIR`. Each account gets its own config directory (`~/.claude-accounts/<name>/`) with separate credentials, session history, and settings. Shell aliases let you pick an account before Claude Code starts — no `/logout`/`/login` needed.
 

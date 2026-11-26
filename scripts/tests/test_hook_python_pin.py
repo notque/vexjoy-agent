@@ -142,8 +142,9 @@ def test_apply_links_python_and_writes_launcher_into_every_profile(world: Env) -
     assert again.code == 0, again.err
     assert _commands(cfg / "settings.json") == _commands(world.home / ".claude" / "settings.json")
     findings = world.run("doctor", "--target", "claude").data["findings"]
-    # python-deps-missing depends on the host interpreter, not the link; it has its own test.
-    pin = [f for f in findings if f["check"].startswith("python-") and f["check"] != "python-deps-missing"]
+    # These depend on the host interpreter, not the link; each has its own test.
+    host = ("python-deps-missing", "python-bytecode-unreadable")
+    pin = [f for f in findings if f["check"].startswith("python-") and f["check"] not in host]
     assert pin == []
 
 
@@ -493,6 +494,54 @@ def test_missing_modules_is_empty_for_a_python_with_the_stdlib_only(world: Env) 
     assert world.run("apply", "--target", "claude").code == 0
     assert interp.missing_modules(world.home, ("json", "os.path")) == []
     assert interp.missing_modules(world.home, ("json", "no_such_mod_xyz")) == ["no_such_mod_xyz"]
+
+
+FAKE_UNREADABLE = ["/x/lib/python3.12/re/__pycache__", "/x/lib/python3.12/collections/__pycache__"]
+
+
+def _pin_bytecode_fake(home: Path, tmp_path: Path) -> None:
+    """Pin a fake python3 that answers the version probe and reports FAKE_UNREADABLE to the bytecode probe."""
+    link = interp.link_path(home)
+    os.unlink(link)
+    fake = tmp_path / "damaged" / "python3"
+    fake.parent.mkdir(parents=True)
+    fake.write_text(
+        '#!/bin/sh\nif [ "$1" = "-c" ] && case "$2" in *__pycache__*) true;; *) false;; esac; then '
+        f'echo "{FAKE_UNREADABLE[0]}"; echo "{FAKE_UNREADABLE[1]}"; else echo 3.12 0; fi\n'
+    )
+    fake.chmod(0o755)
+    os.symlink(fake, link)
+
+
+def test_unreadable_bytecode_dirs_lists_what_the_probe_reports(world: Env, tmp_path: Path) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    _pin_bytecode_fake(world.home, tmp_path)
+    assert interp.unreadable_bytecode_dirs(world.home) == FAKE_UNREADABLE
+
+
+def test_doctor_warns_when_stdlib_bytecode_is_unreadable(world: Env, tmp_path: Path) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    _pin_bytecode_fake(world.home, tmp_path)
+    res = world.run("doctor", "--target", "claude")
+    found = [f for f in res.data["findings"] if f["check"] == "python-bytecode-unreadable"]
+    assert len(found) == 1 and found[0]["level"] == "warn", res.data["findings"]
+    assert "re/__pycache__" in found[0]["detail"] and "chmod" in found[0]["detail"]
+
+
+def test_unreadable_bytecode_dirs_is_empty_for_a_readable_stdlib(world: Env) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    dirs = interp.unreadable_bytecode_dirs(world.home)
+    assert isinstance(dirs, list)
+    assert all(d.endswith("__pycache__") for d in dirs), dirs
+
+
+def test_sync_health_line_names_unreadable_bytecode(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    monkeypatch.setattr(
+        interp, "unreadable_bytecode_dirs", lambda _home, _timeout=10.0: ["/x/lib/python3.12/re/__pycache__"]
+    )
+    res = world.run("sync", "--target", "claude")
+    assert any(line.startswith("[sync] warning:") and "bytecode" in line for line in res.out), res.out
 
 
 def _pinned_user_site(home: Path, base: Path) -> Path:

@@ -583,7 +583,7 @@ class TestRunGitEnv:
 
 
 # ---------------------------------------------------------------------------
-# Performance — repo benchmark budget (scripts/benchmark-hooks.py: 200ms)
+# Performance — this test's own 200 ms budget (scripts/benchmark-hooks.py marks medians over 50 ms)
 # ---------------------------------------------------------------------------
 
 

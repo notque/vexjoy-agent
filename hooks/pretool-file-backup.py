@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.4
+# hook-version: 1.1.0
 """
 PreToolUse:Edit Hook: File Backup Before Edit
 
@@ -18,8 +18,11 @@ Design:
 - Session-scoped directory prevents cross-session conflicts
 - Owner-only: directories are created 0700 and backup files 0600, so other
   accounts on the machine cannot read the copies
-- No cleanup: /tmp is not cleared on every machine's reboot (on some it is
-  never cleared), so backups stay until removed by hand
+- Keyed on the event's session_id (Claude Code never sets CLAUDE_SESSION_ID),
+  so one session's backups share one directory
+- Retention: when a session makes its directory, session directories not
+  touched for 7 days are removed. /tmp is not cleared on every machine's
+  reboot, so without this they would pile up
 
 Performance target: <10ms (single file copy, no compression).
 
@@ -53,17 +56,16 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+from hook_utils import get_session_id, hook_error
 from stdin_timeout import read_stdin
 
 # 10 MB limit — skip larger files silently
 _MAX_FILE_SIZE = 10 * 1024 * 1024
 
-# Session ID from environment, fall back to PID
-_SESSION_ID = os.environ.get("CLAUDE_SESSION_ID", str(os.getpid()))
-
 _BACKUP_BASE = Path("/tmp/.claude-backups")
-_BACKUP_ROOT = _BACKUP_BASE / _SESSION_ID
+
+# Session directories untouched this long are removed when a new session starts backing up.
+_RETENTION_SECONDS = 7 * 24 * 3600
 
 
 _BYPASS_ENV = "PRETOOL_FILE_BACKUP_BYPASS"
@@ -89,6 +91,30 @@ def _copy_owner_only(src: Path, dest: Path) -> None:
         with os.fdopen(fd, "wb") as out:
             shutil.copyfileobj(inp, out)
     os.utime(str(dest), ns=(st.st_atime_ns, st.st_mtime_ns))
+
+
+def _prune_old_sessions(keep: Path) -> None:
+    """Remove this user's session directories not modified within the retention window.
+
+    Adding a backup updates its directory's mtime, so a session that still edits keeps its copies.
+    Failures are ignored: pruning never affects the backup itself.
+    """
+    cutoff = time.time() - _RETENTION_SECONDS
+    uid = os.getuid() if hasattr(os, "getuid") else None
+    try:
+        entries = list(_BACKUP_BASE.iterdir())
+    except OSError:
+        return
+    for entry in entries:
+        try:
+            if entry == keep or entry.is_symlink() or not entry.is_dir():
+                continue
+            st = entry.stat()
+            if (uid is not None and st.st_uid != uid) or st.st_mtime >= cutoff:
+                continue
+            shutil.rmtree(entry, ignore_errors=True)
+        except OSError:
+            continue
 
 
 def main() -> None:
@@ -124,14 +150,22 @@ def main() -> None:
     except OSError:
         sys.exit(0)
 
+    backup_root = _BACKUP_BASE / get_session_id(event)
+
     # Create backup directories owner-only (0700). Existing ones are not chmodded.
     _BACKUP_BASE.mkdir(parents=True, mode=0o700, exist_ok=True)
-    _BACKUP_ROOT.mkdir(mode=0o700, exist_ok=True)
+    try:
+        backup_root.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    else:
+        # First backup of this session: clear out stale sessions once, not on every Edit.
+        _prune_old_sessions(backup_root)
 
     # Timestamp-prefixed filename for ordering
     timestamp_ms = int(time.time() * 1000)
     backup_name = f"{timestamp_ms}-{src.name}"
-    dest = _BACKUP_ROOT / backup_name
+    dest = backup_root / backup_name
 
     # Copy file — silently ignore failures
     try:

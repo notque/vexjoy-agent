@@ -397,6 +397,57 @@ class TestDedup:
             assert _rewake_summary(out2) is not None
 
 
+class TestCheckedDiffCache:
+    """A diff whose checks all ran is not checked again until the diff changes."""
+
+    def test_clean_diff_is_checked_once(self):
+        diff = _diff_for("hooks/foo.py")
+        spy = _CheckSpy()
+        code1, _, _ = _run(_stop_event(), diff=diff, check_results=spy)
+        first = len(spy.calls)
+        code2, _, _ = _run(_stop_event(), diff=diff, check_results=spy)
+        assert code1 == 0
+        assert code2 == 0
+        assert first > 0
+        assert len(spy.calls) == first
+
+    def test_drifting_diff_is_checked_once(self):
+        diff = _diff_for("hooks/foo.py")
+        spy = _CheckSpy({SMOKE: _drift()})
+        code1, _, _ = _run(_stop_event(), diff=diff, check_results=spy)
+        first = len(spy.calls)
+        code2, out2, _ = _run(_stop_event(), diff=diff, check_results=spy)
+        assert code1 == 2
+        assert first > 0
+        assert len(spy.calls) == first
+        assert code2 == 0
+        assert _rewake_summary(out2) is None
+
+    def test_unrun_check_is_retried(self):
+        diff = _diff_for("hooks/foo.py")
+        calls: list[str] = []
+
+        def unrun(name, cwd):
+            calls.append(name)
+            return None
+
+        _run(_stop_event(), diff=diff, check_results=unrun)
+        first = len(calls)
+        _run(_stop_event(), diff=diff, check_results=unrun)
+        assert first > 0
+        assert len(calls) == 2 * first
+
+    def test_changed_diff_is_checked_again(self):
+        spy = _CheckSpy()
+        code1, _, _ = _run(_stop_event(), diff=_diff_for("hooks/a.py"), check_results=spy)
+        first = len(spy.calls)
+        code2, _, _ = _run(_stop_event(), diff=_diff_for("hooks/b.py"), check_results=spy)
+        assert code1 == 0
+        assert code2 == 0
+        assert first > 0
+        assert len(spy.calls) == 2 * first
+
+
 # ---------------------------------------------------------------------------
 # 7. Disable switch
 # ---------------------------------------------------------------------------

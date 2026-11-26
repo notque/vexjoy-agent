@@ -251,6 +251,11 @@ def _check_python(ctx: Context, findings: list[Finding]) -> None:
                 f"hook python cannot import {', '.join(missing)}; rerun ./install.sh or pip install -r requirements.txt"
             )
             findings.append(Finding(WARN, "python-deps-missing", "claude", link, detail))
+        dirs = interp.unreadable_bytecode_dirs(ctx.home)
+        if dirs:
+            findings.append(
+                Finding(WARN, "python-bytecode-unreadable", "claude", link, interp.bytecode_repair_detail(dirs))
+            )
 
 
 def _check_accounts(ctx: Context, findings: list[Finding]) -> None:

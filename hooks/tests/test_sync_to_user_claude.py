@@ -85,7 +85,8 @@ def test_worktree_session_warns_about_the_main_checkout_hook(legacy_world: Env) 
 def test_sync_runs_engine_and_prints_one_summary_line(world: Env) -> None:
     r = _run(world.repo, world.home)
     assert r.returncode == 0, r.stderr
-    lines = [ln for ln in r.stdout.splitlines() if ln.strip()]
+    # The stdlib bytecode warning reports the host's Python install, not this sync; it appears only on damaged hosts.
+    lines = [ln for ln in r.stdout.splitlines() if ln.strip() and "stdlib bytecode dir(s) unreadable" not in ln]
     assert len(lines) == 1 and lines[0].startswith("[sync] claude: +"), r.stdout
     assert (world.home / ".claude" / "vexjoy" / "ledger.json").is_file()
     assert (world.home / ".claude" / "skills" / "alpha").exists()

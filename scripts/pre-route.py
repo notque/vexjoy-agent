@@ -652,7 +652,11 @@ class MatchEntry:
     agent: str | None
     force_route: bool
     trigger: str
-    pattern: re.Pattern[str]
+
+    @property
+    def pattern(self) -> re.Pattern[str]:
+        """The trigger's regex, compiled on first use and cached by _build_pattern."""
+        return _build_pattern(self.trigger)
 
 
 @dataclass
@@ -763,6 +767,7 @@ def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
     Cached because route() rebuilds the match table on every call and the
     force-route trigger set (500+) is larger than re's own 512-entry cache, so
     without it every route call recompiled every trigger regex.
+    score_matches compiles only triggers whose words all appear in an ASCII request.
 
     Single-word triggers: exact word-boundary match.
     Multi-word triggers: each word must appear in order with up to 2
@@ -799,7 +804,7 @@ def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
 
 
 def build_match_table(entries: list[dict]) -> list[MatchEntry]:
-    """Compile force_route entries' trigger keywords into regex patterns.
+    """Collect force_route entries' triggers; each entry compiles its pattern on first use.
 
     Non-force entries are skipped: pre-route matches only force-routes; the
     semantic router owns the long tail. Single-word triggers use exact
@@ -820,7 +825,6 @@ def build_match_table(entries: list[dict]) -> list[MatchEntry]:
             if not isinstance(trigger, str):
                 continue
             trigger_lower = trigger.lower()
-            pattern = _build_pattern(trigger_lower)
 
             table.append(
                 MatchEntry(
@@ -829,7 +833,6 @@ def build_match_table(entries: list[dict]) -> list[MatchEntry]:
                     agent=agent,
                     force_route=force_route,
                     trigger=trigger_lower,
-                    pattern=pattern,
                 )
             )
 
@@ -930,8 +933,15 @@ def score_matches(table: list[MatchEntry], request: str) -> dict[str, ScoredMatc
     """
     request_lower = request.lower()
     candidates: dict[str, ScoredMatch] = {}
+    # Every trigger word appears literally in any request its pattern matches (_build_pattern adds only
+    # boundaries, gaps and a last-word inflection), so a missing word skips the compile. Non-ASCII text
+    # skips this filter: re.IGNORECASE folds U+0130, U+0131, U+017F and U+212A onto ASCII letters,
+    # which str.lower() does not.
+    prefilter = request_lower.isascii()
 
     for entry in table:
+        if prefilter and not all(word in request_lower for word in entry.trigger.split()):
+            continue
         if not entry.pattern.search(request_lower):
             continue
 

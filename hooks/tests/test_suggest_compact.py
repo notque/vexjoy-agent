@@ -263,3 +263,15 @@ class TestErrorResilience:
         calls = [c.args[0] for c in mock_exit.call_args_list if c.args]
         assert calls, "sys.exit was never called"
         assert all(c == 0 for c in calls), f"Non-zero exit detected: {calls}"
+
+
+def test_registered_only_for_the_tools_it_counts() -> None:
+    """A matcher-less registration starts a process for every tool call; the hook counts only Edit/Write."""
+    settings = json.loads((Path(__file__).resolve().parents[2] / ".claude" / "settings.json").read_text())
+    groups = [
+        g
+        for g in settings["hooks"]["PreToolUse"]
+        if any(h.get("command", "").endswith('suggest-compact.py"') for h in g.get("hooks", []))
+    ]
+    assert len(groups) == 1
+    assert set(groups[0].get("matcher", "").split("|")) == set(mod._TRACKED_TOOLS)

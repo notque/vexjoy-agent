@@ -278,11 +278,12 @@ def test_file_backup_dirs_and_files_owner_only(tmp_path, monkeypatch):
     mod = _load_hook("pretool-file-backup.py", "pretool_file_backup_privacy")
     base = tmp_path / ".claude-backups"
     monkeypatch.setattr(mod, "_BACKUP_BASE", base)
-    monkeypatch.setattr(mod, "_BACKUP_ROOT", base / "sess-1")
     src = tmp_path / "target.txt"
     src.write_text("hello")
     os.chmod(src, 0o644)
-    monkeypatch.setattr(mod, "read_stdin", lambda **_kw: json.dumps({"tool_input": {"file_path": str(src)}}))
+    monkeypatch.setattr(
+        mod, "read_stdin", lambda **_kw: json.dumps({"session_id": "sess-1", "tool_input": {"file_path": str(src)}})
+    )
     with pytest.raises(SystemExit):
         mod.main()
     backups = [p for p in (base / "sess-1").iterdir() if p.is_file()]

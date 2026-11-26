@@ -410,3 +410,44 @@ def missing_modules(home: Path, modules: Iterable[str] = REQUIRED_MODULES, timeo
     except (OSError, subprocess.SubprocessError):
         return []
     return out.stdout.split() if out.returncode == 0 else []
+
+
+# Lists stdlib __pycache__ dirs the hook python cannot read. Python then recompiles those modules in
+# every process, which costs each hook 25-30 ms (measured 2026-11-26 on a host where root left four
+# of them at mode 700). Checks the stdlib root and its direct subdirectories.
+_BYTECODE_PROBE = (
+    "import os, sysconfig\n"
+    "root = sysconfig.get_paths()['stdlib']\n"
+    "dirs = [root] + sorted(e.path for e in os.scandir(root) if e.is_dir(follow_symlinks=False))\n"
+    "for d in dirs:\n"
+    "    c = os.path.join(d, '__pycache__')\n"
+    "    if os.path.isdir(c) and not os.access(c, os.R_OK | os.X_OK):\n"
+    "        print(c)\n"
+)
+
+
+def unreadable_bytecode_dirs(home: Path, timeout: float = 10.0) -> list[str]:
+    """Stdlib ``__pycache__`` dirs the pinned interpreter cannot read; [] when none or unknown."""
+    link = link_path(home)
+    path = _probe_path(link, read_pin(link))
+    if path is None:
+        return []
+    try:
+        out = subprocess.run(
+            [path, "-c", _BYTECODE_PROBE],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [line for line in out.stdout.split("\n") if line] if out.returncode == 0 else []
+
+
+def bytecode_repair_detail(dirs: list[str]) -> str:
+    """Doctor and sync text for unreadable stdlib bytecode dirs: the cost and the root repair command."""
+    return (
+        f"{len(dirs)} stdlib bytecode dir(s) unreadable (first: {dirs[0]}), so every hook recompiles them"
+        f" (~25-30 ms per hook); repair as root: chmod -R go+rX {' '.join(dirs)}"
+    )
