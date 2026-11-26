@@ -207,7 +207,7 @@ PreToolUse hooks split into **gates** (can block tool execution) and **advisory*
 
 | Hook | Matcher | Purpose |
 |------|---------|---------|
-| `suggest-compact.py` | (all) | Suggest `/compact` at edit threshold |
+| `suggest-compact.py` | Write\|Edit | Suggest `/compact` at edit threshold |
 | `pretool-learning-injector.py` | Bash\|Edit | Inject known error patterns |
 | `pretool-prompt-injection-scanner.py` | Write\|Edit | Warn about prompt injection |
 | `pretool-file-backup.py` | Edit | Backup files before modification |
