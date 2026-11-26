@@ -120,7 +120,7 @@ Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verifi
 
 **Scripts are deterministic.** LLM judgment goes in agents and skills, not scripts.
 
-**50ms hook budget.** Hooks fire on every tool call. Keep them fast. `scripts/benchmark-hooks.py` validates this.
+**50ms hook budget.** Hooks fire on every tool call. Keep them fast. `python3 scripts/benchmark-hooks.py` times every registered per-call hook in an isolated HOME and marks medians over 50 ms.
 
 **Wabi-sabi in docs.** Write like a human. Contractions fine. Fragments fine. Banned words include "delve", "robust", "streamline", and "empower"; the full list is `scripts/data/banned-patterns.json`, and `scripts/scan-ai-patterns.py` catches violations.
 
