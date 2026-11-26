@@ -503,6 +503,41 @@ class TestScoreMatches:
             assert result["skill"] == "alpha", f"Expected 'alpha' but got {result['skill']}"
 
 
+class TestLazyTriggerCompile:
+    """The CLI routes one request per process, so it must compile only triggers the request can match."""
+
+    def test_request_naming_no_trigger_compiles_nothing(self, pre_route, real_entries):
+        pre_route._build_pattern.cache_clear()
+        pre_route.route("zzqx blorp quux", entries=real_entries)
+        assert pre_route._build_pattern.cache_info().currsize == 0
+
+    def test_matching_request_compiles_only_its_candidates(self, pre_route, real_entries):
+        pre_route._build_pattern.cache_clear()
+        result = pre_route.route("push my changes now", entries=real_entries)
+        assert result["skill"] == "pr-workflow"
+        assert 0 < pre_route._build_pattern.cache_info().currsize < 50
+
+    def test_non_ascii_request_still_force_routes(self, pre_route, real_entries):
+        # re.IGNORECASE folds U+017F (long s) onto "s"; str.lower() does not, so the prefilter must skip it.
+        result = pre_route.route("\u017fhip it", entries=real_entries)
+        assert result["skill"] == "pr-workflow"
+        assert result["match_type"] == "force_route"
+
+    def test_prefilter_never_hides_a_regex_match(self, pre_route, real_entries):
+        benchmark = Path(__file__).resolve().parents[2] / "scripts" / "routing-benchmark.json"
+        requests = [case["request"] for case in json.loads(benchmark.read_text())["test_cases"]]
+        table = pre_route.build_match_table(real_entries)
+        misses = []
+        for request in requests:
+            req = request.lower()
+            if not req.isascii():
+                continue
+            for entry in table:
+                if entry.pattern.search(req) and not all(w in req for w in entry.trigger.split()):
+                    misses.append((request, entry.trigger))
+        assert not misses, f"prefilter would hide these regex matches: {misses}"
+
+
 # ---------------------------------------------------------------------------
 # CLI integration tests
 # ---------------------------------------------------------------------------
