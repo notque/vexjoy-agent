@@ -127,6 +127,9 @@ def _health_lines(ctx: Context, label: str) -> list[str]:
             f"[{label}] warning: {len(missing)} registered hook file(s) not deployed (first: {first} in {first_file});"
             f" they exit 1 and are skipped until you run git -C {root} pull --ff-only && {root}/install.sh"
         )
+    dirs = interp.unreadable_bytecode_dirs(ctx.home)
+    if dirs:
+        lines.append(f"[{label}] warning: {interp.bytecode_repair_detail(dirs)}")
     return lines
 
 
