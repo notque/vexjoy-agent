@@ -452,6 +452,15 @@ def _dedup() -> DiffDedup:
     return DiffDedup(_STATE_DIR, _STATE_FILE)
 
 
+def _checked() -> DiffDedup:
+    """Remembers the last diff whose relevant checks all ran, clean or drifting.
+
+    A separate file from the advisory dedup, built from _STATE_DIR at call time
+    so the test-suite's state isolation covers it too.
+    """
+    return DiffDedup(_STATE_DIR, _STATE_DIR / "last-checked-diff.json")
+
+
 # =============================================================================
 # Stop handler
 # =============================================================================
@@ -492,13 +501,30 @@ def handle_stop(event: dict) -> None:
     if not checks:
         sys.exit(0)
 
+    # The checks are a pure function of the diff: one already checked has its answer,
+    # clean or drifting, so skip the 5 s smoke run instead of recomputing it every turn.
+    checked = _checked()
+    seen, last_iso = checked.is_duplicate(cwd, diff)
+    if seen:
+        ts_msg = f" since {last_iso}" if last_iso else ""
+        print(f"[stop-drift-guard] diff already checked{ts_msg}, skipping", file=sys.stderr)
+        sys.exit(0)
+
     # Run only the relevant checks; collect those that REPORT drift.
     drifting: list[dict] = []
+    complete = True
     for name in checks:
         result = _run_check(name, cwd)
+        if result is None:
+            complete = False
         # None (couldn't run) and {"drift": False} both mean "no drift" (fail-open).
         if result and result.get("drift"):
             drifting.append(result)
+
+    # Remember the diff only when every check gave an answer; a check that could
+    # not run (timeout, missing script) is retried at the next Stop.
+    if complete:
+        checked.record(cwd, diff)
 
     if not drifting:
         # Files changed but every relevant check is clean -> stay silent.
