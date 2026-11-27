@@ -308,3 +308,170 @@ def test_rollback_restores_pre_switch_tree(world: Env, target: str) -> None:
     for child in (staging / root.name).iterdir():
         os.rename(child, root / child.name)
     assert tree_hash(root, exclude=("vexjoy",)) == pre_exact
+
+
+def test_prune_trash_removes_expired_and_keeps_recent_and_non_ts(tmp_path: Path) -> None:
+    trash_root = tmp_path / "trash"
+    trash_root.mkdir()
+    old_ts = "20200101T000000000000Z"
+    fresh_ts = common.utc_ts()
+    (trash_root / old_ts).mkdir()
+    (trash_root / old_ts / "manifest.json").write_text("{}", encoding="utf-8")
+    (trash_root / fresh_ts).mkdir()
+    (trash_root / "not-a-timestamp").mkdir()
+
+    removed = fsops.prune_trash(trash_root, max_age_days=14)
+    assert removed == [old_ts]
+    assert not (trash_root / old_ts).exists()
+    assert (trash_root / fresh_ts).is_dir()
+    assert (trash_root / "not-a-timestamp").is_dir()
+
+
+def test_restore_trash_rejects_traversal_and_skips_occupied_target(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    trash_root = tmp_path / "trash"
+    ts = common.utc_ts()
+    session = trash_root / ts
+    (session / "files").mkdir(parents=True)
+    guard = fsops.Guard()
+
+    # Invalid ts (traversal) rejected
+    with pytest.raises(ValueError, match="invalid trash timestamp"):
+        fsops.restore_trash(trash_root, "../escape", guard, home=home)
+
+    # src escaping session dir rejected
+    outside_src = tmp_path / "outside.txt"
+    outside_src.write_text("secret", encoding="utf-8")
+    (session / "manifest.json").write_text(
+        json.dumps({"ts": ts, "items": [{"original": str(home / "dest.txt"), "trashed": str(outside_src)}]}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="escapes session dir"):
+        fsops.restore_trash(trash_root, ts, guard, home=home)
+    assert outside_src.exists()
+
+    # orig escaping home rejected
+    trashed_file = session / "files" / "a.txt"
+    trashed_file.write_text("payload", encoding="utf-8")
+    (session / "manifest.json").write_text(
+        json.dumps(
+            {"ts": ts, "items": [{"original": str(tmp_path / "outside-dest.txt"), "trashed": str(trashed_file)}]}
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="escapes home"):
+        fsops.restore_trash(trash_root, ts, guard, home=home)
+    assert trashed_file.exists()
+
+    # Occupied target is skipped when clear_occupant is absent
+    occupied = home / "occupied.txt"
+    occupied.write_text("keep-me", encoding="utf-8")
+    (session / "manifest.json").write_text(
+        json.dumps({"ts": ts, "items": [{"original": str(occupied), "trashed": str(trashed_file)}]}),
+        encoding="utf-8",
+    )
+    restored, skipped = fsops.restore_trash(trash_root, ts, guard, home=home)
+    assert restored == []
+    assert skipped == [str(occupied)]
+    assert occupied.read_text(encoding="utf-8") == "keep-me"
+    assert trashed_file.exists()
+
+
+def test_put_back_and_restore_trash_handle_exdev_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import errno as _errno
+
+    home = tmp_path / "home"
+    home.mkdir()
+    trash_root = tmp_path / "trash"
+    guard = fsops.Guard()
+    ts = common.utc_ts()
+    trash = fsops.Trash(root=trash_root, ts=ts, guard=guard)
+
+    orig = home / "item.txt"
+    orig.write_text("hello", encoding="utf-8")
+    trashed = trash.move(orig, home, "test")
+
+    real_retry_rename = fsops.retry_rename
+
+    def _raise_exdev(src, dst, *, replace=False):
+        if replace:
+            return real_retry_rename(src, dst, replace=replace)
+        raise OSError(_errno.EXDEV, "cross-device link")
+
+    monkeypatch.setattr(fsops, "retry_rename", _raise_exdev)
+    trash.put_back(trashed, orig)
+    assert orig.read_text(encoding="utf-8") == "hello"
+
+    # Re-trash (also uses EXDEV fallback) and restore_trash via EXDEV fallback
+    trashed2 = trash.move(orig, home, "test2")
+    assert trashed2.exists() and not orig.exists()
+    restored, skipped = fsops.restore_trash(trash_root, ts, guard, home=home)
+    assert restored == [str(orig)] and skipped == []
+    assert orig.read_text(encoding="utf-8") == "hello"
+
+
+def test_restore_commands_reject_invalid_ts_and_handle_lock_timeout(
+    world: Env, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from contextlib import contextmanager
+
+    from vexinstall import apply as apply_mod
+
+    bad_trash = world.run("restore-trash", "../../etc")
+    assert bad_trash.code == int(common.ExitCode.USAGE)
+    bad_settings = world.run("restore-settings", "../bad")
+    assert bad_settings.code == int(common.ExitCode.USAGE)
+
+    @contextmanager
+    def _timeout_lock(*_a, **_k):
+        raise common.LockTimeoutError("locked")
+        yield
+
+    monkeypatch.setattr(apply_mod, "engine_lock", _timeout_lock)
+    ts = common.utc_ts()
+    assert world.run("prune", "--unowned", "--confirm").code == int(common.ExitCode.LOCK_TIMEOUT)
+    assert world.run("restore-trash", ts).code == int(common.ExitCode.LOCK_TIMEOUT)
+    assert world.run("restore-settings", ts).code == int(common.ExitCode.LOCK_TIMEOUT)
+
+
+def test_execute_target_rolls_back_container_on_mkdirs_failure(world: Env, monkeypatch: pytest.MonkeyPatch) -> None:
+    from vexinstall import apply as apply_mod
+    from vexinstall import context as context_mod
+    from vexinstall import ledger as ledger_mod
+    from vexinstall import plan as plan_mod
+
+    link_dir = world.home / ".claude" / "skills"
+    link_dir.parent.mkdir(parents=True, exist_ok=True)
+    target_dir = world.work / "old-skills"
+    target_dir.mkdir()
+    os.symlink(target_dir, link_dir)
+
+    guard = fsops.Guard()
+    trash = fsops.Trash(root=world.work / "trash", ts=common.utc_ts(), guard=guard)
+    opts = context_mod.Options(command="apply", home=world.home, source_root=world.repo)
+    ctx = context_mod.load_context(opts)
+    tp = plan_mod.TargetPlan(
+        target="claude",
+        actions=[plan_mod.Action(op="container", target="claude", dest=str(link_dir), kind="container")],
+    )
+
+    def _fail_mkdirs(path: Path, _guard: fsops.Guard) -> None:
+        if path == link_dir:
+            raise OSError("disk full")
+
+    monkeypatch.setattr(apply_mod, "mkdirs", _fail_mkdirs)
+    failed: list[str] = []
+    carry = fsops.CarryLog()
+    apply_mod.execute_target(tp, ctx, trash, guard, ledger_mod.Ledger(), set(), failed, carry)
+    assert len(failed) == 1 and "disk full" in failed[0]
+    assert os.path.islink(link_dir) and os.readlink(link_dir) == str(target_dir)
+
+
+def test_retired_agent_falls_back_when_direct_import_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    from scripts.tests.vexinstall_support import plan as plan_mod
+
+    monkeypatch.setattr(plan_mod, "_RETIRED_FALLBACK", None)
+    monkeypatch.setitem(sys.modules, "routing_index_merge", None)  # triggers ImportError on `from routing_index_merge`
+    assert plan_mod._retired_agent(Path("golang-general-engineer.md")) is True
+    assert plan_mod._retired_agent(Path("not-a-retired-agent.md")) is False

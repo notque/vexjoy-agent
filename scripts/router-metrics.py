@@ -169,7 +169,11 @@ def _verify_followthrough(rows: list[dict]) -> dict:
     """Of the routes marked verify=required, how many saw a verifier dispatch later in the same session."""
     required = [d for d in rows if "verify=required" in d.get("d_flags", [])]
     verifiers = [d for d in rows if d.get("dispatch_reason") == "verifier"]
-    hit = sum(1 for r in required if any(v["session"] == r["session"] and v["ts"] >= r["ts"] for v in verifiers))
+    hit = sum(
+        1
+        for r in required
+        if r["session"] and any(v["session"] == r["session"] and v["ts"] >= r["ts"] for v in verifiers)
+    )
     return {"required": len(required), "verified": hit, "rate": _rate(hit, len(required))}
 
 

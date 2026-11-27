@@ -83,7 +83,7 @@ Commands found: [N]
 YAML errors: [N] (must be 0 to proceed)
 ```
 
-**Gate**: All tools discovered, all YAML valid, counts >0 for each type, docs catalog check exits 0. Proceed only after the gate passes.
+**Gate**: All tools discovered, all YAML valid, counts >0 for skills and commands (`agents` may be 0 when no local or overlay agents exist), docs catalog check exits 0. Proceed only after the gate passes.
 
 ### Phase 2: CROSS-REFERENCE
 
@@ -113,7 +113,7 @@ For each primary doc, collect the set of tool names found. This creates a mappin
 **Step 4: Verify parse completeness**
 
 - Every primary doc found and parsed; a missing one exits 2 and stops the run. Never create a placeholder doc to get past it: fix `PRIMARY_DOCS` and this table.
-- Entry counts are non-zero for each type
+- Entry counts are non-zero for skills and commands (`agents` may be 0, matching `parse_docs.py`)
 
 **Gate**: All documentation files parsed without errors. Proceed only after the gate passes.
 

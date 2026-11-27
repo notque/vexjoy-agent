@@ -508,7 +508,9 @@ def _static_checks(source: str, contract: dict) -> tuple[list[str], list[str]]:
         errors.append("trusted skill index is unreadable or empty")
     for index, entry in enumerate(roster):
         agent_type = entry.get("agentType")
-        if not isinstance(agent_type, str) or not _COMPONENT_NAME.fullmatch(agent_type):
+        if not isinstance(agent_type, str) or (
+            agent_type not in BUILTIN_AGENTS and not _COMPONENT_NAME.fullmatch(agent_type)
+        ):
             errors.append(f"roster[{index}]: agent name must match [a-z0-9-]+")
         elif agent_type in KNOWN_SKILLS:
             errors.append(f"roster[{index}]: '{agent_type}' is a skill, not an agent")

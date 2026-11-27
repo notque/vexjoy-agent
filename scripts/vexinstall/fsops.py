@@ -357,6 +357,23 @@ def carry_node_modules(old: Path, new: Path, guard: Guard, log: CarryLog) -> Non
         log.carried.append(str(dst))
 
 
+def _move_path(src: Path, dest: Path) -> None:
+    """Rename *src* to *dest*, falling back to ``shutil.move`` on cross-device ``EXDEV``."""
+    try:
+        retry_rename(src, dest)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        shutil.move(str(src), str(dest))
+
+
+def _resolved_location(path: Path) -> str:
+    """Physical location of *path* resolving symlinked parents without following a leaf symlink."""
+    abs_path = os.path.abspath(str(path))
+    parent_real = realpath(os.path.dirname(abs_path))
+    return os.path.join(parent_real, os.path.basename(abs_path))
+
+
 @dataclass
 class Trash:
     """Session trash dir: ``<state>/trash/<ts>/``; records a manifest."""
@@ -391,13 +408,11 @@ class Trash:
         item = {"original": str(path), "trashed": str(dest), "reason": reason, "at": utc_iso()}
         self._save([*self.items, item])
         try:
-            retry_rename(path, dest)
-        except OSError as exc:
-            if exc.errno != errno.EXDEV:
-                with contextlib.suppress(OSError):
-                    self._forget()
-                raise
-            shutil.move(str(path), str(dest))
+            _move_path(path, dest)
+        except OSError:
+            with contextlib.suppress(OSError):
+                self._forget()
+            raise
         self.items.append(item)
         return dest
 
@@ -408,7 +423,7 @@ class Trash:
         """
         self.guard.check(original)
         try:
-            retry_rename(trashed, original)
+            _move_path(trashed, original)
         except OSError as exc:
             raise OSError(exc.errno, f"missing; the old entry is in trash at {trashed} ({exc})") from exc
         self.items = [i for i in self.items if i["trashed"] != str(trashed)]
@@ -439,12 +454,22 @@ def restore_trash(
     ts: str,
     guard: Guard,
     clear_occupant: Callable[[Path], bool] | None = None,
+    *,
+    home: Path | None = None,
 ) -> tuple[list[str], list[str]]:
     """Move every item of trash session *ts* back. Returns (restored, skipped).
 
     An empty real dir at the original path is removed first. Any other occupant
     is left alone unless *clear_occupant* moves it away and returns True.
     """
+    if parse_ts(ts) is None:
+        raise ValueError(f"invalid trash timestamp: {ts!r}")
+    session_dir = realpath(trash_root / ts)
+    if not is_inside(session_dir, realpath(trash_root)) or os.path.normcase(session_dir) == os.path.normcase(
+        realpath(trash_root)
+    ):
+        raise ValueError(f"trash session escapes trash root: {ts!r}")
+    home_real = realpath(home) if home is not None else None
     manifest = trash_root / ts / "manifest.json"
     data = json.loads(manifest.read_text(encoding="utf-8"))
     restored: list[str] = []
@@ -452,6 +477,18 @@ def restore_trash(
     for item in reversed(data.get("items", [])):
         orig = Path(item["original"])
         src = Path(item["trashed"])
+        src_loc = _resolved_location(src)
+        if not is_inside(src_loc, session_dir) or os.path.normcase(src_loc) == os.path.normcase(session_dir):
+            raise ValueError(f"trash entry source escapes session dir {session_dir}: {src}")
+        if home_real is not None:
+            orig_loc = _resolved_location(orig)
+            if (
+                not orig.is_absolute()
+                or not is_inside(orig_loc, home_real)
+                or os.path.normcase(orig_loc) == os.path.normcase(home_real)
+            ):
+                raise ValueError(f"trash entry original path escapes home {home_real}: {orig}")
+        guard.check(orig)
         if not os.path.lexists(src):
             skipped.append(str(orig))
             continue
@@ -465,7 +502,7 @@ def restore_trash(
             continue
         guard.check(orig)
         mkdirs(orig.parent, guard)
-        retry_rename(src, orig)
+        _move_path(src, orig)
         restored.append(str(orig))
     return restored, skipped
 

@@ -194,3 +194,63 @@ def test_worktree_create_fails_when_branch_cannot_be_created(repo, monkeypatch, 
     # The worktree directory must not exist
     worktree_dir = repo / ".feature" / "worktrees" / "wt-test"
     assert not worktree_dir.exists()
+
+
+@pytest.mark.parametrize("bad_name", ["", "!!!", "---", "   "])
+def test_empty_slug_is_rejected(repo, monkeypatch, capsys, bad_name):
+    assert _main(monkeypatch, "init", "--", bad_name) == 1
+    assert "error" in json.loads(capsys.readouterr().err)
+    assert _main(monkeypatch, "retro-record-adhoc", "--", bad_name, "k", "v") == 1
+    assert "error" in json.loads(capsys.readouterr().err)
+
+
+@pytest.mark.parametrize("bad_key", ["", ".", "..", "../escape", "a/b", "a\\b", "foo..bar"])
+def test_retro_record_and_promote_reject_unsafe_keys(repo, monkeypatch, capsys, bad_key):
+    assert _main(monkeypatch, "init", "key-check") == 0
+    capsys.readouterr()
+
+    assert _main(monkeypatch, "retro-record", "key-check", bad_key, "val") == 1
+    assert "Invalid key" in json.loads(capsys.readouterr().err)["error"]
+
+    assert _main(monkeypatch, "retro-promote", "key-check", bad_key) == 1
+    assert "Invalid key" in json.loads(capsys.readouterr().err)["error"]
+
+
+@pytest.mark.parametrize("level", ["L1", "L2"])
+@pytest.mark.parametrize("bad_phase", ["../escape", "nonexistent", "design/../../etc"])
+def test_context_read_rejects_invalid_phase(repo, monkeypatch, capsys, level, bad_phase):
+    assert _main(monkeypatch, "init", "phase-check") == 0
+    capsys.readouterr()
+
+    rc = _main(monkeypatch, "context-read", "phase-check", level, "--phase", bad_phase)
+    assert rc == 1
+    assert "Invalid phase" in json.loads(capsys.readouterr().err)["error"]
+
+
+@pytest.mark.parametrize("subcmd", [("worktree", "wt-rm", "cleanup"), ("complete", "wt-rm"), ("abandon", "wt-rm")])
+def test_worktree_remove_failure_returns_error(repo, monkeypatch, capsys, subcmd):
+    import subprocess
+
+    assert _main(monkeypatch, "init", "wt-rm") == 0
+    capsys.readouterr()
+
+    fake_wt = repo / ".feature" / "worktrees" / "wt-rm"
+    fake_wt.mkdir(parents=True)
+    state_file = repo / ".feature" / "state" / "wt-rm.json"
+    state = json.loads(state_file.read_text(encoding="utf-8"))
+    state["worktree_path"] = str(fake_wt)
+    state_file.write_text(json.dumps(state), encoding="utf-8")
+
+    real_run = subprocess.run
+
+    def _fail_wt_remove(cmd, *args, **kwargs):
+        if cmd[:3] == ["git", "worktree", "remove"]:
+            return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="fatal: worktree dirty")
+        return real_run(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(feature_state.subprocess, "run", _fail_wt_remove)
+    rc = _main(monkeypatch, *subcmd)
+    assert rc == 1
+    err = json.loads(capsys.readouterr().err)
+    assert "Failed to remove worktree" in err["error"]
+    assert "worktree dirty" in err["error"]

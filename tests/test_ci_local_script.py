@@ -90,3 +90,41 @@ def test_script_is_executable_bash() -> None:
     assert text.startswith("#!/usr/bin/env bash"), "script must start with #!/usr/bin/env bash"
     assert "set -euo pipefail" in text, "script must use set -euo pipefail"
     assert os.access(_SCRIPT, os.X_OK), "script must be executable (chmod 755)"
+
+
+def test_all_flag_covers_routing_and_node_tests() -> None:
+    """The --all flag wires up routing checks and Node plugin tests."""
+    text = _script_text()
+    assert "--all)" in text
+    assert "scripts/routing-benchmark.py --verbose" in text
+    assert "scripts/check-routing-drift.py --verbose" in text
+    assert "scripts/router-self-audit.py" in text
+    assert "node --test plugins/jev-auto-compact/tests/*.test.mjs" in text
+
+
+def test_workflow_permissions_hook_health_and_node_tests() -> None:
+    """Workflow pins read-only permissions, deploys pyrun.sh, and runs node-tests."""
+    data = yaml.safe_load(_WORKFLOW.read_text(encoding="utf-8"))
+    assert data.get("permissions") == {"contents": "read"}
+
+    hook_steps = data["jobs"]["hook-health"]["steps"]
+    deploy_runs = "\n".join(s.get("run", "") for s in hook_steps if isinstance(s, dict))
+    assert "hooks/lib/pyrun.sh" in deploy_runs
+
+    node_steps = data["jobs"]["node-tests"]["steps"]
+    node_runs = "\n".join(s.get("run", "") for s in node_steps if isinstance(s, dict))
+    assert "node --test plugins/jev-auto-compact/tests/*.test.mjs" in node_runs
+
+
+def test_conftest_strips_session_and_token_env_vars() -> None:
+    """Root conftest strips live-session, debug, and token env vars."""
+    for name in (
+        "CLAUDE_AFK_MODE",
+        "GH_TOKEN",
+        "GITHUB_TOKEN",
+        "CLAUDE_HOOKS_DEBUG",
+        "CLAUDE_HOOK_DEBUG",
+        "PROTECTED_ORGS",
+        "CLAUDE_ROUTING_STATE_DIR",
+    ):
+        assert name not in os.environ, f"{name} leaked into test environment"

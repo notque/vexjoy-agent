@@ -360,3 +360,90 @@ class TestGenerateWrapper:
             )
         assert result == 0
         assert "new prompt" in (out_dir / "exist-cron.sh").read_text()
+
+    @pytest.mark.parametrize("bad", ["../evil", "a/b", ".hidden", "job;rm"])
+    def test_rejects_invalid_name_and_tag(self, tmp_path: Path, bad: str) -> None:
+        fake = FakeCrontab(SAMPLE_CRONTAB)
+        with patch.object(crontab_manager.subprocess, "run", fake.run):
+            assert (
+                crontab_manager.cmd_generate_wrapper(
+                    _args(
+                        name=bad,
+                        prompt="x",
+                        schedule="0 0 * * *",
+                        workdir=str(tmp_path),
+                        budget="2.00",
+                        allowed_tools="Bash",
+                        logdir=None,
+                        output_dir=str(tmp_path / "scripts"),
+                        force=False,
+                    )
+                )
+                == 1
+            )
+            assert crontab_manager.cmd_add(_args(tag=bad, schedule="0 0 * * *", command="/bin/true")) == 1
+            assert crontab_manager.cmd_remove(_args(tag=bad)) == 1
+            assert crontab_manager.cmd_verify(_args(tag=bad)) == 1
+
+    def test_rejects_newlines_in_crontab_entries(self) -> None:
+        fake = FakeCrontab("")
+        with patch.object(crontab_manager.subprocess, "run", fake.run):
+            assert (
+                crontab_manager.cmd_add(_args(tag="ok", schedule="0 0 * * *", command="/bin/true\n* * * * * /evil"))
+                == 1
+            )
+            assert crontab_manager.cmd_add(_args(tag="ok", schedule="0 0 * * *\r", command="/bin/true")) == 1
+
+    def test_dry_run_creates_no_backup_on_add_or_remove(self, tmp_path: Path) -> None:
+        fake = FakeCrontab(SAMPLE_CRONTAB)
+        backup_dir = tmp_path / "backups"
+        with (
+            patch.object(crontab_manager.subprocess, "run", fake.run),
+            patch.object(crontab_manager, "BACKUP_DIR", backup_dir),
+        ):
+            assert (
+                crontab_manager.cmd_add(_args(tag="dry", schedule="0 1 * * *", command="/bin/true", dry_run=True)) == 0
+            )
+            assert crontab_manager.cmd_remove(_args(tag="reddit-automod", dry_run=True)) == 0
+        assert not backup_dir.exists()
+
+    def test_remove_tag_that_is_substring_of_another_tag(self, tmp_path: Path) -> None:
+        content = "# claude-cron: foo\n0 1 * * * /a.sh\n# claude-cron: foo-bar\n0 2 * * * /b.sh\n"
+        fake = FakeCrontab(content)
+        with (
+            patch.object(crontab_manager.subprocess, "run", fake.run),
+            patch.object(crontab_manager, "BACKUP_DIR", tmp_path),
+        ):
+            assert crontab_manager.cmd_remove(_args(tag="foo")) == 0
+        assert crontab_manager._find_tag_lines(fake.content, "foo") == (-1, -1)
+        assert crontab_manager._find_tag_lines(fake.content, "foo-bar")[0] != -1
+
+    def test_wrapper_quotes_vars_removes_flock_race_and_formats_abs_path(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        spaced_dir = tmp_path / "dir with space"
+        out_dir = tmp_path / "scripts"
+        fake = FakeCrontab("")
+        with patch.object(crontab_manager.subprocess, "run", fake.run):
+            rc = crontab_manager.cmd_generate_wrapper(
+                _args(
+                    name="safe-job",
+                    prompt="hi",
+                    schedule="0 0 * * *",
+                    workdir=str(spaced_dir),
+                    budget="2.00",
+                    allowed_tools="Bash Read",
+                    logdir=str(spaced_dir / "logs"),
+                    output_dir=str(out_dir),
+                    force=False,
+                )
+            )
+        assert rc == 0
+        script = out_dir / "safe-job-cron.sh"
+        body = script.read_text(encoding="utf-8")
+        assert 'rm -f "$LOCKFILE"' not in body
+        assert f"WORK_DIR='{spaced_dir}'" in body
+        assert "--allowedTools 'Bash Read'" in body
+        stdout = capsys.readouterr().out
+        assert f"2. Test:   {script}" in stdout
+        assert f"./{script}" not in stdout

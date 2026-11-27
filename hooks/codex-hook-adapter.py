@@ -248,6 +248,15 @@ def _matcher_matches(matcher: str, tool_name: str) -> bool:
         raise AdapterError(f"invalid original matcher {matcher!r}: {exc}") from exc
 
 
+def _normalize_patch_file_path(file_path: str, cwd: str) -> str:
+    """Resolve a relative `apply_patch` file path against *cwd* when available."""
+    if not file_path or not cwd:
+        return file_path
+    if os.path.isabs(file_path) or re.match(r"^[A-Za-z]:[/\\]", file_path) or file_path.startswith("~"):
+        return file_path
+    return os.path.normpath(os.path.join(cwd, file_path))
+
+
 def build_invocations(event: dict[str, Any], *, mode: str, matcher: str) -> list[dict[str, Any]]:
     """Build the child events for one Codex hook event."""
     if mode != "patch":
@@ -258,6 +267,8 @@ def build_invocations(event: dict[str, Any], *, mode: str, matcher: str) -> list
     if not isinstance(tool_input, dict):
         raise PatchParseError("apply_patch tool_input is not an object")
     edits = parse_apply_patch(tool_input.get("command"))
+    raw_cwd = event.get("cwd")
+    base_cwd = raw_cwd if isinstance(raw_cwd, str) and raw_cwd.strip() else ""
     invocations: list[dict[str, Any]] = []
     for edit in edits:
         if not _matcher_matches(matcher, edit.tool_name):
@@ -266,7 +277,10 @@ def build_invocations(event: dict[str, Any], *, mode: str, matcher: str) -> list
         child["codex_tool_name"] = event.get("tool_name")
         child["codex_tool_input"] = copy.deepcopy(tool_input)
         child["tool_name"] = edit.tool_name
-        child["tool_input"] = copy.deepcopy(edit.tool_input)
+        edit_input = copy.deepcopy(edit.tool_input)
+        if base_cwd and "file_path" in edit_input:
+            edit_input["file_path"] = _normalize_patch_file_path(edit_input["file_path"], base_cwd)
+        child["tool_input"] = edit_input
         invocations.append(child)
     return invocations
 
@@ -321,7 +335,7 @@ def _normalize_json_output(event: str, data: dict[str, Any]) -> dict[str, Any]:
         compatible_inner: dict[str, Any] = {"hookEventName": event}
         if additional_context:
             compatible_inner["additionalContext"] = additional_context
-        if event == "PreToolUse" and permission in {"allow", "deny"}:
+        if event == "PreToolUse" and permission in {"allow", "deny", "ask"}:
             compatible_inner["permissionDecision"] = permission
             if permission_reason:
                 compatible_inner["permissionDecisionReason"] = permission_reason
@@ -430,6 +444,8 @@ def aggregate_outputs(event: str, results: list[dict[str, Any]]) -> dict[str, An
     systems: list[str] = []
     contexts: list[str] = []
     deny_reasons: list[str] = []
+    ask_reasons: list[str] = []
+    has_ask = False
     block_reasons: list[str] = []
     stop_reasons: list[str] = []
     permission_decisions: list[dict[str, Any]] = []
@@ -455,6 +471,11 @@ def aggregate_outputs(event: str, results: list[dict[str, Any]]) -> dict[str, An
             contexts.append(context)
         if inner_value.get("permissionDecision") == "deny":
             deny_reasons.append(_string(inner_value.get("permissionDecisionReason")) or "Hook denied this event.")
+        if inner_value.get("permissionDecision") == "ask":
+            has_ask = True
+            ask_reason = _string(inner_value.get("permissionDecisionReason"))
+            if ask_reason:
+                ask_reasons.append(ask_reason)
         if inner_value.get("permissionDecision") == "allow" and isinstance(inner_value.get("updatedInput"), dict):
             updated_inputs.append(inner_value["updatedInput"])
         request_decision = inner_value.get("decision")
@@ -472,6 +493,11 @@ def aggregate_outputs(event: str, results: list[dict[str, Any]]) -> dict[str, An
         if deny_reasons:
             inner["permissionDecision"] = "deny"
             inner["permissionDecisionReason"] = _unique_lines(deny_reasons)
+        elif has_ask:
+            inner["permissionDecision"] = "ask"
+            joined_ask = _unique_lines(ask_reasons)
+            if joined_ask:
+                inner["permissionDecisionReason"] = joined_ask
         elif len(updated_inputs) == 1:
             inner["permissionDecision"] = "allow"
             inner["updatedInput"] = updated_inputs[0]
@@ -528,7 +554,8 @@ def failure_output(event: str, failure_policy: str, detail: str) -> dict[str, An
 
 
 def _run_child(hook: Path, event: dict[str, Any], timeout: float) -> dict[str, Any]:
-    cwd = event.get("cwd") if isinstance(event.get("cwd"), str) else os.getcwd()
+    raw_cwd = event.get("cwd")
+    cwd = raw_cwd if isinstance(raw_cwd, str) and raw_cwd and os.path.isdir(raw_cwd) else os.getcwd()
     completed = subprocess.run(
         [sys.executable, str(hook)],
         input=json.dumps(event),

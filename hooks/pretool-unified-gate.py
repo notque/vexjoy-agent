@@ -1510,7 +1510,7 @@ def _repo_worktree_root() -> Path | None:
     return None
 
 
-def _is_sensitive_exception(file_path: str) -> bool:
+def _is_sensitive_exception(file_path: str, *, fs_path: str | None = None) -> bool:
     """Check if `file_path` matches a sensitive-file exception.
 
     Suffix exceptions (`.env.example` and friends) apply anywhere. Directory
@@ -1527,10 +1527,47 @@ def _is_sensitive_exception(file_path: str) -> bool:
     if root is None:
         return False
     try:
-        resolved = Path(file_path).expanduser().resolve()
+        resolved = Path(fs_path or file_path).expanduser().resolve()
     except (OSError, RuntimeError):
         return False
     return resolved == root or root in resolved.parents
+
+
+def _normalize_path_for_gate(file_path: str, cwd: str = "") -> tuple[str, str]:
+    """Normalize *file_path* for anchored regex matching and filesystem checks.
+
+    Returns `(match_path, fs_path)`:
+    - `fs_path`: `~` expanded, MSYS drive paths normalized, `\\` -> `/`, and
+      relative paths resolved against *cwd* (falling back to event `cwd`,
+      `CLAUDE_PROJECT_DIR`, or `Path.cwd()`).
+    - `match_path`: leading-`/` form of `fs_path` (including `/C:/...` for
+      Windows drive paths) so anchored patterns cannot be bypassed via relative
+      or `~` paths.
+    """
+    import posixpath
+
+    expanded = os.path.expanduser(file_path)
+    norm = normalize_bash_path(expanded).replace("\\", "/")
+    is_drive = bool(re.match(r"^[A-Za-z]:/", norm))
+    if not norm.startswith("/") and not is_drive:
+        eff_cwd = cwd
+        if not eff_cwd and isinstance(_CURRENT_EVENT, dict):
+            eff_cwd = _str_field(_CURRENT_EVENT, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
+        if eff_cwd:
+            base = normalize_bash_path(os.path.expanduser(eff_cwd)).replace("\\", "/")
+        else:
+            base = Path.cwd().as_posix()
+        norm = f"{base.rstrip('/')}/{norm}"
+        is_drive = bool(re.match(r"^[A-Za-z]:/", norm))
+
+    if is_drive:
+        drive, rest = norm[:2], norm[2:]
+        fs_path = drive + posixpath.normpath(rest)
+        match_path = "/" + fs_path
+    else:
+        fs_path = posixpath.normpath(norm)
+        match_path = fs_path if fs_path.startswith("/") else "/" + fs_path
+    return match_path, fs_path
 
 
 def _block(message: str, tool_name: str = "", reason: str = "", sub_rule: str = "") -> None:
@@ -1895,7 +1932,7 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
     allowlist → DEPRECATED bypass env (audit-logged) → ADR-registration
     handshake (audit-logged). Everything else blocks.
     """
-    norm_path = file_path.replace("\\", "/")
+    norm_path, fs_path = _normalize_path_for_gate(file_path, cwd=cwd)
     is_agent = bool(_AGENT_PATTERN.search(norm_path))
     is_skill = bool(_SKILL_PATTERN.search(norm_path))
     is_workflow_ref = bool(_WORKFLOW_REF_PATTERN.search(norm_path))
@@ -1904,11 +1941,11 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
 
     # Domain skills in private overlay repos or runtime ~/.claude/skills/ dirs
     # are outside the toolkit repository and do not require toolkit ADRs.
-    if is_private_or_runtime_skill_path(file_path):
+    if is_private_or_runtime_skill_path(fs_path):
         return
 
     # Allow overwrites of existing files (update, not creation)
-    if os.path.exists(file_path):
+    if os.path.exists(fs_path):
         return
 
     # Allow creation paths produced by named upstream skills (see
@@ -1927,9 +1964,9 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
         return
 
     component_type = "agent" if is_agent else "workflow reference" if is_workflow_ref else "skill"
-    component = _creation_component_name(file_path)
+    component = _creation_component_name(norm_path)
     if component:
-        adr_path = _adr_registration_allows(component, file_path, cwd)
+        adr_path = _adr_registration_allows(component, fs_path, cwd)
         if adr_path:
             # Audit line: every handshake allow is visible in verbose mode.
             print(
@@ -1957,7 +1994,7 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
     )
 
 
-def check_sensitive_file(file_path: str, *, deny: bool = True) -> None:
+def check_sensitive_file(file_path: str, *, deny: bool = True, cwd: str = "") -> None:
     """Flag access to sensitive files unless bypassed or excepted.
 
     Write/Edit (deny=True, default): hard block. Creating or changing a
@@ -1975,8 +2012,8 @@ def check_sensitive_file(file_path: str, *, deny: bool = True) -> None:
     if os.environ.get(_SENSITIVE_BYPASS_ENV) == "1":
         return
 
-    norm_path = normalize_bash_path(file_path).replace("\\", "/")
-    if _is_sensitive_exception(norm_path):
+    norm_path, fs_path = _normalize_path_for_gate(file_path, cwd=cwd)
+    if _is_sensitive_exception(norm_path, fs_path=fs_path):
         return
 
     all_patterns = _SENSITIVE_PATTERNS + _load_guard_patterns()
@@ -2191,14 +2228,15 @@ def _live_hooks_dir() -> Path | None:
         return None
 
 
-def check_guard_integrity(file_path: str) -> None:
+def check_guard_integrity(file_path: str, cwd: str = "") -> None:
     """Deny Write/Edit to live enforcement files except on a feature branch."""
     if os.environ.get(_GUARD_INTEGRITY_BYPASS_ENV) == "1":
         return
+    _, fs_path = _normalize_path_for_gate(file_path, cwd=cwd)
     try:
-        resolved = Path(file_path).resolve()
+        resolved = Path(fs_path).resolve()
     except OSError:
-        resolved = Path(file_path)
+        resolved = Path(fs_path)
     live = _live_hooks_dir()
     in_live_hooks = live is not None and (resolved == live or live in resolved.parents)
     if not in_live_hooks and live is not None:
@@ -3750,8 +3788,8 @@ def main() -> None:
             return
         cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
         check_creation_gate(file_path, cwd=cwd)
-        check_guard_integrity(file_path)
-        check_sensitive_file(file_path)
+        check_guard_integrity(file_path, cwd=cwd)
+        check_sensitive_file(file_path, cwd=cwd)
 
     elif tool in ("Edit", "MultiEdit"):
         paths: list[str] = []
@@ -3765,15 +3803,17 @@ def main() -> None:
                     ep = _str_field(item, "file_path")
                     if ep and ep not in paths:
                         paths.append(ep)
+        cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
         for fp in paths:
-            check_guard_integrity(fp)
-            check_sensitive_file(fp)
+            check_guard_integrity(fp, cwd=cwd)
+            check_sensitive_file(fp, cwd=cwd)
 
     elif tool == "Read":
         file_path = _str_field(tool_input, "file_path")
         if not file_path:
             return
-        check_sensitive_file(file_path, deny=False)
+        cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
+        check_sensitive_file(file_path, deny=False, cwd=cwd)
 
     _emit_advisories()
 

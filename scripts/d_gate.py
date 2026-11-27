@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import posixpath
 import re
 import tempfile
 import time
@@ -119,9 +120,17 @@ def text_hash(value: str | None) -> str:
     return hashlib.sha256((value or "").strip().encode("utf-8")).hexdigest()[:16]
 
 
+def _user_tag() -> str:
+    getuid = getattr(os, "getuid", None)
+    if callable(getuid):
+        return str(getuid())
+    raw = os.environ.get("USERNAME") or os.environ.get("USER") or "user"
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", raw)[:40] or "user"
+
+
 def receipt_dir() -> Path:
     override = os.environ.get(RECEIPT_DIR_ENV)
-    base = Path(override) if override else Path(tempfile.gettempdir()) / f"vexjoy-d-receipts-{os.getuid()}"
+    base = Path(override) if override else Path(tempfile.gettempdir()) / f"vexjoy-d-receipts-{_user_tag()}"
     return base / re.sub(r"[^A-Za-z0-9_.-]", "_", session_id())[:80]
 
 
@@ -350,7 +359,7 @@ def measure_scope(raw: object, base: Path) -> tuple[int, int]:
                     if not target.is_file():
                         continue
                     real = target.resolve()
-                    if real in seen or "/.git/" in str(real) or not _inside(real, root):
+                    if real in seen or ".git" in real.parts or not _inside(real, root):
                         continue
                     seen.add(real)
                     size += real.stat().st_size
@@ -386,7 +395,8 @@ def _scenario_hit(rel: str) -> bool:
 def scenario_paths(raw: object, base: Path | None = None) -> list[str]:
     """The named paths that need a real-scenario check (installer, hooks, routing scripts).
 
-    Relative paths are read from the repo root. An absolute path inside `base`
+    Relative paths are read from the repo root. A leading ``new:`` prefix is
+    stripped and ``..`` segments are normalized. An absolute path inside `base`
     is made relative to it; one outside it (another checkout or worktree)
     matches when any of its trailing segments does, erring toward a check.
     """
@@ -394,16 +404,33 @@ def scenario_paths(raw: object, base: Path | None = None) -> list[str]:
     hits: list[str] = []
     for name in split_paths(raw):
         text = name.replace("\\", "/")
+        if text.startswith("new:"):
+            text = text[4:]
+        if not text:
+            continue
         if text.startswith("/") or re.match(r"^[A-Za-z]:/", text):
             try:
                 rel = Path(text).resolve().relative_to(root).as_posix()
             except (ValueError, OSError):
-                parts = [p for p in text.split("/") if p]
-                rel = next(("/".join(parts[i:]) for i in range(len(parts)) if _scenario_hit("/".join(parts[i:]))), text)
+                norm_abs = posixpath.normpath(text)
+                parts = [p for p in norm_abs.split("/") if p]
+                rel = next(
+                    ("/".join(parts[i:]) for i in range(len(parts)) if _scenario_hit("/".join(parts[i:]))), norm_abs
+                )
         else:
-            rel = re.sub(r"^(\./)+", "", text)
-        if _scenario_hit(rel) and rel not in hits:
-            hits.append(rel.strip("/"))
+            rel = posixpath.normpath(text)
+            rel = re.sub(r"^(\./)+", "", rel)
+            if rel.startswith("../") or rel == "..":
+                try:
+                    rel = (root / text).resolve().relative_to(root).as_posix()
+                except (ValueError, OSError):
+                    parts = [p for p in rel.split("/") if p and p != ".."]
+                    rel = next(
+                        ("/".join(parts[i:]) for i in range(len(parts)) if _scenario_hit("/".join(parts[i:]))), rel
+                    )
+        clean = rel.strip("/")
+        if _scenario_hit(clean) and clean not in hits:
+            hits.append(clean)
     return hits
 
 

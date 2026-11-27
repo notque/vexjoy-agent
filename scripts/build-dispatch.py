@@ -829,7 +829,7 @@ def d_verify_required(decision: dict) -> bool:
     return resolve_execution(decision) == "main" and complexity in d_gate.VERIFY_COMPLEXITIES
 
 
-def check_d_route(decision: dict) -> list[str]:
+def check_d_route(decision: dict, repo_root: Path | None = None) -> list[str]:
     """Apply /d's tool-enforced rules. Returns the validated reference paths for a dispatch.
 
     Raises InputError whose message is the instruction to act on: run the
@@ -840,10 +840,11 @@ def check_d_route(decision: dict) -> list[str]:
     problem = d_gate.check_receipt(spec)
     if problem:
         raise InputError(problem)
+    base = repo_root if repo_root is not None else _repo_top()
     if resolve_execution(decision) == "main":
         if decision.get("dispatch_reason"):
             raise InputError("dispatch_reason applies only to execution='dispatch'; drop it for a main-loop route")
-        problem = d_gate.check_verify(str(decision.get("complexity") or "").strip().lower(), spec, _repo_top())
+        problem = d_gate.check_verify(str(decision.get("complexity") or "").strip().lower(), spec, base)
         if problem:
             raise InputError(problem)
         return []
@@ -851,7 +852,7 @@ def check_d_route(decision: dict) -> list[str]:
     if not skill or skill == "-":
         raise InputError("a /d dispatch needs a skill: the worker loads it and its reference")
     model, _effort = resolve_model_selection(decision, _resolve_provider(decision))
-    problem = d_gate.check_dispatch(decision, model, load_known_agents() - BUILTIN_AGENTS, _repo_top())
+    problem = d_gate.check_dispatch(decision, model, load_known_agents() - BUILTIN_AGENTS, base)
     if problem:
         raise InputError(problem)
     reason = str(decision.get("dispatch_reason") or "").strip().lower()
@@ -1380,6 +1381,7 @@ def build_preamble(
     `gather=False` omits the repo-state block and leaves every other byte unchanged.
     Path validation runs either way. `repo_root=None` means `default_repo_root()`.
     """
+    explicit_repo_root = repo_root
     repo_root = repo_root or default_repo_root()
     if not isinstance(decision, dict):
         raise InputError("routing decision must be a JSON object")
@@ -1389,9 +1391,10 @@ def build_preamble(
 
     context_mode(decision)
     d_route = resolve_router(decision) == _ROUTER_D
-    references = check_d_route(decision) if d_route else []
+    references = check_d_route(decision, explicit_repo_root) if d_route else []
     marker = build_marker(decision)
     skill_calls = render_skill_calls(decision)
+    stack = _key_list(decision.get("stack") or [], "stack")
     if marker.endswith(" exec=main"):
         # Main thread: the worker handoff blocks (Task Spec, repo state,
         # injections) have no reader; the thread already holds that context.
@@ -1408,7 +1411,6 @@ def build_preamble(
                 if phases:
                     note += f" Phases of `{pipeline}`: {' -> '.join(phases)}."
             extra.append(INJ_REFERENCE_LOADING)
-            stack = _key_list(decision.get("stack") or [], "stack")
             if flags.get("local_only") or "local-only" in stack:
                 extra.append(LOCAL_ONLY_BLOCK)
             if d_verify_required(decision):
@@ -1436,7 +1438,7 @@ def build_preamble(
         INJ_BASE_INSTRUCTIONS,
         INJ_ROUTE_FIT,
         WORKTREE_RULES if flags.get("worktree") else "",
-        LOCAL_ONLY_BLOCK if flags.get("local_only") else "",
+        LOCAL_ONLY_BLOCK if (flags.get("local_only") or "local-only" in stack) else "",
     ]
     return "\n\n".join(block for block in blocks if block) + "\n"
 
@@ -1524,7 +1526,12 @@ def record_main_thread_route(marker: str, decision: dict) -> bool:
     event = {
         "hook_event_name": "PostToolUse",
         "tool_name": "Agent",
-        "session_id": os.environ.get("CLAUDE_CODE_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID") or "",
+        "session_id": (
+            os.environ.get("CLAUDE_CODE_SESSION_ID")
+            or os.environ.get("CLAUDE_SESSION_ID")
+            or os.environ.get("JEV_SESSION_ID")
+            or ""
+        ),
         "tool_input": {"prompt": marker, "description": f"main-thread: {snippet}"[:200]},
         "tool_response": "",
     }

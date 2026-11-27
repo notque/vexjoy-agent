@@ -34,11 +34,14 @@ from pathlib import Path
 
 logger = logging.getLogger("sprite-pipeline.sprite_generate")
 
-# Resolve nano-banana script paths. Prefer ~/.claude/scripts/ (deployed),
-# fall back to repo path when running in a dev checkout.
+# Resolve nano-banana script paths. Prefer installed skill/scripts under
+# ~/.claude/, then fall back to sibling skill or repo checkout paths.
+_SCRIPT_DIR = Path(__file__).resolve().parent
 NANO_BANANA_GENERATE_CANDIDATES = [
+    Path.home() / ".claude" / "skills" / "image-gen" / "scripts" / "nano-banana-generate.py",
     Path.home() / ".claude" / "scripts" / "nano-banana-generate.py",
-    Path("/home/feedgen/.claude/scripts/nano-banana-generate.py"),
+    _SCRIPT_DIR.parent.parent / "image-gen" / "scripts" / "nano-banana-generate.py",
+    _SCRIPT_DIR.parent.parent.parent / "content" / "image-gen" / "scripts" / "nano-banana-generate.py",
 ]
 
 

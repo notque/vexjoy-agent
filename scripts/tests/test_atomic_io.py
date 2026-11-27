@@ -86,6 +86,39 @@ class TestAtomicWriteText:
         atomic_write_text(new_target, "created")
         assert new_target.stat().st_mtime_ns >= new_target.parent.stat().st_mtime_ns
 
+    def test_does_not_mutate_process_umask(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Creating a new file never calls os.umask."""
+        import scripts.lib.atomic_io as _mod
+
+        def _forbid_umask(_mask: int) -> int:
+            raise AssertionError("os.umask must not be called")
+
+        monkeypatch.setattr(_mod.os, "umask", _forbid_umask)
+        target = tmp_path / "no_umask.json"
+        atomic_write_text(target, "data")
+        assert target.read_text(encoding="utf-8") == "data"
+
+    def test_default_file_mode_fallback_without_proc_status(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Falls back to 0o644 when /proc/self/status is unavailable."""
+        import scripts.lib.atomic_io as _mod
+
+        orig_read_text = Path.read_text
+
+        def _missing_proc(self: Path, *args: object, **kwargs: object) -> str:
+            if str(self) == "/proc/self/status":
+                raise FileNotFoundError("no /proc")
+            return orig_read_text(self, *args, **kwargs)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(Path, "read_text", _missing_proc)
+        assert _mod._default_file_mode() == 0o644
+
+    def test_writes_large_payload_completely(self, tmp_path: Path) -> None:
+        """Writes multi-megabyte content without truncation."""
+        target = tmp_path / "large.txt"
+        payload = ("abcdefgh" * 1024 + "\n") * 256
+        atomic_write_text(target, payload)
+        assert target.read_text(encoding="utf-8") == payload
+
 
 def _make_failing_os_replace():
     """Return a patched ``os`` module namespace where ``replace`` always raises."""

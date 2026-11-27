@@ -25,6 +25,7 @@ FORCE = "--" + "force"
 
 FAKE_GH = """#!/bin/sh
 echo "$@" >> "$FAKE_GH_DIR/calls"
+pwd >> "$FAKE_GH_DIR/cwds"
 if [ "$1 $2" = "pr view" ]; then
   [ -f "$FAKE_GH_DIR/view_out" ] && cat "$FAKE_GH_DIR/view_out"
   [ -f "$FAKE_GH_DIR/view_rc" ] && exit "$(cat "$FAKE_GH_DIR/view_rc")"
@@ -61,13 +62,20 @@ class Gate:
         path = self.dir / "calls"
         return path.read_text(encoding="utf-8").splitlines() if path.exists() else []
 
-    def run(self, command: str) -> tuple[bool, str]:
+    def cwds(self) -> list[str]:
+        path = self.dir / "cwds"
+        return path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+
+    def run(self, command: str, *, cwd: str | None = None) -> tuple[bool, str]:
         env = {k: v for k, v in os.environ.items() if k not in ("ALLOW_ADMIN_MERGE", "ALLOW_FORCE_MERGE")}
         env.update({"HOME": str(self.root), "PATH": f"{self.bin}{os.pathsep}{env.get('PATH', '')}"})
         env["FAKE_GH_DIR"] = str(self.dir)
+        payload: dict[str, object] = {"tool_name": "Bash", "tool_input": {"command": command}}
+        if cwd is not None:
+            payload["cwd"] = cwd
         proc = subprocess.run(
             [sys.executable, str(HOOK_PATH)],
-            input=json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}),
+            input=json.dumps(payload),
             capture_output=True,
             text=True,
             env=env,
@@ -115,7 +123,7 @@ def test_merge_by_pull_url_reads_that_pr_checks(gate):
     gate.set("checks_out", json.dumps([{"name": "lint", "state": "FAILURE", "bucket": "fail"}]))
     denied, _ = gate.run("gh pr merge https://github.com/acme/widgets/pull/321 --squash")
     assert denied is True
-    assert "pr checks 321 --json name,state,bucket" in gate.calls()
+    assert "pr checks 321 --json name,state,bucket -R acme/widgets" in gate.calls()
 
 
 def test_pending_checks_deny_and_name_the_check(gate):
@@ -163,3 +171,49 @@ def test_unknown_pr_number_allows_and_reports_it(gate):
     assert "Could not determine PR number" in stderr
     assert "HOOK-CRASH" not in stderr
     assert not any(call.startswith("pr checks") for call in gate.calls())
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"gh -R owner/repo pr merge 123 {ADMIN}",
+        f"gh --repo owner/repo pr merge 123 {ADMIN}",
+        f"gh --repo=owner/repo pr merge 123 {ADMIN}",
+        f"gh\tpr\tmerge 123 {ADMIN}",
+        f"gh   pr   merge 123 {ADMIN}",
+    ],
+)
+def test_gh_flags_and_whitespace_before_pr_merge_are_gated(gate, command):
+    denied, _ = gate.run(command)
+    assert denied is True
+
+
+def test_repo_flag_forwarded_to_pr_view_and_pr_checks(gate):
+    gate.set("view_out", "88\n")
+    gate.set("checks_out", json.dumps([{"name": "ci", "state": "FAILURE", "bucket": "fail"}]))
+    denied, _ = gate.run("gh -R org/proj pr merge --squash")
+    assert denied is True
+    assert "pr view --json number --jq .number -R org/proj" in gate.calls()
+    assert "pr checks 88 --json name,state,bucket -R org/proj" in gate.calls()
+
+
+def test_cd_and_event_cwd_forwarded_to_gh_subprocesses(gate, tmp_path: Path):
+    target_dir = tmp_path / "repo-a"
+    target_dir.mkdir()
+    gate.set("checks_out", json.dumps([{"name": "ci", "state": "SUCCESS", "bucket": "pass"}]))
+    denied, _ = gate.run(f"cd {target_dir} && gh pr merge 42 --squash")
+    assert denied is False
+    assert gate.cwds() == [str(target_dir.resolve())]
+
+    target_dir_b = tmp_path / "repo-b"
+    target_dir_b.mkdir()
+    denied_b, _ = gate.run("gh pr merge 42 --squash", cwd=str(target_dir_b))
+    assert denied_b is False
+    assert gate.cwds()[-1] == str(target_dir_b.resolve())
+
+
+def test_echo_mentioning_gh_pr_merge_is_ignored(gate):
+    denied, stderr = gate.run(f'echo "gh pr merge 123 {ADMIN}"')
+    assert denied is False
+    assert "ci-merge-gate" not in stderr
+    assert gate.calls() == []

@@ -377,7 +377,7 @@ def _upsert_managed_block(filepath: Path, block: str, header: str, footer: str) 
     """Replace the managed block in filepath, or append it if absent. Returns True if changed."""
     original = filepath.read_text(encoding="utf-8") if filepath.exists() else ""
     h_idx = original.find(header)
-    f_idx = original.find(footer)
+    f_idx = original.find(footer, h_idx) if h_idx != -1 else -1
 
     if h_idx != -1 and f_idx != -1 and f_idx > h_idx:
         new_content = original[:h_idx] + block + original[f_idx + len(footer) :].lstrip("\n")

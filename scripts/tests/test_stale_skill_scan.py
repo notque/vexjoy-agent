@@ -276,3 +276,73 @@ def test_agents_scanned(db_env):
     assert bar["kind"] == "agent"
     assert bar["routes"] == 1
     assert any("rarely routed (1)" in r.lower() for r in bar["reasons"])
+
+
+def test_young_never_routed_skill_is_excluded(db_env):
+    """A young non-orphaned skill below min_age_days is never a candidate even with 0 routes."""
+    mod = _load(SCAN_PATH, "stale_skill_scan")
+    root = _make_tree(
+        Path(db_env.get_db_path()).parent.parent / "tree_young_unrouted",
+        skills={"brand-new": "skills/x/brand-new/SKILL.md"},
+    )
+    mtimes = {"SKILL.md": NOW - 10 * DAY}
+    results = _scan(mod, root, mtimes=mtimes, kind="skills", min_age_days=180)
+    assert results == []
+
+
+def test_router_entry_points_and_bookkeeping_prefixes_excluded(db_env):
+    """Router entry points (d, do) and bookkeeping key prefixes do not skew counts or candidates."""
+    mod = _load(SCAN_PATH, "stale_skill_scan")
+    for key in ("stack-usage:lonely", "fallback-reason:lonely", "rightsizing:tier2", "main:d", "main:do"):
+        db_env.record_learning(
+            topic="routing",
+            key=key,
+            value="bookkeeping",
+            category="effectiveness",
+            source="hook:routing-decision-recorder",
+        )
+    skill_counts, agent_counts = mod._route_counts()
+    assert "lonely" not in skill_counts
+    assert "tier2" not in skill_counts
+    assert "d" not in skill_counts
+    assert "do" not in skill_counts
+    assert "stack-usage" not in agent_counts
+    assert "fallback-reason" not in agent_counts
+    assert "rightsizing" not in agent_counts
+
+    root = _make_tree(
+        Path(db_env.get_db_path()).parent.parent / "tree_entrypoints",
+        skills={
+            "d": "skills/meta/d/SKILL.md",
+            "do": "skills/meta/do/SKILL.md",
+            "lonely": "skills/x/lonely/SKILL.md",
+        },
+    )
+    mtimes = {"SKILL.md": NOW - 400 * DAY}
+    results = _scan(mod, root, mtimes=mtimes, kind="skills")
+    names = [r["name"] for r in results]
+    assert names == ["lonely"]
+
+
+def test_git_mtime_uses_repo_root_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """git_mtime passes cwd=str(repo_root) so scanning an external repo works from any cwd."""
+    import subprocess
+
+    mod = _load(SCAN_PATH, "stale_skill_scan")
+    repo = tmp_path / "ext_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    f = repo / "SKILL.md"
+    f.write_text("hi\n", encoding="utf-8")
+    subprocess.run(["git", "add", "SKILL.md"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=test@example.com", "-c", "user.name=test", "commit", "-q", "-m", "init"],
+        cwd=repo,
+        check=True,
+    )
+    other = tmp_path / "elsewhere"
+    other.mkdir()
+    monkeypatch.chdir(other)
+
+    ts = mod.git_mtime(str(f), cwd=repo)
+    assert isinstance(ts, int) and ts > 0

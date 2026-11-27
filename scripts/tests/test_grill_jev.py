@@ -247,3 +247,37 @@ def test_report_header_labels_the_question_source(capsys: pytest.CaptureFixture[
     grill._print_report({"a": {"type": "noul", "noul": 0.9}}, {"a": q}, "plan", 0.7, False)
     out = capsys.readouterr().out
     assert "(questions file)" in out and "(static fallback)" in out and "(generated)" not in out
+
+
+def test_fallback_questions_pass_battery_validation_and_report_critical_blast_radius() -> None:
+    grill = _load_module()
+    assert grill._battery_problems(grill.FALLBACK_QUESTIONS) == []
+    blast = grill.FALLBACK_QUESTIONS["r_blast_radius"]
+    assert blast["report_choices"] == ["broad", "critical"]
+    assert grill._is_high_signal(blast, {"choice": "critical", "confidence": 0.9}, 0.7) is True
+    assert grill._is_high_signal(blast, {"choice": "isolated", "confidence": 0.95}, 0.7) is False
+
+
+def test_battery_problems_rejects_report_choices_absent_from_criteria(tmp_path: Path) -> None:
+    grill = _load_module()
+    bad_choice = {
+        "type": "choice",
+        "report_choices": ["broad", "systemic"],
+        "instructions": {"question": "What is the blast radius?"},
+        "criteria": {
+            "isolated": {"what": "one component"},
+            "broad": {"what": "multiple services"},
+            "critical": {"what": "platform outage"},
+        },
+    }
+    problems = grill._battery_problems({"r_blast": bad_choice})
+    assert len(problems) == 1
+    assert "systemic" in problems[0] and "absent from criteria" in problems[0]
+
+    battery = tmp_path / "bad_choice.json"
+    battery.write_text(json.dumps({"questions": {"r_blast": bad_choice}}), encoding="utf-8")
+    with pytest.raises(ValueError, match="systemic"):
+        grill._load_questions(str(battery))
+
+    good_choice = {**bad_choice, "report_choices": ["broad", "critical"]}
+    assert grill._battery_problems({"r_blast": good_choice}) == []

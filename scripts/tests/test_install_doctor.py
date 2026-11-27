@@ -158,3 +158,31 @@ def test_check_learning_db_uses_learning_subdir_v2_schema(tmp_path, monkeypatch)
     assert result["passed"] is True
     assert str(db_path) in result["detail"]
     assert "1 entries" in result["detail"]
+
+
+def test_inventory_counts_only_configured_mcps(tmp_path: Path, monkeypatch) -> None:
+    claude_dir = tmp_path / ".claude"
+    claude_dir.mkdir()
+    codex_dir = tmp_path / ".codex"
+    (claude_dir / "settings.json").write_text(json.dumps({"mcpServers": {"alpha": {}}}), encoding="utf-8")
+
+    # Point install_doctor at a fake mcp-registry.py with two entries (one configured, one not)
+    fake_scripts = tmp_path / "scripts"
+    fake_scripts.mkdir()
+    (fake_scripts / "mcp-registry.py").write_text(
+        'REGISTRY = {"alpha": {"name": "Alpha"}, "beta": {"name": "Beta"}}\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(install_doctor, "CLAUDE_DIR", claude_dir)
+    monkeypatch.setattr(install_doctor, "CODEX_DIR", codex_dir)
+    monkeypatch.setattr(install_doctor, "__file__", str(fake_scripts / "install-doctor.py"))
+    monkeypatch.setattr(Path, "home", classmethod(lambda _cls: tmp_path))
+
+    mcp_results = install_doctor.check_mcp_servers()
+    by_name = {r["name"]: r for r in mcp_results}
+    assert by_name["mcp_alpha"]["configured"] is True
+    assert by_name["mcp_beta"]["configured"] is False
+    assert by_name["mcp_beta"]["passed"] is True
+
+    counts = install_doctor.inventory()
+    assert counts["mcps"] == 2
+    assert counts["mcps_configured"] == 1

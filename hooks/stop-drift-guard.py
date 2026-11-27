@@ -209,6 +209,8 @@ def _has_reviewable_content(diff: str) -> bool:
     """
     for f in _parse_diff(diff):
         path = f["path"]
+        if path.startswith("plugins/"):
+            return True
         if any(path.startswith(root) for root in _COMPONENT_ROOTS):
             return True
         if _is_count_claim_doc(path):

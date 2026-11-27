@@ -1024,6 +1024,7 @@ def accumulate_rightsizing(
     has_wall = wall_clock_s is not None
 
     with get_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
             "SELECT value FROM learnings WHERE topic = 'routing' AND key = ?",
             (key,),
@@ -2279,11 +2280,13 @@ def boost_confidence(topic: str, key: str, delta: float = 0.10) -> float:
     init_db()
     now = datetime.now().isoformat()
     with get_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
             "SELECT confidence, success_count FROM learnings WHERE topic = ? AND key = ?",
             (topic, key),
         ).fetchone()
         if not row:
+            conn.rollback()
             return 0.0
         new_conf = min(1.0, row["confidence"] + delta)
         conn.execute(
@@ -2299,11 +2302,13 @@ def decay_confidence(topic: str, key: str, delta: float = 0.10) -> float:
     init_db()
     now = datetime.now().isoformat()
     with get_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
             "SELECT confidence, failure_count FROM learnings WHERE topic = ? AND key = ?",
             (topic, key),
         ).fetchone()
         if not row:
+            conn.rollback()
             return 0.0
         new_conf = max(0.0, row["confidence"] - delta)
         conn.execute(
@@ -2515,6 +2520,7 @@ def record_session(
     now = datetime.now().isoformat()
 
     with get_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         row = conn.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,)).fetchone()
 
         if row:

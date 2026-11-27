@@ -26,6 +26,7 @@ from .common import (
     OverlayConfigError,
     is_dangling,
     is_inside,
+    parse_ts,
     realpath,
     tree_sha256,
     utc_iso,
@@ -314,12 +315,24 @@ def execute_target(
     now = utc_iso()
     home = ctx.home
     whole = {a.dest for a in tp.actions if a.op in ("replace", "add") and a.dest not in skip}
+    failed_containers: list[str] = []
     for a in tp.actions:
         if a.op == "container":
-            trash.move(Path(a.dest), home, "whole-dir symlink replaced by real dir")
-            mkdirs(Path(a.dest), guard)
+            dest = Path(a.dest)
+            trashed: Path | None = None
+            try:
+                trashed = trash.move(dest, home, "whole-dir symlink replaced by real dir")
+                mkdirs(dest, guard)
+            except OSError as exc:
+                if trashed is not None and not os.path.lexists(dest):
+                    try:
+                        trash.put_back(trashed, dest)
+                    except OSError as put_exc:
+                        exc = put_exc
+                failed.append(_failure(a, exc))
+                failed_containers.append(a.dest)
     for a in tp.actions:
-        if a.dest in skip:
+        if a.dest in skip or any(is_inside(a.dest, c) for c in failed_containers):
             continue
         if a.op == "remove":
             if any(str(p) in whole for p in Path(a.dest).parents):
@@ -335,7 +348,11 @@ def execute_target(
         elif a.op == "stale" and a.dest in ledger.entries:
             ledger.entries[a.dest].status = STATUS_STALE
     for a in tp.actions:
-        if a.dest in skip or a.op not in ("replace", "add", "keep", "adopt"):
+        if (
+            a.dest in skip
+            or a.op not in ("replace", "add", "keep", "adopt")
+            or any(is_inside(a.dest, c) for c in failed_containers)
+        ):
             continue
         dest = Path(a.dest)
         try:
@@ -711,6 +728,14 @@ def run_uninstall(opts: Options) -> Result:
     sdir = state_dir(ctx.home)
     try:
         with engine_lock(sdir / "lock", guard, blocking=True, timeout=APPLY_LOCK_TIMEOUT_S):
+            led, state = ledger_mod.load(ledger_mod.ledger_path(sdir))
+            ctx.ledger = led or Ledger()
+            ctx.ledger_state = state
+            targets = resolve_targets(opts.target, ctx.home)
+            guard_msg = repo_root_refusal(ctx, targets)
+            if guard_msg:
+                return Result(code=int(ExitCode.GUARD), err=[f"[uninstall] ABORT {guard_msg}"])
+            owned = [e for e in ctx.ledger.entries.values() if e.target in targets]
             ts = utc_ts()
             trash = Trash(root=sdir / "trash", ts=ts, guard=guard)
             removed, skipped = [], []
@@ -839,16 +864,25 @@ def run_prune(opts: Options) -> Result:
     guard_msg = repo_root_refusal(ctx, targets)
     if guard_msg:
         return Result(code=int(ExitCode.GUARD), err=[f"[prune] ABORT {guard_msg}"])
-    items = unowned_prunable(ctx, targets)
-    lines = [f"  {p}  ({why})" for p, why in items]
     if not opts.confirm or opts.dry_run:
+        items = unowned_prunable(ctx, targets)
+        lines = [f"  {p}  ({why})" for p, why in items]
         return Result(out=[f"[prune] {len(items)} unowned candidate(s); pass --confirm to trash them", *lines])
-    if not items:
-        return Result(out=["[prune] 0 unowned candidate(s); nothing to trash"])
     guard = guard_for(ctx)
     sdir = state_dir(ctx.home)
     try:
         with engine_lock(sdir / "lock", guard, blocking=True, timeout=APPLY_LOCK_TIMEOUT_S):
+            led, state = ledger_mod.load(ledger_mod.ledger_path(sdir))
+            ctx.ledger = led or Ledger()
+            ctx.ledger_state = state
+            targets = resolve_targets(opts.target, ctx.home)
+            guard_msg = repo_root_refusal(ctx, targets)
+            if guard_msg:
+                return Result(code=int(ExitCode.GUARD), err=[f"[prune] ABORT {guard_msg}"])
+            items = unowned_prunable(ctx, targets)
+            lines = [f"  {p}  ({why})" for p, why in items]
+            if not items:
+                return Result(out=["[prune] 0 unowned candidate(s); nothing to trash"])
             ts = utc_ts()
             trash = Trash(root=sdir / "trash", ts=ts, guard=guard)
 
@@ -872,6 +906,8 @@ def run_prune(opts: Options) -> Result:
             record_point()
     except GuardError as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[prune] ABORT {exc}"])
+    except LockTimeoutError as exc:
+        return Result(code=int(exc.exit_code), err=[str(exc)])
     return Result(out=[f"[prune] moved {len(items)} to trash {ts}", *lines])
 
 
@@ -898,7 +934,7 @@ def _restore_session(
             ledger.entries.pop(d)
         return True
 
-    restored, skipped = restore_trash(sdir / "trash", ts, displaced.guard, clear)
+    restored, skipped = restore_trash(sdir / "trash", ts, displaced.guard, clear, home=ctx.home)
     for orig in restored:
         if orig in moved:
             carry_node_modules(moved[orig], Path(orig), displaced.guard, carry)
@@ -909,6 +945,8 @@ def run_restore_trash(opts: Options) -> Result:
     """Put a trash session back; engine-owned occupants move to a new trash session."""
     if not opts.ts:
         return Result(code=int(ExitCode.USAGE), err=["restore-trash needs a <ts>"])
+    if parse_ts(opts.ts) is None:
+        return Result(code=int(ExitCode.USAGE), err=[f"invalid trash timestamp {opts.ts!r}"])
     try:
         ctx = load_context(opts)
     except OverlayConfigError as exc:
@@ -929,8 +967,10 @@ def run_restore_trash(opts: Options) -> Result:
             ledger_mod.save(ledger_mod.ledger_path(sdir), ledger, guard)
     except FileNotFoundError:
         return Result(code=int(ExitCode.USAGE), err=[f"no trash session {opts.ts}"])
-    except GuardError as exc:
+    except (GuardError, ValueError) as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[restore-trash] ABORT {exc}"])
+    except LockTimeoutError as exc:
+        return Result(code=int(exc.exit_code), err=[str(exc)])
     out = [f"[restore-trash] restored {len(restored)}, skipped {len(skipped)} (dest occupied or missing)"]
     if displaced.items:
         out.append(f"  displaced {len(displaced.items)} engine entries to trash {displaced.ts}")
@@ -948,6 +988,8 @@ def run_restore_settings(opts: Options) -> Result:
     """Restore ``backups/settings.<ts>.json``."""
     if not opts.ts:
         return Result(code=int(ExitCode.USAGE), err=["restore-settings needs a <ts>"])
+    if parse_ts(opts.ts) is None:
+        return Result(code=int(ExitCode.USAGE), err=[f"invalid backup timestamp {opts.ts!r}"])
     try:
         ctx = load_context(opts)
     except OverlayConfigError as exc:
@@ -964,6 +1006,8 @@ def run_restore_settings(opts: Options) -> Result:
         return Result(code=int(ExitCode.USAGE), err=[str(exc)])
     except GuardError as exc:
         return Result(code=int(ExitCode.GUARD), err=[f"[restore-settings] ABORT {exc}"])
+    except LockTimeoutError as exc:
+        return Result(code=int(exc.exit_code), err=[str(exc)])
     return Result(out=[f"[restore-settings] restored backup {src}"])
 
 

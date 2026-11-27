@@ -150,8 +150,18 @@ def _battery_problems(questions: dict[str, Any]) -> list[str]:
         elif qtype == "score" and criteria is not None:
             if not isinstance(criteria, list) or not all(isinstance(c, dict) and c.get("summary") for c in criteria):
                 problems.append(f"{qid}: score criteria must be a list of {{summary, signals}} levels, lowest first")
-        elif qtype == "choice" and not (isinstance(criteria, dict) and criteria):
-            problems.append(f"{qid}: choice criteria must map each option to {{what, not_for, examples}}")
+        elif qtype == "choice":
+            if not (isinstance(criteria, dict) and criteria):
+                problems.append(f"{qid}: choice criteria must map each option to {{what, not_for, examples}}")
+            else:
+                report_choices = q.get("report_choices")
+                if report_choices is not None:
+                    if not isinstance(report_choices, list) or not all(isinstance(c, str) for c in report_choices):
+                        problems.append(f"{qid}: choice report_choices must be a list of criteria keys")
+                    else:
+                        unknown = [c for c in report_choices if c not in criteria]
+                        if unknown:
+                            problems.append(f"{qid}: report_choices {unknown} absent from criteria {sorted(criteria)}")
     return problems
 
 
@@ -196,7 +206,7 @@ FALLBACK_QUESTIONS: dict[str, Any] = {
     },
     "r_blast_radius": {
         "type": "choice",
-        "report_choices": ["broad", "systemic"],
+        "report_choices": ["broad", "critical"],
         "instructions": {
             "question": "What is the blast radius if this change fails?",
             "focus": "How many users, services, or systems are affected by complete failure?",

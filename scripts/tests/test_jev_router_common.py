@@ -272,6 +272,39 @@ class TestCache:
 
         assert call_count["n"] == 2
 
+    def test_multithreaded_cache_store_and_lookup(self) -> None:
+        """Concurrent threads share _cache_conn without ProgrammingError or lost writes."""
+        n_threads = 8
+        barrier = threading.Barrier(n_threads)
+        errors: list[Exception] = []
+        results: dict[int, dict | None] = {}
+
+        with patch.dict(os.environ, {"JEV_CACHE_TTL_S": "120"}):
+            # Prime connection on the main thread so worker threads exercise cross-thread access.
+            common._cache_store("shared-seed", {"q": {"noul": 0.42}}, "jev-test")
+
+            def worker(idx: int) -> None:
+                try:
+                    barrier.wait(timeout=5.0)
+                    assert common._cache_lookup("shared-seed") == {"q": {"noul": 0.42}}
+                    key = f"worker-{idx}"
+                    expected = {"q": {"noul": round(idx / n_threads, 3)}}
+                    common._cache_store(key, expected, "jev-test")
+                    results[idx] = common._cache_lookup(key)
+                except Exception as exc:
+                    errors.append(exc)
+
+            threads = [threading.Thread(target=worker, args=(i,)) for i in range(n_threads)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=10.0)
+
+        assert not errors, f"multi-threaded cache errors: {errors!r}"
+        assert len(results) == n_threads
+        for idx in range(n_threads):
+            assert results[idx] == {"q": {"noul": round(idx / n_threads, 3)}}
+
 
 class TestCircuitBreaker:
     """Task 5: circuit breaker on auth/billing errors. Isolation via autouse fixture."""

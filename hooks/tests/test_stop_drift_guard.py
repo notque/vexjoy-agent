@@ -747,3 +747,10 @@ class TestToolkitRepoGate:
         code_n, out_n = drive(str(non_toolkit))
         assert code_n == 0
         assert _rewake_summary(out_n) is None
+
+
+def test_plugins_diff_is_reviewable():
+    """Changes touching only plugins/ must pass the _has_reviewable_content front gate."""
+    diff = _diff_for("plugins/vexjoy/.claude-plugin/plugin.json")
+    assert mod._has_reviewable_content(diff) is True
+    assert "validate-plugin-install" in mod._relevant_checks(diff)

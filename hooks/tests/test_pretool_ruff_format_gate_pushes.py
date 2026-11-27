@@ -165,3 +165,20 @@ def test_long_ruff_output_is_cut_with_an_ellipsis(bad_repo):
         (bad_repo / f"unformatted_module_with_a_long_name_{i:02d}.py").write_text(BAD, encoding="utf-8")
     _, reason, _ = _run(PUSH, bad_repo)
     assert reason.endswith("...")
+
+
+def test_multiline_cd_then_git_push_is_gated(tmp_path, bad_repo):
+    clean = _repo(tmp_path, "clean")
+    command = f"cd {bad_repo}\n{PUSH}"
+    assert _run(command, clean)[0] is True
+
+
+def test_multiline_cd_with_comment_then_git_push_is_gated(tmp_path, bad_repo):
+    clean = _repo(tmp_path, "clean")
+    command = f"cd {bad_repo} # switch to target repo\n{PUSH}"
+    assert _run(command, clean)[0] is True
+
+
+def test_quoted_newline_with_git_push_text_is_not_a_push(bad_repo):
+    command = f'echo "cd {bad_repo}\n{PUSH}"'
+    assert _run(command, bad_repo)[0] is False

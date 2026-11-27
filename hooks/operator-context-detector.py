@@ -183,49 +183,106 @@ def detect_protected_org() -> str | None:
     return None
 
 
-def _read_git_branch() -> str | None:
-    """
-    Read current git branch from .git/HEAD directly.
+def _resolve_git_dirs() -> tuple[Path, Path] | None:
+    """Locate `(gitdir, commondir)` starting from cwd (up to 3 parents).
 
-    No subprocess call. Returns branch name or None.
+    Handles both normal `.git/` directories and worktree/submodule `.git`
+    pointer files (`gitdir: <path>`) with optional `<gitdir>/commondir`
+    resolution to the shared main `.git` directory.
     """
     cwd = Path.cwd()
     for parent in [cwd] + list(cwd.parents[:3]):
-        head_file = parent / ".git" / "HEAD"
-        if head_file.is_file():
+        dot_git = parent / ".git"
+        if dot_git.is_dir():
+            return dot_git, dot_git
+        if dot_git.is_file():
             try:
-                content = head_file.read_text(encoding="utf-8").strip()
-                if content.startswith("ref: refs/heads/"):
-                    return content[len("ref: refs/heads/") :]
-                # Detached HEAD (commit hash) - not a branch
-                return None
+                content = dot_git.read_text(encoding="utf-8", errors="replace").strip()
             except OSError:
                 return None
+            if not content.lower().startswith("gitdir:"):
+                return None
+            raw_dir = content.split(":", 1)[1].strip()
+            if not raw_dir:
+                return None
+            gitdir_path = Path(raw_dir)
+            if not gitdir_path.is_absolute():
+                gitdir_path = (parent / gitdir_path).resolve()
+            else:
+                gitdir_path = gitdir_path.resolve()
+            commondir_path = gitdir_path
+            commondir_file = gitdir_path / "commondir"
+            if commondir_file.is_file():
+                try:
+                    raw_common = commondir_file.read_text(encoding="utf-8", errors="replace").strip()
+                    if raw_common:
+                        common_cand = Path(raw_common)
+                        commondir_path = (
+                            common_cand.resolve()
+                            if common_cand.is_absolute()
+                            else (gitdir_path / common_cand).resolve()
+                        )
+                except OSError:
+                    pass
+            return gitdir_path, commondir_path
+    return None
+
+
+def _read_git_branch() -> str | None:
+    """
+    Read current git branch from .git/HEAD (or worktree gitdir/HEAD) directly.
+
+    No subprocess call. Returns branch name or None.
+    """
+    dirs = _resolve_git_dirs()
+    if not dirs:
+        return None
+    gitdir, _ = dirs
+    head_file = gitdir / "HEAD"
+    if not head_file.is_file():
+        return None
+    try:
+        content = head_file.read_text(encoding="utf-8").strip()
+        if content.startswith("ref: refs/heads/"):
+            return content[len("ref: refs/heads/") :]
+        # Detached HEAD (commit hash) - not a branch
+        return None
+    except OSError:
+        return None
+
+
+def _read_origin_url(config_path: Path) -> str | None:
+    """Parse `[remote "origin"]` url from a git config file."""
+    if not config_path.is_file():
+        return None
+    try:
+        content = config_path.read_text(encoding="utf-8", errors="replace")
+        match = re.search(
+            r'\[remote\s+"origin"\]\s*\n(?:\s+\w+\s*=.*\n)*?\s+url\s*=\s*(\S+)',
+            content,
+        )
+        if match:
+            return match.group(1)
+    except OSError:
+        pass
     return None
 
 
 def _read_git_remote() -> str | None:
     """
-    Read the origin remote URL from .git/config directly.
+    Read the origin remote URL from .git/config (or worktree commondir/config).
 
     No subprocess call. Returns URL string or None.
     """
-    cwd = Path.cwd()
-    for parent in [cwd] + list(cwd.parents[:3]):
-        git_config = parent / ".git" / "config"
-        if git_config.is_file():
-            try:
-                content = git_config.read_text(encoding="utf-8", errors="replace")
-                # Match [remote "origin"] section's url line
-                match = re.search(
-                    r'\[remote\s+"origin"\]\s*\n(?:\s+\w+\s*=.*\n)*?\s+url\s*=\s*(\S+)',
-                    content,
-                )
-                if match:
-                    return match.group(1)
-            except OSError:
-                pass
-            return None
+    dirs = _resolve_git_dirs()
+    if not dirs:
+        return None
+    gitdir, commondir = dirs
+    url = _read_origin_url(gitdir / "config")
+    if url:
+        return url
+    if commondir != gitdir:
+        return _read_origin_url(commondir / "config")
     return None
 
 

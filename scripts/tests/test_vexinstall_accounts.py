@@ -232,3 +232,66 @@ def test_uninstall_keeps_profile_env_and_attribution(world: Env) -> None:
     data = json.loads((cfg / "settings.json").read_text())
     assert data["env"] == {"REPO_FLAG": "1"}
     assert data["attribution"] == {"commit": "", "pr": ""}
+
+
+def test_registry_honors_custom_home_and_sanitizes_profile_names(tmp_path: Path) -> None:
+    from vexinstall import accounts as accounts_mod
+
+    custom_home = tmp_path / "custom-home"
+    valid_dir = custom_home / ".claude-accounts" / "work_1.0"
+    valid_dir.mkdir(parents=True)
+    bad_dir = custom_home / ".claude-accounts" / "bad"
+    bad_dir.mkdir(parents=True)
+    reg = custom_home / ".claude-accounts" / "accounts.json"
+    reg.write_text(
+        json.dumps(
+            {
+                "work_1.0": {"config_dir": "~/.claude-accounts/work_1.0"},
+                "../escape": {"config_dir": str(bad_dir)},
+                ".hidden": {"config_dir": str(bad_dir)},
+                "bad/name": {"config_dir": str(bad_dir)},
+                "bad*glob": {"config_dir": str(bad_dir)},
+            }
+        ),
+        encoding="utf-8",
+    )
+    found = accounts_mod.registry(custom_home)
+    assert found == {"work_1.0": valid_dir}
+
+
+def test_backup_prunes_by_startswith_and_parse_ts_and_rejects_bad_name(tmp_path: Path) -> None:
+    import pytest
+    from vexinstall import accounts as accounts_mod
+    from vexinstall import common, fsops
+
+    cfg = tmp_path / "acct"
+    cfg.mkdir()
+    (cfg / "settings.json").write_text('{"a": 1}\n', encoding="utf-8")
+    backups = tmp_path / "backups"
+    backups.mkdir()
+    guard = fsops.Guard()
+
+    # Reject bad profile names directly in _backup
+    bad_plan = accounts_mod.AccountPlan(name="../evil", config_dir=cfg)
+    with pytest.raises(ValueError, match="invalid account profile name"):
+        accounts_mod._backup(bad_plan, backups, guard)
+
+    # Create more than SETTINGS_BACKUPS_KEEP valid backups + a non-timestamp file that must survive
+    for i in range(common.SETTINGS_BACKUPS_KEEP + 2):
+        (backups / f"acct1-settings.20260101T0000{i:02d}000000Z.json").write_text("{}", encoding="utf-8")
+    decoy = backups / "acct1-settings.keep-me.json"
+    decoy.write_text("{}", encoding="utf-8")
+    other = backups / "acct2-settings.20260101T000000000000Z.json"
+    other.write_text("{}", encoding="utf-8")
+
+    plan = accounts_mod.AccountPlan(name="acct1", config_dir=cfg)
+    accounts_mod._backup(plan, backups, guard)
+
+    remaining_acct1 = [
+        p.name
+        for p in backups.iterdir()
+        if p.name.startswith("acct1-settings.") and p.name.endswith(".json") and p != decoy
+    ]
+    assert len(remaining_acct1) == common.SETTINGS_BACKUPS_KEEP
+    assert decoy.exists()
+    assert other.exists()

@@ -598,3 +598,56 @@ def test_a_held_queue_lock_is_waited_for_then_the_write_goes_ahead(adapter, tmp_
     assert elapsed >= adapter._LOCK_WAIT_SECONDS
     monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(queue_dir))
     assert adapter.drain_deferred_context("conv-parallel") == ["held-0"]
+
+
+def test_pretooluse_allow_queues_advisory_for_next_preinvocation(adapter, tmp_path: Path, monkeypatch):
+    queue_dir = tmp_path / "queue"
+    monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(queue_dir))
+    norm_event = {"session_id": "conv-pre-adv", "agy_tool_name": "read_file", "agy_tool_args": {"Path": ".env"}}
+    child_stdout = json.dumps(
+        {
+            "systemMessage": "ADVISORY: sensitive read",
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "additionalContext": "Check owner approval before sharing.",
+            },
+        }
+    )
+
+    out = adapter.translate_child_result("PreToolUse", 0, child_stdout, "", normalized_event=norm_event)
+    assert out == {"decision": "allow"}
+
+    pre_inv = adapter.translate_child_result(
+        "PreInvocation",
+        0,
+        "",
+        "",
+        normalized_event={"session_id": "conv-pre-adv"},
+        drain_deferred=True,
+    )
+    injected = pre_inv["injectSteps"][0]["systemMessage"]["systemMessage"]
+    assert "ADVISORY: sensitive read" in injected
+    assert "Check owner approval before sharing." in injected
+
+
+def test_preinvocation_exit2_and_block_decision_inject_reason(adapter):
+    out_exit2 = adapter.translate_child_result(
+        "PreInvocation",
+        2,
+        "",
+        "Must confirm destructive plan first.",
+        normalized_event={"session_id": "conv-pre-block"},
+    )
+    msg_exit2 = out_exit2["injectSteps"][0]["systemMessage"]["systemMessage"]
+    assert "Must confirm destructive plan first." in msg_exit2
+
+    block_stdout = json.dumps({"decision": "block", "reason": "Gate rejected prompt."})
+    out_block = adapter.translate_child_result(
+        "PreInvocation",
+        0,
+        block_stdout,
+        "",
+        normalized_event={"session_id": "conv-pre-block"},
+    )
+    msg_block = out_block["injectSteps"][0]["systemMessage"]["systemMessage"]
+    assert "Gate rejected prompt." in msg_block

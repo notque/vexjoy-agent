@@ -686,6 +686,56 @@ class TestInlineSuppression:
         # An identifier containing 'nosec' must NOT suppress.
         assert "xss-sink" in _rules_hit("nosecurityHandler.innerHTML = x;", "a.js")
 
+    def test_suppression_requires_comment_prefix(self):
+        # Bare tokens in code or URLs without a comment prefix must NOT suppress.
+        assert "dangerous-eval" in _rules_hit("nosec = eval(user_input)", "a.py")  # security-review: ignore
+        assert "shell-injection" in _rules_hit('msg = "nosec"; os.system(cmd)', "a.py")  # security-review: ignore
+        url_line = 'url = "https://example.com#nosec"; os.system(cmd)'  # security-review: ignore
+        assert "shell-injection" in _rules_hit(url_line, "a.py")
+        str_line = 'note = "security-review: ignore"; eval(x)'  # security-review: ignore
+        assert "dangerous-eval" in _rules_hit(str_line, "a.py")
+        # Comment-prefixed forms DO suppress code rules.
+        assert _findings("el.innerHTML = x; /* nosec */", "a.js") == []
+        assert _findings("el.innerHTML = x; <!-- nosec -->", "a.js") == []
+
+    def test_bare_nosec_never_suppresses_anchored_secret_rules(self):
+        # Anchored scope="any" secrets cannot be silenced with casual `# nosec`.
+        secret_line = f'key = "{AWS_EXAMPLE_KEY}"  # nosec'
+        assert "hardcoded-secret" in _rules_hit(secret_line, "a.py")
+
+    def test_explicit_security_review_ignore_still_suppresses_secret_fixture(self):
+        # Test fixtures using explicit `# security-review: ignore` stay suppressed.
+        fixture_line = f'key = "{AWS_EXAMPLE_KEY}"  # security-review: ignore - fixture'
+        assert _findings(fixture_line, "a.py") == []
+
+
+class TestSafeYamlLoaderFilter:
+    @pytest.mark.parametrize(
+        "snippet",
+        [
+            "yaml.load(data, Loader=yaml.UnsafeLoader)",  # security-review: ignore
+            "yaml.load(data, Loader=yaml.FullLoader)  # Safe",  # security-review: ignore
+            "yaml.load(data, Loader=yaml.Loader)  # SafeLoader in comment",  # security-review: ignore
+            "yaml.load(data, Loader=CustomSafeLoader)",  # security-review: ignore
+        ],
+    )
+    def test_unsafe_yaml_loaders_are_not_suppressed(self, snippet):
+        assert "unsafe-yaml" in _rules_hit(snippet, "a.py")
+
+    @pytest.mark.parametrize(
+        "snippet",
+        [
+            "yaml.load(data, Loader=yaml.SafeLoader)",
+            "yaml.load(data, Loader=yaml.CSafeLoader)",
+            "yaml.load(data, Loader=SafeLoader)",
+            "yaml.load(data, Loader=CSafeLoader)",
+            "yaml.load(data, Loader=yaml.BaseLoader)",  # security-review: ignore
+            "yaml.load(data, Loader = BaseLoader)",  # security-review: ignore
+        ],
+    )
+    def test_explicit_safe_yaml_loaders_are_suppressed(self, snippet):
+        assert "unsafe-yaml" not in _rules_hit(snippet, "a.py")
+
 
 class TestIgnoreFile:
     def _project(self, d, ignore_lines, files):

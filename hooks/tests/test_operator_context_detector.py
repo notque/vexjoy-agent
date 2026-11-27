@@ -72,3 +72,45 @@ def test_hook_injects_the_personal_summary(tmp_path: Path) -> None:
     assert context.startswith("[operator-context] Profile: personal — ")
     assert "CLAUDE.md approval rules" in context
     assert "No approval gates" not in context
+
+
+@pytest.mark.parametrize("branch", ["production", "release/2026.11"])
+def test_worktree_gitdir_pointer_detects_production_branch(tmp_path: Path, monkeypatch, branch: str) -> None:
+    main_git = tmp_path / "main" / ".git"
+    wt_gitdir = main_git / "worktrees" / "wt1"
+    wt_gitdir.mkdir(parents=True)
+    (wt_gitdir / "HEAD").write_text(f"ref: refs/heads/{branch}\n", encoding="utf-8")
+    (wt_gitdir / "commondir").write_text("../..\n", encoding="utf-8")
+
+    wt_dir = tmp_path / "wt1"
+    wt_dir.mkdir()
+    (wt_dir / ".git").write_text(f"gitdir: {wt_gitdir}\n", encoding="utf-8")
+
+    monkeypatch.chdir(wt_dir)
+    monkeypatch.delenv("PRODUCTION", raising=False)
+    assert mod._read_git_branch() == branch
+    assert mod.detect_production_context() == f"branch={branch}"
+
+
+def test_worktree_commondir_reads_origin_remote_for_protected_org(tmp_path: Path, monkeypatch) -> None:
+    main_git = tmp_path / "main" / ".git"
+    wt_gitdir = main_git / "worktrees" / "wt-work"
+    wt_gitdir.mkdir(parents=True)
+    (main_git / "config").write_text(
+        '[core]\n\trepositoryformatversion = 0\n[remote "origin"]\n\turl = git@github.com:acme-corp/service.git\n',
+        encoding="utf-8",
+    )
+    (wt_gitdir / "HEAD").write_text("ref: refs/heads/feat/x\n", encoding="utf-8")
+    (wt_gitdir / "commondir").write_text("../..\n", encoding="utf-8")
+
+    wt_dir = tmp_path / "wt-work"
+    wt_dir.mkdir()
+    # Use a relative gitdir pointer to verify relative resolution too.
+    (wt_dir / ".git").write_text("gitdir: ../main/.git/worktrees/wt-work\n", encoding="utf-8")
+
+    monkeypatch.chdir(wt_dir)
+    monkeypatch.setenv("PROTECTED_ORGS", "acme-corp")
+    assert mod._read_git_remote() == "git@github.com:acme-corp/service.git"
+    reason = mod.detect_protected_org()
+    assert reason is not None
+    assert "acme-corp" in reason

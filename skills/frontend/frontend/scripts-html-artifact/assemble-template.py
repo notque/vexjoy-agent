@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import html as html_lib
 import sys
 from pathlib import Path
 
@@ -95,8 +96,8 @@ def assemble_template(
 
     template = BASE_TEMPLATE_PATH.read_text(encoding="utf-8")
 
-    # Inject title
-    html = template.replace("<!-- TITLE -->", title)
+    # Inject title (HTML-escaped to prevent tag breakout)
+    html = template.replace("<!-- TITLE -->", html_lib.escape(title))
 
     # Tag the body with the shape so downstream tools (e.g. to-pdf.py) can
     # detect it without re-running shape classification.

@@ -46,6 +46,7 @@ version: 1.0.0
 - Never auto-apply changes without explicit user approval
 - Always verify the output before marking a task complete
 - Must run tests after every code modification
+- Never deploy schema migrations without a rollback script, otherwise production databases can corrupt
 """
 
 SKILL_B_CONTENT = """\
@@ -63,6 +64,7 @@ version: 1.0.0
 - Never write to files without reading them first
 - Always verify the output before claiming success
 - Must run the test suite after every change, otherwise regressions will slip through
+- Never deploy schema migrations without a rollback script, otherwise production databases can corrupt
 """
 
 SKILL_C_CONTENT = """\
@@ -341,6 +343,19 @@ class TestLayer4NotCovered:
         result = rules_distill.filter_layer4_not_covered(candidates, [])
         assert len(result) == 2
 
+    def test_overlap_is_per_document_not_global_union(self):
+        # Candidate has 6 non-filler words: deploy, schema, migrations, rollback, script, corrupt.
+        # Doc 1 shares 2/6 (0.33), Doc 2 shares 2/6 (0.33), union shares 4/6 (0.67 >= 0.4).
+        # Per-document comparison must keep the candidate with overlap_ratio ~= 0.33.
+        shared = [
+            "deploy schema safely during release windows",
+            "rollback script helps recover cleanly after incidents",
+        ]
+        candidates = [self._make_candidate("Never deploy schema migrations rollback script corrupt")]
+        result = rules_distill.filter_layer4_not_covered(candidates, shared)
+        assert len(result) == 1
+        assert result[0]["overlap_ratio"] < 0.4
+
 
 # ---------------------------------------------------------------------------
 # Unit tests: Staleness policy
@@ -512,8 +527,10 @@ class TestFullPipeline:
         assert "skills_scanned" in result
         assert "candidates" in result
 
-        # Skills were scanned
+        # Skills were scanned and a real shared candidate survived all 4 layers
         assert len(result["skills_scanned"]) == 2
+        assert len(result["candidates"]) >= 1
+        assert any("rollback script" in c["principle"] for c in result["candidates"])
 
         # No files written in dry-run
         assert not (tmp_path / "learning" / "pending.json").exists()
@@ -544,11 +561,13 @@ class TestFullPipeline:
         pending_path = learning_dir / "pending.json"
         assert pending_path.exists()
 
-        # Validate JSON content
+        # Validate JSON content and real surviving candidate
         written = json.loads(pending_path.read_text())
         assert "distilled_at" in written
         assert "skills_scanned" in written
-        assert "candidates" in written
+        assert len(written["candidates"]) >= 1
+        assert any("rollback script" in c["principle"] for c in written["candidates"])
+        assert result["candidates"] == written["candidates"]
 
 
 class TestLlmExtraction:
@@ -578,3 +597,23 @@ class TestLlmExtraction:
         cmd = mock_run.call_args.args[0]
         assert cmd[cmd.index("--model") + 1] == "opus"
         assert mock_run.call_args.args[0][:2] == ["claude", "-p"]
+
+    def test_llm_extract_principles_parses_single_dict_result_envelope(self):
+        payload = json.dumps(
+            {
+                "type": "result",
+                "result": '["Never ship migrations without a rollback plan"]',
+            }
+        )
+        completed = subprocess.CompletedProcess(["claude"], 0, stdout=payload, stderr="")
+
+        with patch.object(rules_distill.subprocess, "run", return_value=completed):
+            result = rules_distill._llm_extract_principles("content", "skill-a")
+
+        assert result == [
+            {
+                "principle": "Never ship migrations without a rollback plan",
+                "raw": "Never ship migrations without a rollback plan",
+                "source": "skill-a",
+            }
+        ]

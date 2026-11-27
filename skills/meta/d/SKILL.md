@@ -155,7 +155,7 @@ Intent alignment (/d):
 | `unavailable` / `error` | Say validation was unavailable and continue. A Jev outage never becomes a rejection. |
 | `aligned` | Continue. |
 
-`build-dispatch.py --router d` enforces this table: it refuses to run without
+`build-dispatch.py` with `"router": "d"` enforces this table: it refuses to run without
 a receipt for the exact `request_verbatim` and `intent`, on a clarification
 without `task_spec.clarification`, and on `review` with empty `gaps`. It is a
 tool check, not a hook; skipping the script skips the gate.

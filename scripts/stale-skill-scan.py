@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import subprocess
 import sys
@@ -46,9 +47,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from routing_index_merge import canonical_agent_name
 
 DAY = 86400
+_ROUTER_ENTRY_POINTS = frozenset({"d", "do"})
+_BOOKKEEPING_KEY_PREFIXES = ("stack-usage:", "fallback-reason:", "rightsizing:")
 
 
-def git_mtime(path: str) -> int | None:
+def git_mtime(path: str, cwd: Path | str | None = None) -> int | None:
     """Last git-commit epoch for `path`, or None when untracked/unknown.
 
     `git log -1 --format=%ct -- <path>`. Empty output (new/untracked file) ->
@@ -60,6 +63,7 @@ def git_mtime(path: str) -> int | None:
             capture_output=True,
             text=True,
             timeout=10,
+            cwd=str(cwd) if cwd is not None else None,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -76,7 +80,8 @@ def _route_counts() -> tuple[dict[str, int], dict[str, int]]:
     """Aggregate routing observation_count by skill segment and agent segment.
 
     key="agent:skill". Skill counts keyed by the last segment; agent counts by
-    the first. Returns (skill_counts, agent_counts).
+    the first. Excludes router entry points (d, do) and bookkeeping prefixes
+    (stack-usage:, fallback-reason:, rightsizing:). Returns (skill_counts, agent_counts).
     """
     rows = query_learnings(
         topic="routing",
@@ -89,7 +94,7 @@ def _route_counts() -> tuple[dict[str, int], dict[str, int]]:
     agent_counts: dict[str, int] = {}
     for r in rows:
         key = r.get("key", "")
-        if ":" not in key:
+        if ":" not in key or key.startswith(_BOOKKEEPING_KEY_PREFIXES):
             continue
         agent, _, skill = key.partition(":")
         n = int(r.get("observation_count", 1) or 1)
@@ -97,7 +102,7 @@ def _route_counts() -> tuple[dict[str, int], dict[str, int]]:
         skill = skill.strip()
         if agent:
             agent_counts[agent] = agent_counts.get(agent, 0) + n
-        if skill and skill != "-":
+        if skill and skill != "-" and skill not in _ROUTER_ENTRY_POINTS:
             skill_counts[skill] = skill_counts.get(skill, 0) + n
     return skill_counts, agent_counts
 
@@ -145,6 +150,9 @@ def _score_component(
         age_days = 0
     else:
         age_days = max(0, (now_epoch - mtime) // DAY)
+
+    if not orphaned and age_days < min_age_days:
+        return None
 
     score = 0
     reasons: list[str] = []
@@ -195,6 +203,7 @@ def scan(
     Returns result rows sorted by score desc, truncated to `top`.
     """
     now_epoch = now_epoch if now_epoch is not None else int(time.time())
+    effective_mtime_fn = functools.partial(git_mtime, cwd=repo_root) if mtime_fn is git_mtime else mtime_fn
     skill_counts, agent_counts = _route_counts()
 
     kinds = []
@@ -208,6 +217,8 @@ def scan(
         index = _load_index(repo_root, component_kind)
         counts = skill_counts if component_kind == "skill" else agent_counts
         for name, entry in index.items():
+            if component_kind == "skill" and name in _ROUTER_ENTRY_POINTS:
+                continue
             row = _score_component(
                 kind=component_kind,
                 name=name,
@@ -216,7 +227,7 @@ def scan(
                 routes=counts.get(name, 0),
                 min_age_days=min_age_days,
                 now_epoch=now_epoch,
-                mtime_fn=mtime_fn,
+                mtime_fn=effective_mtime_fn,
             )
             if row is not None:
                 results.append(row)

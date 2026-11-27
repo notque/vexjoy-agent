@@ -26,16 +26,18 @@ in "Third run" at the end of this file.
 | [002](002-atomic-index-writes.md) | Index generators write INDEX.json atomically | P2 | S | none | DONE (revised: see Revision 2 in the plan) |
 | [003](003-pin-ci-pyyaml.md) | CI installs PyYAML at the locked version, and a test keeps it so | P3 | S | none | DONE |
 | [004](004-local-ci-script.md) | One command runs the CI lint job locally | P2 | S | none | DONE |
-| [005](005-subagent-guard-block-format.md) | The subagent completion guard blocks in the format SubagentStop honors | P1 | S | none | DONE on branch `fix/hooks-audit-findings` (`9eeadedc`), not merged; step 6, install, is owner-gated |
+| [005](005-subagent-guard-block-format.md) | The subagent completion guard blocks in the format SubagentStop honors | P1 | S | none | DONE (merged in PR #1154, `465ffbc2`; step 6, install, is owner-gated) |
 | [006](006-routing-feedback-signal.md) | Find out why routing outcomes never record a real signal (investigate) | P2 | M | none | DONE: see [006-findings.md](006-findings.md) |
-| [007](007-escape-wordpress-link-urls.md) | The WordPress converters escape link and image URLs | P2 | S | none | DONE on branch `fix/skills-script-findings` (`e2f60375`), not merged |
-| [008](008-validate-account-names.md) | Account names and aliases are checked before they reach a shell file | P3 | S | none | DONE on branch `fix/scripts-docs-findings` (`6ea44104`), not merged |
+| [007](007-escape-wordpress-link-urls.md) | The WordPress converters escape link and image URLs | P2 | S | none | DONE (merged in PR #1154, `465ffbc2`) |
+| [008](008-validate-account-names.md) | Account names and aliases are checked before they reach a shell file | P3 | S | none | DONE (merged in PR #1154, `465ffbc2`) |
 | [009](009-retire-agents-d-single-loop.md) | Retire the 44 repo agents; give /d the single-loop setup | - | L | none | Not written by this skill; row added 2026-11-26. Its work merged in PR #1156 (`56b20340`) |
-| [010](010-flag-unreadable-stdlib-bytecode.md) | The installer flags an unreadable stdlib bytecode cache, and the owner repairs this host | P1 | S | none | DONE in PR on `perf/hook-latency-fixes`; step 5 (sudo chmod) still OWNER-GATED, not run |
-| [011](011-pre-route-lazy-trigger-compile.md) | pre-route compiles only the trigger patterns a request can match | P1 | S | none | DONE in PR on `perf/hook-latency-fixes` |
-| [012](012-suggest-compact-matcher.md) | suggest-compact starts only for the Write and Edit calls it counts | P1 | S | none | DONE in PR on `perf/hook-latency-fixes` |
-| [013](013-drift-guard-checked-diff-cache.md) | stop-drift-guard runs its checks once per diff, not once per turn | P1 | S | none | DONE in PR on `perf/hook-latency-fixes` |
-| [014](014-safe-hook-benchmark.md) | The hook benchmark times what Claude Code runs, in an isolated HOME | P2 | M | none | DONE in PR on `perf/hook-latency-fixes` |
+| [010](010-flag-unreadable-stdlib-bytecode.md) | The installer flags an unreadable stdlib bytecode cache, and the owner repairs this host | P1 | S | none | DONE (merged in PR #1159, `2a64f0f6`; step 5, sudo chmod, is owner-gated) |
+| [011](011-pre-route-lazy-trigger-compile.md) | pre-route compiles only the trigger patterns a request can match | P1 | S | none | DONE (merged in PR #1159, `2a64f0f6`) |
+| [012](012-suggest-compact-matcher.md) | suggest-compact starts only for the Write and Edit calls it counts | P1 | S | none | DONE (merged in PR #1159, `2a64f0f6`) |
+| [013](013-drift-guard-checked-diff-cache.md) | stop-drift-guard runs its checks once per diff, not once per turn | P1 | S | none | DONE (merged in PR #1159, `2a64f0f6`) |
+| [014](014-safe-hook-benchmark.md) | The hook benchmark times what Claude Code runs, in an isolated HOME | P2 | M | none | DONE (merged in PR #1159, `2a64f0f6`) |
+
+Follow-up cleanup and latency/CI merges since PR #1159: PRs `#1161`–`#1165` (through `c960a200`) landed Windows security/pipeline/telemetry fixes, `vexinstall` Windows and CLI adapter fixes, hook-latency/context/routing follow-ups, slimmed context/routing docs, and telemetry/Windows CI cleanup.
 
 Status values: TODO, IN PROGRESS, DONE, BLOCKED (one-line reason), REJECTED
 (one-line rationale), STALE (superseded by plan NNN).
@@ -187,8 +189,8 @@ were not re-opened.
 
 ### Fix pass (2026-11-16, same day)
 
-The owner asked for every listed issue to be fixed. Work sits on local
-branches cut from `871f6499`; none is merged, pushed, or installed.
+The owner asked for every listed issue to be fixed. Work was cut from
+`871f6499` on local branches and later merged into `main` in PR #1154 (`465ffbc2`).
 
 | Branch | Holds |
 |---|---|
@@ -273,7 +275,7 @@ Vetted and real, ranked below plans 010-014. Plan one with
 | UserPromptSubmit hooks compile or import before their cheap filters: `routing-outcome-finalizer.py` 4 ms of regexes, `review-false-positive-capture.py` and `prompt-capture.py` import `learning_db_v2` (about 5 ms) | S | LOW | HIGH | `hooks/routing-outcome-finalizer.py:267-269,445-446` |
 | The SessionStart sync changed nothing in 49 of 49 recent runs, at 743 ms median engine time (676-1645); it sets SessionStart wall time in the toolkit checkout | M | MED: a stamp that misses an input (target-side drift, accounts, overlays) skips a needed sync | HIGH | `hooks/sync-to-user-claude.py:127-131`; `scripts/vexinstall/apply.py:497-499,592-620`; `~/.claude/vexjoy/reports` |
 | `routing-decision-recorder.py` opens 8 connections and commits 8 times per routed dispatch (about 15 ms of 100); WAL runs at `synchronous=FULL` | M | LOW | HIGH | `hooks/routing-decision-recorder.py:726-838`; `hooks/lib/learning_db_v2.py:97-109` |
-| `pretool-file-backup.py` keys its backup dir on `CLAUDE_SESSION_ID`, which Claude Code never sets, so every Edit makes a new per-PID dir that nothing prunes: `/tmp/.claude-backups` holds 7,263 dirs, 424 MB (mode 700, so private). The fix is `hook_utils.get_session_id(event)` plus retention; the owner approved removing the existing dirs on 2026-11-26 (7,246 removed, 426 MB). DONE in PR on `perf/hook-latency-fixes` | S | LOW | HIGH | `hooks/pretool-file-backup.py:63-66`; `hooks/lib/hook_utils.py:301-307` |
+| `pretool-file-backup.py` keys its backup dir on `CLAUDE_SESSION_ID`, which Claude Code never sets, so every Edit makes a new per-PID dir that nothing prunes: `/tmp/.claude-backups` holds 7,263 dirs, 424 MB (mode 700, so private). The fix is `hook_utils.get_session_id(event)` plus retention; the owner approved removing the existing dirs on 2026-11-26 (7,246 removed, 426 MB). DONE (merged in PR #1159, `2a64f0f6`) | S | LOW | HIGH | `hooks/pretool-file-backup.py:63-66`; `hooks/lib/hook_utils.py:301-307` |
 
 ### Owner decisions
 

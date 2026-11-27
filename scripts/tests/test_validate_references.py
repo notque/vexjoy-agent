@@ -13,6 +13,8 @@ Run with: python3 -m pytest scripts/tests/test_validate_references.py -v
 from __future__ import annotations
 
 import importlib.util
+import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -119,3 +121,98 @@ def test_all_mode_reports_missing_reference_and_orphan(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # Scoped modes that CI already uses
 # ---------------------------------------------------------------------------
+
+
+def _make_synthetic_repo(tmp_path: Path) -> Path:
+    """Create a minimal repo copy hosting scripts/validate-references.py."""
+    repo = tmp_path / "repo"
+    (repo / "scripts" / "lib").mkdir(parents=True)
+    shutil.copy2(SCRIPT, repo / "scripts" / "validate-references.py")
+    for lib_file in ("__init__.py", "frontmatter.py", "index_freshness.py"):
+        src = REPO_ROOT / "scripts" / "lib" / lib_file
+        if src.is_file():
+            shutil.copy2(src, repo / "scripts" / "lib" / lib_file)
+    merge_src = REPO_ROOT / "scripts" / "routing_index_merge.py"
+    if merge_src.is_file():
+        shutil.copy2(merge_src, repo / "scripts" / "routing_index_merge.py")
+    (repo / "agents").mkdir(exist_ok=True)
+    (repo / "skills").mkdir(exist_ok=True)
+    (repo / "commands").mkdir(exist_ok=True)
+    return repo
+
+
+def _run_in_repo(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    script = repo / "scripts" / "validate-references.py"
+    return subprocess.run(
+        [sys.executable, str(script), *args],
+        capture_output=True,
+        text=True,
+        cwd=str(repo),
+        timeout=60,
+    )
+
+
+def test_check_do_framing_exits_nonzero_on_unpaired_antipattern(tmp_path: Path) -> None:
+    """--check-do-framing exits 1 when an anti-pattern heading lacks a positive counterpart."""
+    repo = _make_synthetic_repo(tmp_path)
+    skill = repo / "skills" / "demo" / "bad-framing" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("# Demo\n\n## Anti-patterns\n\nNever write bare except clauses.\n", encoding="utf-8")
+
+    result = _run_in_repo(repo, "--check-do-framing")
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "DO-FRAMING" in result.stdout
+    assert "bad-framing" in result.stdout
+
+
+def test_check_placeholders_exits_nonzero_on_generic_signal(tmp_path: Path) -> None:
+    """--check-placeholders exits 1 when a loading table uses a banned placeholder signal."""
+    repo = _make_synthetic_repo(tmp_path)
+    skill = repo / "skills" / "demo" / "bad-table" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "# Demo\n\n| Signal | Reference |\n| --- | --- |\n| implementation patterns | references/p.md |\n",
+        encoding="utf-8",
+    )
+
+    result = _run_in_repo(repo, "--check-placeholders")
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "PLACEHOLDER_SIGNAL" in result.stdout
+    assert "implementation patterns" in result.stdout
+
+
+def test_check_size_exits_nonzero_on_oversized_reference(tmp_path: Path) -> None:
+    """--check-size exits 1 when an unregistered skill reference exceeds 500 lines."""
+    repo = _make_synthetic_repo(tmp_path)
+    skill_dir = repo / "skills" / "demo" / "huge-ref"
+    (skill_dir / "references").mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("# Huge Ref\n", encoding="utf-8")
+    (skill_dir / "references" / "oversized.md").write_text("line\n" * 510, encoding="utf-8")
+
+    result = _run_in_repo(repo, "--check-size")
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "demo/huge-ref/references/oversized.md" in result.stdout
+    assert "exceeds 500" in result.stdout
+
+
+def test_check_skill_calls_exits_nonzero_on_unknown_skill_and_missing_tool(tmp_path: Path) -> None:
+    """--check-skill-calls exits 1 when a command calls a nonexistent skill without Skill permission."""
+    repo = _make_synthetic_repo(tmp_path)
+    (repo / "skills" / "INDEX.json").write_text(json.dumps({"skills": {"known-skill": {}}}), encoding="utf-8")
+    (repo / "agents" / "INDEX.json").write_text(json.dumps({"agents": {}}), encoding="utf-8")
+    pipeline_idx = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
+    pipeline_idx.parent.mkdir(parents=True)
+    pipeline_idx.write_text(json.dumps({"pipelines": {}}), encoding="utf-8")
+    (repo / "commands" / "broken.md").write_text(
+        "---\ndescription: broken\nallowed-tools: [Read]\n---\n\nCall the Skill tool with `phantom-skill`.\n",
+        encoding="utf-8",
+    )
+
+    result = _run_in_repo(repo, "--check-skill-calls")
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "allowed-tools lacks Skill" in result.stdout
+    assert "phantom-skill" in result.stdout

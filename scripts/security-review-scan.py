@@ -89,11 +89,18 @@ _PY_EXTS = (".py", ".pyi", ".ipynb")
 # yaml/yml are intentionally NOT skipped — the GitHub-Actions rule needs them.
 _DOC_EXTS = (".md", ".mdx", ".txt", ".rst", ".json")
 
-# Inline per-line suppression: a finding on a line containing one of these markers
-# is dropped. Mirrors bandit `# nosec` / semgrep `// nosemgrep`. Intended for
-# deliberate, auditable, single-line exceptions (e.g. a vetted vendored sink).
-# `nosec` must be a standalone token so it doesn't fire on unrelated identifiers.
-_INLINE_SUPPRESS_RE = re.compile(r"(?:\bnosec\b|security[-_ ]?review\s*:?\s*ignore)", re.IGNORECASE)
+# Inline per-line suppression: requires a comment prefix (`#`, `//`, `/*`, `<!--`)
+# before `nosec` or `security-review: ignore` so code identifiers or URLs cannot
+# suppress findings accidentally. Bare `# nosec` never suppresses anchored
+# `scope="any"` secret rules; explicit `# security-review: ignore` still suppresses
+# every rule (e.g. intentional secret test fixtures).
+_INLINE_SUPPRESS_NOSEC_RE = re.compile(r"(?:^|[\s;])(?:#|//|/\*|<!--)\s*nosec\b", re.IGNORECASE)
+_INLINE_SUPPRESS_EXPLICIT_RE = re.compile(
+    r"(?:^|[\s;])(?:#|//|/\*|<!--)\s*security[-_ ]?review\s*:?\s*ignore\b", re.IGNORECASE
+)
+_INLINE_SUPPRESS_RE = re.compile(
+    r"(?:^|[\s;])(?:#|//|/\*|<!--)\s*(?:nosec\b|security[-_ ]?review\s*:?\s*ignore\b)", re.IGNORECASE
+)
 
 # Project/user file listing path globs to skip wholesale (one glob per line,
 # `#` comments, blank lines ignored). For vendored / third-party code we don't
@@ -395,7 +402,7 @@ def _build_rules() -> list[dict]:
     # CRITICAL — RCE / code-execution sinks
     # ==================================================================
 
-    # eval()/exec() (ours, kept). Lookbehind skips method calls (model.eval()).  nosec: rule comment
+    # eval()/exec() (ours, kept). Lookbehind skips method calls (model.eval()).  # nosec: rule comment
     # Doc files skipped so prose/docstrings don't fire. Severity CRITICAL per
     # ADR (RCE). skip_test keeps noisy test code quiet.
     add("dangerous-eval", "CRITICAL", r"(?<![A-Za-z0-9_.])(?:eval|exec)\s*\(", skip_test=True, path_filter=not_doc)
@@ -407,28 +414,28 @@ def _build_rules() -> list[dict]:
     # HIGH — command/shell injection
     # ==================================================================
 
-    # os.system (ours/Anthropic os_system_injection). Python only.  nosec: rule comment
+    # os.system (ours/Anthropic os_system_injection). Python only.  # nosec: rule comment
     add("shell-injection", "HIGH", r"\bos\.system\s*\(", path_filter=py_only)
     add("shell-injection", "HIGH", r"\bfrom os import system\b", path_filter=py_only)
-    # subprocess.call(...) (ours, broad — kept).  nosec: rule comment
+    # subprocess.call(...) (ours, broad — kept).  # nosec: rule comment
     add("shell-injection", "HIGH", r"\bsubprocess\.call\s*\(", path_filter=py_only)
-    # subprocess.* with shell=True (Anthropic python_subprocess_shell; ours had  nosec: rule comment
-    # a bare shell=True too — this targeted form supersedes it).  nosec: rule comment
+    # subprocess.* with shell=True (Anthropic python_subprocess_shell; ours had  # nosec: rule comment
+    # a bare shell=True too — this targeted form supersedes it).  # nosec: rule comment
     add(
         "shell-injection",
         "HIGH",
         r"subprocess\.(?:run|call|Popen|check_output|check_call)\([^\n]{0,1000}?shell\s{0,20}=\s{0,20}True",
         path_filter=py_only,
     )
-    # Bare `shell=True` anywhere (ours, kept as a catch for custom wrappers).  nosec: rule comment
+    # Bare `shell=True` anywhere (ours, kept as a catch for custom wrappers).  # nosec: rule comment
     add("shell-injection", "HIGH", r"\bshell\s*=\s*True\b", path_filter=py_only)
 
-    # JS child_process.exec / execSync / bare exec( (Anthropic child_process_exec).  nosec: rule comment
+    # JS child_process.exec / execSync / bare exec( (Anthropic child_process_exec).  # nosec: rule comment
     add("shell-injection", "HIGH", r"\bchild_process\.exec\b", path_filter=js_only)
     add("shell-injection", "HIGH", r"\bexecSync\s*\(", path_filter=js_only)
     add("shell-injection", "HIGH", r"(?<![A-Za-z0-9_.])exec\s*\(", path_filter=js_only)
 
-    # Go exec.Command("sh"|"bash"|...) shell wrapper (Anthropic go_exec_shell_injection).  nosec: rule comment
+    # Go exec.Command("sh"|"bash"|...) shell wrapper (Anthropic go_exec_shell_injection).  # nosec: rule comment
     add("shell-injection", "HIGH", r'exec\.Command\(\s*"(?:sh|bash|/bin/sh|/bin/bash)"')
 
     # ==================================================================
@@ -578,7 +585,7 @@ def _build_rules() -> list[dict]:
     # HIGH — unsafe deserialization (Anthropic; ADR bumps deser to HIGH)
     # ==================================================================
 
-    # pickle.load/loads/Unpickler + pkl_load( (Anthropic pickle_deserialization).  nosec: rule comment
+    # pickle.load/loads/Unpickler + pkl_load( (Anthropic pickle_deserialization).  # nosec: rule comment
     add(
         "unsafe-deserialization",
         "HIGH",
@@ -589,10 +596,10 @@ def _build_rules() -> list[dict]:
     add("unsafe-deserialization", "HIGH", r"\b(?:cPickle|cloudpickle|dill)\.(?:load|loads)\s*\(", path_filter=py_only)
     # marshal.load/loads (Anthropic marshal_loads).
     add("unsafe-deserialization", "HIGH", r"\bmarshal\.loads?\s*\(", path_filter=py_only)
-    # shelve.open (Anthropic shelve_open).  nosec: rule comment
+    # shelve.open (Anthropic shelve_open).  # nosec: rule comment
     add("unsafe-deserialization", "HIGH", r"\bshelve\.open\s*\(", path_filter=py_only)
     # pickle wrappers: joblib.load, pandas.read_pickle, .cloudpickle_load,
-    # numpy.load(..., allow_pickle=True) (Anthropic pickle_wrapper_load).  nosec: rule comment
+    # numpy.load(..., allow_pickle=True) (Anthropic pickle_wrapper_load).  # nosec: rule comment
     add(
         "unsafe-deserialization",
         "HIGH",
@@ -617,7 +624,7 @@ def _build_rules() -> list[dict]:
         path_filter=py_only,
         filter_fn=_filter_safe_yaml_load,
     )
-    # yaml.unsafe_load (Anthropic yaml_unsafe_load_variants).  nosec: rule comment
+    # yaml.unsafe_load (Anthropic yaml_unsafe_load_variants).  # nosec: rule comment
     add("unsafe-yaml", "HIGH", r"(?:\byaml\.unsafe_load|\.yaml_unsafe_load)\s*\(", path_filter=py_only)
 
     # ==================================================================
@@ -722,10 +729,13 @@ def _filter_private_ip(match: re.Match, line: str, filepath: str) -> bool:
     return True
 
 
+_SAFE_YAML_LOADER_RE = re.compile(r"\bLoader\s*=\s*(?:yaml\.)?(?:C?SafeLoader|BaseLoader)\b")
+
+
 def _filter_safe_yaml_load(match: re.Match, line: str, filepath: str) -> bool:
-    """Return True to keep finding (unsafe yaml.load). Suppress when the line
-    pins a safe loader (Loader=SafeLoader / Loader=Safe...)."""
-    if "Loader=" in line and "Safe" in line:
+    """Return True to keep finding (unsafe yaml.load). Suppress only when the
+    line explicitly pins SafeLoader, CSafeLoader, or BaseLoader."""
+    if _SAFE_YAML_LOADER_RE.search(line):
         return False
     return True
 
@@ -803,7 +813,7 @@ def _filter_sql_shape(match: re.Match, line: str, filepath: str) -> bool:
 
 
 # Static string-literal continuation on the right or left of `+` (e.g.
-# `"SELECT a " + "FROM b"` or a trailing `+` wrapping a multi-line static SQL string).
+# `"SELECT a " + "FROM b"` or a trailing `+` wrapping a multi-line static SQL string).  # security-review: ignore
 _QUOTED_LIT = r"""(?:"[^"\n]{0,500}"|'[^'\n]{0,500}')"""
 _LITERAL_AFTER_PLUS_RE = re.compile(
     rf"^\s{{0,20}}(?:{_QUOTED_LIT}(?:\s{{0,20}}\+\s{{0,20}}{_QUOTED_LIT}){{0,10}}\s{{0,20}}(?:;|\)|,|\+)?\s{{0,20}}(?://.*|#.*)?$|$)"
@@ -814,9 +824,9 @@ _LITERAL_BEFORE_PLUS_RE = re.compile(rf"(?:^|[(=,:+\s]){_QUOTED_LIT}\s{{0,20}}$"
 def _filter_sql_concat(match: re.Match, line: str, filepath: str) -> bool:
     """Return True to keep a SQL string-concatenation finding.
 
-    Suppresses pure static literal concatenation (`"SELECT a " + "FROM b"` or
-    trailing `+` wrapping a literal across lines) when no variable or expression
-    is concatenated on the line.
+    Suppresses pure static literal concatenation (two quoted SQL literals
+    joined by `+` or a trailing `+` wrapping a literal across lines) when no
+    variable or expression is concatenated on the line.
     """
     if not _filter_sql_shape(match, line, filepath):
         return False
@@ -1249,9 +1259,12 @@ def _scan_text(
         if deadline is not None and (line_num % 256 == 0 or len(line) > _WINDOW_CHARS):
             deadline.check()
         # Inline per-line suppression (`# nosec`, `// security-review: ignore`).
-        # A deliberate, auditable, single-line exception — skip every rule here.
-        if _INLINE_SUPPRESS_RE.search(line):
+        # Explicit `# security-review: ignore` drops every rule on this line
+        # (including intentional test fixtures); bare `# nosec` never suppresses
+        # anchored `scope="any"` secret rules.
+        if _INLINE_SUPPRESS_EXPLICIT_RE.search(line):
             continue
+        suppress_nosec = bool(_INLINE_SUPPRESS_NOSEC_RE.search(line))
         taken = [0] * len(applicable)  # per rule: where its last reported match ended
         secret_spans: list[tuple[int, int]] = []
         for lo, hi, accept in _windows(len(line)):
@@ -1260,6 +1273,8 @@ def _scan_text(
                 deadline.check()
             context = line if hi - lo == len(line) else line[lo:hi]
             for i, rule in enumerate(applicable):
+                if suppress_nosec and rule.get("scope", "code") != "any":
+                    continue
                 filter_fn = rule.get("filter_fn")
                 for match in rule["pattern"].finditer(line, lo, hi):
                     start, end = match.span()

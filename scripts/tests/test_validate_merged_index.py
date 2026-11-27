@@ -464,3 +464,30 @@ def test_missing_tracked_index_exits_one(tmp_path):
     (repo / "skills" / "INDEX.json").unlink()
     result = run(repo, claude)
     assert result.returncode == 1
+
+
+def test_stale_local_retired_agent_excluded_while_non_retired_phantom_still_fails(tmp_path):
+    repo, claude = make_repo(tmp_path, {"good-skill": skill_entry("good-skill")}, agents={})
+    # Retired agent with missing file in INDEX.local.json must not fail --strict.
+    write_json(
+        repo / "agents" / "INDEX.local.json",
+        {"agents": {"python-general-engineer": agent_entry("python-general-engineer")}},
+    )
+    clean = run(repo, claude, "--strict")
+    assert clean.returncode == 0, clean.stdout + clean.stderr
+    assert "PHANTOM python-general-engineer" not in clean.stdout
+
+    # Non-retired phantom agent in INDEX.local.json still fails --strict.
+    write_json(
+        repo / "agents" / "INDEX.local.json",
+        {
+            "agents": {
+                "python-general-engineer": agent_entry("python-general-engineer"),
+                "ghost-overlay-agent": agent_entry("ghost-overlay-agent", file="phantom/ghost.md"),
+            }
+        },
+    )
+    failing = run(repo, claude, "--strict")
+    assert failing.returncode == 1
+    assert "ERROR PHANTOM ghost-overlay-agent" in failing.stdout
+    assert "python-general-engineer" not in failing.stdout

@@ -1053,3 +1053,94 @@ def test_comprehensive_review_verify_and_fix_agents_carry_agent_and_skills():
     assert "never commit or push" in fix[0]["prompt"]
     assert "Operating standards (injected)" in verify[0]["prompt"]
     assert "Operating standards (injected)" in fix[0]["prompt"]
+
+
+@pytest.mark.parametrize("agent_name", ["Explore", "Plan"])
+@pytest.mark.skipif(NODE is None, reason="node not available; helper runtime tests require node")
+def test_builtin_capitalized_agents_pass_js_and_python_validators(tmp_path, agent_name):
+    """Explore and Plan pass both workflow-helpers.js validateAgentName and static conformance."""
+    helper = RUN_WORKFLOW_DIR / HELPERS_FILE
+    script = (
+        "import { validateAgentName } from "
+        + json.dumps(helper.as_uri())
+        + "; process.stdout.write(validateAgentName(process.argv[1]));"
+    )
+    proc = subprocess.run([NODE, "--input-type=module", "-e", script, agent_name], capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout == agent_name
+
+    wf = tmp_path / f"builtin-{agent_name.lower()}.js"
+    wf.write_text(
+        f"""\
+import {{ modelFor, skillDirectives }} from "./workflow-helpers.js";
+export const meta = {{
+  name: "builtin-{agent_name.lower()}",
+  description: "tests builtin agent validation",
+  contract: {{
+    phases: ["scan"],
+    roster: [{{ agentType: "{agent_name}", skills: ["review"] }}],
+    agents: {{ static: 1, dynamic: false }},
+    dynamic: false,
+  }},
+}};
+export default async function run({{ modelOverride }} = {{}}) {{
+  phase("scan");
+  const entry = {{ agent: "{agent_name}", skills: ["review"] }};
+  return agent({{
+    agentType: "{agent_name}",
+    model: modelFor("gather", modelOverride),
+    prompt: "scan" + skillDirectives(entry.skills),
+  }});
+}}
+""",
+        encoding="utf-8",
+    )
+    rc, data = _run_json("--dir", str(tmp_path), "--static-only")
+    res = _result_for(data, wf.name)
+    assert rc == 0 and res["status"] == "pass", res
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; workflow runtime tests require node")
+def test_comprehensive_review_verify_keys_by_dedupe_and_handles_downgrade_challenge():
+    """Dismissal keys by location::title; DOWNGRADE lowers severity; CHALLENGE flags the finding."""
+    stubs = {
+        "wave-1": [
+            {
+                "findings": [
+                    {"title": "Missing check", "severity": "high", "location": "src/a.py:10", "description": "first"},
+                    {"title": "Missing check", "severity": "high", "location": "src/b.py:20", "description": "second"},
+                    {
+                        "title": "Race condition",
+                        "severity": "critical",
+                        "location": "src/c.py:30",
+                        "description": "race",
+                    },
+                    {"title": "Unclear error", "severity": "medium", "location": "src/d.py:40", "description": "msg"},
+                ]
+            },
+            {"findings": []},
+            {"findings": []},
+            {"findings": []},
+        ],
+        "wave-3": {"findings": []},
+        # Sorted by severity: critical (c.py:30), high (a.py:10), high (b.py:20), medium (d.py:40)
+        "verify": [
+            {"finding_title": "Race condition", "disposition": "DOWNGRADE", "rationale": "guarded by lock"},
+            {"finding_title": "Missing check", "disposition": "DISMISS", "rationale": "false positive in a.py"},
+            {"finding_title": "Missing check", "disposition": "AGREE", "rationale": "real bug in b.py"},
+            {"finding_title": "Unclear error", "disposition": "CHALLENGE", "rationale": "needs reproduction"},
+        ],
+    }
+    rc, out = _run_harness(REVIEW, "2", args={"reviewOnly": True}, stubs=stubs)
+    assert rc == 0 and not out["errors"], out["errors"]
+    result = out["traces"]["2"]["result"]
+    assert result["dismissed"] == ["src/a.py:10::Missing check"]
+    assert result["challenged"] == ["src/d.py:40::Unclear error"]
+
+    by_loc = {f["location"]: f for f in result["verified"]}
+    assert "src/a.py:10" not in by_loc
+    assert "src/b.py:20" in by_loc and by_loc["src/b.py:20"]["severity"] == "high"
+    assert by_loc["src/c.py:30"]["severity"] == "high"
+    assert by_loc["src/c.py:30"]["verification"]["disposition"] == "DOWNGRADE"
+    assert by_loc["src/d.py:40"]["challenged"] is True
+    assert by_loc["src/d.py:40"]["verification"]["disposition"] == "CHALLENGE"

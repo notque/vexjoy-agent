@@ -153,7 +153,7 @@ function prefilter(call) {
     } catch { /* not JSON, use raw */ }
     const stripped = cmd.trim();
     if (['ls', 'pwd', 'ls -la', 'ls -l', 'ls -a'].includes(stripped)) return true;
-    if (stripped.startsWith('git status')) return true;
+    if (/^git status(?:\s|$)/.test(stripped) && !/&&|\|\||[;|\n\r]/.test(stripped)) return true;
   }
 
   return null; // Jev decides
@@ -517,6 +517,25 @@ function applyDecisions(messages, decisions, calls) {
 // Full compaction pipeline
 // ---------------------------------------------------------------------------
 
+function computeReductionStats(messages, result, decisions) {
+  const kept = Object.values(decisions).filter((d) => d.action === 'keep').length;
+  const droppedResult = Object.values(decisions).filter((d) => d.action === 'drop_result').length;
+  const droppedCall = Object.values(decisions).filter((d) => d.action === 'drop_call').length;
+
+  const beforeBytes = JSON.stringify(messages).length;
+  const afterBytes = JSON.stringify(result).length;
+  const ratio = beforeBytes > 0 ? 1 - afterBytes / beforeBytes : 0;
+
+  return {
+    kept,
+    droppedResult,
+    droppedCall,
+    beforeBytes,
+    afterBytes,
+    ratio: Math.round(ratio * 10000) / 10000,
+  };
+}
+
 /**
  * @param {(url, init) => Promise<{status, ok, text}>} fetchFn
  * @param {string} apiKey
@@ -535,10 +554,22 @@ export async function compact(fetchFn, apiKey, messages, log = () => {}, { timeo
 
   if (candidates.length === 0) {
     const result = applyDecisions(messages, decisions, calls);
+    const reduction = computeReductionStats(messages, result, decisions);
     return {
       messages: result,
       decisions,
-      stats: { totalCalls: calls.length, pinned, prefiltered, jevJudged: 0, ratio: 0, errorBatches: 0, redactions: 0 },
+      stats: {
+        totalCalls: calls.length,
+        pinned,
+        prefiltered,
+        jevJudged: 0,
+        ...reduction,
+        latencyMs: 0,
+        jevCalls: 0,
+        errorBatches: 0,
+        redactions: 0,
+        callLog: [],
+      },
     };
   }
 
@@ -639,13 +670,7 @@ export async function compact(fetchFn, apiKey, messages, log = () => {}, { timeo
 
   // Apply
   const result = applyDecisions(messages, decisions, calls);
-  const kept = Object.values(decisions).filter((d) => d.action === 'keep').length;
-  const droppedResult = Object.values(decisions).filter((d) => d.action === 'drop_result').length;
-  const droppedCall = Object.values(decisions).filter((d) => d.action === 'drop_call').length;
-
-  const origLen = JSON.stringify(messages).length;
-  const resultLen = JSON.stringify(result).length;
-  const ratio = origLen > 0 ? 1 - resultLen / origLen : 0;
+  const reduction = computeReductionStats(messages, result, decisions);
 
   return {
     messages: result,
@@ -655,10 +680,7 @@ export async function compact(fetchFn, apiKey, messages, log = () => {}, { timeo
       pinned,
       prefiltered,
       jevJudged: candidates.length,
-      kept,
-      droppedResult,
-      droppedCall,
-      ratio: Math.round(ratio * 10000) / 10000,
+      ...reduction,
       latencyMs,
       jevCalls,
       errorBatches,

@@ -219,3 +219,26 @@ def test_install_deps_also_installs_into_a_different_hook_python(tmp_path: Path)
 def test_install_deps_skips_the_hook_python_when_it_is_the_same_interpreter(tmp_path: Path) -> None:
     calls = _install_deps_harness(tmp_path, same=True)
     assert len(calls) == 1 and calls[0].startswith(str(tmp_path / "cmd_python"))
+
+
+def test_help_lists_cline_and_deps_includes_gemini_gateway(home: Path) -> None:
+    r = run_install(home, "--help")
+    assert r.returncode == 0
+    assert "antigravity|cline|all" in r.stdout
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert '"${HOME}/.gemini/scripts"' in text
+
+
+def test_non_claude_target_skips_no_agent_summary(home: Path) -> None:
+    r = run_install(home, "--target", "hermes")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not (home / ".local" / "share" / "no-agent-summary" / "no-agent-summary.js").exists()
+    assert not (home / ".bashrc").exists()
+    # Pre-existing no-agent-summary survives uninstall of a non-claude target
+    nas = home / ".local" / "share" / "no-agent-summary"
+    nas.mkdir(parents=True)
+    hook_js = nas / "no-agent-summary.js"
+    hook_js.write_text("// keep\n", encoding="utf-8")
+    u = run_install(home, "--uninstall", "--target", "hermes")
+    assert u.returncode == 0, u.stdout + u.stderr
+    assert hook_js.exists()

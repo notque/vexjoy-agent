@@ -109,3 +109,56 @@ def test_fix_type_recording():
         ).fetchone()
     assert row is not None
     assert (row["fix_type"], row["fix_action"]) == ("skill", "systematic-debugging")
+
+
+def test_concurrent_read_modify_writes_do_not_lose_updates():
+    """BEGIN IMMEDIATE serializes concurrent accumulate_rightsizing/boost/decay/record_session writes."""
+    import threading
+
+    init_db()
+    record_learning(
+        topic="routing",
+        key="conc:skill",
+        value="v",
+        category="effectiveness",
+        confidence=0.5,
+        source="test",
+    )
+
+    n_threads = 6
+    barrier = threading.Barrier(n_threads)
+    errors: list[Exception] = []
+
+    def worker(idx: int) -> None:
+        try:
+            barrier.wait(timeout=5.0)
+            ldb.accumulate_rightsizing(tier=2, critical=1, high=2, medium=3, tokens=100, wall_clock_s=10)
+            if idx % 2 == 0:
+                ldb.boost_confidence("routing", "conc:skill", delta=0.05)
+            else:
+                ldb.decay_confidence("routing", "conc:skill", delta=0.05)
+            ldb.record_session("conc-sess", files_modified=1, tools_used=2)
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(n_threads)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=15.0)
+
+    assert not errors, f"concurrent write errors: {errors!r}"
+    with ldb.get_connection() as conn:
+        rs = conn.execute("SELECT value, observation_count FROM learnings WHERE key = 'rightsizing:tier2'").fetchone()
+        assert rs["observation_count"] == n_threads
+        assert f"reviews: {n_threads}" in rs["value"]
+        assert f"sum_critical: {n_threads}" in rs["value"]
+        assert f"sum_tokens: {n_threads * 100}" in rs["value"]
+
+        rt = conn.execute("SELECT success_count, failure_count FROM learnings WHERE key = 'conc:skill'").fetchone()
+        assert rt["success_count"] == n_threads // 2
+        assert rt["failure_count"] == n_threads // 2
+
+        sess = conn.execute("SELECT files_modified, tools_used FROM sessions WHERE session_id = 'conc-sess'").fetchone()
+        assert sess["files_modified"] == n_threads
+        assert sess["tools_used"] == n_threads * 2

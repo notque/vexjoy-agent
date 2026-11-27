@@ -33,6 +33,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -125,6 +126,17 @@ def run_session(router: str, request: str, work: Path, env: dict, model: str) ->
     events: list[dict] = []
     started = time.monotonic()
     proc = subprocess.Popen(cmd, cwd=work, env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+
+    def _kill_on_timeout() -> None:
+        try:
+            if proc.poll() is None:
+                proc.kill()
+        except OSError:
+            pass
+
+    timer = threading.Timer(SESSION_TIMEOUT_S, _kill_on_timeout)
+    timer.daemon = True
+    timer.start()
     try:
         assert proc.stdout is not None
         for line in proc.stdout:
@@ -137,6 +149,7 @@ def run_session(router: str, request: str, work: Path, env: dict, model: str) ->
                 break
         proc.wait(timeout=60)
     finally:
+        timer.cancel()
         if proc.poll() is None:
             proc.kill()
     return {"events": events, "seconds": round(time.monotonic() - started, 1), "exit": proc.returncode}

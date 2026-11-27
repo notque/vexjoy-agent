@@ -161,6 +161,23 @@ def test_heredoc_missing_trailer(tmp_path: Path) -> None:
     assert len(logs) == 1
 
 
+def test_heredoc_with_inner_quotes_and_shell_ops_passes(tmp_path: Path) -> None:
+    """Heredoc bodies containing inner double quotes and `;&|\\n` must not split mid-message."""
+    cmd = 'git commit -m "$(cat <<\'EOF\'\nfix "a | b"; don\'t & split\n\nVerified-By: tests\nEOF\n)"'
+    result = _run(cmd, mode="enforce", tmp_path=tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_heredoc_with_inner_quotes_and_shell_ops_missing_trailer_denied(tmp_path: Path) -> None:
+    """Heredoc bodies with inner quotes/operators still deny when Verified-By is absent."""
+    cmd = 'git commit -m "$(cat <<\'EOF\'\nfix "a | b"; don\'t & split\nEOF\n)"'
+    result = _run(cmd, mode="enforce", session_id="s-heredoc-ops", tmp_path=tmp_path)
+    assert result.returncode == 0
+    out = json.loads(result.stdout)
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
 # --- Multi-line -m ---
 
 
@@ -285,3 +302,79 @@ def test_am_flag(tmp_path: Path) -> None:
     assert result.returncode == 0
     logs = _observe_log(tmp_path)
     assert len(logs) == 1
+
+
+# --- Global git options and commit-message text must not trigger passthrough ---
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        'git -C /tmp/some-repo commit -m "no trailer"',
+        'git -c user.name=Bot commit -m "no trailer"',
+        'git commit -m "document --amend behavior without trailer"',
+        'git commit -m "explain -c flag handling without trailer"',
+    ],
+)
+def test_global_git_opts_and_message_flags_do_not_bypass_gate(tmp_path: Path, command: str) -> None:
+    result = _run(command, mode="enforce", session_id="s-global", tmp_path=tmp_path)
+    assert result.returncode == 0
+    out = json.loads(result.stdout)
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+# --- Heredoc + additional -m / -F flags and attached short flags ---
+
+
+def test_heredoc_plus_second_m_trailer_passes(tmp_path: Path) -> None:
+    cmd = 'git commit -m "$(cat <<\'EOF\'\nadded feature\nEOF\n)" -m "Verified-By: tests"'
+    result = _run(cmd, mode="enforce", tmp_path=tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_heredoc_plus_relative_file_flag_passes(tmp_path: Path) -> None:
+    (tmp_path / "trailer.txt").write_text("Verified-By: ci-local\n", encoding="utf-8")
+    cmd = "git commit -m \"$(cat <<'EOF'\nadded feature\nEOF\n)\" -F trailer.txt"
+    result = _run(cmd, mode="enforce", tmp_path=tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_relative_file_flag_resolved_against_git_dash_c(tmp_path: Path) -> None:
+    sub = tmp_path / "subrepo"
+    sub.mkdir()
+    (sub / "msg.txt").write_text("fixed bug\n\nVerified-By: tests\n", encoding="utf-8")
+    cmd = f"git -C {sub} commit -F msg.txt"
+    result = _run(cmd, mode="enforce", tmp_path=tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+@pytest.mark.parametrize("cmd", ['git commit -m"no trailer"', 'git commit -am"no trailer"'])
+def test_attached_short_m_flags_missing_trailer_denied(tmp_path: Path, cmd: str) -> None:
+    result = _run(cmd, mode="enforce", session_id="s-attached", tmp_path=tmp_path)
+    assert result.returncode == 0
+    out = json.loads(result.stdout)
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_attached_short_am_flag_with_trailer_passes(tmp_path: Path) -> None:
+    cmd = 'git commit -am"added feature\n\nVerified-By: tests"'
+    result = _run(cmd, mode="enforce", tmp_path=tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+# --- Empty session_id guard in enforce mode ---
+
+
+def test_empty_session_id_does_not_share_counter(tmp_path: Path) -> None:
+    msg = 'git commit -m "no trailer"'
+    for _ in range(3):
+        res = _run(msg, mode="enforce", session_id="", tmp_path=tmp_path)
+        assert res.returncode == 0
+        out = json.loads(res.stdout)
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+    shared_counter = tmp_path / ".claude" / "state" / "commit-verify-gate" / "enforce-.count"
+    assert not shared_counter.exists()

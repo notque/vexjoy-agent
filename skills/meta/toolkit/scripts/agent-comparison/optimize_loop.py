@@ -322,8 +322,8 @@ def generate_optimization_report(data: dict, auto_refresh: bool = False) -> str:
             {"x": it["number"], "train": it["score"].get("train", 0), "test": it["score"].get("test")}
             for it in iterations
         ]
-    )
-    diffs_json = json.dumps({it["number"]: str(it.get("diff", "")) for it in iterations})
+    ).replace("<", r"\u003c")
+    diffs_json = json.dumps({it["number"]: str(it.get("diff", "")) for it in iterations}).replace("<", r"\u003c")
 
     bt = baseline.get("train", 0.0)
     best = max((it["score"].get("train", bt) for it in iterations), default=bt)

@@ -596,6 +596,13 @@ def translate_child_result(
             if not isinstance(orig_args, dict):
                 orig_args = {}
             out["overwrite"] = map_claude_updated_input_to_agy(agy_tool, orig_args, updated)
+        advisory_parts: list[str] = []
+        for key in ("system_message", "additional_context"):
+            val = fields.get(key)
+            if isinstance(val, str) and val and val not in advisory_parts:
+                advisory_parts.append(val)
+        if advisory_parts:
+            queue_deferred_context(conv_id, "\n".join(advisory_parts))
         return out
 
     if agy_event == "PostToolUse":
@@ -623,6 +630,10 @@ def translate_child_result(
             val = fields.get(key)
             if isinstance(val, str) and val and val not in messages:
                 messages.append(val)
+        if agy_event == "PreInvocation" and (returncode == 2 or fields.get("decision") == "block"):
+            block_reason = fields.get("reason") or exit2_reason
+            if block_reason and block_reason not in messages:
+                messages.append(block_reason)
         if not messages:
             return {}
         combined = "\n\n".join(messages)

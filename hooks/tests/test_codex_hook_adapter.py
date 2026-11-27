@@ -179,8 +179,12 @@ def test_patch_mode_filters_normalized_events_by_original_matcher(adapter):
     write_only = adapter.build_invocations(payload, mode="patch", matcher="^Write$")
     edit_only = adapter.build_invocations(payload, mode="patch", matcher="^Edit$")
 
-    assert [(item["tool_name"], item["tool_input"]["file_path"]) for item in write_only] == [("Write", "a.py")]
-    assert [(item["tool_name"], item["tool_input"]["file_path"]) for item in edit_only] == [("Edit", "b.py")]
+    assert [(item["tool_name"], item["tool_input"]["file_path"]) for item in write_only] == [
+        ("Write", os.path.normpath(os.path.join(str(ROOT), "a.py")))
+    ]
+    assert [(item["tool_name"], item["tool_input"]["file_path"]) for item in edit_only] == [
+        ("Edit", os.path.normpath(os.path.join(str(ROOT), "b.py")))
+    ]
     assert payload["tool_name"] == "apply_patch"
 
 
@@ -365,7 +369,9 @@ print(json.dumps({"additionalContext": f"checked:{event['tool_name']}:{path}"}))
     assert result.returncode == 0, result.stderr
     output = json.loads(result.stdout)
     assert output["hookSpecificOutput"]["additionalContext"] == (
-        "checked:Write:one file.py\nchecked:Edit:two.py\nchecked:Edit:gone.py"
+        f"checked:Write:{os.path.normpath(os.path.join(str(ROOT), 'one file.py'))}\n"
+        f"checked:Edit:{os.path.normpath(os.path.join(str(ROOT), 'two.py'))}\n"
+        f"checked:Edit:{os.path.normpath(os.path.join(str(ROOT), 'gone.py'))}"
     )
 
 
@@ -425,3 +431,57 @@ def test_malformed_adapter_input_is_visible_without_traceback(tmp_path):
     output = json.loads(result.stdout)
     assert "invalid" in output["systemMessage"].lower()
     assert "traceback" not in result.stderr.lower()
+
+
+@pytest.mark.parametrize("bad_cwd", ["", "/nonexistent-dir-codex-adapter-test-xyz"])
+def test_run_child_falls_back_to_getcwd_for_invalid_cwd(tmp_path, bad_cwd):
+    hook = _write_hook(
+        tmp_path,
+        'import json, os; print(json.dumps({"additionalContext": f"cwd={os.getcwd()}"}))\n',
+    )
+    payload = _event("PostToolUse", tool_name="Bash", cwd=bad_cwd)
+    result = _run_cli(hook, "PostToolUse", "native", "closed", payload, matcher="Bash")
+    assert result.returncode == 0, result.stderr
+    output = json.loads(result.stdout)
+    assert "cwd=" in output["hookSpecificOutput"]["additionalContext"]
+
+
+def test_patch_mode_preserves_absolute_path_and_handles_missing_cwd(adapter):
+    payload_abs = _event(
+        cwd="/workspace/project",
+        tool_input={"command": "*** Begin Patch\n*** Add File: /etc/hosts\n+x\n*** End Patch"},
+    )
+    inv_abs = adapter.build_invocations(payload_abs, mode="patch", matcher="^Write$")
+    assert inv_abs[0]["tool_input"]["file_path"] == "/etc/hosts"
+
+    payload_no_cwd = _event(
+        cwd="",
+        tool_input={"command": "*** Begin Patch\n*** Add File: .env\n+x\n*** End Patch"},
+    )
+    inv_no_cwd = adapter.build_invocations(payload_no_cwd, mode="patch", matcher="^Write$")
+    assert inv_no_cwd[0]["tool_input"]["file_path"] == ".env"
+
+
+def test_permission_decision_ask_normalized_and_aggregated(adapter):
+    ask_payload = {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "ask",
+            "permissionDecisionReason": "confirm push",
+        }
+    }
+    normalized = adapter.normalize_output("PreToolUse", json.dumps(ask_payload), "")
+    assert normalized == ask_payload
+
+    agg_ask = adapter.aggregate_outputs("PreToolUse", [{}, normalized])
+    assert agg_ask == ask_payload
+
+    deny_payload = {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "hard block",
+        }
+    }
+    agg_deny_wins = adapter.aggregate_outputs("PreToolUse", [normalized, deny_payload])
+    assert agg_deny_wins["hookSpecificOutput"]["permissionDecision"] == "deny"
