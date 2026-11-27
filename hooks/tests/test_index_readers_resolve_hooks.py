@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -29,7 +30,7 @@ def _w(path: Path, data: dict) -> Path:
 
 def _run_validator(project: Path, subagent: str, home: Path) -> subprocess.CompletedProcess[str]:
     event = {"tool_name": "Agent", "tool_input": {"subagent_type": subagent}, "cwd": str(project)}
-    env = {**os.environ, "HOME": str(home)}
+    env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home)}
     env.pop("VEXJOY_INDEX_TARGET", None)
     return subprocess.run(
         [sys.executable, str(VALIDATOR)], input=json.dumps(event), capture_output=True, text=True, env=env, timeout=30
@@ -91,7 +92,14 @@ def test_section_integrity_flags_a_retired_agent_even_in_a_stale_index(tmp_path:
 def _runtime_helper(tmp_path: Path, name: str):
     runtime_root = tmp_path / ".claude"
     (runtime_root / "hooks").mkdir(parents=True)
-    (runtime_root / "hooks" / "lib").symlink_to(LIB, target_is_directory=True)
+    lib_dst = runtime_root / "hooks" / "lib"
+    try:
+        lib_dst.symlink_to(LIB, target_is_directory=True)
+    except OSError:
+        shutil.copytree(LIB, lib_dst)
+        scripts_dst = runtime_root / "scripts"
+        scripts_dst.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(HOOKS.parent / "scripts" / "routing_index_merge.py", scripts_dst / "routing_index_merge.py")
     _w(runtime_root / "skills" / "INDEX.json", {"skills": {"process": {}}})
     spec = importlib.util.spec_from_file_location(name, runtime_root / "hooks" / "lib" / "skill_directives.py")
     assert spec and spec.loader
@@ -103,6 +111,7 @@ def _runtime_helper(tmp_path: Path, name: str):
 def test_skill_directives_prefers_runtime_installed_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("VEXJOY_INDEX_DIR", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     runtime_root, module = _runtime_helper(tmp_path, "sd_installed")
     installed = _w(runtime_root / "vexjoy" / "index" / "skills.json", {"skills": {"inst-skill": {}}})
     assert module._default_index_paths() == (installed,)
@@ -113,5 +122,6 @@ def test_skill_directives_prefers_runtime_installed_index(tmp_path: Path, monkey
 def test_skill_directives_falls_back_to_runtime_skills_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("VEXJOY_INDEX_DIR", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     runtime_root, module = _runtime_helper(tmp_path, "sd_fallback")
     assert module._default_index_paths() == (runtime_root / "skills" / "INDEX.json",)

@@ -7,12 +7,6 @@ version: 1.0.0
 route_to:
   agent: general-purpose
   skill: workflow
-  enhancements:
-    - codebase-overview
-    - routing-table-updater
-trigger:
-  hook: pipeline-context-detector
-  event: UserPromptSubmit
 parameters:
   - name: task
     required: true
@@ -38,13 +32,12 @@ Entry point command for the Pipeline Creator meta-pipeline.
 
 ## What It Does
 
-1. **Context Detection** (`pipeline-context-detector` hook): Scans the repository for existing agents, skills, and hooks related to the task. Builds a JSON environment snapshot.
-2. **Discovery** (`codebase-overview`): Analyzes existing components to prevent duplication and identify reusable patterns.
-3. **Scaffolding** (fan-out via `workflow` skill, scaffolder phase): Dispatches parallel sub-agents to create:
-   - Python detector hook (environment evaluation before LLM invocation)
-   - Agent manifest (following `skills/skill-creator/references/agent-template.md`)
-   - Skill definition (`SKILL.md` with phases and gates)
-4. **Integration** (`routing-table-updater`): Injects the new pipeline into `/do` routing tables.
+1. **Discovery**: Scans existing skills, pipelines, and hooks related to the task to prevent duplication and identify reusable patterns.
+2. **Scaffolding** (fan-out via `workflow` skill, scaffolder phase): Dispatches parallel workers to create:
+   - Skill definition (`SKILL.md` with phases and gates) and deep references
+   - Optional Python detector hook or deterministic helper script
+   - Optional overlay agent manifest (following `skills/meta/toolkit/references/agent-creator/agent-frontmatter-template.md`)
+3. **Integration**: Updates `skills/process/workflow/references/pipeline-index.json` and regenerates the routing indexes.
 
 ## Examples
 

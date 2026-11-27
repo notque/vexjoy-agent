@@ -1,7 +1,7 @@
 ---
 description: "Jev-validated router: the session picks the route with /do's rules; Jev answers the attachment questions and checks the restated intent."
 argument-hint: "[request]"
-allowed-tools: ["Read", "Bash", "Grep", "Glob", "Skill", "Task"]
+allowed-tools: ["Read", "Bash", "Grep", "Glob", "Skill", "Agent"]
 ---
 
 # /d - Jev-validated Router
@@ -21,7 +21,7 @@ Skill file: skills/meta/d/SKILL.md
 ```
 
 **Phase 1: CLASSIFY** — `scripts/jev-route.py` runs the force-route guard and
-one Jev attachment evaluation. You pick the agent, skill, and pipeline with
+one Jev attachment evaluation. You pick the worker, skill, and pipeline with
 `/do`'s rules (`scripts/print-route-rules.py`) and the routing manifest, then
 `jev-route.py --finalize` validates the pick and adds the attachments.
 **Phase 2: ALIGN INTENT** — MANDATORY before any banner or dispatch. Write
@@ -43,7 +43,7 @@ The routing banner MUST include the Phase 2 intent alignment result:
    -> Alignment: [aligned|review|unavailable] [— issues, if any]
 
  Selected:
-   -> Agent: [name] - [reasoning]
+   -> Worker: [main|general-purpose|<overlay-agent>] - [reasoning]
    -> Skill: [name] - [reasoning]
    -> Source: [session|pre-route-force] (confidence: [level])
 

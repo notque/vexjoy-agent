@@ -152,7 +152,7 @@ def test_generator_failure_keeps_old_cache(fake_home):
     assert mc.refresh(sdir).startswith("failed")  # stale sidecar: next check retries
 
 
-@pytest.mark.skipif(shutil.which("sha256sum") is None, reason="sha256sum not available")
+@pytest.mark.skipif(os.name == "nt" or shutil.which("sha256sum") is None, reason="POSIX bash and sha256sum required")
 def test_python_digest_matches_bash_check(fake_home):
     """The SKILL.md Phase 2 bash freshness check must equal the python digest."""
     sdir = scripts_dir(fake_home)
@@ -168,7 +168,7 @@ def test_python_digest_matches_bash_check(fake_home):
 
 
 def run_hook(home: Path) -> subprocess.CompletedProcess:
-    env = dict(os.environ, HOME=str(home))
+    env = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
     return subprocess.run(
         [sys.executable, str(HOOK_PATH)],
         input="",

@@ -80,8 +80,17 @@ log = logging.getLogger("agent-scheduler")
 def get_connection():
     """Get a database connection with Row factory and automatic cleanup."""
     _DB_DIR.mkdir(parents=True, exist_ok=True)
+    if not _DB_PATH.exists():
+        try:
+            _DB_PATH.touch(mode=0o600, exist_ok=True)
+            os.chmod(_DB_PATH, 0o600)
+        except OSError:
+            pass
     conn = sqlite3.connect(str(_DB_PATH), timeout=5.0)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     try:
         yield conn
     finally:

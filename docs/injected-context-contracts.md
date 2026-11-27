@@ -24,8 +24,8 @@ Action: Invoke that skill via the Skill tool. The skill carries the full methodo
 ### `[fix-with-agent] name`
 
 Source: Various hooks.
-Meaning: The detected problem requires a domain-specialized agent.
-Action: Spawn that agent via the Task tool with the problem context.
+Meaning: The detected problem requires a dedicated subagent worker (or private overlay agent).
+Action: Spawn that worker via the Agent tool with the problem context.
 
 ### `[dispatch-spec-gate] complexity={medium|complex} dispatch is missing N handoff block(s): …`
 
@@ -98,11 +98,11 @@ Source: `hooks/sapcc-go-detector.py`.
 Meaning: A SAP Converged Cloud Go project (a `github.com/sapcc/` or `github.com/sap-cloud-infrastructure/` module or import) was detected in the current directory.
 Action: Apply SAP CC Go conventions for the session. The `programming` skill carries them (`references/go/sapcc-conventions.md`).
 
-### `[fish-shell] Detected Fish shell user` plus `[auto-skill] deploy`
+### `[fish-shell] Detected Fish shell user`
 
-Source: `hooks/fish-shell-detector.py` (`hooks/zsh-shell-detector.py` emits the same pair as `[zsh-shell]` for Zsh).
+Source: `hooks/fish-shell-detector.py` (`hooks/zsh-shell-detector.py` emits `[zsh-shell]` for Zsh).
 Meaning: The user runs Fish as their interactive shell.
-Action: When the user asks for shell config edits, prefer Fish syntax (`set -gx`, `function`, `~/.config/fish/config.fish`) over Bash/Zsh idioms. The `deploy` skill's shell references carry the full reference.
+Action: When the user asks for shell config edits, prefer Fish syntax (`set -gx`, `function`, `~/.config/fish/config.fish`) over Bash/Zsh idioms. Load `deploy` only when the task involves shell configuration or deployment.
 
 ### `[adr-health-check] Active ADR session` plus `domain` and `adr` path
 
@@ -132,11 +132,9 @@ Action: Skip re-reading files the block lists unless the task needs their conten
 
 ## Prompt-Signal Tags (emitted mid-conversation, require routing action)
 
-### `[pipeline-creator]` plus `[auto-skill] workflow` (plus JSON snapshot)
+### `[pipeline-creator]` (retired)
 
-Source: `hooks/pipeline-context-detector.py`.
-Meaning: A pipeline creation request was detected.
-Action: Treat this as a scaffold request. The tag tells you to call the `workflow` skill, which handles the fan-out (`/create-pipeline` is the slash command for the same job). Build pipeline components through the skill rather than manually.
+Status: Retired from `.claude/settings.json`. Pipeline creation requests now route directly through `/do` and `/d` to the `workflow` skill (`/create-pipeline`).
 
 ### `[CREATION REQUEST DETECTED]`
 

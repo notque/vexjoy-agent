@@ -223,7 +223,7 @@ def available_references(skill_dir: Path | None) -> list[str]:
     refs = skill_dir / "references"
     if not refs.is_dir():
         return []
-    return sorted(str(p.relative_to(skill_dir)) for p in refs.rglob("*.md"))
+    return sorted(p.relative_to(skill_dir).as_posix() for p in refs.rglob("*.md"))
 
 
 def resolve_references(
@@ -394,9 +394,9 @@ def scenario_paths(raw: object, base: Path | None = None) -> list[str]:
     hits: list[str] = []
     for name in split_paths(raw):
         text = name.replace("\\", "/")
-        if text.startswith("/"):
+        if text.startswith("/") or re.match(r"^[A-Za-z]:/", text):
             try:
-                rel = str(Path(text).resolve().relative_to(root))
+                rel = Path(text).resolve().relative_to(root).as_posix()
             except (ValueError, OSError):
                 parts = [p for p in text.split("/") if p]
                 rel = next(("/".join(parts[i:]) for i in range(len(parts)) if _scenario_hit("/".join(parts[i:]))), text)

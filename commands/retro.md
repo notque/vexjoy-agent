@@ -37,4 +37,4 @@ These are reports. Never run a subcommand that records or backfills (`record-rou
 ## Related
 
 - `scripts/learning-db.py`: the CLI; its docstring lists every subcommand
-- `agents/hook-development-engineer/references/telemetry-database.md`: what each report means
+- `skills/meta/toolkit/references/hook-development/telemetry-database.md`: what each report means

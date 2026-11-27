@@ -28,7 +28,13 @@ _MAX_SECONDS = 10.0
 
 def _env(home: Path) -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
-    env.update({"HOME": str(home), "CLAUDE_HOOK_ERRORS_PATH": str(home / "hook-errors.jsonl")})
+    env.update(
+        {
+            "HOME": str(home),
+            "USERPROFILE": str(home),
+            "CLAUDE_HOOK_ERRORS_PATH": str(home / "hook-errors.jsonl"),
+        }
+    )
     return env
 
 
@@ -70,7 +76,7 @@ def _run_with_open_stdin(argv: list[str], *, cwd: Path, env: dict[str, str]) -> 
     [
         "pretool-dispatch-spec-gate.py",
         "pending-advisory-injector-userprompt.py",
-        "voice-output-gate.py",
+        "pretool-branch-safety.py",
     ],
 )
 def test_hook_gives_up_on_a_stdin_that_never_closes(tmp_path: Path, hook: str) -> None:

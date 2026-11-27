@@ -6,7 +6,7 @@ read_when:
 
 # Start Here
 
-Install the toolkit, then describe your task with `/do`. The router selects the relevant agent, skill, and checks.
+Install the toolkit, then describe your task with `/do`. The router selects the relevant skill, worker, and checks.
 
 ## What You Need
 
@@ -75,11 +75,11 @@ If a check reports missing or stale mirrors, rerun `./install.sh`, then repeat t
 
 ## What Was Installed
 
-- **Agents** provide domain knowledge.
-- **Skills** define reusable methods such as debugging, review, research, and writing.
+- **Skills** carry domain knowledge and reusable methods such as debugging, review, research, and writing.
 - **Hooks** run checks at configured lifecycle events.
 - **Commands** provide entry points such as `/do`.
 - **Scripts** perform deterministic operations.
+- **Overlay Agents** (optional) install from private overlays when configured; public domain knowledge lives in skills (`plans/009`).
 
 These components load when you start Claude Code in any directory. See the root README for architecture, runtime differences, and implementation details.
 
@@ -138,7 +138,7 @@ Turn a gate off by setting its variable to `1` in the environment that launches 
 
 It fails open if it crashes. Its overrides are documented only in the hook source, on purpose: a deny that turns out to be a false positive should not teach anyone, or any agent, to switch the guard off.
 
-Everything else is advisory. `pretool-dispatch-spec-gate` only warns unless `DISPATCH_SPEC_GATE_MODE=deny` is set, and `pretool-routing-gate` runs only on Antigravity CLI. No Stop or SubagentStop hook blocks: `stop-drift-guard` can wake a stopped session in this checkout to report drift, and `subagent-completion-guard` emits a deny that SubagentStop ignores.
+Everything else is advisory. `pretool-dispatch-spec-gate` only warns unless `DISPATCH_SPEC_GATE_MODE=deny` is set, and `pretool-routing-gate` runs only on Antigravity CLI. No Stop or SubagentStop hook blocks: `stop-drift-guard` can wake a stopped session in this checkout to report drift.
 
 ## Where Next
 

@@ -83,7 +83,22 @@ except Exception:  # pragma: no cover - lib import must never hard-fail the hook
         import signal
 
         if not hasattr(signal, "SIGALRM"):
-            return sys.stdin.read()
+            import threading
+
+            box: list[str] = []
+
+            def _reader() -> None:
+                try:
+                    box.append(sys.stdin.read())
+                except OSError:
+                    box.append("")
+
+            thread = threading.Thread(target=_reader, daemon=True)
+            thread.start()
+            thread.join(timeout=timeout)
+            if thread.is_alive():
+                return ""
+            return box[0] if box else ""
 
         def _expired(_signum: int, _frame: object) -> None:
             raise TimeoutError

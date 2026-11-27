@@ -220,9 +220,11 @@ def _get_cache_conn() -> sqlite3.Connection:
             pass
         _cache_conn = None
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_str, timeout=2.0)
+    conn = sqlite3.connect(db_str, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     conn.execute(
         "CREATE TABLE IF NOT EXISTS cache ("
         "  hash TEXT PRIMARY KEY,"

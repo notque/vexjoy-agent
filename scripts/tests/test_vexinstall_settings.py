@@ -17,8 +17,12 @@ def _rule(tmp_path: Path) -> sm.OwnerRule:
     (repo / "hooks").mkdir(parents=True)
     home = tmp_path / "home"
     (home / ".claude").mkdir(parents=True)
-    os.symlink(repo / "hooks", home / ".claude" / "hooks")
-    return sm.OwnerRule(home=home, hooks_dir=home / ".claude" / "hooks", source_root=repo)
+    hooks_dir = home / ".claude" / "hooks"
+    try:
+        os.symlink(repo / "hooks", hooks_dir)
+    except OSError:
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+    return sm.OwnerRule(home=home, hooks_dir=hooks_dir, source_root=repo)
 
 
 def _cmd(c: str) -> dict:
@@ -41,6 +45,7 @@ def test_owner_rule(tmp_path: Path, command: str, owned: bool) -> None:
     assert _rule(tmp_path).owns(_cmd(command)) is owned
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlinks required")
 def test_owner_rule_realpath_through_hooks_symlink(tmp_path: Path) -> None:
     rule = _rule(tmp_path)
     direct = str(rule.source_root / "hooks" / "a.py")
@@ -124,7 +129,8 @@ def test_apply_settings_merge_per_target(world: Env, target: str) -> None:
     assert ss.count(owned["command"]) == 1
     assert user["command"] in ss
     assert any("h3.py" in e["command"] for g in merged["hooks"]["Stop"] for e in g["hooks"])
-    assert oct(spath.stat().st_mode & 0o777) == "0o600"
+    if os.name != "nt":
+        assert oct(spath.stat().st_mode & 0o777) == "0o600"
     backups = sorted((world.home / ".claude" / "vexjoy" / "backups").glob("settings.*.json"))
     assert len(backups) == 1 and backups[0].read_bytes() == before
     assert world.ledger()["settings"]["claude"]

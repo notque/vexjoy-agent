@@ -71,7 +71,7 @@ This constraint (Accuracy Over Speed) is non-negotiable. Counts and listings com
 The script gives authoritative counts, names, and one-line descriptions. For anything deeper — phases, gates, capabilities, when-to-use — read the file the script names in its `File:` field:
 
 - For a specific skill: `Read skills/{path-from-show}/SKILL.md`
-- For a specific agent: `Read agents/{agent-name}.md`
+- For a private overlay agent (when listed by `list-capabilities.py show`): read the file reported in its `File:` field
 - For routing overview: Check the /do router configuration
 
 Extract: name, description, version, what it CAN and CANNOT do, how to invoke it, related skills or agents.
@@ -89,7 +89,7 @@ Extract: name, description, version, what it CAN and CANNOT do, how to invoke it
 **For system overview**, lead with live counts from `python3 scripts/list-capabilities.py summary`, then present the execution architecture:
 
 ```
-Router (/do) -> Agent (domain expert) -> Skill (methodology) -> Script (execution)
+Router (/do) -> Skill (domain knowledge & methodology) -> Worker (main | general-purpose) -> Script (execution)
 ```
 
 Then show key workflow:

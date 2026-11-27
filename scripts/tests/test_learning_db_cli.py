@@ -141,3 +141,52 @@ class TestHandoffReport:
             assert conn.execute("SELECT COUNT(*) FROM evidence_route_decisions").fetchone()[0] == 6
         finally:
             conn.close()
+
+
+class TestPruneCommand:
+    def test_prune_deletes_old_ancillary_rows_and_preserves_fresh(self, db_env):
+        import sqlite3
+
+        import learning_db_v2 as ldb
+
+        conn = sqlite3.connect(ldb.get_db_path())
+        try:
+            conn.execute(
+                "INSERT INTO jev_calls (ts, script, ok) VALUES ('2020-01-01T00:00:00+00:00', 'jev-route.py', 1)"
+            )
+            conn.execute("INSERT INTO jev_calls (ts, script, ok) VALUES (datetime('now'), 'jev-route.py', 1)")
+            conn.execute(
+                "INSERT INTO telemetry_runs (run_id, topic, key, recorded_at, source)"
+                " VALUES ('old-run', 't', 'k', '2020-01-01 00:00:00', 'hook')"
+            )
+            conn.execute(
+                "INSERT INTO telemetry_runs (run_id, topic, key, recorded_at, source)"
+                " VALUES ('new-run', 't', 'k', datetime('now'), 'hook')"
+            )
+            conn.execute(
+                "INSERT INTO evidence_route_decisions (decision_id, session_id, route_key, agent, created_at, updated_at)"
+                " VALUES ('old-dec', 's1', 'k', 'general-purpose', '2020-01-01 00:00:00', '2020-01-01 00:00:00')"
+            )
+            conn.execute(
+                "INSERT INTO evidence_route_decisions (decision_id, session_id, route_key, agent, created_at, updated_at)"
+                " VALUES ('new-dec', 's1', 'k', 'general-purpose', datetime('now'), datetime('now'))"
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        result = _run_cli("prune", "--json")
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["pruned"]["jev_calls"] == 1
+        assert payload["pruned"]["telemetry_runs"] == 1
+        assert payload["pruned"]["evidence_route_decisions"] == 1
+        assert payload["total"] >= 3
+
+        conn = sqlite3.connect(ldb.get_db_path())
+        try:
+            assert conn.execute("SELECT COUNT(*) FROM jev_calls").fetchone()[0] == 1
+            assert conn.execute("SELECT COUNT(*) FROM telemetry_runs").fetchone()[0] == 1
+            assert conn.execute("SELECT COUNT(*) FROM evidence_route_decisions").fetchone()[0] == 1
+        finally:
+            conn.close()

@@ -163,16 +163,43 @@ jobs:
       # corpus, and drift. It regenerates the untracked INDEX.json files.
       - run: python scripts/router-self-audit.py
 
-  joy-check:
-    runs-on: ubuntu-latest
+  test-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      # Golden fixtures run in the test job; this is the fleet scan only.
-      - name: Joy-check fleet scan (agents + SKILL.md)
-        run: python scripts/validate_positive_instruction_docs.py --fleet
+      - run: pip install -r requirements.lock pytest pytest-xdist pillow numpy
+      - run: |
+          python scripts/generate-skill-index.py
+          python scripts/generate-agent-index.py
+      - run: python scripts/validate-references.py --check-size
+      - run: python scripts/validate-doc-counts.py
+      - run: >
+          python -m pytest --tb=short -q -n auto --dist loadfile
+          hooks/tests/test_pretool_unified_gate.py
+          hooks/tests/test_pretool_private_name_leak_gate.py
+          hooks/tests/test_pretool_review_before_push_gate.py
+          hooks/tests/test_pretool_plan_gate.py
+          hooks/tests/test_pretool_branch_safety.py
+          hooks/tests/test_manifest_cache.py
+          hooks/tests/test_agy_hook_adapter.py
+          hooks/tests/test_codex_hook_adapter.py
+          hooks/tests/test_subagent_start_warmstart.py
+          hooks/tests/test_index_readers_resolve_hooks.py
+          hooks/tests/test_skill_call_directives.py
+          hooks/tests/test_hook_registration_coverage.py
+          hooks/tests/test_every_hook_has_bypass.py
+          hooks/tests/test_fts5_search.py
+          hooks/tests/test_stdin_bounded_reads.py
+          scripts/tests/test_d_gate.py
+          scripts/tests/test_learning_db_cli.py
+          scripts/tests/test_vexinstall_windows_install.py
+          scripts/tests/test_vexinstall_settings.py
+          scripts/tests/test_vexinstall_tools.py
+          scripts/tests/test_routing_manifest_pipelines.py
+          scripts/tests/test_routing_manifest_triggers.py
 
   hook-health:
     runs-on: ubuntu-latest

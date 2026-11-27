@@ -92,11 +92,19 @@ def test_allowlist_parsing(tmp_path: Path) -> None:
     ("cfg", "message"),
     [
         ({"overlays": [], "overrides": {}}, "overrides"),
-        ({"overlays": [{"id": "x", "root": "/nonexistent-x", "overrides": ["a"]}]}, "overrides"),
-        ({"overlays": [{"id": "x", "root": "/nonexistent-x", "layout": "tree"}]}, "layout"),
-        ({"overlays": [{"id": "x", "root": "/n1"}, {"id": "x", "root": "/n2"}]}, "duplicate"),
+        ({"overlays": [{"id": "x", "root": os.path.abspath("/nonexistent-x"), "overrides": ["a"]}]}, "overrides"),
+        ({"overlays": [{"id": "x", "root": os.path.abspath("/nonexistent-x"), "layout": "tree"}]}, "layout"),
+        (
+            {
+                "overlays": [
+                    {"id": "x", "root": os.path.abspath("/n1")},
+                    {"id": "x", "root": os.path.abspath("/n2")},
+                ]
+            },
+            "duplicate",
+        ),
         ({"overlays": [{"id": "x", "root": "rel/path"}]}, "absolute"),
-        ({"overlays": [{"id": "x", "root": "/n1", "bogus": 1}]}, "unknown keys"),
+        ({"overlays": [{"id": "x", "root": os.path.abspath("/n1"), "bogus": 1}]}, "unknown keys"),
     ],
 )
 def test_overlay_config_rejections(world: Env, cfg: dict, message: str) -> None:
@@ -195,6 +203,7 @@ def test_doctor_clean_after_apply(world: Env, target: str) -> None:
     assert res.code == 0, res.out
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlinks required")
 @pytest.mark.parametrize("target", ["claude", "hermes"])
 def test_doctor_flags_dangling_category_agents_and_nonskill(world: Env, target: str) -> None:
     assert world.run("apply", "--target", target).code == 0
@@ -438,6 +447,7 @@ def test_hooks_dir_expands_tilde_and_needs_the_checkout_top(hook_world: Env) -> 
 # ---------------------------------------------------------------- prune
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlinks required")
 @pytest.mark.parametrize("target", ["claude", "codex"])
 def test_prune_unowned_requires_confirm(world: Env, target: str) -> None:
     assert world.run("apply", "--target", target).code == 0
@@ -460,6 +470,7 @@ def test_prune_lists_command_that_shadows_a_skill(world: Env) -> None:
     assert f"  {shim}  (command shadows a skill of the same name)" in listing.out
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlinks required")
 def test_adopt_and_prune_legacy_checkout_links_and_dir_of_links(world: Env) -> None:
     """Legacy category dirs holding symlinks and links to a prior vexjoy-agent checkout are adopted/prunable."""
     old_repo = world.work / "old" / "vexjoy-agent"

@@ -102,6 +102,7 @@ def get_connection():
     conn = sqlite3.connect(db_path, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA busy_timeout=5000")
     try:
         yield conn
@@ -1349,7 +1350,7 @@ def jev_call_stats(days: float = 7.0) -> list[dict]:
         rows = conn.execute(
             "SELECT script, COUNT(*) AS calls, SUM(1 - ok) AS failed, AVG(latency_ms) AS avg_ms, "
             "SUM(COALESCE(input_tokens, 0)) AS input_tokens, SUM(COALESCE(n_questions, 0)) AS questions "
-            "FROM jev_calls WHERE ts >= datetime('now', ?) GROUP BY script ORDER BY calls DESC",
+            "FROM jev_calls WHERE julianday(ts) >= julianday('now', ?) GROUP BY script ORDER BY calls DESC",
             (f"-{int(days * 86400)} seconds",),
         ).fetchall()
     return [dict(r) for r in rows]
@@ -2603,13 +2604,19 @@ def prune_ancillary(
     governance_days: int = 180,
     sessions_days: int = 365,
     activations_days: int = 90,
+    jev_calls_days: int = 90,
+    evidence_days: int = 90,
+    telemetry_days: int = 180,
 ) -> dict[str, int]:
-    """Prune old rows from ancillary tables. Returns per-table deletion counts.
+    """Prune old rows from ancillary and telemetry tables. Returns per-table deletion counts.
 
     Args:
         governance_days: Delete governance_events older than this many days.
         sessions_days: Delete sessions and session_stats older than this many days.
         activations_days: Delete activations older than this many days.
+        jev_calls_days: Delete jev_calls and jev_intent_alignments older than this many days.
+        evidence_days: Delete evidence_events older than this many days.
+        telemetry_days: Delete telemetry_runs and evidence_route_decisions older than this many days.
 
     Returns:
         Dict mapping table name to number of rows deleted.
@@ -2623,13 +2630,18 @@ def prune_ancillary(
         ("sessions", "start_time", sessions_days),
         ("session_stats", "created_at", sessions_days),
         ("activations", "timestamp", activations_days),
+        ("jev_calls", "ts", jev_calls_days),
+        ("jev_intent_alignments", "ts", jev_calls_days),
+        ("evidence_events", "ts", evidence_days),
+        ("evidence_route_decisions", "created_at", telemetry_days),
+        ("telemetry_runs", "recorded_at", telemetry_days),
     ]
 
     with get_connection() as conn:
         for table, ts_col, days in table_specs:
             try:
                 cursor = conn.execute(
-                    f"DELETE FROM {table} WHERE {ts_col} < datetime('now', ?)",  # security-review: ignore (table/ts_col from hardcoded table_specs; days bound as ?; pre-existing)
+                    f"DELETE FROM {table} WHERE {ts_col} IS NOT NULL AND julianday({ts_col}) < julianday('now', ?)",  # security-review: ignore (table/ts_col from hardcoded table_specs; days bound as ?; pre-existing)
                     (f"-{days} days",),
                 )
                 counts[table] = cursor.rowcount

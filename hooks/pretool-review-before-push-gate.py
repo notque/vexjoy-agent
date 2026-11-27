@@ -57,6 +57,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -336,6 +337,12 @@ def _git_env_opts(env: dict[str, str], where: Where) -> tuple[list[str], str]:
 def parse_invocations(command: str, cwd: str | None, depth: int = 0, env: dict | None = None) -> list[Invocation]:
     """Every gated invocation in *command*, in shell order, with its effective cwd."""
     text = _newlines_to_semicolons(_strip_heredocs(command))
+    # Preserve Windows drive paths (C:\foo\bar) before POSIX shlex eats backslashes.
+    text = re.sub(
+        r"(?<![A-Za-z0-9_])([A-Za-z]:\\[^\s'\"&|;()<>]+)",
+        lambda m: m.group(1).replace("\\", "/"),
+        text,
+    )
     # `2>&1` would otherwise lex as `2>` `&` `1` and split the segment.
     text = re.sub(r"(?<![\w&])\d*>&(\d+|-)", " ", text)
     try:
@@ -489,15 +496,18 @@ def _parse_gh(argv: list[str], where: Where, found: list[Invocation]) -> None:
 
 _SCP_RE = re.compile(r"^(?:[^@/]+@)?([^:/]+):(?!//)(.+)$")
 _URL_RE = re.compile(r"^[a-z][a-z0-9+.-]*://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+)$", re.IGNORECASE)
+_WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 def is_local_path(url: str) -> bool:
-    return url in {".", ".."} or url.startswith(("/", "./", "../", "~/", "file://"))
+    return url in {".", ".."} or url.startswith(("/", "./", "../", "~/", "file://")) or bool(_WIN_DRIVE_RE.match(url))
 
 
 def parse_slug(url: str) -> tuple[str, str, str] | None:
     """(host, owner, repo) for a GitHub-style URL, or None when unparseable."""
     url = url.strip()
+    if _WIN_DRIVE_RE.match(url):
+        return None
     m = _URL_RE.match(url) or _SCP_RE.match(url)
     if not m:
         return None
@@ -626,8 +636,9 @@ def _gh_is_fork_uncached(key: str) -> bool | None:
     if budget <= 0.2:
         raise DeadlineHit(f"no time left to check whether {key} is a fork")
     try:
+        gh_bin = shutil.which("gh") or "gh"
         proc = subprocess.run(
-            ["gh", "repo", "view", key, "--json", "isFork", "--jq", ".isFork"],
+            [gh_bin, "repo", "view", key, "--json", "isFork", "--jq", ".isFork"],
             capture_output=True,
             text=True,
             encoding="utf-8",

@@ -433,6 +433,7 @@ def test_queue_deferred_context_handles_corrupt_json(tmp_path: Path, adapter):
 
 def test_deferred_dir_fallback_resolution(tmp_path: Path, adapter, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))  # never create ~/.gemini in the real home
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))
     custom_dir = tmp_path / "custom-deferred"
     monkeypatch.setenv("VEXJOY_AGY_DEFERRED_DIR", str(custom_dir))
     assert adapter._deferred_dir() == custom_dir
@@ -463,6 +464,7 @@ def no_home_queue(tmp_path: Path, monkeypatch):
     blocked_home = tmp_path / "home-is-a-file"
     blocked_home.write_text("", encoding="utf-8")
     monkeypatch.setenv("HOME", str(blocked_home))
+    monkeypatch.setenv("USERPROFILE", str(blocked_home))
     monkeypatch.delenv("VEXJOY_AGY_DEFERRED_DIR", raising=False)
     monkeypatch.delenv("VEXJOY_STATE_DIR", raising=False)
     system_tmp = tmp_path / "system-tmp"
