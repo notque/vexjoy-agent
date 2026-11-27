@@ -315,6 +315,8 @@ Load when the task needs detailed patterns, catalogs, or specifications.
 | WorldLabs environments | `references/worldlabs.md` |
 | Asset sources catalog | `references/asset-sources.md` |
 | Motion pipeline | `references/motion-pipeline.md` |
+| Blender headless builds, Blender upgrade, 5.3 features (bake, KTX2) | `references/blender-headless-pipeline.md` |
+| Rigging and animating characters, creatures and weapons in Blender with an agent | `references/blender-character-rigging.md` |
 | Game audio | `references/game-audio.md` |
 | Game QA | `references/game-qa.md` |
 | Deploy targets | `references/deploy.md` |
