@@ -142,71 +142,12 @@ writing style (what changed and why). Otherwise leave the change uncommitted and
 
 ---
 
-## Pattern Quality
+## Pattern Quality, Agent Testing, and E2E (Playwright)
 
-Identify and fix testing mistakes across unit, integration, and E2E suites.
-Test behavior, be reliable, run fast, fail for the right reasons.
-
-### Phase 1: SCAN
-
-Locate test files (`*_test.go`, `test_*.py`, `*.test.ts`, `*.spec.js`). Scan
-for these 10 failure modes:
-
-| # | Pattern | Detection Signal |
-|---|---|---|
-| 1 | Testing implementation details | Asserts on private fields, spy on private methods |
-| 2 | Over-mocking / brittle selectors | Mock setup > 50% of test code, CSS nth-child |
-| 3 | Order-dependent tests | Shared mutable state, numbered test names |
-| 4 | Incomplete assertions | `!= nil`, `> 0`, `toBeTruthy()`, no value checks |
-| 5 | Over-specification | Exact timestamps, hardcoded IDs, asserting defaults |
-| 6 | Ignored failures | `@skip`, `.skip`, `xit`, empty catch, `_ = err` |
-| 7 | Poor naming | `testFunc2`, `it('works')`, `it('handles case')` |
-| 8 | Missing edge cases | Only happy path, no empty/null/boundary/error tests |
-| 9 | Slow test suites | Full DB reset per test, no parallelization |
-| 10 | Flaky tests | `sleep()`, `time.Sleep()`, unsynchronized goroutines |
-
-Document each finding with file:line, severity, issue, and impact.
-
-**Gate**: At least one quality issue identified with file:line reference.
-
-### Phase 2: PRIORITIZE
-
-1. **HIGH** -- Flaky, order-dependent, ignored failures (erode trust)
-2. **MEDIUM** -- Over-mocking, incomplete assertions, missing edges (false confidence)
-3. **LOW** -- Poor naming, over-specification, slow suites (maintenance burden)
-
-Fix one pattern at a time. Preserve test intent. Prevent over-engineering.
-
-**Gate**: Findings ranked. User agrees on fix scope.
-
-### Phase 3: FIX
-
-For each issue (highest priority first): show current code, show fixed code,
-apply fix, run tests. Guide toward behavior testing:
-- Asserts on private fields -> test the public behavior those fields enable
-- Spies on `_getUser()` -> test what happens when a user exists or not
-- Checks exact regex -> test that validation succeeds/fails for representative inputs
-
-Run the specific fixed test first, then the full file or package. If a fix
-breaks a previously-passing test, investigate before proceeding.
-
-**Gate**: Each fix verified. Tests pass after each change.
-
-### Phase 4: VERIFY
-
-Run full suite. Verify flaky tests are now deterministic (run 3x). Confirm
-no tests were accidentally removed or disabled. Report: bad patterns fixed,
-files modified, tests affected, suite status.
-
-**Gate**: Full suite passes. Summary delivered.
-
-### Pattern Error Recovery
-
-| Problem | Fix |
-|---|---|
-| Cannot determine if pattern is a quality issue | Check comments, consider test layer, flag MEDIUM with trade-offs |
-| Fix changes test behavior | Identify original intent, write correct assertion, note as separate finding |
-| Suite has hundreds of quality issues | Fix HIGH severity first, recommend TDD going forward, suggest fix-on-touch |
+Load `references/mode-playbooks.md` for full phase playbooks and error recovery:
+- **Pattern Quality:** SCAN (10 failure modes) -> PRIORITIZE (HIGH/MEDIUM/LOW) -> FIX (behavior assertions) -> VERIFY (3x flaky confirmation).
+- **Agent Testing:** TDD in fresh subagents (min counts: Reviewer 6, Implementation 5, Analysis 4, Routing 4) across RED -> GREEN -> REFACTOR.
+- **E2E (Playwright):** SCAFFOLD (`playwright.config.ts`) -> BUILD (POM + `data-testid`) -> RUN (`--repeat-each=5` flaky isolation, `test.fixme()` quarantine) -> VALIDATE (`e2e-report.md`).
 
 ---
 
@@ -230,127 +171,10 @@ Audit to decide whether a test should exist at all.
 full suites pass. Production and test LOC reported separately.
 
 To find hook or validator tests that miss real bugs, run
-`python3 scripts/mutation-check.py --hook hooks/<name>.py`. It plants small AST
-bugs, runs the tests, and lists surviving mutants. Use `--all` for every hook
-(about 30 minutes) and `--json` for machine output. Run it on demand, not in CI.
-
-### Mutation testing: jev_limits.py, jev_router_common.py
-
-Real mutation testing (cosmic-ray, not the homegrown AST checker above, which
-is scoped to `hooks/` and `scripts/validate-*.py`) for two load-bearing,
-deterministic scripts outside that checker's scope: `scripts/jev_limits.py`
-(split/budget math) and `scripts/jev_router_common.py` (retry/backoff logic).
-Local-only, on request, same as the AST checker above -- not wired into CI.
-Mirrors the switch project's own tradeoff of keeping its Stryker (JS mutation
-testing) run local for speed rather than gating CI on it.
-
-**Tool choice: cosmic-ray over mutmut.** mutmut 3.x copies the mutated
-source into a sandboxed `mutants/` tree and imports it from there; that
-breaks on this repo's convention of `scripts/tests/conftest.py` inserting
-`scripts/` onto `sys.path` so tests can `import jev_limits` as a flat
-top-level module (mutmut's own code warns this exact pattern causes a
-silent "No Tests" result for every mutant). cosmic-ray mutates the real
-file on disk, runs the configured test command, and restores the file --
-no sandbox, no import-path mismatch, no extra `also_copy` plumbing needed
-for `hooks/lib/`, `scripts/jev_images.py`, etc.
-
-**Run** (installs cosmic-ray into a disposable venv; never committed):
-
-```bash
-python3 -m venv .venv && ./.venv/bin/python -m pip install cosmic-ray
-./.venv/bin/cosmic-ray init scripts/cosmic-ray-jev-limits.toml /tmp/jev-limits-mutation.sqlite
-./.venv/bin/cr-filter-operators /tmp/jev-limits-mutation.sqlite scripts/cosmic-ray-jev-limits.toml
-./.venv/bin/cosmic-ray exec scripts/cosmic-ray-jev-limits.toml /tmp/jev-limits-mutation.sqlite
-./.venv/bin/cr-report /tmp/jev-limits-mutation.sqlite
-
-./.venv/bin/cosmic-ray init scripts/cosmic-ray-jev-router-common.toml /tmp/jev-router-common-mutation.sqlite
-./.venv/bin/cr-filter-operators /tmp/jev-router-common-mutation.sqlite scripts/cosmic-ray-jev-router-common.toml
-./.venv/bin/cosmic-ray exec scripts/cosmic-ray-jev-router-common.toml /tmp/jev-router-common-mutation.sqlite
-./.venv/bin/cr-report /tmp/jev-router-common-mutation.sqlite
-```
-
-Each config's `[cosmic-ray.filters.operators-filter]` excludes cosmic-ray's
-full pairwise operator-swap matrix (every arithmetic/bitwise operator
-replaced by every other, every comparison operator by every other) down to
-one classic mutant per real operator family. Most of that matrix is noise
-here: both files use `X | None` PEP 604 type unions, which Python parses as
-a `BitOr` node, and `from __future__ import annotations` stores every
-annotation as a string, so a mutant that swaps that `BitOr` is never
-evaluated and can never be killed. Without the filter, `cosmic-ray init`
-reports 714 candidates for `jev_limits.py` and 1200 for
-`jev_router_common.py`; with it, 203 and 435 actually run.
-
-`cr-report`'s own percentage divides survivors by the *unfiltered* total
-job count (714 / 1200), which understates survivors once filtered-out
-mutants are mixed into that denominator. Read the score as killed /
-(killed + survived) over the mutants that actually ran instead.
-
-**Baseline** (run 2026-10-30, cosmic-ray 8.7.0):
-
-| File | Ran | Killed | Survived | Other | Score |
-|---|---|---|---|---|---|
-| `jev_limits.py` | 203 | 90 | 113 | -- | 44% |
-| `jev_router_common.py` | 435 | 188 | 245 | 2 incompetent | 43% |
-
-The 2 incompetent `jev_router_common.py` mutants are a cosmic-ray 8.7.0
-`ExceptionReplacer` bug (`AttributeError: 'PythonNode' object has no
-attribute 'value'`) on an `except (A, B, ...)` tuple; it is a tool
-limitation, not a test gap, and is excluded from the score above.
-
-Most survivors are `NumberReplacer` hits on policy constants the tests
-check relationally (over/under a limit) rather than pin to an exact value
-(`REQUEST_TOKEN_LIMIT`, `SAFE_FRACTION`, cache TTLs), plus `check_run`'s
-`>`/`>=` boundary comparisons and `call_jev`'s untested telemetry/logging
-branches. `_retry_max`'s default-retry-count constant also survives --
-worth a boundary test (`JEV_RETRY_MAX=0` and the documented default) if this
-module changes again.
-
-Treat a re-run that drops either score below 35% as a regression signal
-worth investigating before merging whatever change caused it; this baseline
-is not a CI gate, just a documented trip wire for local, on-request runs.
-
----
-
-## Agent Testing
-
-TDD methodology applied to agent development. Test what the agent DOES, not
-what the prompt SAYS. Each test runs in a fresh subagent to avoid context
-pollution.
-
-### Minimum Test Counts
-
-| Agent Type | Min Tests | Coverage |
-|---|---|---|
-| Reviewer | 6 | 2 real issues, 2 clean, 1 edge, 1 ambiguous |
-| Implementation | 5 | 2 typical, 1 complex, 1 minimal, 1 error |
-| Analysis | 4 | 2 standard, 1 edge, 1 malformed |
-| Routing/orchestration | 4 | 2 correct route, 1 ambiguous, 1 invalid |
-
-No agent is simple enough to skip testing.
-
-### Phase 1: RED -- Observe Current Behavior
-
-Read the agent file and referenced skills. Extract testable claims (inputs,
-output structure, routing triggers, error conditions). Write a test plan to a
-file. Dispatch subagent via Task tool with test inputs. Capture results verbatim.
-Identify failure patterns.
-
-**Gate**: All cases executed. Outputs captured. Failures documented.
-
-### Phase 2: GREEN -- Fix Agent Definition
-
-Prioritize failures by severity. Make one fix at a time. Re-run ALL test cases
-after each fix. If a fix causes regression, revert and try a different approach.
-
-**Gate**: All cases pass. No regressions.
-
-### Phase 3: REFACTOR -- Edge Cases and Robustness
-
-Add edge case tests (empty, large, unusual, ambiguous inputs). Run consistency
-tests (same input 3x; outputs should have same structure and key findings). Run
-full regression suite.
-
-**Gate**: Edge cases handled. Consistency verified. Full suite green.
+`python3 scripts/mutation-check.py --hook hooks/<name>.py` (`--all`, `--json`).
+For local-only cosmic-ray mutation testing of `scripts/jev_limits.py` and
+`scripts/jev_router_common.py` (commands and 2026-10-30 baselines), load
+`references/mutation-testing.md`.
 
 ---
 
@@ -386,70 +210,6 @@ exit is failure; partial output is not a passing run.
 | Missing DOM environment | Check for `jsdom`/`happy-dom` in config; suggest devDependency |
 | Out of memory | Batch by directory, use `--pool=forks` or `--shard=1/N` |
 | Failing assertions | Report mismatch; if fixing authorized, determine whether implementation or test is wrong |
-
----
-
-## E2E (Playwright)
-
-Playwright-based E2E testing: Scaffold, Build, Run, Validate. Each phase
-produces an artifact and must pass its gate.
-
-### Phase 1: SCAFFOLD
-
-1. Verify `@playwright/test` installed: `npx playwright --version`. If missing:
-   `npm install -D @playwright/test && npx playwright install`.
-2. Create directory structure: `tests/e2e/{auth,features,api}/`, `pages/`,
-   `artifacts/{screenshots,traces,videos}/`.
-3. Write `playwright.config.ts`. Bake in failure diagnostics: `screenshot: 'only-on-failure'`,
-   `trace: 'on-first-retry'`, `video: 'retain-on-failure'`. CI retries:
-   `retries: process.env.CI ? 2 : 0`.
-4. Verify: `npx tsc --noEmit`.
-
-**Gate**: `playwright.config.ts` exists AND `tests/e2e/` exists.
-
-### Phase 2: BUILD
-
-Write POM classes in `pages/` for each feature area. All locators use
-`data-testid` via `page.getByTestId()`. No inline locators in spec files.
-Write spec files in `tests/e2e/<area>/`. Verify: `npx tsc --noEmit`.
-
-**Gate**: At least one `.spec.ts` under `tests/e2e/` AND `npx tsc --noEmit`
-exits 0.
-
-### Phase 3: RUN
-
-1. Ensure app is running (or document `BASE_URL`).
-2. Run: `npx playwright test`.
-3. If failures, isolate with `--repeat-each=5` to distinguish flaky from broken.
-4. Quarantine confirmed flaky tests with `test.fixme()` and a tracking TODO.
-   Never delete a failing test. Use `test.skip()` only for environment guards.
-
-**Gate**: `playwright-results.json` exists and parses as valid JSON.
-
-### Phase 4: VALIDATE
-
-1. Deterministic checks first: parse JSON, extract counts, identify `unexpected`
-   and `flaky` entries.
-2. LLM triage: classify each failure as (a) broken assertion, (b) selector
-   mismatch, (c) timing/async, or (d) application bug.
-3. Write `e2e-report.md`.
-
-**Gate**: `e2e-report.md` exists.
-
-### E2E Error Recovery
-
-| Symptom | Fix |
-|---|---|
-| `npx tsc --noEmit` fails | Check `@playwright/test` in devDeps, verify tsconfig includes test dir |
-| Pass locally, fail CI | `npx playwright install --with-deps` in CI; verify `BASE_URL` |
-| Results JSON missing | Check JSON reporter in config; check for OOM/process kill |
-| Locator timeout on existing element | `await expect(locator).toBeVisible()` before interaction; check overlays |
-| `fill()` appends | `locator.clear()` then `locator.fill()` |
-| Flaky (4/5 pass) | Quarantine with `test.fixme()`, reproduce with `--repeat-each=10`, check missing `waitFor` |
-
-Confirm flaky vs. broken: `--repeat-each=5 --retries=0`. If fails at least once
-in 5, it is flaky. Fix if root cause is clear; quarantine otherwise. Verify fix
-with `--repeat-each=10 --retries=0` (must pass 10/10).
 
 ---
 
@@ -542,6 +302,8 @@ Load when the signal applies.
 | Domain checklists | `references/verify-checklist.md` | Schema change, compatibility checks |
 | Verification examples | `references/verify-verification-examples.md` | Bug fix, refactor, migration walkthroughs |
 | Test automation strategy, Vitest, coverage gates, CI, numeric anchors | `references/testing-automation.md` | Hard rules, workflow, output contract; routes to `testing-automation/` (Vitest, async, mocking, JS patterns, output contract) |
+| Pattern Quality, Agent Testing, E2E (Playwright) phase playbooks | `references/mode-playbooks.md` | Full scan/prioritize/fix/verify, agent TDD, and Playwright E2E phases |
+| Cosmic-ray mutation testing for `jev_limits.py` and `jev_router_common.py` | `references/mutation-testing.md` | Disposable venv commands, operator filters, and baseline scores |
 
 ---
 

@@ -18,7 +18,7 @@ routing:
     - batch generation
     - series of images
     - character art
-    - pixel art
+    - AI pixel art
     - image post-processing
     - make a picture
     - create art
@@ -26,7 +26,7 @@ routing:
     - make art
     - generate artwork
     - create artwork
-  not_for: "HTML visualization or charts (use html-artifact), or deterministic non-AI palette/matrix pixel art (use game-asset-generator)"
+  not_for: "HTML visualization or charts (use frontend), or deterministic non-AI palette/matrix pixel art and game sprites (use game-dev)"
   pairs_with:
     - programming
     - game-dev
