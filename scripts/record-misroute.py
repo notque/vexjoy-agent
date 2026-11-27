@@ -13,12 +13,18 @@ Usage:
 """
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
-SCRIPTS_DIR = Path(__file__).resolve().parent
-LEARNING_DB_SCRIPT = SCRIPTS_DIR / "learning-db.py"
+_HOME_LIB = Path.home() / ".claude" / "hooks" / "lib"
+if _HOME_LIB.is_dir():
+    sys.path.insert(0, str(_HOME_LIB))
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_REPO_LIB = _REPO_ROOT / "hooks" / "lib"
+if _REPO_LIB.is_dir():
+    sys.path.insert(0, str(_REPO_LIB))
+
+import learning_db_v2
 
 
 def build_value(request: str, routed_to: str, should_have_been: str, reason: str) -> str:
@@ -32,37 +38,29 @@ def build_key(routed_to: str, should_have_been: str) -> str:
 
 
 def record_misroute(request: str, routed_to: str, should_have_been: str, reason: str) -> int:
-    """Record a misroute via the learning-db.py CLI.
+    """Record a misroute directly into learning.db via learning_db_v2.
 
     Returns:
-        Exit code from the subprocess call.
+        0 on success, 1 on error.
     """
     value = build_value(request, routed_to, should_have_been, reason)
     key = build_key(routed_to, should_have_been)
 
-    cmd = [
-        sys.executable,
-        str(LEARNING_DB_SCRIPT),
-        "record",
-        "routing",
-        key,
-        value,
-        "--category",
-        "misroute",
-        "--tags",
-        "misroute,routing-feedback",
-        "--source",
-        "manual:misroute-feedback",
-    ]
+    try:
+        learning_db_v2.record_learning(
+            topic="routing",
+            key=key,
+            value=value,
+            category="misroute",
+            tags=["misroute", "routing-feedback"],
+            source="manual:misroute-feedback",
+        )
+    except Exception as exc:
+        print(f"Error recording misroute: {exc}", file=sys.stderr)
+        return 1
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode == 0:
-        print(f"Recorded misroute: {routed_to} -> should have been {should_have_been}")
-    else:
-        print(f"Error recording misroute: {result.stderr.strip()}", file=sys.stderr)
-
-    return result.returncode
+    print(f"Recorded misroute: {routed_to} -> should have been {should_have_been}")
+    return 0
 
 
 def main() -> None:

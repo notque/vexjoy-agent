@@ -246,6 +246,8 @@ def validate(repo_root: Path, claude_dir: Path) -> list[Finding]:
                 )
             )
     for name, entry in agents.items():
+        if name in RETIRED_AGENTS:
+            continue
         if isinstance(entry, dict):
             findings.extend(
                 check_entry(name, entry, "agent", repo_root, claude_dir, None, registry, private=name in private_agents)

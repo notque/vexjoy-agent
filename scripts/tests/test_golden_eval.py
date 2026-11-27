@@ -192,3 +192,19 @@ def test_verdict_is_numbers_per_router(tmp_path: Path) -> None:
     assert summary["routers"]["d"]["main_part_share"] == 1.0
     for word in ("better", "winner", "wins"):
         assert word not in verdict.lower()
+
+
+def test_run_session_kills_silent_hung_subprocess(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A silent hung subprocess with no stdout output is killed by the daemon timeout timer."""
+    real_popen = subprocess.Popen
+
+    def fake_popen(_cmd, **kwargs):
+        return real_popen([sys.executable, "-c", "import time; time.sleep(30)"], **kwargs)
+
+    monkeypatch.setattr(e2e, "SESSION_TIMEOUT_S", 0.2)
+    monkeypatch.setattr(e2e.subprocess, "Popen", fake_popen)
+
+    result = e2e.run_session("d", "hang test", tmp_path, {}, "opus")
+    assert result["events"] == []
+    assert result["exit"] != 0
+    assert result["seconds"] < 5.0

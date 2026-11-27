@@ -94,7 +94,7 @@ class TestKeyValue:
         [
             "API_KEY=supersecretvalue123",
             "api-key: supersecretvalue123",
-            '"password": "supersecretvalue123"',
+            '"password": "supersecretvalue123"',  # security-review: ignore - synthetic redaction fixture
             "DB_PASSWORD='supersecretvalue123'",  # security-review: ignore - synthetic redaction fixture
             "private_token=supersecretvalue123",
             "credential = supersecretvalue123",
@@ -239,6 +239,27 @@ class TestRedactPayload:
         assert n == 2
         assert FAKE_GHP not in repr(out)
         assert FAKE_AWS not in repr(out)
+
+    def test_redacts_secrets_inside_tuples(self) -> None:
+        payload = {
+            "state": {
+                "pair": (f"token={FAKE_GHP}", ("nested", {"key": FAKE_AWS})),
+                "clean": ("safe", 42),
+            },
+            "questions": ({"id": "q1", "instructions": "ok", "examples": (FAKE_OPENAI, "plain")},),
+        }
+        original = repr(payload)
+        out, n = jev_redact.redact_payload(payload)
+        assert n == 3
+        assert repr(payload) == original
+        assert isinstance(out["state"]["pair"], tuple)
+        assert isinstance(out["state"]["pair"][1], tuple)
+        assert isinstance(out["questions"], tuple)
+        assert isinstance(out["questions"][0]["examples"], tuple)
+        assert out["state"]["clean"] == ("safe", 42)
+        dumped = repr(out)
+        for fake in (FAKE_GHP, FAKE_AWS, FAKE_OPENAI):
+            assert fake not in dumped
 
 
 class TestToolInput:

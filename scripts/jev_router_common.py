@@ -181,7 +181,7 @@ def _trip_breaker(status: int) -> None:
 # On-disk cache — avoids duplicate Jev calls
 # ---------------------------------------------------------------------------
 
-_cache_conn_lock = threading.Lock()
+_cache_conn_lock = threading.RLock()
 _cache_conn: sqlite3.Connection | None = None
 _cache_conn_path: str | None = None  # tracks which DB the conn is for
 
@@ -208,39 +208,40 @@ def _get_cache_conn() -> sqlite3.Connection:
     (happens when tests redirect the state dir between calls).
     """
     global _cache_conn, _cache_conn_path
-    db_path = _cache_db_path()
-    db_str = str(db_path)
-    if _cache_conn is not None and _cache_conn_path == db_str:
-        return _cache_conn
-    # Close stale connection if the path changed.
-    if _cache_conn is not None:
+    with _cache_conn_lock:
+        db_path = _cache_db_path()
+        db_str = str(db_path)
+        if _cache_conn is not None and _cache_conn_path == db_str:
+            return _cache_conn
+        # Close stale connection if the path changed.
+        if _cache_conn is not None:
+            try:
+                _cache_conn.close()
+            except Exception:
+                pass
+            _cache_conn = None
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(db_str, timeout=5.0, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS cache ("
+            "  hash TEXT PRIMARY KEY,"
+            "  ts REAL NOT NULL,"
+            "  answers_json TEXT NOT NULL,"
+            "  model TEXT"
+            ")"
+        )
+        conn.commit()
         try:
-            _cache_conn.close()
-        except Exception:
+            os.chmod(db_path, 0o600)
+        except OSError:
             pass
-        _cache_conn = None
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_str, timeout=5.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA busy_timeout=5000")
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS cache ("
-        "  hash TEXT PRIMARY KEY,"
-        "  ts REAL NOT NULL,"
-        "  answers_json TEXT NOT NULL,"
-        "  model TEXT"
-        ")"
-    )
-    conn.commit()
-    try:
-        os.chmod(db_path, 0o600)
-    except OSError:
-        pass
-    _cache_conn = conn
-    _cache_conn_path = db_str
-    return conn
+        _cache_conn = conn
+        _cache_conn_path = db_str
+        return conn
 
 
 def _cache_lookup(phash: str) -> dict | None:
@@ -249,16 +250,17 @@ def _cache_lookup(phash: str) -> dict | None:
     if ttl <= 0:
         return None
     try:
-        conn = _get_cache_conn()
-        row = conn.execute("SELECT ts, answers_json, model FROM cache WHERE hash = ?", (phash,)).fetchone()
-        if row is None:
-            return None
-        age = time.time() - row["ts"]
-        if age > ttl:
-            conn.execute("DELETE FROM cache WHERE hash = ?", (phash,))
-            conn.commit()
-            return None
-        return json.loads(row["answers_json"])
+        with _cache_conn_lock:
+            conn = _get_cache_conn()
+            row = conn.execute("SELECT ts, answers_json, model FROM cache WHERE hash = ?", (phash,)).fetchone()
+            if row is None:
+                return None
+            age = time.time() - row["ts"]
+            if age > ttl:
+                conn.execute("DELETE FROM cache WHERE hash = ?", (phash,))
+                conn.commit()
+                return None
+            return json.loads(row["answers_json"])
     except Exception:
         return None
 
@@ -268,13 +270,14 @@ def _cache_store(phash: str, answers: dict, model: str | None = None) -> None:
     if _cache_ttl() <= 0:
         return
     try:
-        conn = _get_cache_conn()
-        answers_text = json.dumps(answers, sort_keys=True, separators=(",", ":"))
-        conn.execute(
-            "INSERT OR REPLACE INTO cache (hash, ts, answers_json, model) VALUES (?, ?, ?, ?)",
-            (phash, time.time(), answers_text, model),
-        )
-        conn.commit()
+        with _cache_conn_lock:
+            conn = _get_cache_conn()
+            answers_text = json.dumps(answers, sort_keys=True, separators=(",", ":"))
+            conn.execute(
+                "INSERT OR REPLACE INTO cache (hash, ts, answers_json, model) VALUES (?, ?, ?, ?)",
+                (phash, time.time(), answers_text, model),
+            )
+            conn.commit()
     except Exception:
         pass
 

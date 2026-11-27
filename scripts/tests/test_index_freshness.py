@@ -202,6 +202,31 @@ def test_atomic_write_does_not_create_loop(tmp_path: Path) -> None:
     assert fresh.newer_source(repo, "agents") is None
 
 
+def test_stale_agents_local_index_is_refreshed_with_include_private(tmp_path: Path) -> None:
+    """An existing agents/INDEX.local.json older than agents/ or generator is refreshed without ping-pong."""
+    repo = make_repo(tmp_path)
+    (repo / "scripts" / "generate-agent-index.py").write_text(
+        "import sys\n"
+        "from pathlib import Path\n"
+        f"sys.path.insert(0, {str(_REPO_ROOT)!r})\n"
+        "from scripts.lib.atomic_io import atomic_write_text\n"
+        "target = Path('agents/INDEX.local.json') if '--include-private' in sys.argv else Path('agents/INDEX.json')\n"
+        'atomic_write_text(target, \'{"agents": {"refreshed": {}}}\')\n',
+        encoding="utf-8",
+    )
+    os.utime(repo / "scripts" / "generate-agent-index.py", OLD)
+    local = repo / "agents" / "INDEX.local.json"
+    local.write_text('{"agents": {"stale-retired": {}}}', encoding="utf-8")
+    os.utime(repo / "agents" / "INDEX.json", (OLD[0] + 50, OLD[1] + 50))
+    os.utime(repo / "agents", (OLD[0] + 20, OLD[1] + 20))
+    os.utime(local, (OLD[0] + 5, OLD[1] + 5))
+
+    assert fresh.ensure_fresh_indexes(repo, ["agents"]) == ["agents"]
+    assert "refreshed" in local.read_text(encoding="utf-8")
+    # Second call must see both INDEX.json and INDEX.local.json as current (no ping-pong).
+    assert fresh.ensure_fresh_indexes(repo, ["agents"]) == []
+
+
 def _load_gsi():
     """Load generate-skill-index.py as a module."""
     import importlib.util

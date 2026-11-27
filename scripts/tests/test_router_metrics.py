@@ -82,3 +82,15 @@ def test_cli_json_and_missing_sources(tmp_path: Path, capsys) -> None:
     assert rm.main(["--events", str(tmp_path / "none.jsonl"), "--usage-db", str(tmp_path / "none.db")]) == 0
     assert "No routing decisions" in capsys.readouterr().out
     assert rm.main(["--since", "not-a-date"]) == 2
+
+
+def test_verify_followthrough_ignores_empty_session_ids() -> None:
+    base = {"router": "d", "agent": "main", "skill": "x", "pipeline": None, "dispatch_reason": None}
+    rows = [
+        {**base, "ts": 10.0, "session": "", "d_flags": ["verify=required"]},
+        {**base, "ts": 20.0, "session": "", "agent": "general-purpose", "dispatch_reason": "verifier", "d_flags": []},
+        {**base, "ts": 30.0, "session": "s1", "d_flags": ["verify=required"]},
+        {**base, "ts": 40.0, "session": "s1", "agent": "general-purpose", "dispatch_reason": "verifier", "d_flags": []},
+    ]
+    out = rm.summarize(rows, {})["d"]
+    assert out["verify"] == {"required": 2, "verified": 1, "rate": 0.5}

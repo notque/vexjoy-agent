@@ -428,3 +428,60 @@ def test_context_budget_survives_unreadable_entries(tmp_path: Path, monkeypatch:
 
     monkeypatch.setattr(Path, "rglob", boom)
     assert d_gate.measure_scope(["d"], tmp_path) == (0, 0)
+
+
+def test_scenario_paths_strip_new_prefix_and_normalize_dotdot(tmp_path: Path) -> None:
+    assert d_gate.scenario_paths("new:hooks/brand-new.py", tmp_path) == ["hooks/brand-new.py"]
+    assert d_gate.scenario_paths("docs/../hooks/foo.py, scripts/sub/../d_gate.py", tmp_path) == [
+        "hooks/foo.py",
+        "scripts/d_gate.py",
+    ]
+    assert d_gate.scenario_paths("new:docs/../scripts/vexinstall/plan.py", tmp_path) == ["scripts/vexinstall/plan.py"]
+    assert d_gate.scenario_paths("docs/../README.md", tmp_path) == []
+
+
+def test_dispatch_emits_local_only_block_from_stack_or_flag() -> None:
+    _receipt()
+    spec = {"request_verbatim": REQUEST, "intent": INTENT, "ownership": "pkg/api"}
+    base = _decision(
+        execution="dispatch",
+        model="opus",
+        dispatch_reason="fan-out",
+        references=["golang-general"],
+        task_spec=spec,
+    )
+    assert bd.LOCAL_ONLY_BLOCK not in _preamble(base)
+    assert bd.LOCAL_ONLY_BLOCK in _preamble({**base, "stack": ["local-only"]})
+    assert bd.LOCAL_ONLY_BLOCK in _preamble({**base, "flags": {"local_only": True}})
+
+
+def test_check_d_route_forwards_explicit_repo_root(tmp_path: Path) -> None:
+    _receipt()
+    for i in range(12):
+        (tmp_path / f"f{i}.md").write_text("x", encoding="utf-8")
+    spec = {"request_verbatim": REQUEST, "intent": INTENT, "acceptance": "summary", "files": "."}
+    decision = _decision(
+        execution="dispatch",
+        model="opus",
+        dispatch_reason="context-budget",
+        references=["golang-general"],
+        task_spec=spec,
+    )
+    # Without chdir, forwarding repo_root=tmp_path lets check_dispatch measure tmp_path.
+    out = bd.build_preamble(decision, gather=False, repo_root=tmp_path)
+    assert "reason=context-budget router=d" in out.splitlines()[0]
+
+
+def test_record_main_thread_route_uses_jev_session_id_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
+    monkeypatch.delenv("CLAUDE_SESSION_ID", raising=False)
+    monkeypatch.setenv("JEV_SESSION_ID", "jev-fallback-sess")
+    captured: dict[str, object] = {}
+
+    def fake_run(_cmd, **kwargs):
+        captured["event"] = json.loads(kwargs["input"])
+
+    monkeypatch.setattr(bd.subprocess, "run", fake_run)
+    ok = bd.record_main_thread_route("[do-route] agent=main skill=programming exec=main", _decision())
+    assert ok is True
+    assert captured["event"]["session_id"] == "jev-fallback-sess"

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import time
@@ -131,16 +132,53 @@ def test_empty_db_emits_object(isolated_db: Path) -> None:
     assert json.loads(result.stdout) == {}
 
 
-def test_no_writes(isolated_db: Path) -> None:
-    """The command does not mutate the DB file."""
-    _seed_route("x-agent:x-skill")
-    db_file = isolated_db / "learning.db"
-    before = db_file.stat().st_mtime_ns
-    time.sleep(0.01)
+def test_excludes_bookkeeping_prefixes(isolated_db: Path) -> None:
+    """Bookkeeping rows (stack-usage:, fallback-reason:, rightsizing:) are omitted."""
+    _seed_route("general-purpose:testing")
+    _seed_route("stack-usage:testing")
+    _seed_route("fallback-reason:invalid-agent:foo")
+    _seed_route("rightsizing:tier2")
+
     result = _run_cli(isolated_db)
     assert result.returncode == 0, result.stderr
-    after = db_file.stat().st_mtime_ns
-    assert before == after, "route-weights must not write to the DB"
+    data = json.loads(result.stdout)
+
+    assert "general-purpose:testing" in data
+    assert "stack-usage:testing" not in data
+    assert "fallback-reason:invalid-agent:foo" not in data
+    assert "rightsizing:tier2" not in data
+
+
+def test_no_writes(isolated_db: Path) -> None:
+    """The command does not mutate the DB or WAL files."""
+    _seed_route("x-agent:x-skill")
+    db_file = isolated_db / "learning.db"
+    wal_file = isolated_db / "learning.db-wal"
+
+    # Pin file mtimes to a deterministic past timestamp instead of sleeping.
+    pinned = (1_700_000_000, 1_700_000_000)
+    os.utime(db_file, pinned)
+    if wal_file.exists():
+        os.utime(wal_file, pinned)
+
+    before_db_bytes = db_file.read_bytes()
+    before_wal_bytes = wal_file.read_bytes() if wal_file.exists() else b""
+    before_mtime = db_file.stat().st_mtime_ns
+
+    observer = sqlite3.connect(f"file:{db_file}?mode=ro", uri=True)
+    try:
+        before_version = observer.execute("PRAGMA data_version").fetchone()[0]
+        result = _run_cli(isolated_db)
+        assert result.returncode == 0, result.stderr
+        after_version = observer.execute("PRAGMA data_version").fetchone()[0]
+    finally:
+        observer.close()
+
+    after_wal_bytes = wal_file.read_bytes() if wal_file.exists() else b""
+    assert after_version == before_version, "route-weights must not commit any DB writes"
+    assert db_file.stat().st_mtime_ns == before_mtime, "route-weights must not write to learning.db"
+    assert db_file.read_bytes() == before_db_bytes
+    assert after_wal_bytes == before_wal_bytes, "route-weights must not append WAL frames"
 
 
 @pytest.mark.slow

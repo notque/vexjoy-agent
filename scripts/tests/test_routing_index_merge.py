@@ -135,3 +135,42 @@ def test_unreadable_or_invalid_files_are_skipped(tmp_path, merge):
 def test_non_dict_section_is_ignored(tmp_path, merge):
     tracked_path = _write_indexes(tmp_path, {"skills": ["not", "a", "dict"]}, None)
     assert merge.load_index_items(tracked_path, None, "skills") == {}
+
+
+def test_detect_target_recognizes_cline(tmp_path, merge, monkeypatch):
+    monkeypatch.delenv(merge.TARGET_ENV, raising=False)
+    script = tmp_path / ".cline" / "scripts" / "routing-manifest.py"
+    assert merge.detect_target(script) == "cline"
+    assert merge.installed_index_path("skills", "cline", tmp_path) == (
+        tmp_path / ".cline" / "vexjoy" / "index" / "skills.json"
+    )
+
+
+def test_retired_agents_missing_on_disk_are_filtered_from_load_index_items(tmp_path, merge):
+    repo = tmp_path / "repo"
+    agents_dir = repo / "agents"
+    agents_dir.mkdir(parents=True)
+    # One retired agent whose file was deleted, one private overlay agent, and one retired agent still on disk.
+    (agents_dir / "custom-overlay.md").write_text("stub\n", encoding="utf-8")
+    (agents_dir / "reviewer-code.md").write_text("stub\n", encoding="utf-8")
+    tracked = _write_indexes(
+        agents_dir,
+        {"agents": {}},
+        {
+            "agents": {
+                "python-general-engineer": {"file": "agents/python-general-engineer.md"},
+                "reviewer-code": {"file": "agents/reviewer-code.md"},
+                "custom-overlay": {"file": "agents/custom-overlay.md"},
+                "ghost-non-retired": {"file": "agents/ghost-non-retired.md"},
+            }
+        },
+    )
+    items = merge.load_index_items(tracked, "INDEX.local.json", "agents")
+    assert "python-general-engineer" not in items
+    assert "reviewer-code" in items
+    assert "custom-overlay" in items
+    assert "ghost-non-retired" in items
+
+    resolved = merge.load_resolved_items("agents", "claude", repo_root=repo, home=tmp_path / "empty-home")
+    assert "python-general-engineer" not in resolved
+    assert "custom-overlay" in resolved

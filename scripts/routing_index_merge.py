@@ -103,7 +103,27 @@ RETIRED_AGENTS: frozenset[str] = frozenset(
 )
 
 
-def load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
+def _retired_agent_missing(name: str, data: object, base: Path) -> bool:
+    """True when *name* is a retired repo agent whose backing file is absent on disk."""
+    if name not in RETIRED_AGENTS:
+        return False
+    file_field = data.get("file") if isinstance(data, dict) else None
+    if not isinstance(file_field, str) or not file_field:
+        return True
+    path = Path(file_field)
+    candidate = path if path.is_absolute() else base / path
+    return not candidate.is_file()
+
+
+def _index_base(tracked: Path, base: Path | None) -> Path:
+    if base is not None:
+        return base
+    if tracked.parent.name == "index" and tracked.parent.parent.name == "vexjoy":
+        return tracked.parent.parent.parent
+    return tracked.parent.parent
+
+
+def load_index_items(tracked: Path, local_name: str | None, key: str, *, base: Path | None = None) -> dict:
     """Load index items from the tracked file, overlaying the local override.
 
     Local override files (INDEX.local.json) are gitignored supersets produced
@@ -113,8 +133,13 @@ def load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
     local fills gaps per-name): a stale local can never hide a tracked skill
     or agent, and never overrides tracked entry content such as triggers or
     force_route — full replacement and per-name update both did.
+
+    For ``key == "agents"``, entries naming ``RETIRED_AGENTS`` whose backing
+    file no longer exists on disk are filtered out so a stale local overlay
+    cannot leak retired repo agents.
     """
     items: dict = {}
+    resolved_base = _index_base(tracked, base)
     paths = [tracked]
     if local_name:
         local = tracked.parent / local_name
@@ -128,6 +153,8 @@ def load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
         loaded = raw.get(key, {})
         if isinstance(loaded, dict):
             for name, data in loaded.items():
+                if key == "agents" and _retired_agent_missing(name, data, resolved_base):
+                    continue
                 items.setdefault(name, data)
     return items
 
@@ -194,17 +221,20 @@ def load_resolved_items(
     *fallback* is the reader's ``(tracked, local_name)`` pair for step 3; it
     defaults to the repo public index plus the legacy ``INDEX.local.json``.
     """
-    path, installed = _resolve(kind, target, repo_root, home)
+    path, base, installed = resolve_index_with_base(kind, target, repo_root, home)
     if installed:
-        return load_index_items(path, None, kind)
+        return load_index_items(path, None, kind, base=base)
     tracked, local_name = fallback if fallback is not None else (path, LEGACY_LOCAL)
-    return load_index_items(tracked, local_name, kind)
+    return load_index_items(
+        tracked, local_name, kind, base=repo_root if repo_root is not None else tracked.parent.parent
+    )
 
 
 TARGET_ENV = "VEXJOY_INDEX_TARGET"
 RESOLVED_KINDS = frozenset({"skills", "agents"})
 _RUNTIME_DIRS = {
     ".claude": "claude",
+    ".cline": "cline",
     ".codex": "codex",
     ".factory": "factory",
     ".hermes": "hermes",

@@ -148,16 +148,17 @@ def _walk(node: Any, counter: list[int]) -> Any:
                 new_key = f"{new_key}#"
             walked[new_key] = _walk(value, counter)
         return walked
-    if isinstance(node, list):
-        return [_walk(v, counter) for v in node]
+    if isinstance(node, (list, tuple)):
+        walked_seq = [_walk(v, counter) for v in node]
+        return tuple(walked_seq) if isinstance(node, tuple) else walked_seq
     return node
 
 
 def redact_payload(payload: dict) -> tuple[dict, int]:
     """Deep-copy ``payload`` and redact secrets from every part that carries request text.
 
-    Walks ``payload["state"]`` (str, dict keys and values, list, recursively) and
-    every field of each entry in ``payload["questions"]``.
+    Walks ``payload["state"]`` (str, dict keys and values, list, tuple, recursively)
+    and every field of each entry in ``payload["questions"]``.
 
     Returns:
         ``(redacted_payload, count)`` with ``count`` the number of values redacted.
@@ -175,6 +176,8 @@ def redact_payload(payload: dict) -> tuple[dict, int]:
         for i, q in enumerate(questions):
             if isinstance(q, dict):
                 questions[i] = _walk(q, counter)
+    elif isinstance(questions, tuple):
+        out["questions"] = tuple(_walk(q, counter) if isinstance(q, dict) else q for q in questions)
     return out, counter[0]
 
 

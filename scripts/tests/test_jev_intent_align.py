@@ -248,3 +248,23 @@ def test_unrequested_work_is_corrected_without_false_clarification(monkeypatch: 
     assert result["clarification_needed"] is False
     assert "proposed intent adds unrequested work" in result["issues"]
     assert "essential clarification is needed" not in result["issues"]
+
+
+def test_unavailable_and_error_runs_record_null_booleans_instead_of_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.delenv("JEV_TRANSPORT", raising=False)
+    recorded: list[dict[str, object]] = []
+    monkeypatch.setattr(align, "_record_intent_alignment", lambda **kwargs: recorded.append(kwargs) or True)
+
+    res_unavail = align.evaluate_alignment("fix bug", _route(), "fix bug")
+    assert res_unavail["alignment"] == "unavailable"
+    assert recorded[-1]["materially_differs"] is None
+    assert recorded[-1]["route_mismatch"] is None
+
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+    monkeypatch.setattr(align.jev_transport, "evaluate", lambda *_a, **_k: {"answers": {}})
+    res_err = align.evaluate_alignment("fix bug", _route(), "fix bug")
+    assert res_err["alignment"] == "error"
+    assert recorded[-1]["materially_differs"] is None
+    assert recorded[-1]["route_mismatch"] is None

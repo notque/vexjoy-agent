@@ -73,29 +73,57 @@ def load_hook(name: str, roots: list[Path]) -> ModuleType | None:
     return None
 
 
-def creation_costs(abs_path: str, gates: dict[str, ModuleType | None]) -> list[str]:
+def creation_costs(abs_path: str, gates: dict[str, ModuleType | None], base_dir: Path | None = None) -> list[str]:
     """Costs for a path that does not exist yet (creation) or sits in a consultation-gated dir."""
     costs: list[str] = []
     exists = os.path.exists(abs_path)
+    norm_path = abs_path.replace("\\", "/")
+    effective_base = (base_dir or Path.cwd()).resolve()
+
     unified = gates.get("unified")
     if unified is not None and not exists:
         is_component = any(
-            getattr(unified, attr).search(abs_path)
+            getattr(unified, attr).search(norm_path)
             for attr in ("_AGENT_PATTERN", "_SKILL_PATTERN", "_WORKFLOW_REF_PATTERN")
             if hasattr(unified, attr)
         )
-        allowed = any(p.search(abs_path) for p, _ in getattr(unified, "_CREATION_PATH_ALLOWLIST", []))
+        allowed = any(p.search(norm_path) for p, _ in getattr(unified, "_CREATION_PATH_ALLOWLIST", []))
         if is_component and not allowed:
             name = unified._creation_component_name(abs_path) or Path(abs_path).stem
             costs.append(f"creation gate: new component '{name}': " + COST_ADR.format(name=name))
+
     adr = gates.get("adr")
     if adr is not None and not exists:
-        name = adr._extract_component_name(abs_path)
-        if name and not any(name in c for c in costs):
-            costs.append(f"ADR gate: new component '{name}': " + COST_ADR.format(name=name))
+        adr_allowed = any(p.search(norm_path) for p, _ in getattr(adr, "_ADR_PATH_ALLOWLIST", []))
+        if not adr_allowed:
+            name = adr._extract_component_name(abs_path)
+            if name and not any(name in c for c in costs):
+                has_adr = False
+                find_adr = getattr(adr, "_find_adr", None)
+                if callable(find_adr):
+                    try:
+                        has_adr = find_adr(name, effective_base) is not None
+                    except Exception:
+                        has_adr = False
+                if not has_adr:
+                    costs.append(f"ADR gate: new component '{name}': " + COST_ADR.format(name=name))
+
     synthesis = gates.get("synthesis")
-    if synthesis is not None and synthesis._is_gated(abs_path) and costs:
-        costs.append("synthesis gate: " + COST_SYNTHESIS)
+    if synthesis is not None and synthesis._is_gated(abs_path):
+        if costs:
+            costs.append("synthesis gate: " + COST_SYNTHESIS)
+        else:
+            load_session = getattr(synthesis, "_load_session", None)
+            verdict_fn = getattr(synthesis, "_synthesis_verdict", None)
+            session = load_session(effective_base) if callable(load_session) else None
+            if isinstance(session, dict):
+                domain = session.get("domain", "")
+                adr_name = domain or Path(session.get("adr_path", "unknown")).stem
+                synthesis_path = effective_base / "adr" / adr_name / "synthesis.md"
+                verdict = verdict_fn(synthesis_path) if callable(verdict_fn) else None
+                if verdict != "PROCEED":
+                    state = f"verdict={verdict}" if verdict else "synthesis.md missing"
+                    costs.append(f"synthesis gate (active ADR '{adr_name}', {state}): " + COST_SYNTHESIS)
     return costs
 
 
@@ -175,7 +203,7 @@ def preflight(paths: list[str], cwd: Path) -> dict:
     existing: list[str] = []
     for raw in paths:
         abs_path = str((cwd / raw).resolve()) if not os.path.isabs(raw) else raw
-        costs = creation_costs(abs_path, gates)
+        costs = creation_costs(abs_path, gates, base_dir=root or cwd)
         report["paths"].append({"path": raw, "exists": os.path.exists(abs_path), "costs": costs})
         if os.path.isfile(abs_path):
             existing.append(abs_path)

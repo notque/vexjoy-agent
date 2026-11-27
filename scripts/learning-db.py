@@ -64,7 +64,7 @@ from learning_db_v2 import (
 # Key prefixes of bookkeeping rows that share topic=routing,
 # category=effectiveness with route decisions (written by
 # hooks/routing-decision-recorder.py). They are not `<agent>:<skill>` routes.
-_NON_ROUTE_KEY_PREFIXES = ("stack-usage:", "fallback-reason:")
+_NON_ROUTE_KEY_PREFIXES = ("stack-usage:", "fallback-reason:", "rightsizing:")
 
 
 # routing-decision-recorder.py writes `routing-decision: agent=x skill=y
@@ -207,6 +207,7 @@ def collect_route_weights() -> dict[str, dict[str, object]]:
                 "last_seen": row["last_seen"],
             }
             for row in rows
+            if not str(row["key"]).startswith(_NON_ROUTE_KEY_PREFIXES)
         }
     except sqlite3.Error:
         return {}

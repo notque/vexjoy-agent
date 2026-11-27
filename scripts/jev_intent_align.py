@@ -252,7 +252,7 @@ def _finish_receipt(
     scores = result.get("scores") if isinstance(result.get("scores"), dict) else None
     materially_differs = None
     route_mismatch = None
-    if scores is not None:
+    if scores:
         materially_differs = _materially_differs(scores)
         route_mismatch = (
             scores.get("route_supports_requested_outcome", 0.5) < CORE_ALIGNMENT_THRESHOLD
