@@ -1,5 +1,5 @@
 {
-  "effortLevel": "max",
+  "effortLevel": "medium",
   "autoMemoryEnabled": false,
   "env": {
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000",
@@ -204,7 +204,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
@@ -215,7 +215,7 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|Read",
+        "matcher": "Bash|Write|Edit|MultiEdit|Read",
         "hooks": [
           {
             "type": "command",
@@ -295,7 +295,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
@@ -335,7 +335,7 @@
         ]
       },
       {
-        "matcher": "Edit",
+        "matcher": "Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
@@ -388,7 +388,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",

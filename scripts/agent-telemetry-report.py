@@ -119,6 +119,12 @@ def _init_db(db_path: Path) -> sqlite3.Connection:
     con = sqlite3.connect(str(db_path), timeout=10.0)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL")
+    con.execute("PRAGMA busy_timeout=5000")
+    con.execute("PRAGMA synchronous=NORMAL")
+    try:
+        os.chmod(db_path, 0o600)
+    except OSError:
+        pass
     con.executescript(
         """
         CREATE TABLE IF NOT EXISTS ingested_files (
@@ -214,6 +220,7 @@ def _detect_session_signals(
     # 2. Tool-based structural checks
     read_files: set[str] = set()
     edit_counts: Counter[str] = Counter()
+    edit_last_ts: dict[str, float] = {}
     last_git_deny_ts = -1.0
 
     for ts, tname, tinput, is_err, out_txt in tool_events:
@@ -225,6 +232,7 @@ def _detect_session_signals(
             fp = str(tinput.get("file_path") or tinput.get("Path") or "")
             if fp:
                 edit_counts[fp] += 1
+                edit_last_ts[fp] = ts
                 norm_fp = fp.replace("\\", "/").lower()
                 if "/.claude/projects/" in norm_fp and "/memory/" in norm_fp and norm_fp.endswith(".md"):
                     found.append((source_path, provider, session_id, ts, "memory_file_write", os.path.basename(fp)))
@@ -246,7 +254,14 @@ def _detect_session_signals(
     for fp, cnt in edit_counts.items():
         if cnt >= 6:
             found.append(
-                (source_path, provider, session_id, 0.0, "file_oscillation", f"{cnt}x edits: {os.path.basename(fp)}")
+                (
+                    source_path,
+                    provider,
+                    session_id,
+                    edit_last_ts.get(fp, 0.0),
+                    "file_oscillation",
+                    f"{cnt}x edits: {os.path.basename(fp)}",
+                )
             )
 
     # 4. Uninspected visual claims
@@ -541,15 +556,16 @@ def _ingest_antigravity(con: sqlite3.Connection, ag_brain: Path, cutoff_epoch: f
     return ingested
 
 
-def _read_hook_health(learning_dir: Path, cutoff_iso: str) -> dict[str, Any]:
+def _read_hook_health(learning_dir: Path, cutoff_iso: str, cutoff_local_iso: str | None = None) -> dict[str, Any]:
     out: dict[str, Any] = {"governance_blocks": {}, "hook_crashes": {}}
     ldb = learning_dir / "learning.db"
+    gov_cutoff = cutoff_local_iso or cutoff_iso
     if ldb.is_file():
         try:
             src = sqlite3.connect(f"file:{ldb}?mode=ro", uri=True)
             for hook, payload_s, cnt in src.execute(
                 "SELECT event_type, payload, COUNT(*) FROM governance_events WHERE blocked=1 AND created_at >= ? GROUP BY event_type, payload",
-                (cutoff_iso,),
+                (gov_cutoff,),
             ).fetchall():
                 key = str(hook)
                 try:
@@ -674,7 +690,9 @@ def build_report(
     }
     con.close()
 
-    health = _read_hook_health(learning_dir or (Path.home() / ".claude" / "learning"), cutoff_iso)
+    default_learning = Path(os.environ.get("CLAUDE_LEARNING_DIR") or (Path.home() / ".claude" / "learning"))
+    cutoff_local_iso = (datetime.now() - timedelta(days=days)).isoformat(timespec="seconds")
+    health = _read_hook_health(learning_dir or default_learning, cutoff_iso, cutoff_local_iso)
     return {
         "window_days": days,
         "since_utc": cutoff_iso,
@@ -722,7 +740,10 @@ def main() -> int:
     parser.add_argument("--days", type=int, default=7, help="Lookback window in days (default: 7)")
     parser.add_argument("--all-providers", action="store_true", help="Include claude, codex, and antigravity")
     parser.add_argument("--provider", choices=("claude", "codex", "antigravity"), default=None)
-    parser.add_argument("--db", type=Path, default=Path.home() / ".claude" / "learning" / "agent_telemetry.db")
+    default_db = (
+        Path(os.environ.get("CLAUDE_LEARNING_DIR") or (Path.home() / ".claude" / "learning")) / "agent_telemetry.db"
+    )
+    parser.add_argument("--db", type=Path, default=default_db)
     parser.add_argument("--json", action="store_true", help="Output JSON")
     parser.add_argument("--md", action="store_true", help="Output Markdown (default)")
     args = parser.parse_args()

@@ -40,6 +40,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from git_cmd import split_shell_tokens
 from hook_utils import deny_tool_use, empty_output, hook_error, record_governance
 from stdin_timeout import read_stdin
 
@@ -159,9 +160,8 @@ def is_read_only_command(cmd_str: str) -> bool:
         if not sub:
             continue
         try:
-            tokens = shlex.split(sub)
+            tokens = split_shell_tokens(sub, strict=True)
         except ValueError:
-            # Unterminated quote or invalid syntax; treat as mutating
             return False
 
         if not tokens:
@@ -281,19 +281,16 @@ def check_transcript_for_routing(session_id: str) -> bool:
 
 def main() -> None:
     if os.environ.get(_BYPASS_ENV) == "1":
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     # Provider guard: routing mandate is AGY/Gemini-only.
     # outside the routing mandate (AGY/Gemini only); skip enforcement
     if not _is_agy_session():
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     raw = read_stdin()
     if not raw:
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     try:
         event = json.loads(raw)
@@ -308,13 +305,11 @@ def main() -> None:
     # Agent dispatches always satisfy routing requirements
     if tool_name in ("Agent", "invoke_subagent", "Workflow", "run_workflow"):
         mark_session_routed(session_id)
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     # Read-only file inspection is always allowed
     if tool_name in ("Read", "read_file"):
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     # Bash / run_command inspection is allowed if read-only
     if tool_name in ("Bash", "run_command"):
@@ -328,21 +323,18 @@ def main() -> None:
 
     # If state already marked routed, allow immediately
     if state.get("routed") is True:
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     # Fall back to state-file-only check: if state is not explicitly marked non-trivial,
     # allow tool use so sessions without an unrouted state record are not falsely denied
     # when transcript is missing.
     if state.get("non_trivial") is not True:
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     # Check live transcript for turn-1 banner
     if check_transcript_for_routing(session_id):
         mark_session_routed(session_id)
-        empty_output(EVENT_NAME)
-        return
+        empty_output(EVENT_NAME).print_and_exit()
 
     # Block tool use
     record_governance(
@@ -366,10 +358,14 @@ def main() -> None:
 # Environment variable spoofing is a known limitation in un-sandboxed environments;
 # this hook trusts the execution environment to provide authentic signals.
 def _is_agy_session() -> bool:
-    """True if HARNESS=="agy", AGY_SESSION=="1", or ANTIGRAVITY_BRAIN_DIR is set."""
+    """True when running under Antigravity / Gemini harness env vars."""
+    if os.environ.get("CLAUDECODE") == "1":
+        return False
     return (
         os.environ.get("HARNESS", "").lower() == "agy"
         or os.environ.get("AGY_SESSION", "") == "1"
+        or os.environ.get("ANTIGRAVITY_AGENT", "") == "1"
+        or os.environ.get("VEXJOY_HOOK_RUNTIME", "").lower() == "antigravity"
         or bool(os.environ.get("ANTIGRAVITY_BRAIN_DIR", ""))
     )
 

@@ -35,6 +35,8 @@ def _git_rev_parse_head() -> str | None:
             ["git", "rev-parse", "HEAD"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=2,
             check=False,
         )
@@ -44,31 +46,43 @@ def _git_rev_parse_head() -> str | None:
     return sha or None
 
 
-def git_sha_cached(session_id: str = "") -> str | None:
-    """Return the repo HEAD SHA, cached per session to stay under the hook budget.
+def _git_head_mtime(cwd: str) -> float:
+    """Best-effort mtime of nearest .git/HEAD to invalidate cache after commits."""
+    try:
+        cur = Path(cwd)
+        for p in (cur, *cur.parents):
+            head = p / ".git" / "HEAD"
+            if head.is_file():
+                return head.stat().st_mtime
+    except OSError:
+        pass
+    return 0.0
 
-    First call per session: subprocess `git rev-parse HEAD` (~39 ms), written to
-    a per-session state file. Every later call reads the cache (no subprocess).
-    On any error returns None — capture degrades, the hook never fails.
-    """
+
+def git_sha_cached(session_id: str = "") -> str | None:
+    """Return the repo HEAD SHA, cached per (session, cwd, HEAD mtime)."""
     state = _STATE_DIR / f"{_safe_session_name(session_id)}.json"
-    # Cache hit.
+    try:
+        cur_cwd = os.getcwd()
+    except OSError:
+        cur_cwd = ""
+    head_mtime = _git_head_mtime(cur_cwd)
+    # Cache hit only when cwd and HEAD mtime still match.
     try:
         if state.exists():
             data = json.loads(state.read_text(encoding="utf-8"))
             cached = data.get("git_sha")
-            if cached:
+            if cached and data.get("cwd", cur_cwd) == cur_cwd and data.get("head_mtime", head_mtime) == head_mtime:
                 return cached
     except Exception:
         pass  # corrupt cache => recompute
 
     sha = _git_rev_parse_head()
-    # Cache the result (even None-miss is fine; we just won't have a file).
     if sha:
         try:
             _STATE_DIR.mkdir(parents=True, exist_ok=True)
-            tmp = state.with_suffix(".json.tmp")
-            tmp.write_text(json.dumps({"git_sha": sha}), encoding="utf-8")
+            tmp = state.with_name(f"{state.name}.{os.getpid()}.tmp")
+            tmp.write_text(json.dumps({"git_sha": sha, "cwd": cur_cwd, "head_mtime": head_mtime}), encoding="utf-8")
             tmp.replace(state)  # atomic
         except Exception:
             pass  # cache write best-effort

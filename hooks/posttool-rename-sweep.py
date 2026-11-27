@@ -95,6 +95,8 @@ def grep_for_stem(stem: str, search_root: str) -> list:
             ],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=3,
         )
         if result.returncode not in (0, 1):

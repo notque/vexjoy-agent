@@ -630,6 +630,8 @@ def _gh_is_fork_uncached(key: str) -> bool | None:
             ["gh", "repo", "view", key, "--json", "isFork", "--jq", ".isFork"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=budget,
             check=False,
         )

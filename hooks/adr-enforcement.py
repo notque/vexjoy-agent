@@ -145,6 +145,8 @@ def run_compliance_check(
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
             cwd=str(_TRUSTED_ROOT),
         )

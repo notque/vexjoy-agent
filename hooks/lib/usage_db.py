@@ -16,7 +16,7 @@ Design Principles:
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -181,11 +181,11 @@ def get_skill_usage(days: int = 30) -> list[dict]:
                 COUNT(*) AS count,
                 MAX(timestamp) AS last_used
             FROM skill_invocations
-            WHERE timestamp >= datetime('now', ? || ' days')
+            WHERE timestamp >= ?
             GROUP BY skill_name
             ORDER BY count DESC
             """,
-            (f"-{days}",),
+            ((datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),),
         ).fetchall()
 
         return [dict(row) for row in rows]
@@ -210,11 +210,11 @@ def get_agent_usage(days: int = 30) -> list[dict]:
                 COUNT(*) AS count,
                 MAX(timestamp) AS last_used
             FROM agent_invocations
-            WHERE timestamp >= datetime('now', ? || ' days')
+            WHERE timestamp >= ?
             GROUP BY agent_type
             ORDER BY count DESC
             """,
-            (f"-{days}",),
+            ((datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),),
         ).fetchall()
 
         return [dict(row) for row in rows]
@@ -243,9 +243,9 @@ def get_dormant_skills(
             """
             SELECT DISTINCT skill_name
             FROM skill_invocations
-            WHERE timestamp >= datetime('now', ? || ' days')
+            WHERE timestamp >= ?
             """,
-            (f"-{days}",),
+            ((datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),),
         ).fetchall()
 
         used = {row["skill_name"] for row in rows}
@@ -275,9 +275,9 @@ def get_dormant_agents(
             """
             SELECT DISTINCT agent_type
             FROM agent_invocations
-            WHERE timestamp >= datetime('now', ? || ' days')
+            WHERE timestamp >= ?
             """,
-            (f"-{days}",),
+            ((datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),),
         ).fetchall()
 
         used = {row["agent_type"] for row in rows}

@@ -27,10 +27,23 @@ def read_stdin(timeout: int = 10) -> str:
     if (
         sys.platform == "win32"
     ):  # same check as platform.system(), without importing platform (it loads subprocess on Python 3.10)
-        try:
-            return sys.stdin.read()
-        except OSError:
+        import threading
+
+        box: list[str] = []
+
+        def _reader() -> None:
+            try:
+                box.append(sys.stdin.read())
+            except OSError:
+                box.append("")
+
+        thread = threading.Thread(target=_reader, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout)
+        if thread.is_alive():
+            print(f"[stdin-timeout] WARNING: stdin read timed out after {timeout}s", file=sys.stderr)
             return ""
+        return box[0] if box else ""
     old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
     try:
         signal.alarm(timeout)

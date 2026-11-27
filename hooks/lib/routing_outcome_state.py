@@ -90,27 +90,29 @@ try:
 except ImportError:  # Windows
     import msvcrt
 
-    # msvcrt.locking with LK_LOCK blocks ~10s then raises OSError; retry so a
-    # contended lock waits rather than failing. Bounded so a wedged holder cannot
-    # spin forever (degrades to unlocked at the call site, never blocks a hook).
-    _LOCK_RETRIES = 60  # ~10 min worst case under heavy contention
+    # Use non-blocking LK_NBLCK with bounded polling (~1s) so lock contention
+    # never triggers msvcrt.LK_LOCK's 10s blocking sleep inside 5s hooks.
+    _LOCK_WAIT_SEC = 1.0
+    _LOCK_POLL_SEC = 0.01
 
     def _acquire_lock(fd: int) -> None:
-        os.lseek(fd, 0, os.SEEK_SET)
-        for attempt in range(_LOCK_RETRIES):
+        deadline = time.monotonic() + _LOCK_WAIT_SEC
+        while True:
             try:
-                msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+                os.lseek(fd, 0, os.SEEK_SET)
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
                 return
             except OSError:
-                if attempt == _LOCK_RETRIES - 1:
+                if time.monotonic() >= deadline:
                     raise
+                time.sleep(_LOCK_POLL_SEC)
 
     def _release_lock(fd: int) -> None:
         os.lseek(fd, 0, os.SEEK_SET)
         msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
 
 
-_STATE_DIR = Path("/tmp")
+_STATE_DIR = Path(tempfile.gettempdir()) if os.name == "nt" else Path("/tmp")
 
 # Bounded re-queue: how many SubagentStop drains a pending entry may survive
 # while its decision row is still not visible (HIGH, A-before-B mistiming).

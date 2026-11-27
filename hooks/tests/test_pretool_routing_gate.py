@@ -220,6 +220,8 @@ def test_routing_gate_allows_claude_session_no_agy_env(tmp_path: Path):
             "HARNESS": "",
             "AGY_SESSION": "",
             "ANTIGRAVITY_BRAIN_DIR": "",
+            "ANTIGRAVITY_AGENT": "",
+            "VEXJOY_HOOK_RUNTIME": "",
         },
     )
     assert res.returncode == 0
@@ -339,7 +341,7 @@ def test_routing_gate_allows_claude_session_unset_env(tmp_path: Path):
             "tool_input": {"file_path": "src/main.rs", "old_string": "a", "new_string": "b"},
         },
         env_override={"VEXJOY_ROUTING_STATE_DIR": str(state_dir)},
-        env_remove=["HARNESS", "AGY_SESSION", "ANTIGRAVITY_BRAIN_DIR"],
+        env_remove=["HARNESS", "AGY_SESSION", "ANTIGRAVITY_BRAIN_DIR", "ANTIGRAVITY_AGENT", "VEXJOY_HOOK_RUNTIME"],
     )
     assert res.returncode == 0
     assert "deny" not in res.stdout

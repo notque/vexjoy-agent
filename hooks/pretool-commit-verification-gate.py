@@ -97,9 +97,9 @@ def _extract_messages(command: str) -> list[str]:
 
     # Tokenize for -m / --message / -F / --file flags.
     try:
-        import shlex
+        from git_cmd import split_shell_tokens
 
-        tokens = shlex.split(command)
+        tokens = split_shell_tokens(command, strict=True)
     except ValueError:
         return []
 

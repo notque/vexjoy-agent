@@ -144,6 +144,8 @@ def _git_worktree_root(cwd: str) -> str | None:
             ["git", "-C", cwd, "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=_GIT_TOPLEVEL_TIMEOUT_S,
             check=False,
         )

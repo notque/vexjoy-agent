@@ -99,6 +99,8 @@ def _git(cwd: str, *args: str) -> str | None:
             ["git", "-C", cwd, *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=2,
         )
         if result.returncode != 0:
@@ -206,6 +208,8 @@ def check_branch_safety(cwd: str) -> str | None:
             ["git", "-C", cwd, "symbolic-ref", "--short", "HEAD"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=2,
         )
         if branch_check.returncode != 0:
@@ -222,6 +226,8 @@ def check_branch_safety(cwd: str) -> str | None:
             ["git", "-C", cwd, "log", "--oneline", f"origin/{current_branch}..HEAD"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=2,
         )
         if result.returncode != 0:
@@ -412,6 +418,8 @@ def is_protected_org_repo(cwd: str) -> bool:
             ["git", "-C", cwd, "remote", "get-url", "origin"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=1,
         )
         if result.returncode != 0:

@@ -115,19 +115,10 @@ def is_already_handled(prompt: str) -> bool:
 
 
 def codex_is_available() -> bool:
-    """Return True if the codex CLI is installed and reachable.
+    """Return True if the codex CLI is installed and reachable."""
+    import shutil
 
-    Uses `which codex` with a 2-second timeout to avoid blocking.
-    """
-    try:
-        result = subprocess.run(
-            ["which", "codex"],
-            capture_output=True,
-            timeout=2,
-        )
-        return result.returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return False
+    return shutil.which("codex") is not None
 
 
 _BYPASS_ENV = "CODEX_AUTO_REVIEW_BYPASS"

@@ -172,6 +172,8 @@ def get_changed_files(project_path: Path, staged_only: bool = False) -> list[Pat
             cwd=project_path,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
 
@@ -270,6 +272,8 @@ def run_tool(
             shell=True,  # Required for command templates; see security note above
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
         )
 

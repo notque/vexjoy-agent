@@ -65,6 +65,8 @@ def _check_pipeline(slug: str) -> dict:
             [sys.executable, _TRACKER, "status", slug],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=5,
         )
         if result.returncode == 0:
