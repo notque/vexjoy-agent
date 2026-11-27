@@ -410,3 +410,49 @@ def test_filter_settings_hooks_drops_empty_groups(tmp_path: Path) -> None:
         "Stop": [{"hooks": [{"command": "python3 ~/.claude/hooks/h3.py"}, {"command": "echo hi"}]}]
     }
     assert filter_settings_hooks(hooks, EMPTY) is hooks
+
+
+def test_hook_filename_strips_any_pyrun_launcher_and_factory_filters_hooks(world: Env, tmp_path: Path) -> None:
+    from vexinstall import external as external_mod
+
+    assert profile._hook_filename('sh "$HOME/.factory/hooks/lib/pyrun.sh" "$HOME/.factory/hooks/h1.py"') == "h1.py"
+    assert profile._hook_filename('bash "/opt/custom/hooks/lib/pyrun.sh" "/opt/custom/hooks/h2.py"') == "h2.py"
+
+    # Repo settings using pyrun.sh launcher: Factory must filter disabled hook h1.py and keep h2.py rewritten to .factory
+    prof = load_profile(_write_profile(tmp_path / "p.yaml", skills=(), agents=(), hooks=("h1.py",)))
+    factory_root = world.home / ".factory"
+    files = external_mod.desired("factory", factory_root, world.repo, prof)
+    assert len(files) == 1 and files[0].error is None and files[0].content is not None
+    data = json.loads(files[0].content.decode("utf-8"))
+    cmds = [e["command"] for groups in data["hooks"].values() for g in groups for e in g["hooks"]]
+    assert not any("h1.py" in c for c in cmds), cmds
+    assert any(".factory/hooks/h2.py" in c for c in cmds), cmds
+
+
+@pytest.mark.parametrize(
+    ("target", "relpath"),
+    [
+        ("factory", "settings.json"),
+        ("reasonix", "settings.json"),
+        ("antigravity", "config/hooks.json"),
+    ],
+)
+@pytest.mark.parametrize("bad_json", ["{corrupt json", "[]", '"just a string"'])
+def test_external_corrupt_or_non_dict_user_json_sets_error_and_never_overwrites(
+    world: Env, target: str, relpath: str, bad_json: str
+) -> None:
+    from vexinstall import external as external_mod
+
+    root = world.root(target)
+    user_file = root / relpath
+    user_file.parent.mkdir(parents=True, exist_ok=True)
+    user_file.write_text(bad_json, encoding="utf-8")
+
+    files = external_mod.desired(target, root, world.repo, EMPTY)
+    assert len(files) == 1
+    assert files[0].error is not None
+    assert files[0].content is None
+    res = external_mod.write(files, world.work / "backups", fsops.Guard())
+    assert res["written"] == []
+    assert len(res["errors"]) == 1
+    assert user_file.read_text(encoding="utf-8") == bad_json

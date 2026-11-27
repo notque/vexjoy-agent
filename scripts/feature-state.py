@@ -252,10 +252,28 @@ def slugify(name: str) -> str:
     return slug.strip("-")
 
 
+def _require_slug(raw: str, label: str = "feature name") -> str | None:
+    """Return non-empty slug for *raw*, or emit an error and return None."""
+    slug = slugify(raw)
+    if not slug:
+        output_error(f"Invalid {label} '{raw}': must contain at least one letter or digit")
+        return None
+    return slug
+
+
+def _validate_key(key: str) -> str | None:
+    """Return an error message if *key* is empty or contains path traversal characters."""
+    if not key or key in (".", "..") or "/" in key or "\\" in key or ".." in key:
+        return f"Invalid key '{key}': must be non-empty and not contain '/', '\\\\', or '..'"
+    return None
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Initialize a new feature with .feature/ structure."""
     root = find_project_root()
-    feature_name = slugify(args.feature_name)
+    feature_name = _require_slug(args.feature_name)
+    if not feature_name:
+        return 1
     feature_dir = root / FEATURE_DIR
 
     if (feature_dir / "state" / f"{feature_name}.json").exists():
@@ -355,7 +373,10 @@ def cmd_status(args: argparse.Namespace) -> int:
             )
 
     if args.feature_name:
-        features = [f for f in features if f["name"] == slugify(args.feature_name)]
+        target = _require_slug(args.feature_name)
+        if not target:
+            return 1
+        features = [f for f in features if f["name"] == target]
 
     output_json({"features": features}, args)
     return 0
@@ -365,7 +386,9 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
     """Save a phase checkpoint artifact."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
     phase = args.phase.lower()
 
     if phase not in PHASES:
@@ -408,7 +431,9 @@ def cmd_advance(args: argparse.Namespace) -> int:
     """Mark current phase complete and advance to next."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
 
     state = load_state(feature_dir, feature)
     if not state:
@@ -452,7 +477,9 @@ def cmd_gate(args: argparse.Namespace) -> int:
     """Check gate status and determine if human input is needed."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
     gate_id = args.gate_id
 
     state = load_state(feature_dir, feature)
@@ -565,14 +592,25 @@ def cmd_retro_record(args: argparse.Namespace) -> int:
     """Write a retro record (L3) for a feature."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
+
+    key = args.key
+    key_err = _validate_key(key)
+    if key_err:
+        output_error(key_err)
+        return 1
 
     state = load_state(feature_dir, feature)
     if not state:
         output_error(f"Feature '{feature}' not found")
         return 1
 
-    key = args.key
+    if state.current_phase not in PHASES:
+        output_error(f"Invalid phase: {state.current_phase}. Must be one of: {', '.join(PHASES)}")
+        return 1
+
     value = args.value
     confidence = getattr(args, "confidence", "low")
 
@@ -729,7 +767,9 @@ def cmd_retro_record_adhoc(args: argparse.Namespace) -> int:
     output reports the stored project_path read back from the row.
     """
     root = find_project_root()
-    topic = slugify(args.topic)
+    topic = _require_slug(args.topic, label="topic")
+    if not topic:
+        return 1
     try:
         row, db_path = _record_learning_db(
             topic,
@@ -764,14 +804,21 @@ def cmd_retro_promote(args: argparse.Namespace) -> int:
     """Promote a retro record from L3 to L2 if confidence threshold met."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
+
+    key = args.key
+    key_err = _validate_key(key)
+    if key_err:
+        output_error(key_err)
+        return 1
 
     state = load_state(feature_dir, feature)
     if not state:
         output_error(f"Feature '{feature}' not found")
         return 1
 
-    key = args.key
     record = state.retro_records.get(key)
     if not record:
         output_error(f"No retro record found for key '{key}'")
@@ -791,6 +838,9 @@ def cmd_retro_promote(args: argparse.Namespace) -> int:
 
     # Promote to L2 context
     phase = record.get("phase", state.current_phase)
+    if phase not in PHASES:
+        output_error(f"Invalid phase: {phase}. Must be one of: {', '.join(PHASES)}")
+        return 1
     context_dir = feature_dir / "context" / phase
     context_dir.mkdir(parents=True, exist_ok=True)
     context_file = context_dir / f"{key}.md"
@@ -825,17 +875,28 @@ def cmd_context_read(args: argparse.Namespace) -> int:
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
     level = args.level.upper()
-    feature = slugify(args.feature) if args.feature else None
+    if args.feature:
+        feature = _require_slug(args.feature)
+        if not feature:
+            return 1
+    else:
+        feature = None
 
     if level == "L0":
         l0_file = feature_dir / "FEATURE.md"
         content = l0_file.read_text() if l0_file.exists() else "(no L0 file)"
     elif level == "L1":
-        phase = args.phase or "design"
+        phase = (args.phase or "design").lower()
+        if phase not in PHASES:
+            output_error(f"Invalid phase: {phase}. Must be one of: {', '.join(PHASES)}")
+            return 1
         l1_file = feature_dir / "context" / f"{phase.upper()}.md"
         content = l1_file.read_text() if l1_file.exists() else f"(no L1 for {phase})"
     elif level == "L2":
-        phase = args.phase or "design"
+        phase = (args.phase or "design").lower()
+        if phase not in PHASES:
+            output_error(f"Invalid phase: {phase}. Must be one of: {', '.join(PHASES)}")
+            return 1
         l2_dir = feature_dir / "context" / phase
         if l2_dir.exists():
             files = sorted(l2_dir.glob("*.md"))
@@ -854,7 +915,9 @@ def cmd_worktree(args: argparse.Namespace) -> int:
     """Manage git worktrees for features."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
     action = args.action
 
     state = load_state(feature_dir, feature)
@@ -912,12 +975,15 @@ def cmd_worktree(args: argparse.Namespace) -> int:
 
     elif action == "cleanup":
         if state.worktree_path and Path(state.worktree_path).exists():
-            subprocess.run(
+            rm_result = subprocess.run(
                 ["git", "worktree", "remove", state.worktree_path, "--force"],
                 capture_output=True,
                 text=True,
                 cwd=str(root),
             )
+            if rm_result.returncode != 0:
+                output_error(f"Failed to remove worktree '{state.worktree_path}': {rm_result.stderr.strip()}")
+                return 1
         state.worktree_path = ""
         save_state(feature_dir, state)
         output_json({"action": "worktree-cleanup", "feature": feature}, args)
@@ -929,7 +995,9 @@ def cmd_complete(args: argparse.Namespace) -> int:
     """Mark feature as complete, archive, and cleanup."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
 
     state = load_state(feature_dir, feature)
     if not state:
@@ -958,12 +1026,15 @@ def cmd_complete(args: argparse.Namespace) -> int:
 
     # Cleanup worktree
     if state.worktree_path and Path(state.worktree_path).exists():
-        subprocess.run(
+        rm_result = subprocess.run(
             ["git", "worktree", "remove", state.worktree_path, "--force"],
             capture_output=True,
             text=True,
             cwd=str(root),
         )
+        if rm_result.returncode != 0:
+            output_error(f"Failed to remove worktree '{state.worktree_path}': {rm_result.stderr.strip()}")
+            return 1
 
     output_json(
         {
@@ -1306,7 +1377,9 @@ def cmd_abandon(args: argparse.Namespace) -> int:
     """Abandon a feature with reason."""
     root = find_project_root()
     feature_dir = root / FEATURE_DIR
-    feature = slugify(args.feature)
+    feature = _require_slug(args.feature)
+    if not feature:
+        return 1
 
     state = load_state(feature_dir, feature)
     if not state:
@@ -1323,12 +1396,15 @@ def cmd_abandon(args: argparse.Namespace) -> int:
 
     # Cleanup worktree
     if state.worktree_path and Path(state.worktree_path).exists():
-        subprocess.run(
+        rm_result = subprocess.run(
             ["git", "worktree", "remove", state.worktree_path, "--force"],
             capture_output=True,
             text=True,
             cwd=str(root),
         )
+        if rm_result.returncode != 0:
+            output_error(f"Failed to remove worktree '{state.worktree_path}': {rm_result.stderr.strip()}")
+            return 1
 
     reason = args.reason or "No reason given"
     output_json({"action": "abandon", "feature": feature, "reason": reason}, args)

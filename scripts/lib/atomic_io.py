@@ -7,6 +7,22 @@ import tempfile
 from pathlib import Path
 
 
+def _default_file_mode() -> int:
+    """Return default file permissions without mutating process-global umask."""
+    try:
+        status = Path("/proc/self/status").read_text(encoding="utf-8")
+    except OSError:
+        return 0o644
+    for line in status.splitlines():
+        if line.startswith("Umask:"):
+            _, _, raw = line.partition(":")
+            try:
+                return 0o666 & ~int(raw.strip(), 8)
+            except ValueError:
+                return 0o644
+    return 0o644
+
+
 def atomic_write_text(path: Path, text: str, encoding: str = "utf-8") -> None:
     """Write *text* to *path* so a reader sees the old file or the new one.
 
@@ -31,18 +47,18 @@ def atomic_write_text(path: Path, text: str, encoding: str = "utf-8") -> None:
             prefix=f".{path.name}.",
             suffix=".tmp",
         )
-        os.write(fd, text.encode(encoding))
-        os.fsync(fd)
-        os.close(fd)
-        fd = -1  # mark closed
+        data = text.encode(encoding)
+        with os.fdopen(fd, "wb") as f:
+            fd = -1  # fdopen now owns closing the descriptor
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
 
-        # Preserve existing permissions, or apply default (0o666 & ~umask).
+        # Preserve existing permissions, or apply default without mutating umask.
         if path.exists():
             mode = path.stat().st_mode & 0o7777
         else:
-            mask = os.umask(0)
-            os.umask(mask)
-            mode = 0o666 & ~mask
+            mode = _default_file_mode()
         os.chmod(tmp_path, mode)
 
         os.replace(tmp_path, path)

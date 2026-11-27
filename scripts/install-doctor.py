@@ -621,6 +621,7 @@ def check_mcp_servers() -> list[dict]:
                 "name": f"mcp_{key}",
                 "label": f"MCP: {display_name}",
                 "passed": True,
+                "configured": found,
                 "detail": "configured" if found else "not configured (optional)",
             }
         )
@@ -673,7 +674,7 @@ def inventory() -> dict:
     mcp_results = check_mcp_servers()
     mcp_total = sum(1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry")
     mcp_configured = sum(
-        1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry" and r["passed"]
+        1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry" and r.get("configured")
     )
     counts["mcps"] = mcp_total
     counts["mcps_configured"] = mcp_configured

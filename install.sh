@@ -58,7 +58,7 @@ Usage: ./install.sh [options]
                        private-leak gate stays.
   --rollback           Undo the last install or uninstall run: restore what it moved to trash
                        and the settings.json it replaced (later syncs are left alone)
-  --target T           claude|codex|factory|hermes|reasonix|antigravity|all (default: all present)
+  --target T           claude|codex|factory|hermes|reasonix|antigravity|cline|all (default: all present)
   --no-takeover        Leave unowned entries at desired paths in place (default: trash and replace)
   --allow-mass-remove  Allow a plan that removes more than 10 entries or 20% of a target
   --configure          Run the interactive profile picker, then install
@@ -310,7 +310,7 @@ install_deps() {
     command -v npm &> /dev/null || { echo -e "${YELLOW}  ⚠ npm unavailable; /d falls back to /do${NC}"; return 0; }
     local dir real seen=" "
     for dir in "${SCRIPT_DIR}/scripts" "${CLAUDE_DIR}/scripts" "${HOME}/.codex/scripts" "${HOME}/.factory/scripts" \
-        "${HOME}/.hermes/scripts" "${HOME}/.reasonix/scripts"; do
+        "${HOME}/.hermes/scripts" "${HOME}/.reasonix/scripts" "${HOME}/.gemini/scripts"; do
         dir="${dir}/jev_gateway"
         [ -f "$dir/package-lock.json" ] || continue
         real=$(cd "$dir" && pwd -P)
@@ -404,7 +404,11 @@ if [ "$ACTION" = "uninstall" ]; then
     args=(uninstall --target "$TARGET" --run-id "$RUN_ID")
     [ "$DRY_RUN" = true ] && args+=(--dry-run)
     vexinstall "${args[@]}"
-    [ "$DRY_RUN" = true ] || uninstall_no_agent_summary
+    if [ "$DRY_RUN" != true ]; then
+        if [ "$TARGET" = all ] || [ "$TARGET" = claude ]; then
+            uninstall_no_agent_summary
+        fi
+    fi
     if [ -n "$GIT_HOOK_PROBLEM" ]; then
         echo -e "${RED}⚠ ${GIT_HOOK_PROBLEM}${NC}"
         exit 1
@@ -464,6 +468,8 @@ if [ "$TAKEOVER" = true ]; then
     vexinstall prune --unowned --confirm --target "$TARGET" --run-id "$RUN_ID" || true
 fi
 install_deps
-install_no_agent_summary
+if [ "$TARGET" = all ] || [ "$TARGET" = claude ]; then
+    install_no_agent_summary
+fi
 harden_permissions
 echo -e "${GREEN}✓ Installed. Check with: PYTHONPATH=${SCRIPT_DIR}/scripts python3 -m vexinstall doctor${NC}"

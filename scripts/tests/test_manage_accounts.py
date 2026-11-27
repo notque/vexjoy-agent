@@ -84,6 +84,18 @@ def test_upsert_appends_when_footer_before_header(tmp_path):
     assert changed
 
 
+def test_upsert_replaces_block_when_earlier_unrelated_footer_precedes_header(tmp_path):
+    """An earlier unrelated footer line must not prevent replacing our managed block."""
+    f = tmp_path / "config.fish"
+    f.write_text(f"# other tool\n{FOOTER}\n{HEADER}\nold\n{FOOTER}\n# after\n", encoding="utf-8")
+    block = f"{HEADER}\nnew\n{FOOTER}\n"
+    changed = ma._upsert_managed_block(f, block, HEADER, FOOTER)
+    assert changed
+    content = f.read_text(encoding="utf-8")
+    assert content == f"# other tool\n{FOOTER}\n{HEADER}\nnew\n{FOOTER}\n# after\n"
+    assert content.count(HEADER) == 1
+
+
 def test_upsert_creates_parent_dirs(tmp_path):
     f = tmp_path / "deep" / "nested" / "config.fish"
     block = f"{HEADER}\nstuff\n{FOOTER}\n"

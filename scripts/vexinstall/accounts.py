@@ -24,12 +24,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import settings as settings_mod
-from .common import SETTINGS_BACKUPS_KEEP, utc_ts
+from .common import SETTINGS_BACKUPS_KEEP, expand_home, parse_ts, utc_ts
 from .context import state_dir
 from .fsops import Guard, atomic_symlink, atomic_write_bytes
 from .plan import Context
@@ -37,6 +38,7 @@ from .profile import filter_settings_hooks
 
 LINKED = ("skills", "agents", "commands", "hooks", "scripts")
 REGISTRY_REL = (".claude-accounts", "accounts.json")
+_PROFILE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 @dataclass
@@ -133,9 +135,9 @@ def registry(home: Path) -> dict[str, Path]:
     out: dict[str, Path] = {}
     for name, info in sorted(data.items()):
         raw = info.get("config_dir") if isinstance(info, dict) else None
-        if not isinstance(name, str) or not isinstance(raw, str) or not raw:
+        if not isinstance(name, str) or not _PROFILE_NAME_RE.match(name) or not isinstance(raw, str) or not raw:
             continue
-        cfg = Path(raw).expanduser()
+        cfg = expand_home(raw, home)
         if cfg.is_dir() and os.path.realpath(cfg) != default:
             out[name] = cfg
     return out
@@ -206,9 +208,21 @@ def plan_all(
 def _backup(plan: AccountPlan, backups: Path, guard: Guard) -> str | None:
     if not plan.settings_path.is_file():
         return None
+    if not _PROFILE_NAME_RE.match(plan.name):
+        raise ValueError(f"invalid account profile name: {plan.name!r}")
     ts = utc_ts()
     atomic_write_bytes(backups / f"{plan.name}-settings.{ts}.json", plan.settings_path.read_bytes(), guard, mode=0o600)
-    for old in sorted(backups.glob(f"{plan.name}-settings.*.json"))[:-SETTINGS_BACKUPS_KEEP]:
+    prefix = f"{plan.name}-settings."
+    suffix = ".json"
+    matched: list[Path] = []
+    if backups.is_dir():
+        for child in backups.iterdir():
+            if not child.name.startswith(prefix) or not child.name.endswith(suffix):
+                continue
+            stamp = child.name[len(prefix) : -len(suffix)]
+            if parse_ts(stamp) is not None and child.is_file() and not child.is_symlink():
+                matched.append(child)
+    for old in sorted(matched, key=lambda p: p.name)[:-SETTINGS_BACKUPS_KEEP]:
         old.unlink()
     return ts
 

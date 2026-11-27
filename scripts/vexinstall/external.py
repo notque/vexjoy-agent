@@ -76,11 +76,15 @@ def _dump(obj: object) -> bytes:
 
 
 def _read_json(path: Path) -> dict:
+    """Read a JSON object from *path*. Missing file returns ``{}``; unreadable/corrupt/non-dict raises."""
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        raw = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
         return {}
-    return data if isinstance(data, dict) else {}
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path} is not a JSON object")
+    return data
 
 
 def _allowlist_entries(mod: ModuleType, allowlist: Path, profile: Profile) -> list[dict]:
@@ -129,15 +133,24 @@ def _codex(root: Path, source_root: Path, profile: Profile) -> list[ExternalFile
 
 def _factory(root: Path, source_root: Path, profile: Profile) -> list[ExternalFile]:
     f = ExternalFile("factory", root / "settings.json")
-    repo = _read_json(source_root / ".claude" / "settings.json")
+    try:
+        repo = _read_json(source_root / ".claude" / "settings.json")
+    except (OSError, ValueError) as exc:
+        f.error = f"repo .claude/settings.json invalid: {exc}"
+        return [f]
     if not repo:
         f.error = "repo .claude/settings.json missing or invalid"
         return [f]
-    text = json.dumps(settings_mod.drop_repo_only(repo.get("hooks", {})))
+    try:
+        merged = _read_json(f.path)
+    except (OSError, ValueError) as exc:
+        f.error = f"unreadable, left as is: {exc}"
+        return [f]
+    filtered = filter_settings_hooks(settings_mod.drop_repo_only(repo.get("hooks", {})), profile)
+    text = json.dumps(filtered)
     for form in ("$HOME", "${HOME}", "~"):
         text = text.replace(f"{form}/.claude/", f"{form}/.factory/")
-    merged = _read_json(f.path)
-    merged["hooks"] = filter_settings_hooks(json.loads(text), profile)
+    merged["hooks"] = json.loads(text)
     merged.setdefault("attribution", repo.get("attribution", {"commit": "", "pr": ""}))
     f.content = _dump(merged)
     return [f]

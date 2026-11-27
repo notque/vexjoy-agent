@@ -19,6 +19,7 @@ import contextlib
 import importlib.util
 import io
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -28,6 +29,9 @@ from .interp import strip_launcher
 PROFILE_ENV = "VEXJOY_INSTALL_PROFILE"
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 _PARSER: list[ModuleType | None] = []
+_PYRUN_PREFIX = re.compile(
+    r"""^\s*(?:sh|bash)\s+(?:"[^"]*/hooks/lib/pyrun\.sh"|'[^']*/hooks/lib/pyrun\.sh'|\S*/hooks/lib/pyrun\.sh)\s+"""
+)
 
 
 @dataclass(frozen=True)
@@ -104,7 +108,7 @@ def load_profile(path: Path) -> Profile:
 def _hook_filename(command: str) -> str | None:
     """Filename after ``/hooks/`` (the legacy settings filter semantics)."""
     marker = "/hooks/"
-    command = strip_launcher(command)
+    command = _PYRUN_PREFIX.sub("", strip_launcher(command), count=1)
     if marker not in command:
         return None
     tail = command.split(marker, 1)[1]

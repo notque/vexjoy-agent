@@ -42,11 +42,14 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import shlex
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.atomic_io import atomic_write_text
 from vexinstall.interp import hook_command as launcher_command
 
 SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
@@ -84,6 +87,91 @@ def _hook_label(cmd: str) -> str:
     return cmd.split("/")[-1].rstrip('"') if "/" in cmd else cmd
 
 
+def _validate_hook_name(name: str) -> str | None:
+    """Return an error reason when *name* is not a plain filename, else None."""
+    if not name or name in (".", "..") or "/" in name or "\\" in name or ".." in name:
+        return f"invalid hook name: {name!r}"
+    return None
+
+
+def _command_hook_name(cmd: str) -> str:
+    """Extract the hook script basename from a hook command string."""
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError:
+        tokens = cmd.split()
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        norm = tok.replace("\\", "/")
+        base = norm.rsplit("/", 1)[-1]
+        if i == 0 and (base in ("sh", "bash", "env", "python", "python3") or base.startswith("python3.")):
+            i += 1
+            continue
+        if tok.startswith("-"):
+            i += 1
+            continue
+        if norm.endswith("/hooks/lib/pyrun.sh") and i + 1 < len(tokens):
+            i += 1
+            continue
+        return base
+    return _hook_label(cmd)
+
+
+def _command_matches_hook(cmd: str, name: str) -> bool:
+    """True when *cmd* invokes the exact hook basename *name*."""
+    return _command_hook_name(cmd) == name
+
+
+def _iter_event_groups(settings: dict, event: str) -> list[dict]:
+    """Return all matcher group dicts for *event* (empty list if missing)."""
+    hooks = settings.get("hooks")
+    if not isinstance(hooks, dict):
+        return []
+    groups = hooks.get(event)
+    if not isinstance(groups, list):
+        return []
+    return [g for g in groups if isinstance(g, dict)]
+
+
+def _ensure_hooks_list(settings: dict, event: str, matcher: str | None = None) -> list[dict]:
+    """Return the hooks list for *event* (and *matcher*), creating missing dicts in place."""
+    hooks = settings.setdefault("hooks", {})
+    groups = hooks.setdefault(event, [])
+    if matcher is not None:
+        for group in groups:
+            if isinstance(group, dict) and group.get("matcher") == matcher:
+                return group.setdefault("hooks", [])
+        new_group: dict = {"matcher": matcher, "hooks": []}
+        groups.append(new_group)
+        return new_group["hooks"]
+    for group in groups:
+        if isinstance(group, dict):
+            return group.setdefault("hooks", [])
+    new_group = {"hooks": []}
+    groups.append(new_group)
+    return new_group["hooks"]
+
+
+def _references_in_settings(settings: dict, name: str) -> list[str]:
+    """Return event labels for every registration in *settings* referencing *name*."""
+    refs: list[str] = []
+    hooks = settings.get("hooks", {})
+    if not isinstance(hooks, dict):
+        return refs
+    for event, groups in hooks.items():
+        if not isinstance(groups, list):
+            continue
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            for h in group.get("hooks", []):
+                if isinstance(h, dict) and _command_matches_hook(h.get("command", ""), name):
+                    matcher = group.get("matcher")
+                    refs.append(f"{event}({matcher})" if matcher else event)
+    return refs
+
+
 def load_settings() -> dict:
     """Load settings.json."""
     if not SETTINGS_PATH.exists():
@@ -93,22 +181,13 @@ def load_settings() -> dict:
 
 
 def save_settings(data: dict) -> None:
-    """Save settings.json with trailing newline."""
-    SETTINGS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    """Save settings.json atomically with trailing newline."""
+    atomic_write_text(SETTINGS_PATH, json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def get_hooks_list(settings: dict, event: str) -> list[dict]:
-    """Get the hooks list for a given event type."""
-    hooks = settings.get("hooks", {})
-    event_groups = hooks.get(event, [])
-    if not event_groups:
-        return []
-    # Settings uses array of groups, each with a "hooks" array
-    if isinstance(event_groups, list) and event_groups:
-        first = event_groups[0]
-        if isinstance(first, dict) and "hooks" in first:
-            return first["hooks"]
-    return []
+def get_hooks_list(settings: dict, event: str, matcher: str | None = None) -> list[dict]:
+    """Get or create the hooks list for a given event type (and optional matcher)."""
+    return _ensure_hooks_list(settings, event, matcher)
 
 
 def guard_problems(source: Path) -> list[str]:
@@ -149,31 +228,32 @@ def cmd_add(args: argparse.Namespace) -> None:
     shutil.copy2(source, target)
     print(f"[1/3] Deployed: {source} -> {target}")
 
-    # Step 2: VERIFY the deployed file is importable
-    import subprocess
-
+    # Step 2: VERIFY the deployed file compiles cleanly (no -c interpolation)
     result = subprocess.run(
-        [sys.executable, "-c", f"import py_compile; py_compile.compile('{target}', doraise=True)"],
+        [sys.executable, "-m", "py_compile", str(target)],
         capture_output=True,
         text=True,
     )
     if result.returncode != 0:
         # Roll back deployment
         target.unlink(missing_ok=True)
-        print(f"ERROR: File has syntax errors, rolled back deployment:", file=sys.stderr)
+        print("ERROR: File has syntax errors, rolled back deployment:", file=sys.stderr)
         print(result.stderr, file=sys.stderr)
         sys.exit(1)
     print(f"[2/3] Verified: {target} compiles cleanly")
 
     # Step 3: REGISTER in settings.json (only after file is deployed and verified)
     settings = load_settings()
-    hooks_list = get_hooks_list(settings, args.event)
+    matcher = getattr(args, "matcher", None)
 
-    # Check for duplicates
-    for h in hooks_list:
-        if source.name in h.get("command", ""):
-            print(f"Already registered: {source.name} in {args.event}")
-            return
+    # Check for duplicates across ALL matcher groups for this event (exact basename match)
+    for group in _iter_event_groups(settings, args.event):
+        for h in group.get("hooks", []):
+            if isinstance(h, dict) and _command_matches_hook(h.get("command", ""), source.name):
+                print(f"Already registered: {source.name} in {args.event}")
+                return
+
+    hooks_list = _ensure_hooks_list(settings, args.event, matcher=matcher)
 
     new_hook = {
         "type": "command",
@@ -187,29 +267,57 @@ def cmd_add(args: argparse.Namespace) -> None:
     hooks_list.insert(insert_pos, new_hook)
     save_settings(settings)
     print(f"[3/3] Registered: {source.name} in {args.event} at position {insert_pos}")
-    print(f"\nDone. Hook is live.")
+    print("\nDone. Hook is live.")
 
 
 def cmd_remove(args: argparse.Namespace) -> None:
     """Remove a hook: unregister first, then optionally delete file."""
+    name_error = _validate_hook_name(args.name)
+    if name_error:
+        print(f"ERROR: {name_error}", file=sys.stderr)
+        sys.exit(1)
+
     settings = load_settings()
-    hooks_list = get_hooks_list(settings, args.event)
+    matcher = getattr(args, "matcher", None)
 
-    # Step 1: UNREGISTER from settings.json FIRST
-    original_len = len(hooks_list)
-    hooks_list[:] = [h for h in hooks_list if args.name not in h.get("command", "")]
+    # Step 1: UNREGISTER from settings.json FIRST across matching groups (all groups if --matcher omitted)
+    removed = 0
+    for group in _iter_event_groups(settings, args.event):
+        if matcher is not None and group.get("matcher") != matcher:
+            continue
+        hooks_list = group.get("hooks")
+        if not isinstance(hooks_list, list):
+            continue
+        before = len(hooks_list)
+        hooks_list[:] = [
+            h
+            for h in hooks_list
+            if not (isinstance(h, dict) and _command_matches_hook(h.get("command", ""), args.name))
+        ]
+        removed += before - len(hooks_list)
 
-    if len(hooks_list) == original_len:
+    if removed == 0:
         print(f"Not found: {args.name} in {args.event}")
     else:
         save_settings(settings)
         print(f"[1/2] Unregistered: {args.name} from {args.event}")
 
-    # Step 2: Optionally delete the file
+    # Step 2: Optionally delete the file (refuse if still referenced or outside HOOKS_DIR)
     target = HOOKS_DIR / args.name
-    if target.exists() and args.delete_file:
-        target.unlink()
-        print(f"[2/2] Deleted: {target}")
+    if args.delete_file:
+        remaining = _references_in_settings(settings, args.name)
+        if remaining:
+            print(
+                f"ERROR: Refusing to delete {target}: still referenced in settings.json ({', '.join(remaining)})",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if target.exists() or target.is_symlink():
+            if target.resolve().parent != HOOKS_DIR.resolve():
+                print(f"ERROR: Refusing to delete {target}: resolves outside {HOOKS_DIR}", file=sys.stderr)
+                sys.exit(1)
+            target.unlink()
+            print(f"[2/2] Deleted: {target}")
     elif target.exists():
         print(f"[2/2] Kept file: {target} (use --delete-file to remove)")
 
@@ -297,6 +405,7 @@ def main() -> None:
     p_add.add_argument("--file", required=True, help="Path to hook .py file in repo")
     p_add.add_argument("--event", required=True, help="Hook event type (PreToolUse, PostToolUse, etc.)")
     p_add.add_argument("--description", required=True, help="Hook description for settings.json")
+    p_add.add_argument("--matcher", default=None, help="Optional tool matcher group (e.g., Bash, Write|Edit)")
     p_add.add_argument(
         "--timeout",
         type=int,
@@ -311,6 +420,7 @@ def main() -> None:
     p_rm = sub.add_parser("remove", help="Unregister (and optionally delete) a hook")
     p_rm.add_argument("--name", required=True, help="Hook filename (e.g., pretool-synthesis-gate.py)")
     p_rm.add_argument("--event", required=True, help="Hook event type")
+    p_rm.add_argument("--matcher", default=None, help="Optional tool matcher group to target")
     p_rm.add_argument("--delete-file", action="store_true", help="Also delete the file from ~/.claude/hooks/")
 
     # list

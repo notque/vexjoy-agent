@@ -6,7 +6,7 @@ are pre-selected as ENABLED; the user un-checks items to disable them. On
 confirm, writes ``<repo>/.local/profile.yaml`` with the disabled lists.
 
 Sources:
-    - skills: top-level subdirectories of skills/ that contain SKILL.md
+    - skills: skills/<category>/<name>/SKILL.md (and any top-level skills/<name>/SKILL.md)
     - agents: agents/<name>.md (excluding README*)
     - hooks:  hooks/*.py (excluding __init__.py and the lib/ package)
 
@@ -35,8 +35,7 @@ PROFILE_HEADER = """\
 # This file is regenerated each time you run:
 #   ./install.sh --configure
 #
-# To install without prompting (using the lists below as-is), pass
-# --non-interactive to install.sh, or simply run ./install.sh.
+# Run ./install.sh to install using the disabled lists below as-is.
 """
 
 
@@ -44,11 +43,13 @@ def list_skills() -> list[str]:
     skills_dir = REPO_ROOT / "skills"
     if not skills_dir.is_dir():
         return []
-    names: list[str] = []
-    for entry in sorted(skills_dir.iterdir()):
-        if entry.is_dir() and (entry / "SKILL.md").is_file():
-            names.append(entry.name)
-    return names
+    scripts_dir = str(Path(__file__).resolve().parent)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    from vexinstall.sources import load_public
+
+    pub = load_public(REPO_ROOT)
+    return sorted({item.name for item in pub.skills})
 
 
 def list_agents() -> list[str]:

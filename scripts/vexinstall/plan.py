@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -45,9 +46,25 @@ CLEANUP_REASONS = frozenset({DANGLING_REASON, CATEGORY_LINK_REASON, CATEGORY_DIR
 _WINDOWS = os.name == "nt"
 
 
+_RETIRED_FALLBACK: frozenset[str] | None = None
+
+
 def _retired_agent(dest: Path) -> bool:
     """True when *dest* names an agent retired by plans/009 (`<name>.md` or the `<name>/` dir)."""
-    from routing_index_merge import RETIRED_AGENTS  # scripts/ is on sys.path for every vexinstall entry
+    global _RETIRED_FALLBACK
+    try:
+        from routing_index_merge import RETIRED_AGENTS
+    except ImportError:
+        if _RETIRED_FALLBACK is None:
+            mod_path = Path(__file__).resolve().parent.parent / "routing_index_merge.py"
+            spec = importlib.util.spec_from_file_location("_vexinstall_routing_index_merge", mod_path)
+            if spec is None or spec.loader is None:
+                _RETIRED_FALLBACK = frozenset()
+            else:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                _RETIRED_FALLBACK = frozenset(mod.RETIRED_AGENTS)
+        RETIRED_AGENTS = _RETIRED_FALLBACK
 
     return dest.name.removesuffix(".md") in RETIRED_AGENTS
 

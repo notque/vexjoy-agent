@@ -284,11 +284,9 @@ def filter_layer4_not_covered(
     """Layer 4: not already covered in shared-patterns (including diff wording).
 
     Normalizes both candidate and shared pattern text and checks for
-    substantial overlap (≥40% of candidate words appear in any shared pattern).
+    substantial overlap (≥40% of candidate words appear in any single shared pattern).
     """
-    # Pre-compute normalized shared pattern corpus
-    shared_corpus = " ".join(_normalize_for_dedup(t) for t in shared_pattern_texts)
-    shared_words = set(shared_corpus.split())
+    doc_word_sets = [words for t in shared_pattern_texts if (words := set(_normalize_for_dedup(t).split()))]
 
     result = []
     for c in candidates:
@@ -296,8 +294,10 @@ def filter_layer4_not_covered(
         candidate_words = set(norm.split())
         if not candidate_words:
             continue
-        overlap = candidate_words & shared_words
-        overlap_ratio = len(overlap) / len(candidate_words)
+        if doc_word_sets:
+            overlap_ratio = max(len(candidate_words & words) / len(candidate_words) for words in doc_word_sets)
+        else:
+            overlap_ratio = 0.0
         if overlap_ratio < 0.4:
             result.append({**c, "overlap_ratio": round(overlap_ratio, 2)})
         # else: already covered — discard
@@ -334,9 +334,16 @@ def _run_claude_code(prompt: str, model: str | None = None) -> tuple[str, str]:
         return "", ""
 
     try:
-        events = json.loads(result.stdout)
+        parsed = json.loads(result.stdout)
     except json.JSONDecodeError:
         print(f"claude -p returned invalid JSON: {result.stdout[:200]}", file=sys.stderr)
+        return "", ""
+
+    if isinstance(parsed, dict):
+        events = [parsed]
+    elif isinstance(parsed, list):
+        events = [e for e in parsed if isinstance(e, dict)]
+    else:
         return "", ""
 
     assistant_text = ""
@@ -344,11 +351,14 @@ def _run_claude_code(prompt: str, model: str | None = None) -> tuple[str, str]:
     for event in events:
         if event.get("type") == "assistant":
             message = event.get("message", {})
-            for content in message.get("content", []):
-                if content.get("type") == "text":
-                    assistant_text += content.get("text", "")
+            if isinstance(message, dict):
+                for content in message.get("content", []):
+                    if isinstance(content, dict) and content.get("type") == "text":
+                        assistant_text += content.get("text", "")
         elif event.get("type") == "result":
-            raw_result_text = event.get("result", "")
+            res_val = event.get("result", "")
+            if isinstance(res_val, str):
+                raw_result_text = res_val
 
     return assistant_text or raw_result_text, raw_result_text
 
