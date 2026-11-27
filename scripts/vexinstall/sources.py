@@ -294,9 +294,11 @@ def _scan_overlay(ov: Overlay) -> None:
     def add_agents(agents_dir: Path, rel: str) -> None:
         if "agents" not in ov.kinds or _excluded(rel, ov.exclude) or not agents_dir.is_dir():
             return
-        for f in sorted(agents_dir.glob("*.md")):
-            if f.is_file() and f.name not in _AGENT_SKIP:
-                ov.agents.append(SourceItem("agent", ov.prefix + f.name, f, ov.owner))
+        for entry in sorted(agents_dir.iterdir()):
+            if entry.name.startswith(".") or entry.name in _AGENT_SKIP or is_ignored_name(entry.name):
+                continue
+            if (entry.is_file() and entry.suffix == ".md") or entry.is_dir():
+                ov.agents.append(SourceItem("agent", ov.prefix + entry.name, entry, ov.owner))
 
     add_agents(ov.root / "agents", "agents")
     if "skills" not in ov.kinds:

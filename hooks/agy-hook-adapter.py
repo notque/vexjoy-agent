@@ -311,6 +311,18 @@ def map_claude_updated_input_to_agy(
         if "new_string" in updated_input:
             merged["Replacement"] = updated_input["new_string"]
         return merged
+    if agy_tool_name == "invoke_subagent":
+        field_map = {
+            "prompt": "Prompt",
+            "subagent_type": "TypeName",
+            "description": "Role",
+            "model": "Model",
+            "workspace": "Workspace",
+        }
+        for src_k, dst_k in field_map.items():
+            if src_k in updated_input:
+                merged[dst_k] = updated_input[src_k]
+        return merged
     merged.update(updated_input)
     return merged
 

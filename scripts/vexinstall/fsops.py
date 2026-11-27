@@ -175,7 +175,7 @@ def write_json_if_changed(
     rewrite gave it, because readers take the mtime as the freshness signal.
     """
     current = _read_regular(dest)
-    if current is not None and current[1] == mode:
+    if current is not None and (os.name == "nt" or current[1] == mode):
         want = obj
         if stamps:
             try:
@@ -381,7 +381,9 @@ class Trash:
         try:
             rel = path.relative_to(home)
         except ValueError:
-            rel = Path(str(path).lstrip("/"))
+            parts = [part for part in path.parts if part not in (path.anchor, "/", "\\")]
+            drive = path.drive.rstrip(":").replace("\\", "_").replace("/", "_")
+            rel = Path(drive, *parts) if drive else Path(*parts)
         dest = self.dir / "files" / rel
         mkdirs(dest.parent, self.guard)
         if os.path.lexists(dest):

@@ -129,12 +129,41 @@ def quote_cmd(arg: str) -> str:
     return '"' + arg + "\\" * trailing + '"'
 
 
+def _claude_hook_timeouts(source_hooks_dir: Path) -> dict[str, int]:
+    """Read per-hook timeout seconds from repo .claude/settings.json (max across registrations)."""
+    settings_path = source_hooks_dir.parent / ".claude" / "settings.json"
+    out: dict[str, int] = {}
+    if not settings_path.is_file():
+        return out
+    try:
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return out
+    for groups in (data.get("hooks") or {}).values():
+        if not isinstance(groups, list):
+            continue
+        for group in groups:
+            for hook in group.get("hooks", []) if isinstance(group, dict) else []:
+                if not isinstance(hook, dict):
+                    continue
+                cmd = str(hook.get("command") or "")
+                tval = hook.get("timeout")
+                if not isinstance(tval, (int, float)):
+                    continue
+                m = re.search(r"hooks/([A-Za-z0-9_.-]+\.py)", cmd)
+                if m:
+                    name = m.group(1)
+                    out[name] = max(out.get(name, 0), int(tval))
+    return out
+
+
 def _build_command(
     agy_hooks_dir: str,
     entry: dict[str, Any],
     *,
     drain_deferred: bool = False,
     windows: bool = False,
+    timeout_sec: int | None = None,
 ) -> str:
     quote = quote_cmd if windows else shlex.quote
     parts = [
@@ -149,6 +178,8 @@ def _build_command(
     ]
     if entry.get("matcher"):
         parts.extend(["--matcher", quote(entry["matcher"])])
+    if timeout_sec is not None and timeout_sec > 10:
+        parts.extend(["--timeout", str(timeout_sec)])
     if drain_deferred:
         parts.append("--drain-deferred")
     return " ".join(parts)
@@ -173,6 +204,7 @@ def build_hooks_json(
     if source_hooks_dir is None:
         source_hooks_dir = Path(__file__).resolve().parent.parent / "hooks"
     validate_hook_files(entries, source_hooks_dir)
+    timeouts = _claude_hook_timeouts(source_hooks_dir)
 
     group_obj: dict[str, Any] = {"enabled": True}
 
@@ -185,11 +217,14 @@ def build_hooks_json(
             flat_handlers: list[dict[str, Any]] = []
             for idx, entry in enumerate(event_entries):
                 drain = event == "PreInvocation" and idx == 0
+                t_sec = timeouts.get(entry["filename"])
                 flat_handlers.append(
                     {
                         "type": "command",
-                        "command": _build_command(agy_hooks_dir, entry, drain_deferred=drain, windows=windows),
-                        "timeout": DEFAULT_TIMEOUT,
+                        "command": _build_command(
+                            agy_hooks_dir, entry, drain_deferred=drain, windows=windows, timeout_sec=t_sec
+                        ),
+                        "timeout": max(DEFAULT_TIMEOUT, (t_sec or 0) + 5),
                     }
                 )
             group_obj[event] = flat_handlers
@@ -203,8 +238,13 @@ def build_hooks_json(
                 hooks_list = [
                     {
                         "type": "command",
-                        "command": _build_command(agy_hooks_dir, entry, windows=windows),
-                        "timeout": DEFAULT_TIMEOUT,
+                        "command": _build_command(
+                            agy_hooks_dir,
+                            entry,
+                            windows=windows,
+                            timeout_sec=timeouts.get(entry["filename"]),
+                        ),
+                        "timeout": max(DEFAULT_TIMEOUT, (timeouts.get(entry["filename"]) or 0) + 5),
                     }
                     for entry in by_matcher[matcher]
                 ]

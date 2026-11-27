@@ -229,6 +229,7 @@ def build_hooks_json(
     entries: list[dict],
     codex_hooks_dir: str | None = None,
     source_hooks_dir: Path | None = None,
+    windows: bool | None = None,
 ) -> dict:
     """Build the Codex hooks.json structure from parsed allowlist entries.
 
@@ -236,15 +237,35 @@ def build_hooks_json(
         entries: List of entry dicts from parse_allowlist().
         codex_hooks_dir: Directory where hooks will reside. Defaults to $HOME/.codex/hooks.
         source_hooks_dir: Source directory used to prove every generated hook exists.
+        windows: Quote for cmd.exe instead of POSIX shell (defaults to os.name == "nt").
 
     Returns:
         Dict representing the full hooks.json structure.
     """
+    if windows is None:
+        windows = os.name == "nt"
     if codex_hooks_dir is None:
-        codex_hooks_dir = os.path.join(os.environ.get("HOME", "~"), ".codex", "hooks")
+        home = os.environ.get("HOME") or str(Path.home())
+        codex_hooks_dir = f"{home}/.codex/hooks"
     if source_hooks_dir is None:
         source_hooks_dir = Path(__file__).resolve().parent.parent / "hooks"
     validate_hook_files(entries, source_hooks_dir)
+    hook_timeouts: dict[str, int] = {}
+    _settings_path = source_hooks_dir.parent / ".claude" / "settings.json"
+    if _settings_path.is_file():
+        try:
+            _sdata = json.loads(_settings_path.read_text(encoding="utf-8"))
+            for _groups in (_sdata.get("hooks") or {}).values():
+                if not isinstance(_groups, list):
+                    continue
+                for _g in _groups:
+                    for _h in _g.get("hooks", []) if isinstance(_g, dict) else []:
+                        if isinstance(_h, dict) and isinstance(_h.get("timeout"), (int, float)):
+                            _m = re.search(r"hooks/([A-Za-z0-9_.-]+\.py)", str(_h.get("command") or ""))
+                            if _m:
+                                hook_timeouts[_m.group(1)] = max(hook_timeouts.get(_m.group(1), 0), int(_h["timeout"]))
+        except (OSError, ValueError):
+            pass
 
     # Group by (event, effective_matcher) so shared matchers collapse into one block.
     # Key: (event, effective_matcher_or_None)
@@ -285,29 +306,33 @@ def build_hooks_json(
             _, matcher = key
             group_entries = event_groups[key]
 
-            hook_entries = [
-                {
-                    "type": "command",
-                    "command": " ".join(
-                        [
-                            "python3",
-                            shlex.quote(f"{codex_hooks_dir}/codex-hook-adapter.py"),
-                            "--hook",
-                            shlex.quote(f"{codex_hooks_dir}/{entry['filename']}"),
-                            "--event",
-                            shlex.quote(entry["event"]),
-                            "--matcher",
-                            shlex.quote(entry["matcher"] or "*"),
-                            "--mode",
-                            shlex.quote(entry["mode"]),
-                            "--failure-policy",
-                            shlex.quote(entry["failure_policy"]),
-                        ]
-                    ),
-                    "timeout": 600,
-                }
-                for entry in group_entries
-            ]
+            def _q(val: str) -> str:
+                if windows:
+                    if re.fullmatch(r"[A-Za-z0-9_.\-]+", val):
+                        return val
+                    return '"' + val.replace('"', '\\"') + '"'
+                return shlex.quote(val)
+
+            hook_entries = []
+            for entry in group_entries:
+                cmd_parts = [
+                    "python3",
+                    _q(f"{codex_hooks_dir}/codex-hook-adapter.py"),
+                    "--hook",
+                    _q(f"{codex_hooks_dir}/{entry['filename']}"),
+                    "--event",
+                    _q(entry["event"]),
+                    "--matcher",
+                    _q(entry["matcher"] or "*"),
+                    "--mode",
+                    _q(entry["mode"]),
+                    "--failure-policy",
+                    _q(entry["failure_policy"]),
+                ]
+                t_sec = hook_timeouts.get(entry["filename"])
+                if t_sec is not None and t_sec > 10:
+                    cmd_parts.extend(["--timeout", str(t_sec)])
+                hook_entries.append({"type": "command", "command": " ".join(cmd_parts), "timeout": 600})
 
             block: dict = {}
             if matcher is not None:
@@ -333,7 +358,7 @@ def main() -> None:
     parser.add_argument("--allowlist", required=True, help="Path to the allowlist file.")
     parser.add_argument(
         "--output",
-        default=os.path.join(os.environ.get("HOME", "~"), ".codex", "hooks.json"),
+        default=str(Path.home() / ".codex" / "hooks.json"),
         help="Path to write hooks.json (default: ~/.codex/hooks.json).",
     )
     parser.add_argument(

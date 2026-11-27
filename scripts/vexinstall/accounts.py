@@ -146,7 +146,7 @@ def _plan_links(home: Path, cfg: Path, plan: AccountPlan) -> None:
         src = home / ".claude" / entry
         dest = cfg / entry
         if os.path.islink(dest):
-            if os.readlink(dest) != str(src):
+            if os.path.normcase(os.path.realpath(dest)) != os.path.normcase(os.path.realpath(src)):
                 plan.problems.append(f"{dest} links to {os.readlink(dest)}, not {src}")
         elif os.path.lexists(dest):
             plan.problems.append(f"{dest} is not a link; move it aside to share {src}")

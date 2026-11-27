@@ -137,7 +137,10 @@ def _check_scan_roots(ctx: Context, findings: list[Finding]) -> None:
     for name, pid in sorted(_plugin_skill_names(home).items()):
         if name in personal:
             findings.append(Finding(WARN, "plugin-bare-name", "claude", name, f"also provided by plugin {pid}"))
-    installed_agents = {p.name for p in (home / ".claude" / "agents").glob("*.md")}
+    agents_dir = home / ".claude" / "agents"
+    installed_agents = (
+        {p.name for p in agents_dir.iterdir() if p.is_dir() or p.suffix == ".md"} if agents_dir.is_dir() else set()
+    )
     installed_cmds = {p.name for p in commands.glob("*.md")} if commands.is_dir() else set()
     hooks_dir = home / ".claude" / "hooks"
     installed_hooks = {p.name for p in hooks_dir.iterdir()} if hooks_dir.is_dir() else set()
@@ -209,7 +212,7 @@ def _check_settings(ctx: Context, findings: list[Finding]) -> None:
     for label in settings_mod.duplicate_owned(current, rule):
         findings.append(Finding(WARN, "settings-duplicate-owned", "claude", str(spath), label))
     recorded = set(ctx.ledger.settings.get("claude", []))
-    actual = {settings_mod.canonical_hash(m, e) for _, m, e in settings_mod.owned_entries(current, rule)}
+    actual = {settings_mod.canonical_hash(m, e, ev) for ev, m, e in settings_mod.owned_entries(current, rule)}
     if recorded or ctx.ledger.entries:
         extra = len(actual - recorded)
         missing = len(recorded - actual)
@@ -242,9 +245,10 @@ def _check_source_fresh(ctx: Context, findings: list[Finding]) -> None:
 def _check_python(ctx: Context, findings: list[Finding]) -> None:
     """Interpreter drift: the hook python link is missing, dangling, or older than 3.10."""
     link = str(interp.link_path(ctx.home))
-    for check, detail in interp.drift(ctx.home):
+    drift_items = interp.drift(ctx.home)
+    for check, detail in drift_items:
         findings.append(Finding(ERROR, check, "claude", link, detail))
-    if not interp.drift(ctx.home):
+    if not drift_items:
         missing = interp.missing_modules(ctx.home)
         if missing:
             detail = (

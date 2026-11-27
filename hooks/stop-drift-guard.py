@@ -554,7 +554,7 @@ def handle_stop(event: dict) -> None:
     # Deferred, not rewoken: a rewake is a full-context generation the model
     # spends saying "acknowledged". The advisory lands as context on the next
     # user prompt instead (pending-advisory-injector-userprompt.py).
-    runtime_delivers_deferred = os.environ.get("VEXJOY_HOOK_RUNTIME") != "codex"
+    runtime_delivers_deferred = os.environ.get("VEXJOY_HOOK_RUNTIME") not in ("codex", "antigravity")
     if runtime_delivers_deferred and defer_advisory(
         session_id, "stop-drift-guard", message, "Toolkit drift guard found drift to review"
     ):
