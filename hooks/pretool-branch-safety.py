@@ -48,6 +48,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from git_cmd import GIT_COMMIT_RE, normalize_bash_path, repo_allows_direct_main
 from hook_utils import deny_tool_use, get_tool_input, hook_error, record_governance
 from stdin_timeout import read_stdin
 
@@ -69,14 +70,14 @@ def _extract_effective_cwd(command: str, default_cwd: str | None) -> str | None:
     if m:
         p = (m.group(1) or m.group(2) or "").strip()
         if p:
-            return p
+            return normalize_bash_path(p)
 
     # Pattern 2: git -C <path>
     m = re.search(r'\bgit\s+-C\s+(?:"([^"]+)"|(\S+))', command)
     if m:
-        return m.group(1) or m.group(2)
+        return normalize_bash_path(m.group(1) or m.group(2) or "")
 
-    return default_cwd
+    return normalize_bash_path(default_cwd) if default_cwd else default_cwd
 
 
 def _current_branch(cwd: str | None) -> str | None:
@@ -96,6 +97,23 @@ def _current_branch(cwd: str | None) -> str | None:
     return None
 
 
+def _repo_toplevel(cwd: str | None) -> str | None:
+    """Return the git repository top-level directory, or None on error."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=cwd or None,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip() or None
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    return None
+
+
 def main() -> None:
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
@@ -109,7 +127,7 @@ def main() -> None:
     # this hook from spawning for non-Bash tools.
 
     command = get_tool_input(event).get("command", "")
-    if "git commit" not in command:
+    if not GIT_COMMIT_RE.search(command):
         sys.exit(0)
 
     # Bypass env var — set when an explicit override is needed.
@@ -120,6 +138,10 @@ def main() -> None:
 
     default_cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
     cwd = _extract_effective_cwd(command, default_cwd)
+    if repo_allows_direct_main(_repo_toplevel(cwd)):
+        if debug:
+            print("[branch-safety] Direct main commits explicitly enabled for repo — allowing through", file=sys.stderr)
+        sys.exit(0)
     branch = _current_branch(cwd)
 
     if debug:

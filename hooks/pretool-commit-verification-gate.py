@@ -281,6 +281,21 @@ def main() -> None:
         return
 
     _increment_block_count(session_id)
+    try:
+        from hook_utils import record_governance
+
+        record_governance(
+            "policy_violation",
+            hook_name="pretool-commit-verification-gate",
+            tool_name="Bash",
+            hook_phase="pre",
+            severity="medium",
+            blocked=True,
+            event=event,
+            command=command,
+        )
+    except Exception:
+        pass
     _deny(
         "[commit-verify-gate] This commit is missing a Verified-By: trailer. "
         "Add one of these trailers at the end of the commit message:\n"

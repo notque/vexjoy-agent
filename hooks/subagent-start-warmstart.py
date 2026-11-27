@@ -54,6 +54,11 @@ from warmstart_lib import gather_context_block
 
 EVENT_NAME = "SubagentStart"
 
+_SUBAGENT_HYGIENE = (
+    "[subagent-defaults] Subagents cannot call main-thread UI tools (update_plan, wrap_up) or shell sleep "
+    "(use lock wrappers or background tasks). Default worker effort is medium."
+)
+
 
 _BYPASS_ENV = "SUBAGENT_START_WARMSTART_BYPASS"
 
@@ -83,7 +88,8 @@ def main() -> None:
         session_id = get_session_id(event)
         agent_type = str(event.get("agent_type") or "subagent").strip() or "subagent"
 
-        context_output(EVENT_NAME, gather_context_block(session_id, agent_type)).print_and_exit()
+        block = gather_context_block(session_id, agent_type)
+        context_output(EVENT_NAME, f"{block}\n{_SUBAGENT_HYGIENE}").print_and_exit()
 
     except Exception as e:
         print(f"[warmstart] error: {e}", file=sys.stderr)

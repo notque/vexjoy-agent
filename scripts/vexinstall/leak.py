@@ -49,6 +49,7 @@ BUILTIN_COMMANDS: frozenset[str] = frozenset(
 # as content-name leaks when they appear in normal tracked documentation or code.
 COMMON_WORDS: frozenset[str] = frozenset(
     {
+        "anim",
         "anti",
         "auto",
         "base",
@@ -73,6 +74,7 @@ COMMON_WORDS: frozenset[str] = frozenset(
         "main",
         "news",
         "open",
+        "paired",
         "pipeline",
         "post",
         "quick",

@@ -52,6 +52,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -62,7 +63,7 @@ from stdin_timeout import read_stdin
 # 10 MB limit — skip larger files silently
 _MAX_FILE_SIZE = 10 * 1024 * 1024
 
-_BACKUP_BASE = Path("/tmp/.claude-backups")
+_BACKUP_BASE = Path(tempfile.gettempdir()) / ".claude-backups" if os.name == "nt" else Path("/tmp/.claude-backups")
 
 # Session directories untouched this long are removed when a new session starts backing up.
 _RETENTION_SECONDS = 7 * 24 * 3600

@@ -28,6 +28,7 @@ if sys.version_info < (3, 10):  # vexjoy-pyguard advisory
     )
     sys.exit(0)
 
+import hashlib
 import json
 import os
 import re
@@ -55,6 +56,10 @@ CONTINUATION_PATTERN = re.compile(
 )
 TRIVIAL_COMMAND_PATTERN = re.compile(
     r"^\s*/(?:help|clear|exit|quit|compact)\b",
+    re.IGNORECASE,
+)
+DIRECT_ANSWER_PATTERN = re.compile(
+    r"\b(?:only\s+answer\s+directly|answer\s+directly)\b",
     re.IGNORECASE,
 )
 
@@ -110,6 +115,8 @@ def is_non_trivial_task(prompt: str) -> bool:
     if CONTINUATION_PATTERN.match(prompt):
         return False
     if TRIVIAL_COMMAND_PATTERN.match(prompt):
+        return False
+    if DIRECT_ANSWER_PATTERN.search(prompt):
         return False
     # Explicit routing triggers or multi-word requests are non-trivial
     if prompt.startswith(("/do", "/d", "/plan", "/goal", "/teamwork")):
@@ -173,10 +180,28 @@ def main() -> None:
         empty_output(EVENT_NAME).print_and_exit()
         return
 
+    prompt_hash = hashlib.sha256(prompt.encode("utf-8", errors="replace")).hexdigest()[:16]
+    existing_state = None
+    state_file = _state_path(session_id)
+    if state_file.is_file():
+        try:
+            loaded = json.loads(state_file.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                existing_state = loaded
+        except (OSError, ValueError):
+            pass
+
+    # PreInvocation fires before every model step in Antigravity with the same
+    # lastUserInput. Emit the Turn-1 directive at most once per distinct user prompt.
+    if existing_state and existing_state.get("prompt_hash") == prompt_hash:
+        empty_output(EVENT_NAME).print_and_exit()
+        return
+
     non_trivial = is_non_trivial_task(prompt)
     state = {
         "session_id": session_id,
         "prompt": prompt[:200],
+        "prompt_hash": prompt_hash,
         "routed": not non_trivial,
         "non_trivial": non_trivial,
         "timestamp": time.time(),
@@ -188,10 +213,10 @@ def main() -> None:
             "[VEXJOY ROUTING MANDATE] Non-trivial task detected. "
             "In Turn 1, output the 4-Phase Classification and ROUTING banner as visible user-facing text "
             "before calling execution tools. "
-            "Execution Mode: For Simple/Medium tasks, dispatch a subagent via define_subagent (from agents/<name>.md "
-            'if not already defined) and invoke_subagent (Workspace="inherit"). '
+            "Execution Mode: For Simple/Medium tasks, load the routed skill or dispatch a subagent via "
+            'invoke_subagent (Workspace="inherit"). '
             "For Complex tasks, multi-phase jobs, or approved plans with 2+ subagents / 3+ subtasks, dispatch all planned "
-            'subagents via define_subagent and invoke_subagent (/teamwork with Workspace="branch" or "share") or '
+            'subagents via invoke_subagent (/teamwork with Workspace="branch" or "share") or '
             "run_workflow; never collapse multiple planned subagents into a single monolithic subagent dispatch. "
             "Only Trivial tasks (single user-named file typo/fix) may execute directly in the main thread. "
             "Do not defer routing to post-execution."

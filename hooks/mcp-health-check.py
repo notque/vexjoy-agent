@@ -34,7 +34,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+from hook_utils import hook_error, record_governance
 from stdin_timeout import read_stdin
 
 # ═══════════════════════════════════════════════════════════════
@@ -385,6 +385,16 @@ def handle_pretool(event: dict) -> None:
                 print(f"[mcp-health-check] WARNING (fail-open): {msg}", file=sys.stderr)
                 return  # exit 0
             else:
+                record_governance(
+                    "health_block",
+                    hook_name="mcp-health-check",
+                    tool_name=tool_name,
+                    hook_phase="pre",
+                    severity="medium",
+                    blocked=True,
+                    event=event,
+                    sub_rule="backoff-active",
+                )
                 print(msg, file=sys.stderr)
                 sys.exit(2)
         # Past nextRetryAt — fall through to re-probe
@@ -421,6 +431,16 @@ def handle_pretool(event: dict) -> None:
             print(f"[mcp-health-check] WARNING (fail-open): {msg}", file=sys.stderr)
             return  # exit 0
         else:
+            record_governance(
+                "health_block",
+                hook_name="mcp-health-check",
+                tool_name=tool_name,
+                hook_phase="pre",
+                severity="medium",
+                blocked=True,
+                event=event,
+                sub_rule="probe-failed",
+            )
             print(msg, file=sys.stderr)
             sys.exit(2)
 

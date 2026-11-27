@@ -21,7 +21,7 @@ def _tilde(path: Path, home: Path) -> str:
 
 
 # (overlay id prefix, root relative to home) for each private skills repo location.
-PRIVATE_ROOTS = (("", "private-skills"), ("pgh-", "pgh/private-skills"))
+PRIVATE_ROOTS = (("", "private-skills"), ("pgh-", "pgh/private-skills"), ("github-", "github/private-skills"))
 
 
 def build_overlays(home: Path, repo_root: Path) -> tuple[dict, list[str]]:

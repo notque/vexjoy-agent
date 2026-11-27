@@ -236,6 +236,10 @@ def _resolve_dir(base: Where, path: str, what: str = "cd") -> Where:
         or (path.startswith("~") and path != "~" and not path.startswith("~/"))
     ):
         return Where(None, f"cannot resolve the `{what}` target `{path}`")
+    if os.name == "nt":
+        m = re.match(r"^/([A-Za-z])(/.*)?$", path)
+        if m:
+            path = f"{m.group(1).upper()}:{m.group(2) or '/'}"
     p = Path(os.path.expanduser(path))
     if not p.is_absolute():
         if not base.path:

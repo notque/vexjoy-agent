@@ -60,6 +60,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from git_cmd import is_private_or_runtime_skill_path, normalize_bash_path
 from hook_utils import get_tool_input, hook_error, record_governance
 from stdin_timeout import read_stdin
 
@@ -1548,7 +1549,7 @@ def _is_sensitive_exception(file_path: str) -> bool:
     return resolved == root or root in resolved.parents
 
 
-def _block(message: str, tool_name: str = "", reason: str = "") -> None:
+def _block(message: str, tool_name: str = "", reason: str = "", sub_rule: str = "") -> None:
     """Emit a structured deny decision and exit 0.
 
     Keeps the stderr message for debug visibility (Ctrl+O verbose mode)
@@ -1556,6 +1557,10 @@ def _block(message: str, tool_name: str = "", reason: str = "") -> None:
     the reason to the model rather than a generic error.
     """
     print(message, file=sys.stderr)
+    if not sub_rule:
+        m_tag = re.match(r"^\[([a-z0-9_-]+)\]", message.strip(), re.I)
+        if m_tag:
+            sub_rule = m_tag.group(1).lower()
     try:
         record_governance(
             "hook_blocked",
@@ -1566,6 +1571,7 @@ def _block(message: str, tool_name: str = "", reason: str = "") -> None:
             blocked=True,
             event=_CURRENT_EVENT,
             command=_CURRENT_COMMAND,
+            sub_rule=sub_rule,
         )
     except Exception:
         pass  # Never let recording prevent a block
@@ -1663,12 +1669,19 @@ def check_gitignore_bypass(command: str) -> None:
     # Check which paths are gitignored
     import subprocess  # lazy: see _LAZY_MODULES
 
+    eff_cwd = _extract_effective_cwd(
+        command,
+        _CURRENT_EVENT.get("cwd") if isinstance(_CURRENT_EVENT, dict) else None,
+    )
+    if eff_cwd:
+        eff_cwd = normalize_bash_path(eff_cwd)
     try:
         result = subprocess.run(
             ["git", "check-ignore"] + paths,
             capture_output=True,
             text=True,
             timeout=3,
+            cwd=eff_cwd or None,
         )
         ignored = [p for p in result.stdout.strip().split("\n") if p]
     except (subprocess.TimeoutExpired, OSError):
@@ -1807,8 +1820,9 @@ def check_dangerous_command(command: str) -> None:
 
 def _creation_component_name(file_path: str) -> str | None:
     """Return the kebab-case component name for a gated creation path."""
+    norm_path = file_path.replace("\\", "/")
     for pattern in (_AGENT_NAME_RE, _WORKFLOW_REF_NAME_RE, _SKILL_NAME_RE):
-        match = pattern.search(file_path)
+        match = pattern.search(norm_path)
         if match:
             return match.group(1)
     return None
@@ -1893,10 +1907,16 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
     allowlist → DEPRECATED bypass env (audit-logged) → ADR-registration
     handshake (audit-logged). Everything else blocks.
     """
-    is_agent = bool(_AGENT_PATTERN.search(file_path))
-    is_skill = bool(_SKILL_PATTERN.search(file_path))
-    is_workflow_ref = bool(_WORKFLOW_REF_PATTERN.search(file_path))
+    norm_path = file_path.replace("\\", "/")
+    is_agent = bool(_AGENT_PATTERN.search(norm_path))
+    is_skill = bool(_SKILL_PATTERN.search(norm_path))
+    is_workflow_ref = bool(_WORKFLOW_REF_PATTERN.search(norm_path))
     if not is_agent and not is_skill and not is_workflow_ref:
+        return
+
+    # Domain skills in private overlay repos or runtime ~/.claude/skills/ dirs
+    # are outside the toolkit repository and do not require toolkit ADRs.
+    if is_private_or_runtime_skill_path(file_path):
         return
 
     # Allow overwrites of existing files (update, not creation)
@@ -1906,7 +1926,7 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
     # Allow creation paths produced by named upstream skills (see
     # _CREATION_PATH_ALLOWLIST docstring).
     for allowed_pattern, _producer in _CREATION_PATH_ALLOWLIST:
-        if allowed_pattern.search(file_path):
+        if allowed_pattern.search(norm_path):
             return
 
     # DEPRECATED bypass — kept functional for unforeseen cases, always audited.
@@ -2090,6 +2110,10 @@ def _matches_sensitive(path: str) -> tuple[str, str] | None:
     path does — the patterns are rooted at `/`, so an un-expanded `~` never
     matched anything.
     """
+    # Ignore bare single-char property tokens (e.g. `r.key`, `x.key`) without a
+    # path separator that appear in inline code snippets rather than key files.
+    if "/" not in path and "\\" not in path and re.fullmatch(r"[a-zA-Z]\.key", path):
+        return None
     expanded = os.path.expanduser(path)
     if not expanded.startswith("/"):
         expanded = str(Path.cwd() / expanded)
@@ -2807,6 +2831,11 @@ def _remote_fetch_pipes_to_executor(line: str, orig: str | None = None) -> bool:
     offsets). A python sink is read from `orig` so its `-c` code can be checked.
     """
     for m in _REMOTE_FETCH_PIPE_RE.finditer(line):
+        # Local loopback endpoints (127.0.0.1 / localhost / [::1]) are local dev
+        # services, not remote unreviewed internet downloads.
+        fetch_span = (orig[m.start() : m.end()] if orig is not None else m.group(0)).lower()
+        if re.search(r"https?://(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(?:/|\s|$)", fetch_span):
+            continue
         rest = line[m.end() :]
         sink_text = _SEGMENT_SPLIT_RE.split(rest)[0]
         if not sink_text.strip():
@@ -3439,6 +3468,7 @@ def _block_sysadmin(category: str, message: str) -> None:
         f"[sysadmin-guard] BLOCKED ({category}): {message}",
         tool_name="Bash",
         reason=message,
+        sub_rule=f"sysadmin:{category}",
     )
 
 

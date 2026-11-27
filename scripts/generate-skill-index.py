@@ -705,7 +705,25 @@ def main() -> int:
     # ~/.claude/skills/ at session start. Mirror the sync hook's naming:
     # voice category → voice-{name}, others → {name}.
     if args.include_private:
-        private_skills_dir = Path.home() / "private-skills"
+        private_candidates = []
+        cfg_path = Path.home() / ".claude" / "vexjoy" / "overlays.json"
+        if cfg_path.is_file():
+            try:
+                cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+                for entry in cfg.get("overlays", []) if isinstance(cfg, dict) else []:
+                    raw_root = entry.get("root") if isinstance(entry, dict) else None
+                    if isinstance(raw_root, str) and raw_root:
+                        cand = Path(raw_root).expanduser()
+                        for p in (cand, cand.parent):
+                            if p.name == "private-skills" and p.is_dir() and p not in private_candidates:
+                                private_candidates.append(p)
+            except (OSError, ValueError):
+                pass
+        for rel in ("private-skills", "pgh/private-skills", "github/private-skills"):
+            p = Path.home() / rel
+            if p.is_dir() and p not in private_candidates:
+                private_candidates.append(p)
+        private_skills_dir = private_candidates[0] if private_candidates else (Path.home() / "private-skills")
         if private_skills_dir.is_dir():
             for category_dir in sorted(private_skills_dir.iterdir()):
                 if not category_dir.is_dir() or category_dir.name.startswith("."):

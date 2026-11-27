@@ -65,7 +65,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+from hook_utils import hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _EVENT_NAME = "SubagentStop"
@@ -570,6 +570,15 @@ def main() -> None:
             if event.get("stop_hook_active"):
                 sys.exit(0)
             # SubagentStop is controlled by top-level decision/reason.
+            record_governance(
+                "policy_violation",
+                hook_name="subagent-completion-guard",
+                tool_name="SubagentStop",
+                hook_phase="stop",
+                severity="high",
+                blocked=True,
+                event=event,
+            )
             print(json.dumps({"decision": "block", "reason": message}))
             sys.exit(0)
 

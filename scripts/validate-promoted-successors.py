@@ -98,7 +98,23 @@ def indexed_skill_names(repo_root: Path) -> set[str]:
 
 def overlay_roots() -> list[Path]:
     """Deployed and private roots where a successor's SKILL.md may live."""
-    candidates = [Path.home() / ".claude", Path.home() / "private-skills"]
+    candidates = [Path.home() / ".claude"]
+    cfg_path = Path.home() / ".claude" / "vexjoy" / "overlays.json"
+    if cfg_path.is_file():
+        try:
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            for entry in cfg.get("overlays", []) if isinstance(cfg, dict) else []:
+                raw_root = entry.get("root") if isinstance(entry, dict) else None
+                if isinstance(raw_root, str) and raw_root:
+                    p = Path(raw_root).expanduser()
+                    if p.is_dir() and p not in candidates:
+                        candidates.append(p)
+        except (OSError, ValueError):
+            pass
+    for rel in ("private-skills", "pgh/private-skills", "github/private-skills"):
+        p = Path.home() / rel
+        if p.is_dir() and p not in candidates:
+            candidates.append(p)
     return [r for r in candidates if r.is_dir()]
 
 
@@ -115,9 +131,11 @@ def successor_exists(name: str, repo_root: Path, indexed: set[str]) -> bool:
             return True
         if any(p.is_file() for p in skills_dir.glob(f"*/{name}/SKILL.md")):
             return True
-    # Private overlay stores skills as <root>/<category>/<name>/SKILL.md.
-    private = Path.home() / "private-skills"
-    return private.is_dir() and any(p.is_file() for p in private.glob(f"*/{name}/SKILL.md"))
+        if (root / name / "SKILL.md").is_file():
+            return True
+        if any(p.is_file() for p in root.glob(f"*/{name}/SKILL.md")):
+            return True
+    return False
 
 
 def _reference_files(repo_root: Path, husk_dirs: list[Path]) -> list[Path]:
@@ -159,7 +177,7 @@ def husk_reference_failures(repo_root: Path, husks: dict[str, tuple[Path, str]])
             lines = path.read_text(encoding="utf-8").splitlines()
         except (OSError, UnicodeDecodeError):
             continue
-        rel = path.relative_to(repo_root)
+        rel = path.relative_to(repo_root).as_posix()
         for lineno, line in enumerate(lines, 1):
             for match in pattern.finditer(line):
                 name = match.group("installed") or match.group("repo")
@@ -192,7 +210,7 @@ def check(repo_root: Path, verbose: bool = False) -> list[str]:
             continue
 
         promoted += 1
-        rel = skill_md.relative_to(repo_root)
+        rel = skill_md.relative_to(repo_root).as_posix()
         name = frontmatter.get("name", skill_md.parent.name)
         successor = str(successor).strip()
         husks[skill_md.parent.name] = (skill_md.parent, successor)

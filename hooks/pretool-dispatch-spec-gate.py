@@ -58,6 +58,8 @@ import sys
 EVENT_NAME = "PreToolUse"
 MARKER = "[do-route]"
 GATED_COMPLEXITY = ("medium", "complex")
+_DISALLOWED_EFFORTS = frozenset({"xhigh", "max"})
+_EFFORT_OVERRIDE_ENV = "VEXJOY_ALLOW_HIGH_EFFORT"
 REQUIRED_BLOCKS = (
     "**Request (verbatim):**",
     "**Acceptance criteria:**",
@@ -95,15 +97,44 @@ def build_reason(complexity: str, missing: list[str]) -> str:
     )
 
 
-def emit(reason: str) -> None:
+def emit(reason: str, *, force_deny: bool = False, event: dict | None = None, sub_rule: str = "") -> None:
     """Print the warn or deny payload. Lazy import keeps the silent path fast."""
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
-    from hook_utils import context_output, deny_tool_use
+    from hook_utils import context_output, deny_tool_use, record_governance
 
-    if os.environ.get("DISPATCH_SPEC_GATE_MODE", "").lower() == "deny":
+    if force_deny or os.environ.get("DISPATCH_SPEC_GATE_MODE", "").lower() == "deny":
+        record_governance(
+            "policy_violation",
+            hook_name="pretool-dispatch-spec-gate",
+            tool_name="Agent",
+            hook_phase="pre",
+            severity="medium",
+            blocked=True,
+            event=event,
+            sub_rule=sub_rule or "dispatch-spec",
+        )
         deny_tool_use(EVENT_NAME, reason)
         return
     context_output(EVENT_NAME, reason).print_and_exit()
+
+
+def _check_effort_cap(tool_input: dict, prompt: str, event: dict) -> None:
+    """Deny Agent dispatches requesting xhigh/max effort without explicit override."""
+    effort = tool_input.get("effort")
+    if not isinstance(effort, str):
+        return
+    if effort.strip().lower() not in _DISALLOWED_EFFORTS:
+        return
+    if os.environ.get(_EFFORT_OVERRIDE_ENV) == "1" or "[effort-override" in prompt.lower():
+        return
+    reason = (
+        f"[dispatch-spec-gate] Agent dispatch requested effort={effort!r}. "
+        "Default worker effort is 'medium' (escalate to 'high' only after a check fails). "
+        "Re-dispatch with effort='medium', or pass [effort-override: <reason>] in the prompt / "
+        f"set {_EFFORT_OVERRIDE_ENV}=1 when explicitly approved."
+    )
+    emit(reason, force_deny=True, event=event, sub_rule="effort-cap")
+    sys.exit(0)
 
 
 def main() -> None:
@@ -124,7 +155,10 @@ def main() -> None:
     if not isinstance(tool_input, dict):
         return
     prompt = tool_input.get("prompt")
-    if not isinstance(prompt, str) or not prompt:
+    if not isinstance(prompt, str):
+        prompt = ""
+    _check_effort_cap(tool_input, prompt, event)
+    if not prompt:
         return
     complexity = marker_complexity(prompt)
     if complexity not in GATED_COMPLEXITY:
@@ -132,7 +166,7 @@ def main() -> None:
     missing = missing_blocks(prompt)
     if not missing:
         return
-    emit(build_reason(complexity, missing))
+    emit(build_reason(complexity, missing), event=event)
 
 
 if __name__ == "__main__":

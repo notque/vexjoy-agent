@@ -75,7 +75,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+from hook_utils import hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "PIPELINE_PHASE_GATE_BYPASS"
@@ -149,7 +149,15 @@ def _debug(msg: str) -> None:
 
 
 def _block(reason: str, expected_path: str) -> None:
-    """Print block output to stderr and exit 2."""
+    """Print block output to stderr, record governance event, and exit 2."""
+    record_governance(
+        "policy_violation",
+        hook_name="pipeline-phase-gate",
+        tool_name="Write",
+        hook_phase="pre",
+        severity="medium",
+        blocked=True,
+    )
     print(f"[pipeline-phase-gate] BLOCKED: {reason}", file=sys.stderr)
     print(f"[pipeline-phase-gate] Expected artifact: {expected_path}", file=sys.stderr)
     sys.exit(2)

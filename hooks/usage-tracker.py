@@ -127,7 +127,12 @@ def main():
                     tool_name="Agent",
                     action="invoke",
                     target=description or None,
-                    metadata={"isolation": isolation},
+                    metadata={
+                        "isolation": isolation,
+                        "model": tool_input.get("model"),
+                        "effort": tool_input.get("effort"),
+                        "run_in_background": bool(tool_input.get("run_in_background")),
+                    },
                 )
             except Exception:
                 pass

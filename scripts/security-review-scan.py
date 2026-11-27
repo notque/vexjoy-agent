@@ -505,7 +505,7 @@ def _build_rules() -> list[dict]:
         "HIGH",
         literal([_SQL_KW]) + r"\s{0,20}\+",
         flags=re.IGNORECASE,
-        filter_fn=_filter_sql_shape,
+        filter_fn=_filter_sql_concat,
     )
     # variable + "...SQL..."
     add(
@@ -513,7 +513,7 @@ def _build_rules() -> list[dict]:
         "HIGH",
         r"\+\s{0,20}" + literal([_SQL_KW]) + r"\s{0,20}(?:\+|$|;|\)|,)",
         flags=re.IGNORECASE,
-        filter_fn=_filter_sql_shape,
+        filter_fn=_filter_sql_concat,
     )
     # Go fmt.Sprintf with SQL percent placeholders
     add(
@@ -800,6 +800,37 @@ def _filter_sql_shape(match: re.Match, line: str, filepath: str) -> bool:
     if _SQL_SHAPE_LAST[0] is not line:
         _SQL_SHAPE_LAST[:] = [line, bool(_SQL_SHAPE_RE.search(line) or _SQL_CALL_RE.search(line))]
     return _SQL_SHAPE_LAST[1]
+
+
+# Static string-literal continuation on the right or left of `+` (e.g.
+# `"SELECT a " + "FROM b"` or a trailing `+` wrapping a multi-line static SQL string).
+_QUOTED_LIT = r"""(?:"[^"\n]{0,500}"|'[^'\n]{0,500}')"""
+_LITERAL_AFTER_PLUS_RE = re.compile(
+    rf"^\s{{0,20}}(?:{_QUOTED_LIT}(?:\s{{0,20}}\+\s{{0,20}}{_QUOTED_LIT}){{0,10}}\s{{0,20}}(?:;|\)|,|\+)?\s{{0,20}}(?://.*|#.*)?$|$)"
+)
+_LITERAL_BEFORE_PLUS_RE = re.compile(rf"(?:^|[(=,:+\s]){_QUOTED_LIT}\s{{0,20}}$")
+
+
+def _filter_sql_concat(match: re.Match, line: str, filepath: str) -> bool:
+    """Return True to keep a SQL string-concatenation finding.
+
+    Suppresses pure static literal concatenation (`"SELECT a " + "FROM b"` or
+    trailing `+` wrapping a literal across lines) when no variable or expression
+    is concatenated on the line.
+    """
+    if not _filter_sql_shape(match, line, filepath):
+        return False
+    text = match.group(0)
+    starts_plus = text.lstrip().startswith("+")
+    ends_plus = text.rstrip().endswith("+")
+    if starts_plus or ends_plus:
+        before = line[: match.start()]
+        after = line[match.end() :]
+        left_ok = (not starts_plus) or (not before.strip() or bool(_LITERAL_BEFORE_PLUS_RE.search(before)))
+        right_ok = (not ends_plus) or bool(_LITERAL_AFTER_PLUS_RE.match(after))
+        if left_ok and right_ok:
+            return False
+    return True
 
 
 # Values that are references, templates or placeholders, not literal secrets.

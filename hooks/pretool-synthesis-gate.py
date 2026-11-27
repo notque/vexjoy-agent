@@ -64,7 +64,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use, hook_error
+from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "SYNTHESIS_GATE_BYPASS"
@@ -269,6 +269,16 @@ def main() -> None:
 
     if verdict is None:
         # synthesis.md is missing — block until consultation is run.
+        record_governance(
+            "policy_violation",
+            hook_name="pretool-synthesis-gate",
+            tool_name=str(event.get("tool_name") or "Write"),
+            hook_phase="pre",
+            severity="medium",
+            blocked=True,
+            event=event,
+            sub_rule="missing-synthesis",
+        )
         print(
             f"[synthesis-gate] BLOCKED: Consultation required. "
             f"Consult on {adr_name} first.\n"
@@ -286,6 +296,16 @@ def main() -> None:
         sys.exit(0)
 
     if verdict == "BLOCKED":
+        record_governance(
+            "policy_violation",
+            hook_name="pretool-synthesis-gate",
+            tool_name=str(event.get("tool_name") or "Write"),
+            hook_phase="pre",
+            severity="high",
+            blocked=True,
+            event=event,
+            sub_rule="verdict-blocked",
+        )
         print(
             f"[synthesis-gate] BLOCKED: Consultation verdict is BLOCKED for {adr_name}.\n"
             f"[synthesis-gate] Review {synthesis_path} and resolve concerns before implementing.{stale_note}",
@@ -299,6 +319,16 @@ def main() -> None:
         sys.exit(0)
 
     if verdict == "UNKNOWN":
+        record_governance(
+            "policy_violation",
+            hook_name="pretool-synthesis-gate",
+            tool_name=str(event.get("tool_name") or "Write"),
+            hook_phase="pre",
+            severity="medium",
+            blocked=True,
+            event=event,
+            sub_rule="verdict-unknown",
+        )
         print(
             f"[synthesis-gate] BLOCKED: synthesis.md exists but contains neither PROCEED nor BLOCKED for {adr_name}.\n"
             f"[synthesis-gate] The consultation may be incomplete, truncated, or contain merge conflict markers.\n"

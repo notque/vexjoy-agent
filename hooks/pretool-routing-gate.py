@@ -40,7 +40,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use, empty_output, hook_error
+from hook_utils import deny_tool_use, empty_output, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "PreToolUse"
@@ -197,6 +197,15 @@ def check_transcript_for_routing(session_id: str) -> bool:
     candidate_paths: list[Path] = [
         Path.home()
         / ".gemini"
+        / "antigravity"
+        / "brain"
+        / session_id
+        / ".system_generated"
+        / "logs"
+        / "transcript.jsonl",
+        Path.home() / ".gemini" / "antigravity" / "brain" / ".system_generated" / "logs" / "transcript.jsonl",
+        Path.home()
+        / ".gemini"
         / "antigravity-cli"
         / "brain"
         / session_id
@@ -336,6 +345,15 @@ def main() -> None:
         return
 
     # Block tool use
+    record_governance(
+        "policy_violation",
+        hook_name="pretool-routing-gate",
+        tool_name=tool_name,
+        hook_phase="pre",
+        severity="medium",
+        blocked=True,
+        event=event,
+    )
     reason = (
         "BLOCKED by VexJoy Routing Gate: Task is unrouted. "
         "You must output the /do CLASSIFY and ROUTING banner in Turn 1 before calling execution tools. "

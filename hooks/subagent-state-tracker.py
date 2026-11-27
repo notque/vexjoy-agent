@@ -81,9 +81,16 @@ def _save_state(state: dict) -> None:
     _ensure_state_dir()
     fd, tmp_path = tempfile.mkstemp(dir=str(_STATE_DIR), suffix=".tmp")
     try:
-        with os.fdopen(fd, "w") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(state, f, indent=2)
-        os.rename(tmp_path, str(_STATE_FILE))
+        for attempt in range(5):
+            try:
+                os.replace(tmp_path, str(_STATE_FILE))
+                return
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.01 * (2**attempt))
     except Exception:
         try:
             os.unlink(tmp_path)
