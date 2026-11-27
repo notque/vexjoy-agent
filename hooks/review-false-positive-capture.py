@@ -162,7 +162,7 @@ def main():
             if re.search(pattern, window, re.IGNORECASE):
                 reviewer = extract_reviewer(window)
                 source_file = extract_source_file(window)
-                safe_prompt = redact_secrets(prompt[:200])
+                safe_prompt = redact_secrets(prompt)[:200]
 
                 value = f"finding: {safe_prompt} | reviewer: {reviewer} | reason: user-disputed | source: {source_file}"
 

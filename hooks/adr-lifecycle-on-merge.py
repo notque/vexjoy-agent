@@ -46,7 +46,14 @@ from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import append_hook_debug_log, context_output, empty_output, get_tool_input
+from hook_utils import (
+    append_hook_debug_log,
+    context_output,
+    empty_output,
+    get_tool_input,
+    get_tool_result,
+    is_tool_error,
+)
 from stdin_timeout import read_stdin
 
 DEBUG_LOG = Path("/tmp/claude_hook_debug.log")
@@ -212,11 +219,130 @@ def update_adr_status(adr_path: Path, adr_number: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+_GIT_GLOBAL_VALUE_FLAGS = frozenset(
+    {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--super-prefix", "--config-env"}
+)
+_GH_GLOBAL_VALUE_FLAGS = frozenset({"-R", "--repo"})
+
+
+def _command_has_merge(command: str) -> bool:
+    """Return True iff `gh [flags] pr merge` or `git [flags] merge` is in command position."""
+    if not command or "merge" not in command:
+        return False
+    import shlex
+
+    try:
+        lex = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
+        lex.whitespace = " \t\r"
+        lex.whitespace_split = True
+        lex.commenters = ""
+        tokens = list(lex)
+    except ValueError:
+        return False
+
+    segments: list[list[str]] = []
+    current: list[str] = []
+    for tok in tokens:
+        if tok and set(tok) <= set(";&|()\n"):
+            if current:
+                segments.append(current)
+                current = []
+        else:
+            current.append(tok)
+    if current:
+        segments.append(current)
+
+    for seg in segments:
+        # Strip leading env assignments and trivial wrappers (`env`, `command`, `builtin`).
+        i = 0
+        while i < len(seg):
+            tok = seg[i]
+            if tok in ("command", "builtin"):
+                i += 1
+                while i < len(seg) and seg[i].startswith("-"):
+                    i += 1
+                continue
+            if tok == "env":
+                i += 1
+                while i < len(seg) and (seg[i].startswith("-") or ("=" in seg[i] and not seg[i].startswith("="))):
+                    i += 1
+                continue
+            if "=" in tok and not tok.startswith(("=", "-")):
+                key = tok.split("=", 1)[0]
+                if key.replace("_", "").isalnum():
+                    i += 1
+                    continue
+            break
+        seg = seg[i:]
+        if not seg:
+            continue
+
+        cmd = seg[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+        if cmd in ("git", "git.exe"):
+            j = 1
+            while j < len(seg):
+                tok = seg[j]
+                if tok == "--":
+                    break
+                if tok in _GIT_GLOBAL_VALUE_FLAGS and j + 1 < len(seg):
+                    j += 2
+                    continue
+                if tok.startswith("-"):
+                    j += 1
+                    continue
+                if tok == "merge":
+                    return True
+                break
+        elif cmd in ("gh", "gh.exe"):
+            j = 1
+            seen_pr = False
+            while j < len(seg):
+                tok = seg[j]
+                if tok in _GH_GLOBAL_VALUE_FLAGS and j + 1 < len(seg):
+                    j += 2
+                    continue
+                if tok.startswith("-"):
+                    j += 1
+                    continue
+                if not seen_pr:
+                    if tok == "pr":
+                        seen_pr = True
+                        j += 1
+                        continue
+                    break
+                if tok == "merge":
+                    return True
+                break
+    return False
+
+
+def _extract_exit_code(event: dict) -> int:
+    """Return non-zero if the tool failed across Claude/Codex/Factory/legacy schemas."""
+    tool_result = get_tool_result(event)
+    if is_tool_error(tool_result):
+        return 1
+    if isinstance(tool_result, dict):
+        for key in ("exit_code", "exitCode", "returncode"):
+            val = tool_result.get(key)
+            if isinstance(val, int) and val != 0:
+                return val
+    # Backwards-compat fallback for legacy synthetic payloads using tool_output
+    tool_output = event.get("tool_output")
+    if isinstance(tool_output, dict):
+        if tool_output.get("is_error"):
+            return 1
+        for key in ("exit_code", "exitCode", "returncode"):
+            val = tool_output.get(key)
+            if isinstance(val, int) and val != 0:
+                return val
+    return 0
+
+
 def is_merge_command(command: str, exit_code: int) -> bool:
     """Return True if this is a successful merge command."""
     if exit_code != 0:
         return False
-    return "gh pr merge" in command or "git merge" in command
+    return _command_has_merge(command)
 
 
 def process_merge(command: str) -> str | None:
@@ -306,8 +432,7 @@ def main() -> None:
     tool_input = get_tool_input(event)
     command = tool_input.get("command", "")
 
-    tool_output = event.get("tool_output", {})
-    exit_code = tool_output.get("exit_code", 0)
+    exit_code = _extract_exit_code(event)
 
     # Early exit: not a merge command or merge failed
     if not is_merge_command(command, exit_code):

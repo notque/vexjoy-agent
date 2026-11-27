@@ -89,15 +89,17 @@ def _extract_written_paths(command: str) -> list[str]:
 
 def _is_context_path(path: str) -> bool:
     """Return True if path matches an agent context pattern."""
-    return any(p.search(path) for p in _CONTEXT_PATH_PATTERNS)
+    norm = path.replace("\\", "/")
+    return any(p.search(norm) for p in _CONTEXT_PATH_PATTERNS)
 
 
-def _resolve_path(raw: str) -> Path | None:
+def _resolve_path(raw: str, cwd: str | None = None) -> Path | None:
     """Resolve a raw path string to an absolute Path, or return None."""
     try:
         p = Path(raw).expanduser()
         if not p.is_absolute():
-            p = Path.cwd() / p
+            base = Path(cwd) if cwd else Path.cwd()
+            p = base / p
         return p.resolve()
     except (ValueError, OSError):
         return None
@@ -135,13 +137,19 @@ def main() -> None:
     if not candidate_paths:
         empty_output(EVENT_NAME).print_and_exit()
 
-    # Filter to context paths that exist on disk
+    # Resolve first so relative redirects (`> hooks/foo.py`, `> skills/x/SKILL.md`)
+    # match leading-`/` context path patterns, then filter to existing files.
+    cwd = event.get("cwd") if isinstance(event.get("cwd"), str) and event.get("cwd") else None
     context_files: list[Path] = []
+    seen_files: set[Path] = set()
     for raw_path in candidate_paths:
-        if not _is_context_path(raw_path):
+        resolved = _resolve_path(raw_path, cwd=cwd)
+        if not resolved or resolved in seen_files:
             continue
-        resolved = _resolve_path(raw_path)
-        if resolved and resolved.is_file():
+        if not _is_context_path(resolved.as_posix()):
+            continue
+        if resolved.is_file():
+            seen_files.add(resolved)
             context_files.append(resolved)
 
     if not context_files:

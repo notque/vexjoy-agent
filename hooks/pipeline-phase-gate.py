@@ -244,6 +244,9 @@ def main() -> None:
     # phase-(N-1) artifact already exists in the same directory.
     for pipeline_id, prereq_map in PREREQUISITE_REGISTRY.items():
         if target_basename in prereq_map:
+            if pipeline_id == "do-perspectives" and "adr" in target_dir.parts:
+                _debug(f"Skipping do-perspectives prerequisite for adr/ path: {target_dir}")
+                continue
             required = prereq_map[target_basename]
             required_path = target_dir / required
             _debug(f"Pipeline={pipeline_id}: writing {target_basename} requires {required_path}")

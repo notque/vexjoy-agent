@@ -127,10 +127,73 @@ def _find_project_root(cwd: str | None) -> Path | None:
     return None
 
 
+def _normalize_unquoted_newlines(command: str) -> str:
+    """Replace unquoted newlines with `;` so multiline commands split into segments.
+
+    Preserves newlines inside single/double quotes and backslash line continuations,
+    and ends `#` comments before inserting `;`.
+    """
+    out: list[str] = []
+    in_single = False
+    in_double = False
+    in_comment = False
+    i = 0
+    n = len(command)
+    while i < n:
+        ch = command[i]
+        if in_comment:
+            if ch == "\n":
+                in_comment = False
+                out.append("\n;")
+            else:
+                out.append(ch)
+            i += 1
+            continue
+        if in_single:
+            if ch == "'":
+                in_single = False
+            out.append(ch)
+            i += 1
+            continue
+        if in_double:
+            if ch == "\\" and i + 1 < n:
+                out.append(ch)
+                out.append(command[i + 1])
+                i += 2
+                continue
+            if ch == '"':
+                in_double = False
+            out.append(ch)
+            i += 1
+            continue
+        # Outside quotes and comments.
+        if ch == "\\" and i + 1 < n:
+            out.append(ch)
+            out.append(command[i + 1])
+            i += 2
+            continue
+        if ch == "'":
+            in_single = True
+            out.append(ch)
+        elif ch == '"':
+            in_double = True
+            out.append(ch)
+        elif ch == "#" and (i == 0 or command[i - 1] in " \t\r\n;|&(){}"):
+            in_comment = True
+            out.append(ch)
+        elif ch == "\n":
+            out.append(";")
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 def _push_cwds(command: str, default_cwd: str | None) -> list[Path]:
     """Return effective worktree contexts for every push in shell order."""
+    normalized = _normalize_unquoted_newlines(command)
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars="();&|{}")
+        lexer = shlex.shlex(normalized, posix=True, punctuation_chars="();&|{}")
         lexer.whitespace_split = True
         tokens = list(lexer)
     except ValueError:

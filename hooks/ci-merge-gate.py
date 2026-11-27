@@ -38,67 +38,31 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import deny_tool_use, record_governance
 from stdin_timeout import read_stdin
 
-_MERGE_RE = re.compile(r"\bgh\s+pr\s+merge\b")
-# Tokens that end the merge simple command.
-_SEGMENT_END = {"&&", "||", ";", "|", "&", "\n", "(", ")"}
-# Merge flags that take a value; the value is never the PR number.
-_VALUE_FLAGS = {
-    "-t",
-    "--subject",
-    "-b",
-    "--body",
-    "-F",
-    "--body-file",
-    "-A",
-    "--author-email",
-    "--match-head-commit",
-    "-R",
-    "--repo",
-}
-_PULL_URL_RE = re.compile(r"/pull/(\d+)")
-
-
-def extract_pr_number(command: str) -> str | None:
-    """Return the PR number from the first merge command's argument list.
-
-    Parses only the tokens after the merge subcommand up to the first shell
-    separator or redirection. Returns None when no numeric or URL selector
-    is given (the caller then falls back to the current branch).
-    """
-    m = _MERGE_RE.search(command)
-    if not m:
-        return None
-    rest = command[m.end() :]
-    # Drop fd prefixes on redirects (`2>&1`) so the fd is not read as an argument.
-    rest = re.sub(r"(?<!\S)\d+(?=[<>])", " ", rest)
-    lex = shlex.shlex(rest, posix=True, punctuation_chars=True)
-    lex.whitespace_split = True
-    lex.commenters = ""  # `#55` is a PR selector, not a comment
-    try:
-        tokens = list(lex)
-    except ValueError:
-        tokens = rest.split()
-    skip_next = False
-    for tok in tokens:
-        if tok in _SEGMENT_END or tok[:1] in "<>" or tok.startswith(("&", "|", ";")):
-            break
-        if skip_next:
-            skip_next = False
-            continue
-        if tok.startswith("-"):
-            if tok in _VALUE_FLAGS:
-                skip_next = True
-            continue
-        # First positional argument is the PR selector.
-        if tok.lstrip("#").isdigit():
-            return tok.lstrip("#")
-        url = _PULL_URL_RE.search(tok)
-        return url.group(1) if url else None
-    return None
-
+_MERGE_RE = re.compile(r"\bgh\b(?:\s+[^\s;&|]+)*\s+pr\s+merge\b")
+# Tokens that end a simple command segment.
+_SEGMENT_END = frozenset({"&&", "||", ";", "|", "&", "\n", "(", ")"})
+# Merge flags that take a value; the value is never the PR number or another flag.
+_VALUE_FLAGS = frozenset(
+    {
+        "-t",
+        "--subject",
+        "-b",
+        "--body",
+        "-F",
+        "--body-file",
+        "-A",
+        "--author-email",
+        "--match-head-commit",
+        "-R",
+        "--repo",
+    }
+)
+# Global `gh` flags that take a separate argument before `pr` / `merge`.
+_GH_GLOBAL_VALUE_FLAGS = frozenset({"-R", "--repo"})
+_PULL_URL_RE = re.compile(r"https?://[^/\s]+/([^/\s]+/[^/\s]+)/pull/(\d+)")
+_PULL_PATH_RE = re.compile(r"/pull/(\d+)")
 
 _BYPASS_ENV = "CI_MERGE_GATE_BYPASS"
-
 
 _UNSAFE_SHELL_RE = re.compile(r"\$\(|`|(?<!\w)\$\w|\"\$|'\$|(?<!\w)eval\b|(?<!\w)bash\s+-c\b")
 
@@ -115,58 +79,262 @@ def _is_redirect(tok: str) -> bool:
     return bool(_REDIRECT_START_RE.match(tok))
 
 
+def _split_segments(command: str) -> list[list[str]]:
+    """Tokenize *command* into per-simple-command argv lists using shlex.
+
+    Raises ValueError on unbalanced quotes so callers can fall back safely.
+    """
+    lex = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lex.whitespace = " \t\r"
+    lex.whitespace_split = True
+    lex.commenters = ""  # `#55` is a PR selector, not a comment
+    segments: list[list[str]] = []
+    current: list[str] = []
+    for tok in lex:
+        if tok in _SEGMENT_END or (tok and set(tok) <= set(";&|()\n")):
+            if current:
+                segments.append(current)
+                current = []
+        else:
+            current.append(tok)
+    if current:
+        segments.append(current)
+    return segments
+
+
+def _strip_wrappers(seg: list[str]) -> list[str]:
+    """Strip leading env assignments and trivial wrappers (`env`, `command`, `builtin`, `eval`)."""
+    i = 0
+    while i < len(seg):
+        tok = seg[i]
+        if tok in ("command", "builtin"):
+            i += 1
+            while i < len(seg) and seg[i].startswith("-"):
+                i += 1
+            continue
+        if tok == "env":
+            i += 1
+            while i < len(seg) and (seg[i].startswith("-") or ("=" in seg[i] and not seg[i].startswith("="))):
+                i += 1
+            continue
+        if tok == "eval":
+            i += 1
+            continue
+        if "=" in tok and not tok.startswith(("=", "-")):
+            key = tok.split("=", 1)[0]
+            if key.replace("_", "").isalnum():
+                i += 1
+                continue
+        break
+    return seg[i:]
+
+
+def _resolve_cwd(base: str | None, target: str) -> str | None:
+    """Resolve a `cd <target>` against *base*, ignoring unresolvable expansions."""
+    if not target or "$" in target or "`" in target:
+        return base
+    expanded = os.path.expanduser(target)
+    if os.path.isabs(expanded) or re.match(r"^[A-Za-z]:[/\\]", expanded):
+        return expanded
+    if base:
+        return os.path.normpath(os.path.join(base, expanded))
+    return expanded
+
+
+def _parse_merge_invocations(command: str, base_cwd: str | None = None) -> list[dict[str, object]]:
+    """Return parsed `gh ... pr merge` invocations with repo, args, and effective cwd.
+
+    Handles optional flags before `pr` or `merge` (e.g. `gh -R owner/repo pr merge`),
+    tabs/multiple spaces, chained `cd <dir> &&`, and `sh -c` / `bash -c` wrappers.
+    Raises ValueError if shlex cannot tokenize *command*.
+    """
+    segments = _split_segments(command)
+    current_cwd = base_cwd or None
+    invocations: list[dict[str, object]] = []
+
+    for raw_seg in segments:
+        seg = _strip_wrappers(raw_seg)
+        if not seg:
+            continue
+        cmd_name = seg[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+
+        if cmd_name == "cd" and len(seg) >= 2:
+            current_cwd = _resolve_cwd(current_cwd, seg[1])
+            continue
+
+        # Unwrap `bash -c "..."` / `sh -c "..."` / `zsh -c "..."`.
+        if cmd_name in ("bash", "sh", "zsh", "dash"):
+            for idx, tok in enumerate(seg[1:], start=1):
+                if (
+                    tok in ("-c", "--command")
+                    or (tok.startswith("-") and not tok.startswith("--") and tok.endswith("c"))
+                ) and idx + 1 < len(seg):
+                    try:
+                        invocations.extend(_parse_merge_invocations(seg[idx + 1], base_cwd=current_cwd))
+                    except ValueError:
+                        pass
+                    break
+            continue
+
+        if cmd_name not in ("gh", "gh.exe"):
+            continue
+
+        # Match `gh [flags] pr [flags] merge [args...]`.
+        repo: str | None = None
+        i = 1
+        seen_pr = False
+        seen_merge = False
+        while i < len(seg):
+            tok = seg[i]
+            if tok in _GH_GLOBAL_VALUE_FLAGS and i + 1 < len(seg):
+                repo = seg[i + 1]
+                i += 2
+                continue
+            if tok.startswith("--repo="):
+                repo = tok[len("--repo=") :]
+                i += 1
+                continue
+            if tok.startswith("-R") and len(tok) > 2:
+                repo = tok[2:]
+                i += 1
+                continue
+            if tok.startswith("-"):
+                i += 1
+                continue
+            if not seen_pr:
+                if tok == "pr":
+                    seen_pr = True
+                    i += 1
+                    continue
+                break
+            if tok == "merge":
+                seen_merge = True
+                i += 1
+                break
+            break
+
+        if seen_merge:
+            invocations.append(
+                {
+                    "pre_repo": repo,
+                    "args": seg[i:],
+                    "cwd": current_cwd,
+                }
+            )
+
+    return invocations
+
+
+def _parse_merge_args(args: list[str], pre_repo: str | None = None) -> tuple[str | None, str | None, set[str]]:
+    """Extract `(pr_number, repo, flags)` from tokens after `gh ... pr merge`."""
+    pr_number: str | None = None
+    repo: str | None = pre_repo
+    flags: set[str] = set()
+
+    skip_next_flag: str | None = None
+    skip_redirect_target = False
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        if skip_redirect_target:
+            skip_redirect_target = False
+            i += 1
+            continue
+        # Drop fd digit immediately before a redirect operator (`2>&1`, `2>/dev/null`).
+        if tok.isdigit() and i + 1 < len(args) and _is_redirect(args[i + 1]):
+            i += 1
+            continue
+        if _is_redirect(tok):
+            if tok in _BARE_REDIRECTS:
+                skip_redirect_target = True
+            i += 1
+            continue
+        if skip_next_flag is not None:
+            if skip_next_flag in ("-R", "--repo"):
+                repo = tok
+            skip_next_flag = None
+            i += 1
+            continue
+        if tok.startswith("--repo="):
+            repo = tok[len("--repo=") :]
+            i += 1
+            continue
+        if tok.startswith("-R") and len(tok) > 2:
+            repo = tok[2:]
+            i += 1
+            continue
+        if tok.startswith("--"):
+            if tok in _VALUE_FLAGS:
+                skip_next_flag = tok
+            else:
+                flags.add(tok)
+            i += 1
+            continue
+        if tok.startswith("-"):
+            if tok in _VALUE_FLAGS:
+                skip_next_flag = tok
+            i += 1
+            continue
+        # First positional argument is the PR selector.
+        if pr_number is None:
+            if tok.lstrip("#").isdigit():
+                pr_number = tok.lstrip("#")
+            else:
+                url_m = _PULL_URL_RE.search(tok)
+                if url_m:
+                    if not repo:
+                        repo = url_m.group(1)
+                    pr_number = url_m.group(2)
+                else:
+                    path_m = _PULL_PATH_RE.search(tok)
+                    if path_m:
+                        pr_number = path_m.group(1)
+        i += 1
+
+    return pr_number, repo, flags
+
+
+def extract_pr_number(command: str) -> str | None:
+    """Return the PR number from the first merge command's argument list.
+
+    Returns None when no numeric or URL selector is given (the caller then
+    falls back to the current branch).
+    """
+    try:
+        invocations = _parse_merge_invocations(command)
+    except ValueError:
+        invocations = []
+    if invocations:
+        pr_number, _, _ = _parse_merge_args(invocations[0]["args"], invocations[0]["pre_repo"])  # type: ignore[arg-type]
+        return pr_number
+    return None
+
+
 def _merge_segment_flags(command: str) -> set[str]:
-    """Return the set of flag tokens found in every ``gh pr merge`` segment.
+    """Return the set of flag tokens found in every ``gh ... pr merge`` segment.
 
     Parses each segment with shlex so that a flag inside quoted text (the value
     of ``--body``, ``--subject``, etc.) is not mistaken for a real flag.
-    Redirect operators and their targets are skipped (they do not end the
-    segment).  On a parse error, or when the segment contains shell constructs
-    that could hide a flag (``$()``, backticks, ``eval``, ``bash -c``, variable
-    expansions), falls back to ``command.split()`` so that every currently
-    blocked case stays blocked.
+    Redirect operators and their targets are skipped. On a parse error, or when
+    the command contains shell constructs that could hide a flag (``$()``,
+    backticks, ``eval``, variable expansions), falls back to ``command.split()``
+    so that every currently blocked case stays blocked.
     """
-    flags: set[str] = set()
     fallback = {t for t in command.split() if t.startswith("--")}
-    for m in _MERGE_RE.finditer(command):
-        rest = command[m.end() :]
-        # Isolate the segment up to the first real separator for the shell check.
-        segment_text = re.split(r"&&|\|\||;", rest, maxsplit=1)[0]
-        if _UNSAFE_SHELL_RE.search(segment_text):
+    try:
+        invocations = _parse_merge_invocations(command)
+    except ValueError:
+        return fallback
+    if not invocations:
+        return set()
+    flags: set[str] = set()
+    for inv in invocations:
+        args: list[str] = inv["args"]  # type: ignore[assignment]
+        # Check for shell expansions inside the merge arguments that could hide a flag.
+        if any(_UNSAFE_SHELL_RE.search(tok) for tok in args):
             return fallback
-        lex = shlex.shlex(rest, posix=True, punctuation_chars=True)
-        lex.whitespace_split = True
-        lex.commenters = ""
-        try:
-            tokens = list(lex)
-        except ValueError:
-            # Unbalanced quotes -- fall back to the broad split to stay safe.
-            return fallback
-        skip_next = False
-        skip_redirect_target = False
-        for tok in tokens:
-            # Real command separators end the segment.
-            if tok in _SEGMENT_END:
-                break
-            # Redirect operators: skip them and their target (the filename).
-            if skip_redirect_target:
-                skip_redirect_target = False
-                continue
-            if _is_redirect(tok):
-                # A bare redirect like ">" or "2>" needs the next token as target.
-                if tok in _BARE_REDIRECTS:
-                    skip_redirect_target = True
-                continue
-            if skip_next:
-                skip_next = False
-                continue
-            if tok.startswith("--"):
-                if tok in _VALUE_FLAGS:
-                    skip_next = True
-                else:
-                    flags.add(tok)
-            elif tok.startswith("-") and tok in _VALUE_FLAGS:
-                skip_next = True
+        _, _, seg_flags = _parse_merge_args(args, inv["pre_repo"])  # type: ignore[arg-type]
+        flags.update(seg_flags)
     return flags
 
 
@@ -182,10 +350,20 @@ def main() -> None:
     # this hook from spawning for non-Bash tools.
 
     command = data.get("tool_input", {}).get("command", "")
-
-    # Only intercept gh pr merge commands
-    if "gh pr merge" not in command and "gh pr merge" not in command.replace("  ", " "):
+    if not command:
         return
+
+    base_cwd = data.get("cwd") if isinstance(data.get("cwd"), str) else None
+    try:
+        invocations = _parse_merge_invocations(command, base_cwd=base_cwd)
+    except ValueError:
+        # Unbalanced quotes: fall back to regex detection to fail safe on --admin/--force.
+        if not _MERGE_RE.search(command):
+            return
+        invocations = []
+    else:
+        if not invocations:
+            return
 
     merge_flags = _merge_segment_flags(command)
 
@@ -207,20 +385,29 @@ def main() -> None:
             deny_tool_use("PreToolUse", "Use of --force bypasses merge safeguards. Remove --force and merge normally.")
             sys.exit(0)
 
-    # PR number comes from the merge-command arguments only, never from
-    # other commands in the chain (`sleep 5 && <merge> 1012`).
-    pr_number = extract_pr_number(command)
+    # PR number, target repo, and effective cwd come from the merge invocation.
+    pr_number: str | None = None
+    repo: str | None = None
+    effective_cwd: str | None = base_cwd
+    if invocations:
+        first = invocations[0]
+        pr_number, repo, _ = _parse_merge_args(first["args"], first["pre_repo"])  # type: ignore[arg-type]
+        effective_cwd = first["cwd"]  # type: ignore[assignment]
+
+    run_cwd = effective_cwd if (effective_cwd and os.path.isdir(effective_cwd)) else None
+    repo_args = ["-R", repo] if repo else []
 
     if not pr_number:
         # No PR number found — might be merging current branch PR
         # Try to get it from current branch
         try:
             result = subprocess.run(
-                ["gh", "pr", "view", "--json", "number", "--jq", ".number"],
+                ["gh", "pr", "view", "--json", "number", "--jq", ".number", *repo_args],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                cwd=run_cwd,
                 timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip().isdigit():
@@ -236,11 +423,12 @@ def main() -> None:
     # Check CI status
     try:
         result = subprocess.run(
-            ["gh", "pr", "checks", pr_number, "--json", "name,state,bucket"],
+            ["gh", "pr", "checks", pr_number, "--json", "name,state,bucket", *repo_args],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
+            cwd=run_cwd,
             timeout=15,
         )
     except (subprocess.TimeoutExpired, FileNotFoundError):

@@ -936,3 +936,72 @@ class TestDenyMessageWithholdsBypassHint:
     def test_sensitive_file_deny_still_explains_the_rule(self):
         output = self._deny_output("/home/feedgen/.env")
         assert "owner approval" in output
+
+
+class TestRelativeAndTildePathNormalization:
+    """Relative, ~, and Windows paths must not bypass anchored sensitive/creation gates."""
+
+    @pytest.mark.parametrize(
+        "file_path",
+        [
+            ".env",
+            ".guard-whitelist",
+            ".guard-patterns",
+            "subdir/.env",
+            "subdir\\.env",
+            "~/.env",
+            "~/.ssh/id_ed25519",
+            "C:\\Users\\dev\\.env",
+            "C:\\.guard-whitelist",
+        ],
+    )
+    def test_relative_tilde_and_windows_sensitive_paths_denied_on_write(self, file_path, tmp_path):
+        payload = json.dumps(
+            {
+                "tool_name": "Write",
+                "tool_input": {"file_path": file_path, "content": "SECRET=1"},
+                "cwd": str(tmp_path),
+            }
+        )
+        assert _run_main(payload) == DENY
+
+    @pytest.mark.parametrize(
+        "file_path",
+        [
+            "skills/brand-new-skill/SKILL.md",
+            "skills\\brand-new-skill\\SKILL.md",
+            "agents/brand-new-agent.md",
+        ],
+    )
+    def test_relative_creation_paths_denied_on_write(self, file_path, tmp_path):
+        payload = json.dumps(
+            {
+                "tool_name": "Write",
+                "tool_input": {"file_path": file_path, "content": "# new"},
+                "cwd": str(tmp_path),
+            }
+        )
+        assert _run_main(payload) == DENY
+
+    def test_existing_relative_skill_file_allowed_as_update(self, tmp_path):
+        skill_file = tmp_path / "skills" / "existing-skill" / "SKILL.md"
+        skill_file.parent.mkdir(parents=True)
+        skill_file.write_text("# existing\n", encoding="utf-8")
+        payload = json.dumps(
+            {
+                "tool_name": "Write",
+                "tool_input": {"file_path": "skills/existing-skill/SKILL.md", "content": "# updated"},
+                "cwd": str(tmp_path),
+            }
+        )
+        assert _run_main(payload) == ALLOW
+
+    def test_relative_env_example_remains_allowed(self, tmp_path):
+        payload = json.dumps(
+            {
+                "tool_name": "Write",
+                "tool_input": {"file_path": ".env.example", "content": "KEY=placeholder"},
+                "cwd": str(tmp_path),
+            }
+        )
+        assert _run_main(payload) == ALLOW

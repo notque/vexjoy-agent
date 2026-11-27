@@ -283,3 +283,59 @@ def test_process_merge_complete_status(tmp_path):
     output = result.stdout
     # Hook file contains "hook" keyword — step 1 "Create hook file" should match
     assert "COMPLETE" in output or "PARTIAL" in output or "ADR-42" in output
+
+
+def test_tool_result_is_error_skips_failed_merge():
+    """PostToolUse tool_result.is_error=True must be treated as failed merge."""
+    event = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "gh pr merge 42 --squash"},
+        "tool_result": {"output": "merge conflict", "is_error": True},
+    }
+    stdout, _, rc = run_hook(event)
+    assert rc == 0
+    assert empty_json_response(stdout)
+
+
+def test_tool_response_exit_code_nonzero_skips_failed_merge():
+    """Factory schema tool_response.exitCode != 0 must be treated as failed merge."""
+    event = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git merge feature"},
+        "tool_response": {"stdout": "", "exitCode": 1},
+    }
+    stdout, _, rc = run_hook(event)
+    assert rc == 0
+    assert empty_json_response(stdout)
+
+
+def test_echo_and_python_mentioning_merge_are_ignored():
+    """Substrings like 'gh pr merge' or 'git merge' inside echo/python3 must not trigger."""
+    for cmd in (
+        'echo "gh pr merge 123 --squash"',
+        "python3 -c 'print(\"git merge main\")'",
+    ):
+        event = {
+            "tool_name": "Bash",
+            "tool_input": {"command": cmd},
+            "tool_result": {"output": "ok", "is_error": False},
+        }
+        stdout, _, rc = run_hook(event)
+        assert rc == 0
+        assert empty_json_response(stdout), f"unexpected trigger for: {cmd}"
+
+
+def test_flagged_git_and_gh_merge_in_command_position_detected():
+    """git -C /repo merge and gh -R owner/repo pr merge are detected in command position."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("adr_lifecycle_mod", HOOK_PATH)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    assert mod.is_merge_command("git -C /tmp/repo merge feature", 0) is True
+    assert mod.is_merge_command("gh -R owner/repo pr merge 99 --squash", 0) is True
+    assert mod.is_merge_command('echo "gh pr merge 99"', 0) is False
+    assert mod.is_merge_command("python3 -c 'git merge main'", 0) is False
+    assert mod.is_merge_command("gh pr merge 99", 1) is False
