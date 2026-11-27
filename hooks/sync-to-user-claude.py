@@ -127,7 +127,14 @@ def run(repo: Path) -> int:
     argv, env = build_command(repo, scripts)
     try:
         proc = subprocess.run(
-            argv, capture_output=True, text=True, env=env, timeout=TIMEOUT_S, stdin=subprocess.DEVNULL
+            argv,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            timeout=TIMEOUT_S,
+            stdin=subprocess.DEVNULL,
         )
     except (subprocess.SubprocessError, OSError) as exc:
         print(f"[sync] warning: vexinstall sync failed: {type(exc).__name__}", file=sys.stderr)

@@ -87,6 +87,8 @@ def _current_branch(cwd: str | None) -> str | None:
             ["git", "branch", "--show-current"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=5,
             cwd=cwd or None,
         )
@@ -104,6 +106,8 @@ def _repo_toplevel(cwd: str | None) -> str | None:
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=5,
             cwd=cwd or None,
         )

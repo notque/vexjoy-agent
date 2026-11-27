@@ -339,6 +339,10 @@ def get_state_file(prefix: str, event: Optional[dict] = None) -> Path:
         Path to state file in /tmp
     """
     session_id = get_session_id(event)
+    if os.name == "nt":
+        import tempfile
+
+        return Path(tempfile.gettempdir()) / f"claude-{prefix}-{session_id}.state"
     return Path(f"/tmp/claude-{prefix}-{session_id}.state")
 
 
@@ -964,6 +968,8 @@ def working_tree_diff(cwd: Optional[str], timeout: int = 15) -> str:
             ["git", "diff", "--no-color", "HEAD"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
             cwd=cwd or None,
         )

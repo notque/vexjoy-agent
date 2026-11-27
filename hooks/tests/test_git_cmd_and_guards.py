@@ -226,3 +226,59 @@ def test_agent_telemetry_report_multi_provider(tmp_path: Path) -> None:
     assert "claude-opus-4" in models
     assert "gemini-4-argon" in models
     assert report["structural_signals"].get("standing_rule_claim") == 1
+
+
+def test_unified_gate_blocks_windows_sensitive_paths() -> None:
+    env = {"CLAUDE_OPERATOR_PROFILE": "work", "CLAUDE_GATE_BYPASS": "0"}
+    for fp in (r"C:\Users\q\proj\.env", r"C:\Users\q\.ssh\id_rsa", r"C:\Users\q\.aws\credentials"):
+        r = _run_hook(
+            HOOKS / "pretool-unified-gate.py", {"tool_name": "Write", "tool_input": {"file_path": fp}}, env=env
+        )
+        assert "deny" in r.stdout, f"expected deny for {fp}, got stdout={r.stdout!r}"
+    r_bash = _run_hook(
+        HOOKS / "pretool-unified-gate.py",
+        {"tool_name": "Bash", "tool_input": {"command": r"cp C:\Users\q\proj\.env C:\temp\out"}},
+        env=env,
+    )
+    assert "deny" in r_bash.stdout, f"expected deny for bash copy, got stdout={r_bash.stdout!r}"
+
+
+def test_split_shell_tokens_preserves_windows_backslashes() -> None:
+    sys.path.insert(0, str(HOOKS / "lib"))
+    import git_cmd
+
+    toks = git_cmd.split_shell_tokens(r'git commit -m "hello" -F C:\Users\q\msg.txt')
+    assert "-F" in toks
+    assert toks[toks.index("-F") + 1] == r"C:\Users\q\msg.txt"
+
+
+def test_resolve_pipeline_index_supports_flat_copy_install(tmp_path: Path) -> None:
+    sys.path.insert(0, str(SCRIPTS))
+    import routing_index_merge as rim
+
+    flat = tmp_path / "skills" / "workflow" / "references" / "pipeline-index.json"
+    flat.parent.mkdir(parents=True)
+    flat.write_text('{"pipelines": {"demo": {}}}', encoding="utf-8")
+    resolved = rim.resolve_pipeline_index(repo_root=tmp_path, home=tmp_path / "empty-home")
+    assert resolved == flat
+
+
+def test_agent_telemetry_file_oscillation_has_nonzero_ts(tmp_path: Path) -> None:
+    mod = _load_mod(SCRIPTS / "agent-telemetry-report.py", "atr_osc_test")
+    now_ts = 1_795_000_000.0
+    events = [(now_ts + i, "Edit", {"file_path": "/repo/app.py"}, False, "") for i in range(7)]
+    sigs = mod._detect_session_signals("src", "claude", "s1", [], events)
+    osc = [s for s in sigs if s[4] == "file_oscillation"]
+    assert len(osc) == 1
+    assert osc[0][3] == now_ts + 6
+
+
+def test_usage_db_cutoff_matches_iso_t_timestamps(tmp_path: Path, monkeypatch) -> None:
+    sys.path.insert(0, str(HOOKS / "lib"))
+    import usage_db
+
+    monkeypatch.setattr(usage_db, "_DEFAULT_DB_DIR", tmp_path)
+    monkeypatch.delenv("CLAUDE_LEARNING_DIR", raising=False)
+    usage_db.record_skill("demo-skill", session_id="s1")
+    rows = usage_db.get_skill_usage(days=1)
+    assert any(r["name"] == "demo-skill" and r["count"] == 1 for r in rows)

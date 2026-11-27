@@ -78,6 +78,7 @@ from routing_index_merge import load_index_items as _load_index_items
 from routing_index_merge import load_items_for as _load_items_for
 from routing_index_merge import overlay_agent_items as _overlay_agent_items
 from routing_index_merge import private_names_for as _private_names_for
+from routing_index_merge import resolve_pipeline_index as _resolve_pipeline_index
 
 # Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
 # ~/.<runtime>/vexjoy/index/<kind>.json, then the repo index + legacy local.
@@ -105,7 +106,7 @@ TRIGGER_SEP = "|"
 
 INDEX_PATHS = {
     "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
-    "pipelines": (REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json", None),
+    "pipelines": (_resolve_pipeline_index(REPO_ROOT), None),
 }
 
 

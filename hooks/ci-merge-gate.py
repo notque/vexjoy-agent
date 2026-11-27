@@ -219,6 +219,8 @@ def main() -> None:
                 ["gh", "pr", "view", "--json", "number", "--jq", ".number"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip().isdigit():
@@ -237,6 +239,8 @@ def main() -> None:
             ["gh", "pr", "checks", pr_number, "--json", "name,state,bucket"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
         )
     except (subprocess.TimeoutExpired, FileNotFoundError):

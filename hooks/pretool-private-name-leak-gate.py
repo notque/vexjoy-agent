@@ -120,6 +120,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from git_cmd import normalize_bash_path, split_shell_tokens
 from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
@@ -299,10 +300,7 @@ def _bypass_requested(command: str) -> str | None:
     if os.environ.get(_BYPASS_ENV) == "1":
         return "env"
     for segment in re.split(r"&&|\|\||;", command):
-        try:
-            tokens = shlex.split(segment)
-        except ValueError:
-            tokens = segment.split()
+        tokens = split_shell_tokens(segment)
         seen_bypass = False
         rest = tokens
         for i, token in enumerate(tokens):
@@ -332,7 +330,7 @@ def _extract_effective_cwd(command: str, default_cwd: str | None) -> str | None:
             return p
     m = re.search(r'\bgit\s+-C\s+(?:"([^"]+)"|(\S+))', command)
     if m:
-        return m.group(1) or m.group(2)
+        return normalize_bash_path(m.group(1) or m.group(2))
     return default_cwd
 
 
@@ -563,10 +561,7 @@ def _redact(name: str) -> str:
 
 def _file_args(command: str, flags: set[str]) -> list[str]:
     """Paths passed via file flags, handling both `-F p` and `--flag=p`."""
-    try:
-        tokens = shlex.split(command)
-    except ValueError:
-        tokens = command.split()
+    tokens = split_shell_tokens(command)
     paths: list[str] = []
     for i, token in enumerate(tokens):
         if token in flags and i + 1 < len(tokens):
@@ -585,6 +580,8 @@ def _run_git(args: list[str], cwd: str | None) -> str:
             ["git", *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
             cwd=cwd or None,
             env=_clean_env(),
@@ -824,6 +821,7 @@ def _git_out(args: list[str], cwd: str | None, deadline: float) -> str:
             ["git", *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             errors="replace",
             timeout=budget,
             cwd=cwd or None,
@@ -1026,6 +1024,7 @@ def _gh_visibility(slug: tuple[str, str, str], deadline: float) -> str:
             ["gh", "api", "--hostname", host, f"repos/{owner}/{repo}", "--jq", ".visibility"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             errors="replace",
             timeout=budget,
             check=False,

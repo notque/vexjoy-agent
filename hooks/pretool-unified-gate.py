@@ -60,7 +60,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from git_cmd import is_private_or_runtime_skill_path, normalize_bash_path
+from git_cmd import is_private_or_runtime_skill_path, normalize_bash_path, split_shell_tokens
 from hook_utils import get_tool_input, hook_error, record_governance
 from stdin_timeout import read_stdin
 
@@ -436,10 +436,7 @@ def _git_command_parts(segment: str) -> tuple[str, list[str]] | None:
     subcommand, including value-taking `-C` and `-c` forms.
     """
     stripped = _strip_leading_prefixes(segment)
-    try:
-        toks = shlex.split(stripped, posix=True)
-    except ValueError:
-        toks = stripped.split()
+    toks = split_shell_tokens(stripped)
     if not toks or toks[0].rsplit("/", 1)[-1].lower() != "git":
         return None
 
@@ -469,17 +466,11 @@ def _inline_git_alias_payload(segment: str) -> str:
     config entries and unused alias definitions remain inert for this check.
     """
     stripped = _strip_leading_prefixes(segment)
-    try:
-        stripped_toks = shlex.split(stripped, posix=True)
-    except ValueError:
-        stripped_toks = stripped.split()
+    stripped_toks = split_shell_tokens(stripped)
     if not stripped_toks or stripped_toks[0].rsplit("/", 1)[-1].lower() != "git":
         return ""
 
-    try:
-        toks = shlex.split(segment, posix=True)
-    except ValueError:
-        toks = segment.split()
+    toks = split_shell_tokens(segment)
     git_indices = [i for i, tok in enumerate(toks) if tok.rsplit("/", 1)[-1].lower() == "git"]
     for git_index in git_indices:
         aliases: dict[str, str] = {}
@@ -584,10 +575,7 @@ def _eval_payload(segment: str) -> str:
 def _xargs_payload(segment: str) -> str:
     """Return the command that `xargs` executes, or an empty string."""
     stripped = _strip_leading_prefixes(segment)
-    try:
-        toks = shlex.split(stripped, posix=True)
-    except ValueError:
-        toks = stripped.split()
+    toks = split_shell_tokens(stripped)
     if not toks or toks[0].rsplit("/", 1)[-1].lower() != "xargs":
         return ""
     value_options = frozenset(
@@ -638,6 +626,8 @@ def _persistent_git_alias_payload(
             cwd=lookup_cwd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=0.5,
             check=False,
         )
@@ -1157,10 +1147,7 @@ def _strip_leading_prefixes(segment: str) -> str:
     seg = _strip_compound_syntax(seg)
     # shlex respects quotes so a quoted env value with spaces (`A='x y' vite …`)
     # stays one token; fall back to naive split on a parse error (unbalanced quote).
-    try:
-        toks = shlex.split(seg, posix=True)
-    except ValueError:
-        toks = seg.split()
+    toks = split_shell_tokens(seg)
 
     def base(tok: str) -> str:
         return tok.rsplit("/", 1)[-1].lower()
@@ -1280,10 +1267,7 @@ def _python_m_module(segment: str) -> str | None:
     argument's value (the payload is its own token; any `-m` inside it is data).
     """
     seg = _strip_leading_prefixes(segment)
-    try:
-        toks = shlex.split(seg, posix=True)
-    except ValueError:
-        toks = seg.split()
+    toks = split_shell_tokens(seg)
     if not toks or not _is_python_interpreter(toks[0]):
         return None
     i = 1
@@ -1680,6 +1664,8 @@ def check_gitignore_bypass(command: str) -> None:
             ["git", "check-ignore"] + paths,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=3,
             cwd=eff_cwd or None,
         )
@@ -1724,6 +1710,8 @@ def _is_worktree_on_feature_branch(cwd: str) -> bool:
             ["git", "branch", "--show-current"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=5,
             cwd=cwd,
         )
@@ -1987,12 +1975,13 @@ def check_sensitive_file(file_path: str, *, deny: bool = True) -> None:
     if os.environ.get(_SENSITIVE_BYPASS_ENV) == "1":
         return
 
-    if _is_sensitive_exception(file_path):
+    norm_path = normalize_bash_path(file_path).replace("\\", "/")
+    if _is_sensitive_exception(norm_path):
         return
 
     all_patterns = _SENSITIVE_PATTERNS + _load_guard_patterns()
     for pattern, category, description in all_patterns:
-        if pattern.search(file_path):
+        if pattern.search(norm_path):
             if not deny:
                 advisory = (
                     f"[sensitive-file-guard] ADVISORY: Read of sensitive file ({category})\n"
@@ -2093,10 +2082,7 @@ def _sensitive_bash_paths(segment: str) -> tuple[list[str], list[str]]:
     if verb not in _SENSITIVE_COPY_VERBS and verb not in _SENSITIVE_READ_VERBS:
         return deny_paths, []
 
-    try:
-        toks = shlex.split(_strip_leading_prefixes(segment), posix=True)
-    except ValueError:
-        toks = _strip_leading_prefixes(segment).split()
+    toks = split_shell_tokens(_strip_leading_prefixes(segment))
     args = [t for t in toks[1:] if not t.startswith("-")]
     if verb in _SENSITIVE_COPY_VERBS:
         return deny_paths + args, []
@@ -2114,13 +2100,15 @@ def _matches_sensitive(path: str) -> tuple[str, str] | None:
     # path separator that appear in inline code snippets rather than key files.
     if "/" not in path and "\\" not in path and re.fullmatch(r"[a-zA-Z]\.key", path):
         return None
-    expanded = os.path.expanduser(path)
-    if not expanded.startswith("/"):
-        expanded = str(Path.cwd() / expanded)
-    if _is_sensitive_exception(expanded):
+    norm = normalize_bash_path(os.path.expanduser(path)).replace("\\", "/")
+    if not norm.startswith("/") and not re.match(r"^[A-Za-z]:/", norm):
+        norm = (Path.cwd() / norm).as_posix()
+    elif re.match(r"^[A-Za-z]:/", norm):
+        norm = "/" + norm
+    if _is_sensitive_exception(norm):
         return None
     for pattern, category, description in _SENSITIVE_PATTERNS + _load_guard_patterns():
-        if pattern.search(expanded):
+        if pattern.search(norm):
             return category, description
     return None
 
@@ -2213,6 +2201,17 @@ def check_guard_integrity(file_path: str) -> None:
         resolved = Path(file_path)
     live = _live_hooks_dir()
     in_live_hooks = live is not None and (resolved == live or live in resolved.parents)
+    if not in_live_hooks and live is not None:
+        ledger_path = Path.home() / ".claude" / "vexjoy" / "ledger.json"
+        if ledger_path.is_file():
+            try:
+                src_root = json.loads(ledger_path.read_text(encoding="utf-8")).get("source_root")
+                if isinstance(src_root, str) and src_root:
+                    repo_hooks = (Path(src_root) / "hooks").resolve()
+                    if repo_hooks.is_dir() and (resolved == repo_hooks or repo_hooks in resolved.parents):
+                        in_live_hooks = True
+            except (OSError, ValueError):
+                pass
     is_settings = resolved.name in _SETTINGS_BASENAMES and resolved.parent.name == ".claude"
     if not in_live_hooks and not is_settings:
         return
@@ -2403,10 +2402,7 @@ def _shell_c_payload(seg: str) -> str:
     last letter of a short-flag cluster), and `--command payload`. Quotes are
     removed by shlex so the payload is the inner command string.
     """
-    try:
-        toks = shlex.split(seg, posix=True)
-    except ValueError:
-        toks = seg.split()
+    toks = split_shell_tokens(seg)
     for j, t in enumerate(toks):
         is_c = t == "-c" or t == "--command" or (t.startswith("-") and not t.startswith("--") and t.endswith("c"))
         if is_c and j + 1 < len(toks):
@@ -3152,10 +3148,7 @@ def _git_stages_secret(seg: str) -> bool:
     option value) is treated as data, not a staged path. Returns False for non-git
     or non-add/commit segments.
     """
-    try:
-        toks = shlex.split(seg, posix=True)
-    except ValueError:
-        toks = seg.split()
+    toks = split_shell_tokens(seg)
     # Skip leading wrapper/env-assignment tokens (`sudo git add …`, codex round-14)
     # WITHOUT re-joining (which would lose quoting and mis-tokenize a `-m "…"`
     # message). Consume `FOO=bar`, `sudo`/`env`/… and their option flags + values.
@@ -3760,12 +3753,21 @@ def main() -> None:
         check_guard_integrity(file_path)
         check_sensitive_file(file_path)
 
-    elif tool == "Edit":
-        file_path = _str_field(tool_input, "file_path")
-        if not file_path:
-            return
-        check_guard_integrity(file_path)
-        check_sensitive_file(file_path)
+    elif tool in ("Edit", "MultiEdit"):
+        paths: list[str] = []
+        primary = _str_field(tool_input, "file_path")
+        if primary:
+            paths.append(primary)
+        edits = tool_input.get("edits")
+        if isinstance(edits, list):
+            for item in edits:
+                if isinstance(item, dict):
+                    ep = _str_field(item, "file_path")
+                    if ep and ep not in paths:
+                        paths.append(ep)
+        for fp in paths:
+            check_guard_integrity(fp)
+            check_sensitive_file(fp)
 
     elif tool == "Read":
         file_path = _str_field(tool_input, "file_path")

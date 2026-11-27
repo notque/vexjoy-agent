@@ -228,6 +228,8 @@ def _git_paths(project_root: Path, args: list[str]) -> list[str]:
             ["git", *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=5,
             cwd=str(project_root),
         )

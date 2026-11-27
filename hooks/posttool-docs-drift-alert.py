@@ -88,7 +88,7 @@ def _run_scan_tools(repo_root: Path) -> tuple[bool, str]:
 
     try:
         result = subprocess.run(
-            ["python3", str(script), "--repo-root", str(repo_root)],
+            [sys.executable, str(script), "--repo-root", str(repo_root)],
             capture_output=True,
             text=True,
             timeout=10,

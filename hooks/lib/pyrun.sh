@@ -51,4 +51,5 @@ for name in python3.14 python3.13 python3.12 python3.11 python3.10 /opt/homebrew
     esac
     [ -x "$p" ] && exec "$p" "$@"
 done
-exec python3 "$@"
+command -v python3 >/dev/null 2>&1 && exec python3 "$@"
+exec python "$@"

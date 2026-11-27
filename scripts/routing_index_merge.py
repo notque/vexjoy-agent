@@ -226,6 +226,21 @@ def detect_target(script_path: Path | str | None = None) -> str:
     return "claude"
 
 
+def resolve_pipeline_index(repo_root: Path | None = None, home: Path | None = None) -> Path:
+    """Locate pipeline-index.json in repo checkout or flattened --copy runtime install."""
+    root = repo_root if repo_root is not None else REPO_ROOT
+    candidates = [
+        root / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
+        root / "skills" / "workflow" / "references" / "pipeline-index.json",
+    ]
+    user_home = home if home is not None else Path.home()
+    candidates.append(user_home / ".claude" / "skills" / "workflow" / "references" / "pipeline-index.json")
+    for cand in candidates:
+        if cand.is_file():
+            return cand
+    return candidates[0]
+
+
 def load_items_for(
     kind: str,
     tracked: Path,

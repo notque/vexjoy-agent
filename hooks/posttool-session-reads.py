@@ -78,7 +78,7 @@ except ImportError:  # Windows
 
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-
+from git_cmd import split_shell_tokens
 from hook_utils import empty_output, get_session_id, hook_error, is_sensitive_path
 from stdin_timeout import read_stdin
 
@@ -116,10 +116,7 @@ def bash_read_paths(command: str, cwd: Path | None = None) -> list[str]:
         return []
     if _MUTATING_RE.search(command):
         return []
-    try:
-        args = shlex.split(command)
-    except ValueError:
-        return []
+    args = split_shell_tokens(command)
     if args and args[0] == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args[1:]):
         return []  # in-place edit, not a read
     base = (cwd or Path.cwd()).resolve()
@@ -133,7 +130,7 @@ def bash_read_paths(command: str, cwd: Path | None = None) -> list[str]:
                 continue
         except (OSError, ValueError):
             continue
-        rel = str(candidate.relative_to(base))
+        rel = candidate.relative_to(base).as_posix()
         if is_sensitive_path(rel) or rel in paths:
             continue
         paths.append(rel)

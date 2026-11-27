@@ -73,7 +73,7 @@ from stdin_timeout import read_stdin
 
 _DEFAULT_THRESHOLD = 50
 _REMINDER_INTERVAL = 25
-_TRACKED_TOOLS = frozenset({"Edit", "Write"})
+_TRACKED_TOOLS = frozenset({"Edit", "MultiEdit", "Write"})
 _EVENT_NAME = "PreToolUse"
 
 # --- Helpers -----------------------------------------------------------------

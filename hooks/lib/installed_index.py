@@ -58,6 +58,8 @@ def refresh_installed_indexes() -> tuple[list[str], list[str]]:
                 [sys.executable, "-m", "vexinstall", "sync", "--index-only", "--target", target],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 env=env,
                 timeout=TIMEOUT_S,
             )

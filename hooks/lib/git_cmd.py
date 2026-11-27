@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 
 # Git global options that may sit between `git` and the subcommand verb
@@ -101,3 +102,19 @@ def repo_allows_direct_main(repo_root: str | Path | None) -> bool:
         if root == cand:
             return True
     return False
+
+
+_WIN_PATH_RE = re.compile(r"[A-Za-z]:\\[^\s\"']*")
+
+
+def split_shell_tokens(command: str, *, strict: bool = False) -> list[str]:
+    """Tokenize a shell command with POSIX quoting while preserving Windows drive paths."""
+    if not command:
+        return []
+    escaped = _WIN_PATH_RE.sub(lambda m: m.group(0).replace("\\", "\\\\"), command)
+    try:
+        return shlex.split(escaped, posix=True)
+    except ValueError:
+        if strict:
+            raise
+        return command.split()

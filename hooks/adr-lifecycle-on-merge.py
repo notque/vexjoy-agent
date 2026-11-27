@@ -82,6 +82,8 @@ def run_git(args: list[str], cwd: str | None = None, timeout: int = 5) -> str:
             ["git"] + args,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
             cwd=cwd,
         )

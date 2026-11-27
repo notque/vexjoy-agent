@@ -186,6 +186,8 @@ def _run_scanner(cwd: str | None, staged: bool = True) -> dict | None:
             args,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=_SCAN_TIMEOUT_SECONDS,
             cwd=cwd or None,
         )
