@@ -170,14 +170,14 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.lock pytest pillow numpy
+      - run: pip install -r requirements.lock pytest pytest-xdist pillow numpy
       - run: |
           python scripts/generate-skill-index.py
           python scripts/generate-agent-index.py
       - run: python scripts/validate-references.py --check-size
       - run: python scripts/validate-doc-counts.py
       - run: >
-          python -m pytest -o addopts="" --tb=short -q
+          python -m pytest --tb=short -q -n auto --dist loadfile
           hooks/tests/test_pretool_unified_gate.py
           hooks/tests/test_pretool_private_name_leak_gate.py
           hooks/tests/test_pretool_review_before_push_gate.py
