@@ -10,8 +10,8 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# debt: not in requirements.lock; shrink this set, never grow it
-KNOWN_UNPINNED = {"pytest", "pytest-xdist", "numpy"}
+# debt: not in requirements.lock; shrink this set, never grow it (now empty)
+KNOWN_UNPINNED: set[str] = set()
 
 _INSTALL_RE = re.compile(r"^\s*-?\s*(?:run:\s*)?pip install (.+)$", re.MULTILINE)
 

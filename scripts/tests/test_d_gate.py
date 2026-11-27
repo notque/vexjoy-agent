@@ -507,9 +507,9 @@ def test_measure_scope_skips_git_dir_by_path_parts_not_slashes(tmp_path: Path) -
         (git_objs / f"obj{i}").write_text("x" * 1024, encoding="utf-8")
     github_dir = tmp_path / ".github" / "workflows"
     github_dir.mkdir(parents=True)
-    (github_dir / "ci.yml").write_text("name: CI\n", encoding="utf-8")
-    (tmp_path / "README.md").write_text("hello", encoding="utf-8")
+    (github_dir / "ci.yml").write_bytes(b"name: CI\n")
+    (tmp_path / "README.md").write_bytes(b"hello")
 
     count, size = d_gate.measure_scope(["."], tmp_path)
     assert count == 2
-    assert size == len("name: CI\n") + len("hello")
+    assert size == len(b"name: CI\n") + len(b"hello")
