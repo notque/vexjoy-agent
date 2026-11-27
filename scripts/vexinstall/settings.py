@@ -38,18 +38,22 @@ def expand_vars(text: str, home: Path, extra: dict[str, str] | None = None) -> s
     return out.replace(" ~/", f" {home}/").replace('"~/', f'"{home}/').replace("'~/", f"'{home}/")
 
 
+_WIN_DRIVE_PATH_RE = re.compile(r"[A-Za-z]:\\[^\s\"']*")
+
+
 def first_path_token(command: str, home: Path) -> str | None:
-    """First shell token of *command* that is a path (contains '/').
+    """First shell token of *command* that is a path (contains '/' or '\\').
 
     The interpreter launcher prefix is skipped, so a launcher command yields its hook path.
     """
     expanded = expand_vars(strip_launcher(command), home)
+    escaped = _WIN_DRIVE_PATH_RE.sub(lambda m: m.group(0).replace("\\", "\\\\"), expanded)
     try:
-        tokens = shlex.split(expanded)
+        tokens = shlex.split(escaped)
     except ValueError:
         tokens = expanded.split()
     for tok in tokens:
-        if "/" in tok:
+        if "/" in tok or "\\" in tok:
             return tok
     return None
 
@@ -85,10 +89,13 @@ class OwnerRule:
 _COSMETIC_KEYS = frozenset({"description"})
 
 
-def canonical_hash(meta: dict, entry: dict) -> str:
-    """Hash of (group meta, entry) in canonical JSON; cosmetic entry keys are left out."""
+def canonical_hash(meta: dict, entry: dict, event: str | None = None) -> str:
+    """Hash of (event?, group meta, entry) in canonical JSON; cosmetic entry keys are left out."""
     core = {k: v for k, v in entry.items() if k not in _COSMETIC_KEYS}
-    blob = json.dumps({"group": meta, "entry": core}, sort_keys=True, separators=(",", ":"))
+    payload: dict[str, object] = {"group": meta, "entry": core}
+    if event is not None:
+        payload["event"] = event
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode()).hexdigest()
 
 
@@ -440,7 +447,7 @@ def merge(current: dict, desired_hooks: dict, rule: OwnerRule) -> MergeResult:
     for event in [e for e, g in hooks.items() if g == []]:
         if event not in want:
             del hooks[event]
-    res.owned_hashes = sorted({canonical_hash(m, e) for _, m, e in owned_entries(result, rule)})
+    res.owned_hashes = sorted({canonical_hash(m, e, ev) for ev, m, e in owned_entries(result, rule)})
     return res
 
 
@@ -449,7 +456,7 @@ def duplicate_owned(settings: dict, rule: OwnerRule) -> list[str]:
     seen: dict[str, int] = {}
     labels: dict[str, str] = {}
     for event, meta, entry in owned_entries(settings, rule):
-        h = canonical_hash(meta, entry)
+        h = canonical_hash(meta, entry, event)
         seen[h] = seen.get(h, 0) + 1
         labels[h] = f"{event}: {entry.get('command')}"
     return [labels[h] for h, n in seen.items() if n > 1]

@@ -74,9 +74,17 @@ def hooks_dir(root: Path) -> Path | None:
 
 
 def ephemeral_prefixes() -> list[str]:
-    """Realpath prefixes treated as ephemeral (default ``/tmp``)."""
-    raw = os.environ.get(EPHEMERAL_ENV, DEFAULT_EPHEMERAL)
-    return [realpath(p) for p in raw.split(":") if p]
+    """Realpath prefixes treated as ephemeral (default ``/tmp`` plus system temp dir on Windows)."""
+    raw = os.environ.get(EPHEMERAL_ENV)
+    if raw is None:
+        prefixes = [DEFAULT_EPHEMERAL]
+        if os.name == "nt":
+            import tempfile
+
+            prefixes.append(tempfile.gettempdir())
+        return [realpath(p) for p in prefixes if p]
+    sep = os.pathsep if os.pathsep in raw else ":"
+    return [realpath(p) for p in raw.split(sep) if p]
 
 
 def is_ephemeral(path: Path) -> bool:

@@ -133,7 +133,7 @@ def build_hooks(entries: list[dict], reasonix_hooks_dir: str | None = None) -> d
         settings "hooks" key).
     """
     if reasonix_hooks_dir is None:
-        reasonix_hooks_dir = os.path.join(os.environ.get("HOME", "~"), ".reasonix", "hooks")
+        reasonix_hooks_dir = str(Path.home() / ".reasonix" / "hooks")
 
     hooks_by_event: dict[str, list[dict]] = {}
 
@@ -187,7 +187,7 @@ def main() -> None:
     parser.add_argument("--allowlist", required=True, help="Path to the allowlist file.")
     parser.add_argument(
         "--output",
-        default=os.path.join(os.environ.get("HOME", "~"), ".reasonix", "settings.json"),
+        default=str(Path.home() / ".reasonix" / "settings.json"),
         help="Path to settings.json (default: ~/.reasonix/settings.json).",
     )
     parser.add_argument(
@@ -260,7 +260,7 @@ def main() -> None:
             f.write("\n")
             f.flush()
             os.fsync(f.fileno())
-        os.rename(tmp, str(output_path))
+        os.replace(tmp, str(output_path))
     except OSError as exc:
         print(f"Error writing {output_path}: {exc}", file=sys.stderr)
         sys.exit(1)

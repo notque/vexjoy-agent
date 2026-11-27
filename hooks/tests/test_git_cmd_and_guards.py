@@ -282,3 +282,54 @@ def test_usage_db_cutoff_matches_iso_t_timestamps(tmp_path: Path, monkeypatch) -
     usage_db.record_skill("demo-skill", session_id="s1")
     rows = usage_db.get_skill_usage(days=1)
     assert any(r["name"] == "demo-skill" and r["count"] == 1 for r in rows)
+
+
+def test_vexinstall_duplicate_owned_distinguishes_events() -> None:
+    sys.path.insert(0, str(SCRIPTS))
+    from vexinstall import settings as sm
+
+    home = Path("/tmp/fake-home")
+    rule = sm.OwnerRule(home=home, hooks_dir=home / ".claude" / "hooks", source_root=Path("/tmp/repo"))
+    cmd = 'sh "$HOME/.claude/hooks/lib/pyrun.sh" "$HOME/.claude/hooks/routing-outcome-stop-fallback.py"'
+    data = {
+        "hooks": {
+            "Stop": [{"hooks": [{"type": "command", "command": cmd, "timeout": 5}]}],
+            "SessionEnd": [{"hooks": [{"type": "command", "command": cmd, "timeout": 5}]}],
+        }
+    }
+    assert sm.duplicate_owned(data, rule) == []
+
+
+def test_vexinstall_overlay_scans_companion_agent_dirs(tmp_path: Path) -> None:
+    sys.path.insert(0, str(SCRIPTS))
+    from vexinstall.sources import Overlay, _scan_overlay
+
+    ov_root = tmp_path / "ov"
+    (ov_root / "agents" / "demo-agent" / "references").mkdir(parents=True)
+    (ov_root / "agents" / "demo-agent.md").write_text("# agent", encoding="utf-8")
+    (ov_root / "agents" / "demo-agent" / "references" / "a.md").write_text("# ref", encoding="utf-8")
+    ov = Overlay(id="priv", root=ov_root, layout="category", kinds=("agents",))
+    _scan_overlay(ov)
+    names = {a.name for a in ov.agents}
+    assert "demo-agent.md" in names
+    assert "demo-agent" in names
+
+
+def test_agy_adapter_maps_invoke_subagent_updated_prompt() -> None:
+    mod = _load_mod(HOOKS / "agy-hook-adapter.py", "agy_adapter_w2")
+    out = mod.map_claude_updated_input_to_agy(
+        "invoke_subagent",
+        {"TypeName": "research", "Role": "Scout", "Prompt": "old"},
+        {"prompt": "enriched prompt"},
+    )
+    assert out["Prompt"] == "enriched prompt"
+    assert "prompt" not in out
+
+
+def test_agy_and_codex_generators_propagate_hook_timeouts() -> None:
+    agy_mod = _load_mod(SCRIPTS / "generate-agy-hooks-json.py", "gen_agy_w2")
+    entries = agy_mod.parse_allowlist("PreToolUse:ci-merge-gate.py matcher=run_command failure=closed\n")
+    data = agy_mod.build_hooks_json(entries, agy_hooks_dir="/tmp/h", windows=False)
+    handler = data["vexjoy-agent"]["PreToolUse"][0]["hooks"][0]
+    assert "--timeout 30" in handler["command"]
+    assert handler["timeout"] >= 35

@@ -46,7 +46,7 @@ OVERRIDE_ENV = "VEXJOY_PYTHON"
 LINK_SH = "$HOME/.claude/vexjoy/bin/python3"
 LAUNCHER = 'sh "$HOME/.claude/hooks/lib/pyrun.sh" '
 WELL_KNOWN = ("/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3")
-_SHIM_PARTS = ("/shims/",)
+_SHIM_PARTS = ("/shims/", "/windowsapps/")
 # Checked on the literal path only: /opt/homebrew/bin/python3 resolves into Cellar but survives upgrades.
 _LITERAL_UNSTABLE_PARTS = ("/Cellar/",)
 # Checked on the literal path and its realpath (a python3.12 link into the uv store is still the uv store).
@@ -131,15 +131,25 @@ def probe(path: str, timeout: float = 5.0) -> tuple[int, int] | None:
     return info[0] if info else None
 
 
+def _posix_lower(path: str) -> str:
+    norm = path.replace("\\", "/")
+    return norm.lower() if os.name == "nt" else norm
+
+
 def is_shim(path: str) -> bool:
     """True for a version-manager shim (resolves per directory, so never linked)."""
-    return any(p in path or p in os.path.realpath(path) for p in _SHIM_PARTS)
+    p_norm = _posix_lower(path)
+    r_norm = _posix_lower(os.path.realpath(path))
+    return any(part in p_norm or part in r_norm for part in _SHIM_PARTS)
 
 
 def is_unstable(path: str) -> bool:
     """True for a path inside a versioned install dir that an upgrade or uninstall removes."""
-    real = os.path.realpath(path)
-    return any(p in path for p in _LITERAL_UNSTABLE_PARTS) or any(p in path or p in real for p in _UNSTABLE_PARTS)
+    p_norm = path.replace("\\", "/")
+    r_norm = os.path.realpath(path).replace("\\", "/")
+    return any(part in p_norm for part in _LITERAL_UNSTABLE_PARTS) or any(
+        part in p_norm or part in r_norm for part in _UNSTABLE_PARTS
+    )
 
 
 def _usable(path: str) -> bool:
@@ -153,6 +163,9 @@ def path_candidates(path_env: str) -> list[str]:
         if not d or not os.path.isabs(d) or not os.path.isdir(d):
             continue
         out.append(os.path.join(d, "python3"))
+        if os.name == "nt":
+            out.append(os.path.join(d, "python3.exe"))
+            out.append(os.path.join(d, "python.exe"))
         try:
             names = os.listdir(d)
         except OSError:

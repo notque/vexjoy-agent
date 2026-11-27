@@ -130,8 +130,8 @@ def is_ignored_name(name: str) -> bool:
 
 def is_inside(path: str | Path, root: str | Path) -> bool:
     """True when normalized *path* equals *root* or sits below it (string check)."""
-    p = os.path.normpath(str(path))
-    r = os.path.normpath(str(root))
+    p = os.path.normcase(os.path.normpath(str(path)))
+    r = os.path.normcase(os.path.normpath(str(root)))
     return p == r or p.startswith(r.rstrip(os.sep) + os.sep)
 
 

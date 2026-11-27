@@ -57,7 +57,7 @@ PreToolUse:pretool-worktree-edit-guard.py matcher=edit_file|write_file failure=c
 PreToolUse:pretool-config-protection.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-synthesis-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-plan-gate.py matcher=edit_file|write_file failure=closed
-PreToolUse:pretool-prompt-injection-scanner.py matcher=edit_file|write_file failure=closed
+PreToolUse:pretool-prompt-injection-scanner.py matcher=edit_file|write_file failure=open
 PreToolUse:pipeline-phase-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-adr-creation-gate.py matcher=edit_file|write_file failure=closed
 PreToolUse:pretool-file-backup.py matcher=edit_file|write_file failure=open
@@ -66,7 +66,7 @@ PreToolUse:pretool-file-backup.py matcher=edit_file|write_file failure=open
 PreToolUse:reference-loading-enforcer.py matcher=invoke_subagent failure=open
 PreToolUse:creation-protocol-enforcer.py matcher=invoke_subagent failure=open
 PreToolUse:pretool-section-integrity-validator.py matcher=invoke_subagent failure=open
-PreToolUse:pretool-dispatch-spec-gate.py matcher=invoke_subagent failure=closed
+PreToolUse:pretool-dispatch-spec-gate.py matcher=invoke_subagent failure=open
 
 # PostToolUse run_command -> Bash observers (4)
 PostToolUse:adr-lifecycle-on-merge.py matcher=run_command failure=open

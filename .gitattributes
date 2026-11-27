@@ -21,3 +21,4 @@
 # Without this registration the attribute is silently ignored and conflicts
 # still appear.  See .gitconfig.sample in this repo for a ready-made snippet.
 artifacts/joy-check-sweep-backlog.json merge=ours
+*.sh text eol=lf
