@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to skills and workflows. `/do` sele
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-46 skills, 26 pipelines, 71 hooks, 168 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. When dispatch pays, the worker is Claude Code's built-in `general-purpose` agent with the skill loaded.
+46 skills, 26 pipelines, 71 hooks, 169 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. When dispatch pays, the worker is Claude Code's built-in `general-purpose` agent with the skill loaded.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
 
@@ -232,7 +232,7 @@ Know the trade-off first. The default prompt also carries Claude Code's own guid
 | Agents | 0 | Retired (plans/009): their domain knowledge moved into skill references. Private overlay agents still install from overlays. |
 | Skills | 46 | Domain knowledge and methodology for recurring work: idiom tables, failure mode catalogs, error-to-fix mappings. |
 | Hooks | 71 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 168 | Repeatable validation, orchestration, and plumbing. |
+| Scripts | 169 | Repeatable validation, orchestration, and plumbing. |
 
 The counts are active components: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and the Python scripts in `scripts/`.
 
@@ -290,7 +290,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 168 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 169 scripts.
 
 | Need | Use |
 |---|---|

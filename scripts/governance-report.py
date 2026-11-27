@@ -113,13 +113,9 @@ def cmd_list(args: argparse.Namespace) -> int:
         limit=args.limit,
     )
 
-    # Sort by severity then created_at descending
-    events.sort(
-        key=lambda e: (
-            _SEVERITY_ORDER.get(e.get("severity") or "", 99),
-            -(hash(e.get("created_at") or "")),
-        )
-    )
+    # Sort by severity ascending, then created_at descending (stable deterministic order)
+    events.sort(key=lambda e: str(e.get("created_at") or ""), reverse=True)
+    events.sort(key=lambda e: _SEVERITY_ORDER.get(e.get("severity") or "", 99))
 
     if args.export == "json":
         print(_format_json(events))

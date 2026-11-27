@@ -41,25 +41,54 @@ def _projects_root() -> Path:
     return Path.home() / ".claude" / "projects"
 
 
-def _find_transcripts(explicit: Path | None, all_sessions: bool, days: float) -> list[Path]:
+def _long_path(path: Path) -> str:
+    raw = str(path.resolve()) if not str(path).startswith("\\\\?\\") else str(path)
+    if os.name == "nt" and len(raw) >= 240 and not raw.startswith("\\\\?\\"):
+        return "\\\\?\\" + raw
+    return raw
+
+
+def _safe_mtime(path: Path) -> float:
+    try:
+        return os.stat(_long_path(path)).st_mtime
+    except OSError:
+        return 0.0
+
+
+def _find_transcripts(explicit: Path | None, all_sessions: bool, days: float, *, include_subagents: bool = True) -> list[Path]:
     if explicit:
         return [explicit]
     root = _projects_root()
-    files = sorted(root.glob("*/*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not root.is_dir():
+        return []
+    top_files: list[Path] = []
+    sub_files: list[Path] = []
+    for cur_root, _dirs, fnames in os.walk(_long_path(root)):
+        cur_p = Path(cur_root)
+        for fn in fnames:
+            if not fn.endswith(".jsonl"):
+                continue
+            full = cur_p / fn
+            if "subagents" in full.parts:
+                sub_files.append(full)
+            else:
+                top_files.append(full)
+    top_files.sort(key=_safe_mtime, reverse=True)
     if not all_sessions:
         sid = os.environ.get("CLAUDE_SESSION_ID")
         if sid:
-            hits = [p for p in files if p.stem == sid]
+            hits = [p for p in top_files if p.stem == sid]
             if hits:
                 return hits[:1]
-        return files[:1]
+        return top_files[:1]
     cutoff = time.time() - days * 86400
-    return [p for p in files if p.stat().st_mtime >= cutoff]
+    pool = top_files + (sub_files if include_subagents else [])
+    return sorted((p for p in pool if _safe_mtime(p) >= cutoff), key=_safe_mtime, reverse=True)
 
 
 def load(path: Path) -> list[dict]:
     rows: list[dict] = []
-    with path.open(encoding="utf-8", errors="replace") as fh:
+    with open(_long_path(path), encoding="utf-8", errors="replace") as fh:
         for line in fh:
             line = line.strip()
             if not line:
@@ -102,9 +131,20 @@ def analyze(rows: list[dict]) -> dict:
     per_model: dict[str, Counter] = defaultdict(Counter)
     per_trigger: dict[str, dict[str, Counter]] = defaultdict(lambda: defaultdict(Counter))
     per_skill: dict[str, Counter] = defaultdict(Counter)
+    per_effort: dict[str, Counter] = defaultdict(Counter)
     last_user: dict | None = None
+    last_effort = ""
     user_turns = 0
+
+    # Deduplicate streaming assistant chunks by message.id (keep final usage entry).
+    dedup: dict[str, tuple[str, str, str, str, dict[str, int]]] = {}
+    order: list[str] = []
+    anon_idx = 0
+
     for r in rows:
+        eff = r.get("effort") or r.get("perTurnEffort") or ""
+        if isinstance(eff, str) and eff:
+            last_effort = eff
         t = r.get("type")
         if t == "user":
             last_user = r
@@ -121,19 +161,35 @@ def analyze(rows: list[dict]) -> dict:
         vals = {k: int(u.get(k) or 0) for k in USAGE_KEYS}
         if not any(vals.values()):
             continue  # not an API request
-        per_model[model]["generations"] += 1
+        mid = msg.get("id")
+        if isinstance(mid, str) and mid:
+            key = mid
+        else:
+            anon_idx += 1
+            key = f"__anon_{anon_idx}"
         trig = classify_trigger(last_user)
-        per_trigger[model][trig]["generations"] += 1
         skill = r.get("attributionSkill") or "-"
+        turn_eff = str(r.get("effort") or r.get("perTurnEffort") or last_effort or "unset")
+        if key not in dedup:
+            order.append(key)
+        dedup[key] = (model, trig, skill, turn_eff, vals)
+
+    for key in order:
+        model, trig, skill, turn_eff, vals = dedup[key]
+        per_model[model]["generations"] += 1
+        per_trigger[model][trig]["generations"] += 1
         per_skill[model][skill] += 1
+        per_effort[model][turn_eff] += 1
         for k, v in vals.items():
             per_model[model][k] += v
             per_trigger[model][trig][k] += v
+
     return {
         "user_turns": user_turns,
         "per_model": {m: dict(c) for m, c in per_model.items()},
         "per_trigger": {m: {t: dict(c) for t, c in d.items()} for m, d in per_trigger.items()},
         "per_skill": {m: dict(c.most_common(12)) for m, c in per_skill.items()},
+        "per_effort": {m: dict(c) for m, c in per_effort.items()},
     }
 
 
@@ -143,6 +199,7 @@ def merge(results: list[dict]) -> dict:
         "per_model": defaultdict(Counter),
         "per_trigger": defaultdict(lambda: defaultdict(Counter)),
         "per_skill": defaultdict(Counter),
+        "per_effort": defaultdict(Counter),
     }
     for a in results:
         out["user_turns"] += a["user_turns"]
@@ -153,11 +210,14 @@ def merge(results: list[dict]) -> dict:
                 out["per_trigger"][m][t].update(c)
         for m, c in a["per_skill"].items():
             out["per_skill"][m].update(c)
+        for m, c in a.get("per_effort", {}).items():
+            out["per_effort"][m].update(c)
     return {
         "user_turns": out["user_turns"],
         "per_model": {m: dict(c) for m, c in out["per_model"].items()},
         "per_trigger": {m: {t: dict(c) for t, c in d.items()} for m, d in out["per_trigger"].items()},
         "per_skill": {m: dict(c.most_common(12)) for m, c in out["per_skill"].items()},
+        "per_effort": {m: dict(c) for m, c in out["per_effort"].items()},
     }
 
 
