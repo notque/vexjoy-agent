@@ -72,9 +72,22 @@ def _build_overlay_roots() -> list[Path]:
         REPO_ROOT,
         Path.home() / ".claude",
     ]
-    private_root = Path.home() / "private-skills"
-    if private_root.is_dir():
-        candidates.append(private_root)
+    cfg_path = Path.home() / ".claude" / "vexjoy" / "overlays.json"
+    if cfg_path.is_file():
+        try:
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            for entry in cfg.get("overlays", []) if isinstance(cfg, dict) else []:
+                raw_root = entry.get("root") if isinstance(entry, dict) else None
+                if isinstance(raw_root, str) and raw_root:
+                    p = Path(raw_root).expanduser()
+                    if p.is_dir() and p not in candidates:
+                        candidates.append(p)
+        except (OSError, ValueError):
+            pass
+    for rel in ("private-skills", "pgh/private-skills", "github/private-skills"):
+        private_root = Path.home() / rel
+        if private_root.is_dir() and private_root not in candidates:
+            candidates.append(private_root)
     return [r for r in candidates if r.exists()]
 
 

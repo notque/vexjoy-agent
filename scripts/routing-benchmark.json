@@ -2417,7 +2417,7 @@
       "notes": "Unity namesake or plain-English 'unity': must not force-route to game-dev (_UNITY_NAMESAKE_GUARD, _UNITY_PROSE_GUARD in pre-route.py)"
     },
     {
-      "request": "write a WrestleJoy column about unity in the game this year",
+      "request": "write a wrestling column about unity in the game this year",
       "expected_agent": null,
       "expected_skill": null,
       "category": "false-positive-guard",

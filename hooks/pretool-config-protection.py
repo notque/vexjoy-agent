@@ -46,6 +46,8 @@ from hook_utils import deny_tool_use, get_tool_input, hook_error, record_governa
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "CONFIG_PROTECTION_BYPASS"
+_ALLOW_MEMORY_ENV = "VEXJOY_ALLOW_MEMORY_WRITE"
+_ALLOW_RUNTIME_SKILL_ENV = "VEXJOY_ALLOW_RUNTIME_SKILL_EDIT"
 
 # Maximum stdin size before we block rather than parse (truncation safety).
 _MAX_STDIN_BYTES = 1 * 1024 * 1024  # 1 MB
@@ -106,6 +108,44 @@ _PROTECTED_CONFIGS: frozenset[str] = frozenset(
 def _is_protected(file_path: str) -> bool:
     """Return True if the basename of file_path is in the protected set."""
     return Path(file_path).name in _PROTECTED_CONFIGS
+
+
+def _is_auto_memory_file(file_path: str) -> bool:
+    """Return True if file_path targets a Claude project auto-memory markdown file."""
+    norm = file_path.replace("\\", "/").lower()
+    return "/.claude/projects/" in norm and "/memory/" in norm and norm.endswith(".md")
+
+
+def _is_copy_mode_runtime_skill(file_path: str) -> bool:
+    """Return True when editing a copied runtime skill under ~/.claude/skills/."""
+    norm = file_path.replace("\\", "/").lower()
+    if "/.claude/skills/" not in norm:
+        return False
+    ledger = Path.home() / ".claude" / "vexjoy" / "ledger.json"
+    if not ledger.is_file():
+        return False
+    try:
+        data = json.loads(ledger.read_text(encoding="utf-8"))
+        return isinstance(data, dict) and data.get("mode") == "copy"
+    except (OSError, ValueError):
+        return False
+
+
+def _block_reason(file_path: str, tool_name: str, reason: str, sub_rule: str, event: dict | None = None) -> None:
+    """Emit JSON permissionDecision:deny with governance telemetry and exit 0."""
+    print(f"[config-protection] BLOCKED ({sub_rule}): {file_path}", file=sys.stderr)
+    record_governance(
+        "policy_violation",
+        hook_name="pretool-config-protection",
+        tool_name=tool_name,
+        hook_phase="pre",
+        severity="high",
+        blocked=True,
+        event=event,
+        sub_rule=sub_rule,
+    )
+    deny_tool_use("PreToolUse", reason)
+    sys.exit(0)
 
 
 def _block(file_path: str, tool_name: str = "Write") -> None:
@@ -176,10 +216,31 @@ def main() -> None:
         candidates.extend(edit.get("file_path") for edit in edits if isinstance(edit, dict))
 
     for file_path in candidates:
-        if isinstance(file_path, str) and file_path and _is_protected(file_path):
+        if not isinstance(file_path, str) or not file_path:
+            continue
+        if _is_protected(file_path):
             if debug:
                 print(f"[config-protection] {tool_name} hit on protected file: {file_path}", file=sys.stderr)
             _block(file_path, tool_name)
+        if _is_auto_memory_file(file_path) and os.environ.get(_ALLOW_MEMORY_ENV) != "1":
+            _block_reason(
+                file_path,
+                tool_name,
+                f"Writing to project auto-memory '{Path(file_path).name}' is blocked unless explicitly "
+                f"requested by the user. Set {_ALLOW_MEMORY_ENV}=1 when authorized.",
+                sub_rule="auto-memory-guard",
+                event=event,
+            )
+        if _is_copy_mode_runtime_skill(file_path) and os.environ.get(_ALLOW_RUNTIME_SKILL_ENV) != "1":
+            _block_reason(
+                file_path,
+                tool_name,
+                f"Direct edits to copied runtime skill '{file_path}' will drift and be overwritten on sync. "
+                "Edit the skill in its source git repository and run vexinstall sync instead "
+                f"(or set {_ALLOW_RUNTIME_SKILL_ENV}=1 to override).",
+                sub_rule="runtime-skill-drift-guard",
+                event=event,
+            )
 
     sys.exit(0)
 

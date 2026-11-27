@@ -175,6 +175,12 @@ Never merge a pull request until all GitHub Actions checks have passed. Do not
 merge if any check is failing, pending, or still running -- wait for the full
 green status before merging.
 
+## Owner directives and worker defaults
+
+- **Verbatim owner directives only:** only exact text quoted from the user counts as an owner rule or decision. Never label agent notes, inferences, or summaries as standing rules.
+- **No unsolicited memory writes:** do not write files under `~/.claude/projects/*/memory/` unless the user explicitly asks to remember or save a rule.
+- **Default worker effort:** dispatch subagent workers at `effort: "medium"` by default; escalate to `high` only after an objective check fails, and never dispatch `xhigh` or `max` without explicit user approval.
+
 ## Project conventions
 
 - **CI:** run `ruff check . --config pyproject.toml` AND

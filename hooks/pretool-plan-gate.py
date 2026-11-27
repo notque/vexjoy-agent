@@ -51,7 +51,7 @@ from pathlib import Path
 from typing import NoReturn
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use, hook_error
+from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "PLAN_GATE_BYPASS"
@@ -323,10 +323,19 @@ def _target_status(file_path: str, event_cwd: object, root: Path) -> str:
     return _ALLOW
 
 
-def _deny(reason: str, *, stderr_message: str, fix_with_planning: bool = False) -> NoReturn:
+def _deny(reason: str, *, stderr_message: str, fix_with_planning: bool = False, event: dict | None = None) -> NoReturn:
     print(f"[plan-gate] BLOCKED: {stderr_message}", file=sys.stderr)
     if fix_with_planning:
         print("[fix-with-skill] process", file=sys.stderr)
+    record_governance(
+        "policy_violation",
+        hook_name="pretool-plan-gate",
+        tool_name=str(event.get("tool_name") or "Write") if isinstance(event, dict) else "Write",
+        hook_phase="pre",
+        severity="medium",
+        blocked=True,
+        event=event,
+    )
     deny_tool_use("PreToolUse", reason)
     sys.exit(0)
 

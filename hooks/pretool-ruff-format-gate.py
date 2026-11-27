@@ -61,7 +61,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use, hook_error
+from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "RUFF_FORMAT_GATE_BYPASS"
@@ -371,6 +371,16 @@ def main() -> None:
         snippet = output[:300] + ("..." if len(output) > 300 else "")
         deny_reason = f"{deny_reason}\n\nruff output:\n{snippet}"
 
+    record_governance(
+        "policy_violation",
+        hook_name="pretool-ruff-format-gate",
+        tool_name="Bash",
+        hook_phase="pre",
+        severity="medium",
+        blocked=True,
+        event=event,
+        command=command,
+    )
     deny_tool_use("PreToolUse", deny_reason)
     sys.exit(0)
 

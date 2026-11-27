@@ -125,10 +125,36 @@ from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "PRIVATE_NAME_GATE_BYPASS"
 
-# Private skills repo locations, first existing wins (same list as vexinstall/migrate.py).
-_PRIVATE_CANDIDATES = (Path.home() / "private-skills", Path.home() / "pgh" / "private-skills")
+# Private skills repo locations, first existing wins.
+_PRIVATE_CANDIDATES = (
+    Path.home() / "private-skills",
+    Path.home() / "pgh" / "private-skills",
+    Path.home() / "github" / "private-skills",
+)
+
+
+def _discover_private_dir() -> Path:
+    """Resolve private-skills root from overlays.json first, then standard paths."""
+    cfg_path = Path.home() / ".claude" / "vexjoy" / "overlays.json"
+    if cfg_path.is_file():
+        try:
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            for entry in cfg.get("overlays", []) if isinstance(cfg, dict) else []:
+                raw_root = entry.get("root") if isinstance(entry, dict) else None
+                if not isinstance(raw_root, str) or not raw_root:
+                    continue
+                cand = Path(os.path.expanduser(raw_root))
+                # Prefer the repo root (e.g. .../private-skills rather than .../private-skills/voice).
+                for p in (cand, cand.parent):
+                    if p.name == "private-skills" and p.is_dir():
+                        return p
+        except (OSError, ValueError):
+            pass
+    return next((p for p in _PRIVATE_CANDIDATES if p.is_dir()), _PRIVATE_CANDIDATES[0])
+
+
 # Patched by tests. Runtime source of the private-name set.
-_PRIVATE_DIR = next((p for p in _PRIVATE_CANDIDATES if p.is_dir()), _PRIVATE_CANDIDATES[0])
+_PRIVATE_DIR = _discover_private_dir()
 # Fallback public-skill index when the project has no skills/INDEX.json.
 _USER_INDEX = Path.home() / ".claude" / "skills" / "INDEX.json"
 
@@ -181,6 +207,7 @@ _OWNER_TERMS_FILE = ".private-terms"
 _BRAND_MIN_SHARED = 2
 _COMMON_WORDS = frozenset(
     {
+        "anim",
         "anti",
         "auto",
         "base",
@@ -205,6 +232,7 @@ _COMMON_WORDS = frozenset(
         "main",
         "news",
         "open",
+        "paired",
         "pipeline",
         "post",
         "quick",
