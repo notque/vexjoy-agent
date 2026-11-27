@@ -61,7 +61,8 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use, hook_error
+from git_cmd import is_private_or_runtime_skill_path
+from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "ADR_CREATION_GATE_BYPASS"
@@ -247,6 +248,11 @@ def main() -> None:
     if not file_path:
         sys.exit(0)
 
+    # Domain skills in private overlay repos or runtime ~/.claude/skills/ dirs
+    # are outside the toolkit repository and do not require toolkit ADRs.
+    if is_private_or_runtime_skill_path(file_path):
+        sys.exit(0)
+
     # Check if the path matches a component pattern.
     component_name = _extract_component_name(file_path)
     if component_name is None:
@@ -286,6 +292,15 @@ def main() -> None:
     # ADR is missing — block.
     repo_name = _derive_repo_name(base_dir)
     centralized_hint = f"~/.vexjoy-agent/{repo_name}/adrs/{component_name}.md"
+    record_governance(
+        "policy_violation",
+        hook_name="pretool-adr-creation-gate",
+        tool_name="Write",
+        hook_phase="pre",
+        severity="medium",
+        blocked=True,
+        event=event,
+    )
     print(
         f"[adr-creation-gate] BLOCKED: Create ADR before creating new component.\n"
         f"  Preferred: {centralized_hint}\n"

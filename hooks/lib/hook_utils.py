@@ -690,6 +690,11 @@ def hook_error(hook_name: str, exc: BaseException) -> None:
         )
         path = _hook_errors_path()
         ensure_owner_only_dir(path.parent)
+        try:
+            if path.is_file() and path.stat().st_size > 5 * 1024 * 1024:
+                os.replace(path, path.with_suffix(".jsonl.1"))
+        except OSError:
+            pass
         with open_owner_only_append(path) as f:
             f.write(entry + "\n")
     except Exception:
@@ -738,6 +743,7 @@ def record_governance(
     blocked: bool = False,
     event: dict | None = None,
     command: str = "",
+    sub_rule: str = "",
 ) -> str | None:
     """Enriched governance event recording with dedup and payload.
 
@@ -767,6 +773,8 @@ def record_governance(
         payload: dict[str, Any] = {}
         if hook_name:
             payload["hook"] = hook_name
+        if sub_rule:
+            payload["sub_rule"] = sub_rule
         if command:
             payload["command_head"] = _redact_command_head(command)
 

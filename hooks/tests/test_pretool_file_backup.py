@@ -10,12 +10,13 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
 HOOK_PATH = Path(__file__).parent.parent / "pretool-file-backup.py"
-# The hook hardcodes this root; the session id is the only per-run lever.
-BACKUP_ROOT = Path("/tmp/.claude-backups")
+# Match the hook's platform-aware backup root; the session id is the only per-run lever.
+BACKUP_ROOT = Path(tempfile.gettempdir()) / ".claude-backups" if os.name == "nt" else Path("/tmp/.claude-backups")
 
 
 def test_backs_up_existing_file(tmp_path):

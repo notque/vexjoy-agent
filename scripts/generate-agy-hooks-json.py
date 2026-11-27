@@ -102,24 +102,32 @@ def validate_hook_files(entries: list[dict[str, Any]], source_hooks_dir: Path) -
         raise ValueError(f"Missing Antigravity hook source files in {source_hooks_dir}: {', '.join(missing)}")
 
 
+def _quote_arg(value: str) -> str:
+    if os.name == "nt":
+        escaped = value.replace('"', '\\"')
+        return f'"{escaped}"'
+    return shlex.quote(value)
+
+
 def _build_command(
     agy_hooks_dir: str,
     entry: dict[str, Any],
     *,
     drain_deferred: bool = False,
 ) -> str:
+    hooks_dir = agy_hooks_dir.replace("\\", "/") if os.name == "nt" else agy_hooks_dir
     parts = [
         "python3",
-        shlex.quote(f"{agy_hooks_dir}/agy-hook-adapter.py"),
+        _quote_arg(f"{hooks_dir}/agy-hook-adapter.py"),
         "--hook",
-        shlex.quote(f"{agy_hooks_dir}/{entry['filename']}"),
+        _quote_arg(f"{hooks_dir}/{entry['filename']}"),
         "--event",
-        shlex.quote(entry["event"]),
+        _quote_arg(entry["event"]),
         "--failure-policy",
-        shlex.quote(entry["failure_policy"]),
+        _quote_arg(entry["failure_policy"]),
     ]
     if entry.get("matcher"):
-        parts.extend(["--matcher", shlex.quote(entry["matcher"])])
+        parts.extend(["--matcher", _quote_arg(entry["matcher"])])
     if drain_deferred:
         parts.append("--drain-deferred")
     return " ".join(parts)

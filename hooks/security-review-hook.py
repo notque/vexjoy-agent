@@ -99,6 +99,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from git_cmd import GIT_COMMIT_RE, normalize_bash_path
 from hook_utils import (
     DiffDedup,
     async_rewake,
@@ -107,6 +108,7 @@ from hook_utils import (
     empty_output,
     has_reviewable_content,
     hook_error,
+    record_governance,
     working_tree_diff,
 )
 from stdin_timeout import read_stdin
@@ -120,7 +122,7 @@ _STATE_DIR = Path.home() / ".claude" / "state" / "security-review-hook"
 _STATE_FILE = _STATE_DIR / "last-diff-hash.json"
 
 # Matches a `git commit` invocation anywhere in the Bash command string.
-_GIT_COMMIT_RE = re.compile(r"\bgit\s+commit(?:\s|$)")
+_GIT_COMMIT_RE = GIT_COMMIT_RE
 
 # The scanner stops itself after this many seconds and reports what it did not
 # scan, so its partial result arrives before the subprocess timeout kills it.
@@ -157,11 +159,11 @@ def _extract_effective_cwd(command: str, default_cwd: str | None) -> str | None:
     if m:
         p = (m.group(1) or m.group(2) or "").strip()
         if p:
-            return p
+            return normalize_bash_path(p)
     m = re.search(r'\bgit\s+-C\s+(?:"([^"]+)"|(\S+))', command)
     if m:
-        return m.group(1) or m.group(2)
-    return default_cwd
+        return normalize_bash_path(m.group(1) or m.group(2) or "")
+    return normalize_bash_path(default_cwd) if default_cwd else default_cwd
 
 
 def _run_scanner(cwd: str | None, staged: bool = True) -> dict | None:
@@ -274,6 +276,16 @@ def handle_pre_tool_use(event: dict) -> None:
     )
     if incomplete:
         reason += "\nThe scan also did not finish; not scanned:\n" + _format_incomplete(incomplete)
+    record_governance(
+        "security_block",
+        hook_name="security-review-hook",
+        tool_name="Bash",
+        hook_phase="pre",
+        severity="high",
+        blocked=True,
+        event=event,
+        command=command,
+    )
     print("[security-review] BLOCKED commit — HIGH/CRITICAL staged findings:", file=sys.stderr)
     print(_format_findings(blocking), file=sys.stderr)
     deny_tool_use("PreToolUse", reason)

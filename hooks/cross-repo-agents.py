@@ -52,7 +52,7 @@ def extract_agent_info(agent_path: Path) -> dict | None:
     Returns dict with name, description, triggers or None if invalid.
     """
     try:
-        content = agent_path.read_text()
+        content = agent_path.read_text(encoding="utf-8", errors="replace")
 
         # Look for YAML frontmatter
         match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
