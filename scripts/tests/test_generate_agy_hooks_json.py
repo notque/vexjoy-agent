@@ -6,9 +6,11 @@ import importlib.util
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
+import types
 from pathlib import Path
 
 import pytest
@@ -30,6 +32,7 @@ _mod = _load_module()
 parse_allowlist = _mod.parse_allowlist
 build_hooks_json = _mod.build_hooks_json
 merge_hooks_json = _mod.merge_hooks_json
+quote_cmd = _mod.quote_cmd
 
 
 def test_empty_allowlist_produces_enabled_group():
@@ -152,7 +155,7 @@ def test_cli_output_creates_and_prunes_backups(tmp_path: Path):
 def _production_unified_gate_on_run_command() -> list[str]:
     """The generated command for the unified gate on run_command in the shipped config, as argv."""
     entries = parse_allowlist(ALLOWLIST_PATH.read_text(encoding="utf-8"))
-    group = build_hooks_json(entries, agy_hooks_dir=str(ROOT / "hooks"))["vexjoy-agent"]
+    group = build_hooks_json(entries, agy_hooks_dir=str(ROOT / "hooks"), windows=False)["vexjoy-agent"]
     commands = [
         handler["command"]
         for block in group["PreToolUse"]
@@ -197,3 +200,124 @@ def test_unified_gate_denies_a_dangerous_run_command_through_the_adapter(command
     assert out["decision"] == "deny", result.stdout
     # The gate itself denied: an adapter failure would also deny, under failure=closed.
     assert "[agy-hook-adapter]" not in out["reason"]
+
+
+WIN_HOOKS_DIR = r"C:\Users\someone\.gemini\hooks"
+PIPE_ENTRY = {
+    "event": "PreToolUse",
+    "filename": "pretool-unified-gate.py",
+    "matcher": "edit_file|write_file",
+    "failure_policy": "closed",
+}
+
+
+def _all_commands(group: dict) -> list[str]:
+    commands = []
+    for event, items in group.items():
+        if event == "enabled":
+            continue
+        for item in items:
+            commands.extend(handler["command"] for handler in item.get("hooks", [item]))
+    return commands
+
+
+def test_windows_commands_use_double_quotes():
+    entries = parse_allowlist(ALLOWLIST_PATH.read_text(encoding="utf-8"))
+    group = build_hooks_json(entries, agy_hooks_dir=WIN_HOOKS_DIR, windows=True)["vexjoy-agent"]
+    commands = _all_commands(group)
+    assert commands
+    for command in commands:
+        assert "'" not in command, command
+        assert f'"{WIN_HOOKS_DIR}/agy-hook-adapter.py"' in command, command
+    assert any('--matcher "edit_file|write_file"' in c for c in commands)
+    # Values with no shell metacharacters stay bare, as on POSIX.
+    assert any(c.endswith("--matcher run_command") for c in commands)
+
+
+def test_posix_commands_keep_shlex_quoting():
+    group = build_hooks_json([PIPE_ENTRY], agy_hooks_dir="/home/someone/.gemini/hooks", windows=False)
+    (command,) = _all_commands(group["vexjoy-agent"])
+    assert command.endswith("--matcher 'edit_file|write_file'")
+    assert shlex.split(command)[-1] == "edit_file|write_file"
+
+
+@pytest.mark.parametrize(
+    ("os_name", "expect_windows"),
+    [("nt", True), ("posix", False)],
+)
+def test_default_quoting_follows_the_host_os(monkeypatch, os_name, expect_windows):
+    """The installer never passes windows=, so the OS default is the path real installs take."""
+    # A stand-in on the module only: patching the real os.name breaks pathlib under pytest.
+    monkeypatch.setattr(_mod, "os", types.SimpleNamespace(name=os_name))
+    group = build_hooks_json([PIPE_ENTRY], agy_hooks_dir=WIN_HOOKS_DIR)
+    (command,) = _all_commands(group["vexjoy-agent"])
+    if expect_windows:
+        assert command.endswith('--matcher "edit_file|write_file"'), command
+        assert "'" not in command, command
+    else:
+        assert command.endswith("--matcher 'edit_file|write_file'"), command
+
+
+@pytest.mark.parametrize("value", ['a"b', "%PATH%", "!x!", "a\nb", "a\rb"])
+def test_quote_cmd_refuses_values_cmd_would_mangle(value):
+    with pytest.raises(ValueError, match=r"cmd\.exe"):
+        quote_cmd(value)
+
+
+@pytest.mark.parametrize(
+    ("value", "quoted"),
+    [
+        ("run_command", "run_command"),
+        ("", '""'),
+        ("a b", '"a b"'),
+        ("a&b", '"a&b"'),
+        ("edit_file|write_file", '"edit_file|write_file"'),
+        ("C:\\dir\\", '"C:\\dir\\\\"'),
+    ],
+)
+def test_quote_cmd(value, quoted):
+    assert quote_cmd(value) == quoted
+
+
+# A profile path with a space and cmd.exe metacharacters, which must stay inert.
+NASTY_WIN_HOOKS_DIR = r"C:\Users\Jo Doe & Co (x) ^1\.gemini\hooks"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="needs cmd.exe")
+@pytest.mark.parametrize(
+    "launch",
+    [
+        # Node child_process with shell: true.
+        lambda line: f'cmd.exe /d /s /c "{line}"',
+        # A plain cmd /c with the command line appended as is.
+        lambda line: f"cmd.exe /d /c {line}",
+    ],
+    ids=["node-shell", "plain-c"],
+)
+def test_windows_command_round_trips_through_cmd_exe(launch):
+    """cmd.exe must hand python exactly the argv the generator meant, pipe included."""
+    group = build_hooks_json([PIPE_ENTRY], agy_hooks_dir=NASTY_WIN_HOOKS_DIR, windows=True)
+    (command,) = _all_commands(group["vexjoy-agent"])
+    assert command.startswith("python3 ")
+    # Like the real command, the line starts with a bare interpreter name: cmd /c strips the
+    # outer quotes of a line that starts with one, which would mangle a quoted exe path.
+    exe = Path(sys.executable)
+    echo = f'{exe.stem} -c "import json,sys; print(json.dumps(sys.argv[1:]))"'
+    line = echo + command[len("python3") :]
+    env = {**os.environ, "PATH": f"{exe.parent}{os.pathsep}{os.environ.get('PATH', '')}"}
+    found = shutil.which(exe.stem, path=env["PATH"])
+    assert found and Path(found).samefile(exe), f"{exe.stem} on PATH is {found}, not {exe}"
+    # A str args value reaches CreateProcess unchanged, as a launcher's command line would.
+    result = subprocess.run(launch(line), capture_output=True, text=True, timeout=30, env=env)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == [
+        f"{NASTY_WIN_HOOKS_DIR}/agy-hook-adapter.py",
+        "--hook",
+        f"{NASTY_WIN_HOOKS_DIR}/pretool-unified-gate.py",
+        "--event",
+        "PreToolUse",
+        "--failure-policy",
+        "closed",
+        "--matcher",
+        "edit_file|write_file",
+    ]

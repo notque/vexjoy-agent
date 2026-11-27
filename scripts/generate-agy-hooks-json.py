@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import sys
 from datetime import datetime
@@ -102,11 +103,30 @@ def validate_hook_files(entries: list[dict[str, Any]], source_hooks_dir: Path) -
         raise ValueError(f"Missing Antigravity hook source files in {source_hooks_dir}: {', '.join(missing)}")
 
 
-def _quote_arg(value: str) -> str:
-    if os.name == "nt":
-        escaped = value.replace('"', '\\"')
-        return f'"{escaped}"'
-    return shlex.quote(value)
+_CMD_SAFE = re.compile(r"[A-Za-z0-9_.\-]+")
+_CMD_UNQUOTABLE = re.compile(r'["%!\r\n]')
+
+
+def quote_cmd(arg: str) -> str:
+    """Quote *arg* for cmd.exe, the shell agy runs hook commands with on Windows.
+
+    shlex.quote targets POSIX shells. cmd.exe does not treat single quotes as
+    quotes, so its output reaches python with the quote characters inside the
+    path, and a ``|`` in a matcher such as ``edit_file|write_file`` becomes a
+    pipe. Double quotes protect spaces and ``& | < > ^ ( )``, but cmd.exe still
+    expands ``%VAR%`` inside them, and ``!VAR!`` too when delayed expansion is
+    on (a registry setting this generator cannot see). A literal ``"`` would
+    need ``^`` escaping that depends on how the caller launches cmd.exe. Values
+    holding any of these are refused rather than written as a command that
+    could silently run something else.
+    """
+    if _CMD_SAFE.fullmatch(arg):
+        return arg
+    if _CMD_UNQUOTABLE.search(arg):
+        raise ValueError(f"Cannot quote {arg!r} for cmd.exe: it contains a double quote, %, ! or a line break.")
+    # The C runtime argv parser reads backslashes before the closing quote as escapes.
+    trailing = len(arg) - len(arg.rstrip("\\"))
+    return '"' + arg + "\\" * trailing + '"'
 
 
 def _build_command(
@@ -114,20 +134,21 @@ def _build_command(
     entry: dict[str, Any],
     *,
     drain_deferred: bool = False,
+    windows: bool = False,
 ) -> str:
-    hooks_dir = agy_hooks_dir.replace("\\", "/") if os.name == "nt" else agy_hooks_dir
+    quote = quote_cmd if windows else shlex.quote
     parts = [
         "python3",
-        _quote_arg(f"{hooks_dir}/agy-hook-adapter.py"),
+        quote(f"{agy_hooks_dir}/agy-hook-adapter.py"),
         "--hook",
-        _quote_arg(f"{hooks_dir}/{entry['filename']}"),
+        quote(f"{agy_hooks_dir}/{entry['filename']}"),
         "--event",
-        _quote_arg(entry["event"]),
+        quote(entry["event"]),
         "--failure-policy",
-        _quote_arg(entry["failure_policy"]),
+        quote(entry["failure_policy"]),
     ]
     if entry.get("matcher"):
-        parts.extend(["--matcher", _quote_arg(entry["matcher"])])
+        parts.extend(["--matcher", quote(entry["matcher"])])
     if drain_deferred:
         parts.append("--drain-deferred")
     return " ".join(parts)
@@ -138,10 +159,17 @@ def build_hooks_json(
     agy_hooks_dir: str | None = None,
     source_hooks_dir: Path | None = None,
     hook_group_name: str = HOOK_GROUP_NAME,
+    windows: bool | None = None,
 ) -> dict[str, Any]:
-    """Build the Antigravity hooks.json structure."""
+    """Build the Antigravity hooks.json structure.
+
+    *windows* picks cmd.exe quoting over POSIX quoting for the command strings;
+    it defaults to the OS running the generator, which is the OS agy runs on.
+    """
+    if windows is None:
+        windows = os.name == "nt"
     if agy_hooks_dir is None:
-        agy_hooks_dir = os.path.join(os.environ.get("HOME", "~"), ".gemini", "hooks")
+        agy_hooks_dir = str(Path.home() / ".gemini" / "hooks")
     if source_hooks_dir is None:
         source_hooks_dir = Path(__file__).resolve().parent.parent / "hooks"
     validate_hook_files(entries, source_hooks_dir)
@@ -160,7 +188,7 @@ def build_hooks_json(
                 flat_handlers.append(
                     {
                         "type": "command",
-                        "command": _build_command(agy_hooks_dir, entry, drain_deferred=drain),
+                        "command": _build_command(agy_hooks_dir, entry, drain_deferred=drain, windows=windows),
                         "timeout": DEFAULT_TIMEOUT,
                     }
                 )
@@ -175,7 +203,7 @@ def build_hooks_json(
                 hooks_list = [
                     {
                         "type": "command",
-                        "command": _build_command(agy_hooks_dir, entry),
+                        "command": _build_command(agy_hooks_dir, entry, windows=windows),
                         "timeout": DEFAULT_TIMEOUT,
                     }
                     for entry in by_matcher[matcher]
@@ -202,14 +230,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--output",
-        default=os.path.join(os.environ.get("HOME", "~"), ".gemini", "config", "hooks.json"),
+        default=str(Path.home() / ".gemini" / "config" / "hooks.json"),
         help="Path to write hooks.json (default: ~/.gemini/config/hooks.json).",
     )
     parser.add_argument("--dry-run", action="store_true", help="Print JSON to stdout instead of writing to disk.")
     parser.add_argument(
         "--agy-hooks-dir",
         default=None,
-        help="Directory where hooks live at runtime (default: $HOME/.gemini/hooks).",
+        help="Directory where hooks live at runtime (default: ~/.gemini/hooks).",
     )
     parser.add_argument(
         "--source-hooks-dir",
