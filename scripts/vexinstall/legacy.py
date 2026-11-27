@@ -24,7 +24,7 @@ LEGACY_REPO_PATTERNS: tuple[re.Pattern[str], ...] = (
 
 def is_legacy_hook_path(path: str) -> bool:
     """True when *path* matches an old absolute repo hook location."""
-    return any(p.search(path) for p in LEGACY_HOOK_PATTERNS)
+    return any(p.search(path.replace("\\", "/")) for p in LEGACY_HOOK_PATTERNS)
 
 
 def is_legacy_repo_path(path: str) -> bool:

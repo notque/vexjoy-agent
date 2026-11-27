@@ -18,8 +18,8 @@ Repository paths, schemas, and conventions for any AI agent working here.
 
 ```
 vexjoy-agent/
-  agents/                  # Domain expert markdown files (+ generated INDEX.json, gitignored)
-  skills/                  # skills/{category}/{name}/SKILL.md (+ generated INDEX.json, gitignored)
+  agents/                  # Retired in public repo (plans/009); holds generated INDEX.json (empty publicly) and optional overlay index
+  skills/                  # skills/{category}/{name}/SKILL.md + references/ (+ generated INDEX.json, gitignored)
   hooks/                   # Python event hooks + lib/ shared modules
   scripts/                 # Deterministic CLI tools (Python + shell)
   commands/                # Slash-menu command definitions
@@ -43,8 +43,8 @@ The generated catalogs are [routing-map.md](routing-map.md) (agents, skills, and
 
 | Type | Location | What It Is |
 |------|----------|------------|
-| Agent | `agents/*.md` | Domain expert. Markdown file with YAML frontmatter. Gets loaded as system prompt when routed to. |
-| Skill | `skills/*/*/SKILL.md` | Workflow methodology. Phased instructions with gates. Paired with an agent at routing time. |
+| Skill | `skills/*/*/SKILL.md` | Domain knowledge and workflow methodology. Phased instructions with gates and deep `references/`. |
+| Agent | `~/private-skills/agents/*.md` | Optional private overlay persona (public specialist agents retired in `plans/009`; workers use `general-purpose`). |
 | Hook | `hooks/*.py` | Python script triggered by Claude Code lifecycle events. Reads JSON from stdin, outputs JSON to stdout. |
 | Script | `scripts/*.py`, `scripts/*.sh` | Deterministic CLI tool. No LLM judgment. Pure computation, file ops, API calls. |
 | Command | `commands/*.md` | Slash-menu entry point. Maps `/command-name` to a skill invocation. |
@@ -67,20 +67,20 @@ Both indexes are generated and untracked. A script that reads one calls `ensure_
 
 ## Architecture
 
-`/do` classifies complexity (Trivial, Simple, Medium, Complex), reads the routing manifest (`scripts/routing-manifest.py`, generated from frontmatter), picks a skill, an agent when it dispatches, and a pipeline when the work has real phases, stacks enhancements, and then runs the work itself or dispatches it. Agents use judgment; scripts compute. Hooks inject context, record telemetry, and block specific actions at lifecycle boundaries.
+`/do` classifies complexity (Trivial, Simple, Medium, Complex), reads the routing manifest (`scripts/routing-manifest.py`, generated from frontmatter), picks a skill, a pipeline when the work has real phases, and a worker (`main`, built-in `general-purpose`, or a private overlay agent when dispatching), stacks enhancements, and then runs or dispatches the work. Models use judgment; scripts compute. Hooks inject context, record telemetry, and block specific actions at lifecycle boundaries.
 
 ## Entry Point: `/do`
 
 ```
 1. Classify complexity (Trivial | Simple | Medium | Complex); when unsure, round up
-2. Read the routing manifest and route on intent: skill, agent, pipeline; FORCE entries bind when their domain matches
+2. Read the routing manifest and route on intent: skill, pipeline, and worker; FORCE entries bind when their domain matches
 3. Apply the task-verb override when no skill fits (debug -> workflow's systematic-debugging, TDD -> testing)
 4. Stack enhancements on signals (tests, research, review, local-only)
 5. Simple+: write task_plan.md
-6. Execute on the main thread, or dispatch to the agent with the skill loaded
+6. Execute on the main thread, or dispatch a worker with the skill loaded
 ```
 
-Trivial = reading a file the user named by exact path. In Claude Code the main thread also runs Simple work itself, and dispatches only when that pays: parallel fan-out, long lanes (about 5+ files), worktree isolation, or read-only Haiku gathering. Medium and Complex work routes to agents. On Antigravity CLI only Trivial work stays on the main thread. Source: `skills/meta/do/SKILL.md`.
+Trivial = reading a file the user named by exact path. In Claude Code the main thread also runs Simple work itself, and dispatches only when that pays: parallel fan-out, long lanes (about 5+ files), worktree isolation, or read-only Haiku gathering. Medium and Complex work dispatches `general-purpose` workers (or private overlay agents) with the selected skill loaded. On Antigravity CLI only Trivial work stays on the main thread. Source: `skills/meta/do/SKILL.md`.
 
 ---
 
@@ -104,7 +104,7 @@ These are the events `.claude/settings.json` registers hooks on.
 | `StopFailure` | A turn ends on an error | No |
 | `SessionEnd` | The session ends | No: resolves every routing outcome still pending |
 
-No toolkit Stop or SubagentStop hook blocks. `subagent-completion-guard` prints a PreToolUse-style deny on exit 0, which SubagentStop ignores. The hooks that block, and what they block: [start-here.md](start-here.md#gates-in-every-repo).
+No toolkit Stop or SubagentStop hook blocks. The hooks that block, and what they block: [start-here.md](start-here.md#gates-in-every-repo).
 
 ### Hook Output Format
 

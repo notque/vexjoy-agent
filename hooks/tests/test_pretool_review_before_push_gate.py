@@ -36,6 +36,21 @@ fi
 exit 0
 """
 
+FAKE_GH_PY = """import os, sys
+from pathlib import Path
+
+d = Path(os.environ["FAKE_GH_DIR"])
+with (d / "calls").open("a", encoding="utf-8") as fh:
+    fh.write(" ".join(sys.argv[1:]) + "\\n")
+if len(sys.argv) >= 3 and sys.argv[1] == "repo" and sys.argv[2] == "view":
+    fork = d / "fork"
+    if not fork.is_file():
+        sys.exit(1)
+    sys.stdout.write(fork.read_text(encoding="utf-8"))
+    sys.exit(0)
+sys.exit(0)
+"""
+
 _spec = importlib.util.spec_from_file_location("review_gate", HOOK)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
@@ -76,19 +91,38 @@ class Env:
         self.ghdir.mkdir()
         self.bin = tmp / "bin"
         self.bin.mkdir()
-        gh = self.bin / "gh"
-        gh.write_text(FAKE_GH)
-        gh.chmod(0o755)
+        if os.name == "nt":
+            shim = self.bin / "gh_shim.py"
+            shim.write_text(FAKE_GH_PY, encoding="utf-8")
+            gh_cmd = self.bin / "gh.cmd"
+            gh_cmd.write_text(f'@echo off\r\n"{sys.executable}" "{shim}" %*\r\n', encoding="utf-8")
+        else:
+            gh = self.bin / "gh"
+            gh.write_text(FAKE_GH)
+            gh.chmod(0o755)
 
     def env(self, *, with_gh: bool = True, extra: dict[str, str] | None = None) -> dict[str, str]:
-        path = f"{self.bin}:{GIT_DIR}:/usr/bin:/bin" if with_gh else f"{GIT_DIR}:/usr/bin:/bin"
+        if os.name == "nt":
+            parts = ([str(self.bin)] if with_gh else []) + [
+                GIT_DIR,
+                str(Path(sys.executable).parent),
+                os.path.join(os.environ.get("SYSTEMROOT", r"C:\Windows"), "System32"),
+            ]
+            path = os.pathsep.join(parts)
+        else:
+            path = f"{self.bin}:{GIT_DIR}:/usr/bin:/bin" if with_gh else f"{GIT_DIR}:/usr/bin:/bin"
         env = {
             "HOME": str(self.home),
+            "USERPROFILE": str(self.home),
             "PATH": path,
             "FAKE_GH_DIR": str(self.ghdir),
             "GIT_CONFIG_GLOBAL": os.devnull,
             "GIT_CONFIG_NOSYSTEM": "1",
         }
+        if os.name == "nt":
+            for key in ("SYSTEMROOT", "COMSPEC", "PATHEXT", "WINDIR"):
+                if key in os.environ:
+                    env[key] = os.environ[key]
         env.update(extra or {})
         return env
 

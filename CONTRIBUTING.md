@@ -18,21 +18,16 @@ Keep contributions specific, testable, and concise.
 
 | Component | Location | Format | Purpose |
 |-----------|----------|--------|---------|
-| Agent | `agents/{name}.md` | YAML frontmatter + markdown | Domain expertise |
-| Skill | `skills/{category}/{name}/SKILL.md` | YAML frontmatter + phased instructions | Workflow methodology |
+| Skill | `skills/{category}/{name}/SKILL.md` | YAML frontmatter + phased instructions + `references/` | Domain knowledge and workflow methodology |
 | Hook | `hooks/{name}.py` | Python, JSON in/out | Event-driven automation |
 | Script | `scripts/{name}.py` | Python CLI | Deterministic operations |
+| Overlay Agent | `~/private-skills/agents/{name}.md` | YAML frontmatter + markdown | Private-overlay domain persona (public agents retired in `plans/009`) |
 
-Put domain knowledge in agents, procedures in skills, event responses in hooks, and repeatable operations in scripts.
+Put domain knowledge and procedures in skills (with deep detail in `references/`), event responses in hooks, and repeatable operations in scripts.
 
 ## Adding Components
 
-The toolkit has creator agents. Tell `/do` what you want.
-
-**Agent:**
-```
-/do create an agent for [domain]
-```
+The `toolkit` skill covers creating skills, hooks, and private overlay agents. Tell `/do` what you want:
 
 **Skill:**
 ```
@@ -42,6 +37,11 @@ The toolkit has creator agents. Tell `/do` what you want.
 **Hook:**
 ```
 /do create a hook for [purpose]
+```
+
+**Private Overlay Agent:**
+```
+/do create an agent for [domain]
 ```
 
 The creator handles file structure, frontmatter, index registration, and routing integration. Test routing after creation:

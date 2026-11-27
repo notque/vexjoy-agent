@@ -32,7 +32,7 @@ The installed configuration currently uses these events:
 | `StopFailure` | When a session ends because of an API error | Record failure metadata |
 | `SessionEnd` | When the session ends | Resolve every routing outcome still pending |
 
-`PreToolUse` hooks may block a tool call; advisory hooks allow it to continue. Other events have event-specific response contracts. No toolkit `Stop` or `SubagentStop` hook blocks today: `subagent-completion-guard` prints a PreToolUse-style deny, which `SubagentStop` ignores. [Gates in Every Repo](../docs/start-here.md#gates-in-every-repo) lists the hooks that do block and what each one blocks. Check the corresponding script and tests before changing exit behavior or output fields.
+`PreToolUse` hooks may block a tool call; advisory hooks allow it to continue. Other events have event-specific response contracts. No toolkit `Stop` or `SubagentStop` hook blocks today. [Gates in Every Repo](../docs/start-here.md#gates-in-every-repo) lists the hooks that do block and what each one blocks. Check the corresponding script and tests before changing exit behavior or output fields.
 
 ## Organization
 
@@ -70,7 +70,7 @@ SESSION_CONTEXT_BYPASS=1 claude
 
 The default name is the hook filename in upper case, with `-` replaced by `_`, plus `_BYPASS`: `hooks/session-context.py` reads `SESSION_CONTEXT_BYPASS`. Older hooks keep their own names, such as `BRANCH_SAFETY_BYPASS`, `PLAN_GATE_BYPASS`, `VEXJOY_DRIFT_GUARD_DISABLE`, and `VEXJOY_SECURITY_REVIEW_SKIP`. Find the exact name with `grep -n "_BYPASS\|_DISABLE\|_SKIP" hooks/<hook>.py`. Set `CLAUDE_HOOKS_DEBUG=1` to print a line to stderr when a bypass fires.
 
-A new hook must follow the same pattern: a module constant `_BYPASS_ENV = "<HOOK_NAME>_BYPASS"`, checked with `os.environ.get(_BYPASS_ENV) == "1"` at the top of `main()`. [`tests/test_every_hook_has_bypass.py`](tests/test_every_hook_has_bypass.py) fails when any `hooks/*.py` lacks one. `voice-pipeline-tracker.py` is exempt because it is a CLI utility, not a hook.
+A new hook must follow the same pattern: a module constant `_BYPASS_ENV = "<HOOK_NAME>_BYPASS"`, checked with `os.environ.get(_BYPASS_ENV) == "1"` at the top of `main()`. [`tests/test_every_hook_has_bypass.py`](tests/test_every_hook_has_bypass.py) fails when any `hooks/*.py` lacks one.
 
 ## Development
 

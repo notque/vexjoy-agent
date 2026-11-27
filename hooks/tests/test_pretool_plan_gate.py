@@ -328,6 +328,7 @@ def test_forged_linked_worktree_cannot_override_outer_repository(project: Path, 
     _assert_denied(result)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX chmod permissions required")
 def test_linked_marker_with_inaccessible_outer_marker_fails_closed(project: Path, tmp_path: Path) -> None:
     nested = project / "skills" / "example"
     _write_linked_metadata(nested / ".git", tmp_path / "forged-common")
@@ -341,6 +342,7 @@ def test_linked_marker_with_inaccessible_outer_marker_fails_closed(project: Path
     _assert_denied(result)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX chmod permissions required")
 def test_unreadable_nested_git_file_cannot_reanchor_adapter(project: Path) -> None:
     nested = project / "skills" / "example"
     marker = nested / ".git"
@@ -431,6 +433,7 @@ def test_relative_traversal_outside_project_fails_closed(project: Path) -> None:
     _assert_denied(result)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlink privileges required")
 def test_symlink_escape_from_gated_directory_fails_closed(project: Path, tmp_path: Path) -> None:
     outside = tmp_path / "outside"
     outside.mkdir()
@@ -445,6 +448,7 @@ def test_symlink_escape_from_gated_directory_fails_closed(project: Path, tmp_pat
     _assert_denied(result)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlink privileges required")
 def test_symlink_into_gated_directory_cannot_hide_target(project: Path) -> None:
     docs = project / "docs"
     docs.mkdir()
@@ -533,6 +537,7 @@ def test_nested_task_plan_name_does_not_bypass_gate(project: Path) -> None:
     _assert_denied(result)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlink privileges required")
 def test_plan_symlink_outside_root_does_not_satisfy_gate(project: Path, tmp_path: Path) -> None:
     outside_plan = tmp_path / "outside-plan.md"
     outside_plan.write_text("# Not the root plan\n", encoding="utf-8")

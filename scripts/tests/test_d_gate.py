@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import time
@@ -72,7 +73,8 @@ def test_receipt_holds_hashes_only_and_is_owner_only() -> None:
     assert path is not None and path.is_file()
     body = path.read_text(encoding="utf-8")
     assert REQUEST not in body and INTENT not in body
-    assert oct(path.stat().st_mode & 0o777) == "0o600"
+    if os.name != "nt":
+        assert oct(path.stat().st_mode & 0o777) == "0o600"
 
 
 def test_missing_receipt_names_the_command_to_run() -> None:

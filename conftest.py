@@ -16,6 +16,7 @@ of silently corrupting production data.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Iterator
@@ -30,6 +31,8 @@ if str(_LIB_DIR) not in sys.path:
 
 import hook_utils
 import learning_db_v2
+import route_events
+import usage_db
 
 # Resolved at import time, before any test can monkeypatch HOME.
 _PRODUCTION_CLAUDE_DIR = Path.home() / ".claude"
@@ -96,6 +99,8 @@ def isolate_learning_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iter
     monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(db_dir))
     monkeypatch.setattr(learning_db_v2, "_DEFAULT_DB_DIR", db_dir)
     monkeypatch.setattr(learning_db_v2, "_initialized", False)
+    monkeypatch.setattr(usage_db, "_DEFAULT_DB_DIR", db_dir)
+    monkeypatch.setattr(route_events, "_DEFAULT_DIR", db_dir)
     _assert_db_is_isolated("setup")
     yield db_dir
     _assert_db_is_isolated("teardown")
@@ -181,8 +186,13 @@ def public_index_repo(public_index_dir, tmp_path_factory) -> Path:
     pipelines = Path("skills") / "process" / "workflow" / "references" / "pipeline-index.json"
     (root / pipelines).parent.mkdir(parents=True)
     (root / pipelines).write_bytes((_REPO_ROOT / pipelines).read_bytes())
-    (root / "skills" / "shared-patterns").symlink_to(_REPO_ROOT / "skills" / "shared-patterns")
-    (root / "hooks").symlink_to(_REPO_ROOT / "hooks")
+    for rel in (Path("skills") / "shared-patterns", Path("hooks")):
+        dst = root / rel
+        src = _REPO_ROOT / rel
+        try:
+            dst.symlink_to(src, target_is_directory=True)
+        except OSError:
+            shutil.copytree(src, dst)
     return root
 
 

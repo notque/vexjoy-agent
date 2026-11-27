@@ -741,10 +741,27 @@ class _StdinTimeout(Exception):
 
 def read_input(timeout: float) -> str | None:
     """Read all of stdin, or return None when it is not closed within *timeout*
-    seconds. Without SIGALRM (Windows, or off the main thread), or with a
-    non-positive timeout, this is the plain read it always was."""
-    if timeout <= 0 or not hasattr(signal, "setitimer"):
+    seconds. Uses setitimer/SIGALRM on POSIX and a daemon reader thread on
+    platforms without setitimer (Windows)."""
+    if timeout <= 0:
         return sys.stdin.read()
+    if not hasattr(signal, "setitimer"):
+        import threading
+
+        box: list[str] = []
+
+        def _reader() -> None:
+            try:
+                box.append(sys.stdin.read())
+            except OSError:
+                box.append("")
+
+        thread = threading.Thread(target=_reader, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout)
+        if thread.is_alive():
+            return None
+        return box[0] if box else ""
 
     def _expired(_signum: int, _frame: object) -> None:
         raise _StdinTimeout

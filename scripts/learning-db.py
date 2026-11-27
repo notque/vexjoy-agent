@@ -55,6 +55,8 @@ from learning_db_v2 import (
     get_evidence_route_context,
     init_db,
     list_evidence_events,
+    prune,
+    prune_ancillary,
     query_learnings,
     record_learning,
 )
@@ -1524,6 +1526,28 @@ def cmd_backfill_stack_usage(args: argparse.Namespace) -> None:
     )
 
 
+def cmd_prune(args: argparse.Namespace) -> None:
+    """Prune expired ancillary/telemetry rows and stale low-confidence learnings."""
+    counts = prune_ancillary(
+        governance_days=args.governance_days,
+        sessions_days=args.sessions_days,
+        activations_days=args.activations_days,
+        jev_calls_days=args.jev_days,
+        evidence_days=args.evidence_days,
+        telemetry_days=args.telemetry_days,
+    )
+    learnings_deleted = prune(min_confidence=args.min_confidence, older_than_days=args.learnings_days)
+    counts["learnings"] = learnings_deleted
+    if args.json:
+        print(json.dumps({"pruned": counts, "total": sum(counts.values())}, indent=2))
+        return
+    total = sum(counts.values())
+    print(f"Pruned {total} row(s) across {len(counts)} table(s):")
+    for table, n in sorted(counts.items()):
+        if n:
+            print(f"  {table}: {n}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Learning Database CLI — manage the unified knowledge store")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1688,6 +1712,21 @@ def main():
     )
     p_backfill_stack.add_argument("--force", action="store_true", help="Re-run even if already backfilled")
     p_backfill_stack.set_defaults(func=cmd_backfill_stack_usage)
+
+    # prune (retention cleanup across telemetry, evidence, jev_calls, and stale learnings)
+    p_prune = subparsers.add_parser(
+        "prune", help="Prune expired telemetry, evidence, Jev call, and low-confidence rows"
+    )
+    p_prune.add_argument("--governance-days", type=int, default=180)
+    p_prune.add_argument("--sessions-days", type=int, default=365)
+    p_prune.add_argument("--activations-days", type=int, default=90)
+    p_prune.add_argument("--jev-days", type=int, default=90)
+    p_prune.add_argument("--evidence-days", type=int, default=90)
+    p_prune.add_argument("--telemetry-days", type=int, default=180)
+    p_prune.add_argument("--learnings-days", type=int, default=90)
+    p_prune.add_argument("--min-confidence", type=float, default=0.3)
+    p_prune.add_argument("--json", action="store_true", help="Output as JSON")
+    p_prune.set_defaults(func=cmd_prune)
 
     args = parser.parse_args()
     args.func(args)

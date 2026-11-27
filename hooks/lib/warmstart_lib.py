@@ -2,10 +2,8 @@
 Shared warm-start context builder.
 
 Used by hooks/subagent-start-warmstart.py (SubagentStart, lands in the
-subagent) and the superseded hooks/pretool-subagent-warmstart.py
-(PreToolUse:Agent, lands in the parent). Both read the same on-disk
-parent-session state: session-reads JSONL, task_plan.md, .adr-session.json,
-and .planning/discoveries/.
+subagent). Reads parent-session state on disk: session-reads JSONL,
+task_plan.md, .adr-session.json, and .planning/discoveries/.
 
 Session scoping: files-seen entries come from the v2 JSONL session-reads
 format and are filtered to the given session id and the freshness window;
@@ -265,6 +263,10 @@ def build_context_block(
     if discoveries:
         disc_text = ", ".join(discoveries)
         parts.append(f"[warmstart] Discovery briefs: {disc_text}")
+
+    parts.append(
+        "[warmstart] Subagent scope: return results directly; skip main-thread UI tools (update_plan, wrap_up)."
+    )
 
     header = f"[warmstart] Parent session context for {agent_type or 'subagent'}:"
     body = "\n".join(parts)

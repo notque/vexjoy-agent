@@ -166,6 +166,7 @@ class TestSharedBuilder:
         assert block.startswith("[warmstart] Parent session context for Explore:")
         assert "[warmstart] Task: Ship it" in block
         assert "[warmstart] Decisions: use lib" in block
+        assert "[warmstart] Subagent scope:" in block
 
     @pytest.mark.performance
     def test_gather_context_block_in_process_is_fast(self, tmp_path, monkeypatch):

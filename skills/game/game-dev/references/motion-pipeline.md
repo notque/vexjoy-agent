@@ -10,7 +10,7 @@ with no GPU or PyTorch required.
 ai4animationpy's `Math/Tensor.py` imports `torch` unconditionally at the top
 level, which propagates through every module (Animation, Import, IK, Math).
 This means zero ai4animationpy modules are importable without PyTorch installed.
-The standalone implementations in `scripts/motion-pipeline.py` replicate the
+The standalone implementations in `skills/game/game-dev/scripts/motion-pipeline.py` replicate the
 key algorithms from their source code using only numpy + scipy.
 
 ## Environment setup
@@ -37,7 +37,7 @@ All commands output JSON to stdout. Errors go to stderr with exit code 1.
 Parse a BVH mocap file and print a motion summary.
 
 ```bash
-motion-pipeline-env/bin/python scripts/motion-pipeline.py import-bvh FILE \
+motion-pipeline-env/bin/python skills/game/game-dev/scripts/motion-pipeline.py import-bvh FILE \
   [--scale 0.01]   # scale cm->m for CMU/Mixamo files
 ```
 
@@ -50,7 +50,7 @@ Detect ground contact frames per bone (foot, hand) using height + velocity
 thresholds. Replicates `ContactModule.GetContacts()` from ai4animationpy.
 
 ```bash
-motion-pipeline-env/bin/python scripts/motion-pipeline.py extract-contacts FILE \
+motion-pipeline-env/bin/python skills/game/game-dev/scripts/motion-pipeline.py extract-contacts FILE \
   --bones LeftFoot RightFoot \
   --height 0.1 \
   --vel 0.5
@@ -64,7 +64,7 @@ Split motion into root trajectory (WHERE + HOW) and per-joint local Euler
 angles (POSE). Implements the RootModule / MotionModule decomposition pattern.
 
 ```bash
-motion-pipeline-env/bin/python scripts/motion-pipeline.py decompose FILE \
+motion-pipeline-env/bin/python skills/game/game-dev/scripts/motion-pipeline.py decompose FILE \
   --hip Hips
 ```
 
@@ -79,7 +79,7 @@ Blend two BVH clips at a fixed alpha using SLERP rotations and LERP positions.
 Clips must share the same bone hierarchy.
 
 ```bash
-motion-pipeline-env/bin/python scripts/motion-pipeline.py blend FILE_A FILE_B \
+motion-pipeline-env/bin/python skills/game/game-dev/scripts/motion-pipeline.py blend FILE_A FILE_B \
   --alpha 0.5
 ```
 
@@ -90,7 +90,7 @@ Output: summary of the blended motion.
 Run FABRIK inverse kinematics on a bone chain at a single frame.
 
 ```bash
-motion-pipeline-env/bin/python scripts/motion-pipeline.py solve-ik FILE \
+motion-pipeline-env/bin/python skills/game/game-dev/scripts/motion-pipeline.py solve-ik FILE \
   --chain Hips:LeftFoot \
   --target 0.2,0.05,0.3 \
   --frame 10
@@ -106,7 +106,7 @@ road-to-aew's `wrestlingMoves.ts` interface. Outputs keyframe-interpolated
 TypeScript to stdout (and optionally a file).
 
 ```bash
-motion-pipeline-env/bin/python scripts/generate-move-ts.py BVH MOVE_NAME \
+motion-pipeline-env/bin/python skills/game/game-dev/scripts/generate-move-ts.py BVH MOVE_NAME \
   [--scale 0.01] \
   [--contact-bones LeftToeBase RightToeBase LeftHand RightHand] \
   [--num-keyframes 12] \

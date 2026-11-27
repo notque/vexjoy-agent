@@ -6,10 +6,8 @@ description: |
 version: 1.0.0
 route_to:
   agent: general-purpose
-  skill: system-upgrade
-  enhancements:
-    - agent-evaluation
-    - routing-table-updater
+  skill: toolkit
+  reference: skills/meta/toolkit/references/system-upgrade.md
 trigger:
   keywords:
     - upgrade agents
@@ -63,7 +61,7 @@ Entry point for the System Upgrade Pipeline.
 |------|------|-------|
 | **claude-release** | Claude Code ships new version | "Claude added Notification hook event" |
 | **goal-change** | Your workflow/focus shifts | "I'm now working with Rust" |
-| **retro-driven** | Retro learnings ready to embed | "Apply retro" or "/retro graduate" output |
+| **retro-driven** | Telemetry findings ready to embed | "Apply retro" or `/retro` route-health / review-fps findings |
 
 ## Key Behavior
 

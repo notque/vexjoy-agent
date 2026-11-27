@@ -105,11 +105,11 @@ def test_dispatched_detection_is_precise():
     dormancy escape hatch). Only true subprocess CLI helpers should appear.
     """
     dispatched = vhh.dispatched_basenames()
-    # voice-pipeline-tracker.py is dispatched by pretool-voice-publish-gate.py.
-    assert "voice-pipeline-tracker.py" in dispatched
-    # These are only ever mentioned in comments/docstrings of other hooks; they
-    # must NOT be classified as dispatched.
-    for prose_only in ("retro-knowledge-injector.py",):
+    # Adapters are invoked via subprocess by generated hook configs/tests.
+    assert "codex-hook-adapter.py" in dispatched
+    assert "agy-hook-adapter.py" in dispatched
+    # Hooks only mentioned in comments/docstrings must NOT be classified as dispatched.
+    for prose_only in ("session-context.py", "pretool-branch-safety.py"):
         assert prose_only not in dispatched, (
             f"{prose_only} is mentioned in prose, not dispatched — detection is too loose and would mask dormancy."
         )

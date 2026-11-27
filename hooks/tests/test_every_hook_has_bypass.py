@@ -26,7 +26,6 @@ HOOKS_DIR = Path(__file__).resolve().parent.parent
 # Files that are not hook entrypoints.
 EXEMPT = {
     "__init__.py": "package marker",
-    "voice-pipeline-tracker.py": "CLI utility called with arguments, not a hook",
 }
 
 _BYPASS_NAME = re.compile(r"_(BYPASS|DISABLE|SKIP)$")

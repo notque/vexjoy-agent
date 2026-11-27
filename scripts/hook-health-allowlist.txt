@@ -9,25 +9,10 @@
 # (file removed) also fails the gate. This is the artifact that would have
 # caught prevent-homedir-server.py before it became an incident.
 #
-# Dispatched helpers (e.g. voice-pipeline-tracker.py, invoked via subprocess by
-# pretool-voice-publish-gate.py) are detected automatically and do NOT need an
-# entry here.
+# Dispatched helpers invoked via subprocess by another hook are detected
+# automatically and do NOT need an entry here.
 
-# --- Retired / superseded stubs (kept on disk for compatibility) ---
-retro-knowledge-injector.py               # retired stub: dream payload now injected by session-context.py (ADR-147)
-creation-request-enforcer-userprompt.py   # retired stub: /do Phase 1 handles creation-request enforcement
-skill-evaluator.py                        # disabled stub: main() is a no-op; routing-injection superseded by /do SKILL.md routing tables (overlaps /do)
-
-# --- Deferred blockers (false-block risk; opt-in only) ---
-
-# --- Voice hooks superseded by the writing skill pipeline ---
-voice-output-gate.py                       # superseded: writing skill internalizes output gating (HOOK-GATE/CLOSE-GATE phases); private-skills install registers it separately when voice stack is active
-posttool-voice-quality-check.py            # superseded: writing ANTI-AI phase covers AI-pattern checks; advisory-only, not needed default-on
-pretool-voice-publish-gate.py              # superseded: writing pipeline phases enforce publish-readiness; dispatches voice-pipeline-tracker.py; private voice-stack installer registers it when active
-
-# --- Dormant hooks with tests removed in test-suite reduction ---
-mcp-health-check.py                        # unregistered: MCP health check runs on demand, not as a hook event; test removed in test-suite reduction
-pretool-subagent-warmstart.py              # unregistered: warmstart logic moved to subagent-start event handler; standalone file kept for reference
+# --- Retired hooks (unregistered from .claude/settings.json) ---
 pipeline-context-detector.py               # unregistered: retired UserPromptSubmit hook superseded by /do and /d routing
 codex-auto-review.py                       # unregistered: retired UserPromptSubmit hook superseded by pr-workflow codex-review intent
 posttooluse-sync-agent-index.py            # unregistered: agents/*.md index refresh folded into posttooluse-sync-skill-index.py

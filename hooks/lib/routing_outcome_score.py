@@ -63,18 +63,17 @@ def decision_row_exists(key: str) -> bool:
     absent the SELECT raises and is caught below => treated as "unknown" (skip),
     identical to the prior best-effort behavior.
     """
-    from learning_db_v2 import get_db_path
+    from learning_db_v2 import get_connection, get_db_path
 
+    if not get_db_path().is_file():
+        return False
     try:
-        conn = sqlite3.connect(get_db_path(), timeout=5.0)
-        try:
+        with get_connection() as conn:
             row = conn.execute(
                 "SELECT 1 FROM learnings WHERE topic = ? AND key = ? AND category = ? LIMIT 1",
                 ("routing", key, "effectiveness"),
             ).fetchone()
             return row is not None
-        finally:
-            conn.close()
     except Exception:
         # Best-effort: on any read failure treat as "unknown" => caller skips
         # scoring (and re-queues), never crashes, never double-counts.
@@ -95,18 +94,17 @@ _OUTCOME_UNSET: object = object()
 
 def _current_confidence(key: str) -> float:
     """Read-only current confidence for routing/{key}; 0.0 if absent."""
-    from learning_db_v2 import get_db_path
+    from learning_db_v2 import get_connection, get_db_path
 
+    if not get_db_path().is_file():
+        return 0.0
     try:
-        conn = sqlite3.connect(get_db_path(), timeout=5.0)
-        try:
+        with get_connection() as conn:
             row = conn.execute(
                 "SELECT confidence FROM learnings WHERE topic = ? AND key = ? LIMIT 1",
                 ("routing", key),
             ).fetchone()
             return float(row[0]) if row else 0.0
-        finally:
-            conn.close()
     except Exception:
         return 0.0
 
@@ -147,18 +145,15 @@ def _record_basis(key: str, basis: str) -> None:
     routing_outcome_basis table is created by the v6 migration on init_db.
     """
     try:
-        from learning_db_v2 import get_db_path
+        from learning_db_v2 import get_connection
 
-        conn = sqlite3.connect(get_db_path(), timeout=5.0)
-        try:
+        with get_connection() as conn:
             conn.execute(
                 "INSERT INTO routing_outcome_basis (key, basis, count) VALUES (?, ?, 1) "
                 "ON CONFLICT(key, basis) DO UPDATE SET count = count + 1",
                 (key, basis),
             )
             conn.commit()
-        finally:
-            conn.close()
     except Exception:
         # Best-effort: swallow any DB failure. The count is advisory.
         pass

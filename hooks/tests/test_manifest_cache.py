@@ -168,7 +168,7 @@ def test_python_digest_matches_bash_check(fake_home):
 
 
 def run_hook(home: Path) -> subprocess.CompletedProcess:
-    env = dict(os.environ, HOME=str(home))
+    env = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
     return subprocess.run(
         [sys.executable, str(HOOK_PATH)],
         input="",

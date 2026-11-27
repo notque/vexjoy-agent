@@ -16,6 +16,7 @@ import io
 import json
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -550,8 +551,9 @@ class TestAuditScript:
     def test_absent_private_dir_exits_zero(self, tmp_path):
         env = {k: v for k, v in os.environ.items()}
         env["HOME"] = str(tmp_path)
+        env["USERPROFILE"] = str(tmp_path)
         result = subprocess.run(
-            ["python3", str(AUDIT_PATH)], capture_output=True, text=True, env=env, check=False, timeout=30
+            [sys.executable, str(AUDIT_PATH)], capture_output=True, text=True, env=env, check=False, timeout=30
         )
         assert result.returncode == 0
         assert "no private tree" in result.stdout

@@ -14,19 +14,18 @@ This guide covers dispatch, component creation, and shipping changes. Register n
 The main dispatch path is:
 
 ```
-User request → Router (/do) → Agent (*.md) → Skill (SKILL.md) → Script (*.py)
+User request → Router (/do) → Skill (SKILL.md + references/) → Worker (main | general-purpose) → Script (*.py)
 ```
 
-The router selects an agent for domain knowledge and a skill for the procedure. Scripts handle repeatable work. Hooks inject context, record telemetry, and enforce checks at lifecycle events.
+The router selects a skill for domain knowledge and procedure, and runs it on the main thread or dispatches a `general-purpose` worker (or private overlay agent) when isolation or fan-out pays. Scripts handle repeatable work. Hooks inject context, record telemetry, and enforce checks at lifecycle events.
 
 ## Directory Structure
 
 ```
-agents/              Domain experts. One .md per agent, optional references/ subdirectory
-  INDEX.json         Generated routing index (don't hand-edit)
-
-skills/              Workflow methodologies. One directory per skill, each with SKILL.md
+skills/              Domain knowledge and workflow methodologies. One directory per skill, each with SKILL.md and optional references/
   INDEX.json         Generated skill index
+
+agents/              Public agents retired (plans/009); holds generated INDEX.json (empty publicly) and optional overlay index
 
 hooks/               Event-driven Python scripts. Fire on lifecycle events
   lib/               Shared utilities (hook_utils.py, learning_db_v2.py, route_events.py)
@@ -93,8 +92,8 @@ Tell `/do` the component type, domain, and purpose. The creator handles structur
 
 Each component type has a distinct role:
 
-- **Agents** (`agents/*.md`) know *what* to do. Domain expertise, patterns, failure modes.
-- **Skills** (`skills/*/*/SKILL.md`) know *how* to structure work. Phases, gates, methodology.
+- **Skills** (`skills/*/*/SKILL.md` + `references/`) carry both domain knowledge and phased methodology, gates, and verification.
+- **Overlay Agents** (`~/private-skills/agents/*.md`, optional) provide private-overlay personas when installed; public specialist agents retired in `plans/009`.
 - **Hooks** (`hooks/*.py`) respond to *events*. JSON in, JSON out, 50ms budget.
 - **Scripts** (`scripts/*.py`) perform *deterministic* operations. Indexing, validation, linting.
 
