@@ -41,7 +41,9 @@ _PRICING_PER_M: dict[str, tuple[float, float, float, float, float]] = {
 }
 
 _IMG_PATH_RE = re.compile(r"(?:[A-Za-z]:[/\\]|/)?[\w./\\-]+\.(?:png|jpe?g|webp|mp4)\b", re.I)
-_VISUAL_OK_RE = re.compile(r"\b(?:looks good|checked the frames|clean on screen|visually verified|verified visually)\b", re.I)
+_VISUAL_OK_RE = re.compile(
+    r"\b(?:looks good|checked the frames|clean on screen|visually verified|verified visually)\b", re.I
+)
 _MANUAL_DEFLECT_RE = re.compile(
     r"\b(?:run this in powershell|paste this(?: one)? command|delete (?:it|them) yourself|"
     r"free (?:the )?space yourself|i don't permanently delete)\b",
@@ -91,11 +93,7 @@ def _estimate_cost(
 ) -> float:
     rates = _PRICING_PER_M.get(_model_family(model), (3.0, 15.0, 0.3, 3.75, 6.0))
     return (
-        input_tok * rates[0]
-        + output_tok * rates[1]
-        + cache_read * rates[2]
-        + cache_5m * rates[3]
-        + cache_1h * rates[4]
+        input_tok * rates[0] + output_tok * rates[1] + cache_read * rates[2] + cache_5m * rates[3] + cache_1h * rates[4]
     ) / 1_000_000.0
 
 
@@ -209,7 +207,9 @@ def _detect_session_signals(
 
     for norm, cnt in q_counts.items():
         if cnt >= 3:
-            found.append((source_path, provider, session_id, q_last_ts[norm], "repeat_question_spam", f"{cnt}x: {norm[:100]}"))
+            found.append(
+                (source_path, provider, session_id, q_last_ts[norm], "repeat_question_spam", f"{cnt}x: {norm[:100]}")
+            )
 
     # 2. Tool-based structural checks
     read_files: set[str] = set()
@@ -245,7 +245,9 @@ def _detect_session_signals(
     # 3. File edit oscillation (>=6 edits to same file in one session)
     for fp, cnt in edit_counts.items():
         if cnt >= 6:
-            found.append((source_path, provider, session_id, 0.0, "file_oscillation", f"{cnt}x edits: {os.path.basename(fp)}"))
+            found.append(
+                (source_path, provider, session_id, 0.0, "file_oscillation", f"{cnt}x edits: {os.path.basename(fp)}")
+            )
 
     # 4. Uninspected visual claims
     for ts, txt in assistant_texts:
@@ -318,7 +320,9 @@ def _ingest_claude(con: sqlite3.Connection, claude_projects: Path, cutoff_epoch:
                         model = str(msg.get("model") or "")
                         usage = msg.get("usage") if isinstance(msg.get("usage"), dict) else {}
                         if model and usage:
-                            cc_detail = usage.get("cache_creation") if isinstance(usage.get("cache_creation"), dict) else {}
+                            cc_detail = (
+                                usage.get("cache_creation") if isinstance(usage.get("cache_creation"), dict) else {}
+                            )
                             c5 = int(cc_detail.get("ephemeral_5m_input_tokens") or 0)
                             c1 = int(cc_detail.get("ephemeral_1h_input_tokens") or 0)
                             if c5 == 0 and c1 == 0:

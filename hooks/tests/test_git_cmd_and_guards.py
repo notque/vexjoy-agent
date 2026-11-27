@@ -142,8 +142,16 @@ def test_sql_scanner_ignores_static_literal_concat_but_catches_variable_concat(t
     vuln_js.write_text('const q = "SELECT a FROM tbl WHERE id = " + userId;\n', encoding="utf-8")
 
     rules = mod._build_rules()
-    f_static = [f for f in mod._scan_file(str(static_js), rules) if f.get("category") == "sql-injection" or f.get("rule") == "sql-injection"]
-    f_vuln = [f for f in mod._scan_file(str(vuln_js), rules) if f.get("category") == "sql-injection" or f.get("rule") == "sql-injection"]
+    f_static = [
+        f
+        for f in mod._scan_file(str(static_js), rules)
+        if f.get("category") == "sql-injection" or f.get("rule") == "sql-injection"
+    ]
+    f_vuln = [
+        f
+        for f in mod._scan_file(str(vuln_js), rules)
+        if f.get("category") == "sql-injection" or f.get("rule") == "sql-injection"
+    ]
     assert f_static == []
     assert len(f_vuln) >= 1
 

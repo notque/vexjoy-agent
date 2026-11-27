@@ -55,7 +55,9 @@ def _safe_mtime(path: Path) -> float:
         return 0.0
 
 
-def _find_transcripts(explicit: Path | None, all_sessions: bool, days: float, *, include_subagents: bool = True) -> list[Path]:
+def _find_transcripts(
+    explicit: Path | None, all_sessions: bool, days: float, *, include_subagents: bool = True
+) -> list[Path]:
     if explicit:
         return [explicit]
     root = _projects_root()
