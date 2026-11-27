@@ -28,7 +28,7 @@ allowed-tools:
   - mcp__chrome-devtools__lighthouse_audit
   - mcp__chrome-devtools__resize_page
 routing:
-  not_for: "general code review (use review), general security (use security)"
+  not_for: "general code review (use review), general security (use security), OpenSearch or Elasticsearch cluster operations (use kubernetes)"
   triggers:
     - sapcc review
     - sapcc audit
@@ -50,8 +50,6 @@ routing:
     - BM25
     - query understanding
     - search quality
-    - OpenSearch
-    - Elasticsearch
     - vector search
     - hybrid search
     - search tuning

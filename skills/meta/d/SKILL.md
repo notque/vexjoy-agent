@@ -77,7 +77,7 @@ for `tests_requested`, `research_needed`, `comprehensive_review`,
 finalize attaches from them instead of Jev's.
 
 `stack` names the domain skill when `skill` is a methodology (Go debugging:
-`skill` debugging, `stack` programming). `workers` holds independent parts
+`skill` workflow with `pipeline` systematic-debugging, `stack` programming). `workers` holds independent parts
 per `/do`'s FAN-OUT RULE, `[]` when one thread covers it. Add `"agent":
 "<AGENTS: name>"` only when the manifest has an `AGENTS:` section (private
 overlay agents, shown when the request names their domain) and one fits the
