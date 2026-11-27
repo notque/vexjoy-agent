@@ -96,10 +96,9 @@ def is_fish_shell() -> bool:
 def get_fish_injection() -> str:
     """Get the context injection for Fish shell users.
 
-    Emits only tags. The shell-config skill carries its own knowledge.
-    ADR hook-injection-condensation: removed tutorial block.
+    Emits a single-line hint without forcing a full skill load on every session.
     """
-    return "[fish-shell] Detected Fish shell user\n[auto-skill] deploy\nCall the Skill tool with `deploy`."
+    return "[fish-shell] Detected Fish shell user; use Fish syntax for interactive shell snippets and load the `deploy` skill when editing Fish config."
 
 
 _BYPASS_ENV = "FISH_SHELL_DETECTOR_BYPASS"

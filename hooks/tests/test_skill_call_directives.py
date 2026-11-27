@@ -73,14 +73,10 @@ def test_session_detectors_keep_tags_and_add_exact_call() -> None:
     zsh = _load("skill_calls_zsh", "zsh-shell-detector.py")
     sapcc = _load("skill_calls_sapcc", "sapcc-go-detector.py")
 
-    assert fish.get_fish_injection().splitlines()[-2:] == [
-        "[auto-skill] deploy",
-        "Call the Skill tool with `deploy`.",
-    ]
-    assert zsh.get_zsh_injection().splitlines()[-2:] == [
-        "[auto-skill] deploy",
-        "Call the Skill tool with `deploy`.",
-    ]
+    assert "[fish-shell] Detected Fish shell user" in fish.get_fish_injection()
+    assert "Call the Skill tool" not in fish.get_fish_injection()
+    assert "[zsh-shell] Detected Zsh shell user" in zsh.get_zsh_injection()
+    assert "Call the Skill tool" not in zsh.get_zsh_injection()
     assert sapcc.get_sapcc_injection("github.com/sapcc/example").splitlines()[-2:] == [
         "[auto-skill] programming",
         "Call the Skill tool with `programming`.",

@@ -49,6 +49,8 @@ HOOKS_DIR = REPO_ROOT / "hooks"
 ALLOWLIST_PATH = REPO_ROOT / "scripts" / "hook-health-allowlist.txt"
 CODEX_MIRROR = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
 AGY_MIRROR = REPO_ROOT / "scripts" / "agy-hooks-allowlist.txt"
+# Runtime-specific hooks that run only under Antigravity CLI (excluded from Claude settings.json).
+AGY_ONLY_HOOKS = frozenset({"gemini-turn-gate-userprompt.py", "pretool-routing-gate.py"})
 
 KNOWN_EVENTS = {
     "SessionStart",
@@ -444,9 +446,13 @@ def dispatched_basenames() -> set[str]:
     codex_adapter = "codex-hook-adapter.py"
     if codex_adapter in names and parse_mirror(CODEX_MIRROR):
         dispatched.add(codex_adapter)
+    agy_entries = parse_mirror(AGY_MIRROR)
     agy_adapter = "agy-hook-adapter.py"
-    if agy_adapter in names and parse_mirror(AGY_MIRROR):
+    if agy_adapter in names and agy_entries:
         dispatched.add(agy_adapter)
+    for _ev, fname in agy_entries:
+        if fname in AGY_ONLY_HOOKS and fname in names:
+            dispatched.add(fname)
     return dispatched
 
 
@@ -626,7 +632,7 @@ def check_mirror(settings: dict) -> list[str]:
         for event, fname in parse_mirror(path):
             if not (HOOKS_DIR / fname).exists():
                 msgs.append(f"MIRROR: {path.name} names hooks/{fname} but no repo file exists (phantom).")
-            elif fname not in registered:
+            elif fname not in registered and not (path == AGY_MIRROR and fname in AGY_ONLY_HOOKS):
                 msgs.append(
                     f"MIRROR: {path.name} names {fname} (event {event}) but it is NOT registered "
                     f"in .claude/settings.json (phantom mirror entry)."

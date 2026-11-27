@@ -83,9 +83,9 @@ def is_zsh_shell() -> bool:
 def get_zsh_injection() -> str:
     """Get the context injection for Zsh shell users.
 
-    Emits only tags. The shell-config skill carries its own knowledge.
+    Emits a single-line hint without forcing a full skill load on every session.
     """
-    return "[zsh-shell] Detected Zsh shell user\n[auto-skill] deploy\nCall the Skill tool with `deploy`."
+    return "[zsh-shell] Detected Zsh shell user; load the `deploy` skill when editing Zsh config."
 
 
 _BYPASS_ENV = "ZSH_SHELL_DETECTOR_BYPASS"

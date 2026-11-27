@@ -147,8 +147,8 @@ class TestZshMain:
         inner = parsed.get("hookSpecificOutput", {})
         ctx = inner.get("additionalContext", "")
         assert "[zsh-shell] Detected Zsh shell user" in ctx
-        assert "[auto-skill] deploy" in ctx
-        assert "Call the Skill tool with `deploy`." in ctx
+        assert "deploy" in ctx
+        assert "Call the Skill tool" not in ctx
 
     def test_non_zsh_emits_empty(self):
         """SHELL=/bin/bash → main() emits empty output (no additionalContext)."""

@@ -155,20 +155,8 @@
           },
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
-            "description": "Detect pipeline creation requests and inject pipeline context",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/review-false-positive-capture.py\"",
             "description": "Capture review false-positive signals when a user disputes a code-review finding",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/codex-auto-review.py\"",
-            "description": "Auto-inject Codex cross-model review for PR review operations",
             "timeout": 10
           },
           {
@@ -188,16 +176,6 @@
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/jev-route-injector-userprompt.py\"",
             "description": "Pre-run jev-route.py on a /d invocation and inject JEV_RESULT before generation starts",
             "timeout": 26
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/gemini-turn-gate-userprompt.py\"",
-            "description": "Detect user prompts and enforce Turn-1 routing mandate for Gemini models",
-            "timeout": 10
           }
         ]
       }
@@ -373,17 +351,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "Bash|Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-routing-gate.py\"",
-            "description": "Enforce Turn-1 routing before executing mutating commands or file edits",
-            "timeout": 10
-          }
-        ]
       }
     ],
     "PostToolUse": [
@@ -411,13 +378,7 @@
           {
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
-            "description": "Auto-regenerate INDEX.json when SKILL.md is written or edited",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttooluse-sync-agent-index.py\"",
-            "description": "Auto-regenerate agents/INDEX.json when an agent .md is written or edited",
+            "description": "Auto-regenerate installed skill and agent indexes when SKILL.md or agents/*.md is written or edited",
             "timeout": 15
           },
           {
@@ -541,12 +502,6 @@
     "SubagentStop": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
-            "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
-            "timeout": 5
-          },
           {
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",

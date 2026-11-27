@@ -31,11 +31,10 @@ SessionStart:session-manifest-cache.py failure=open
 SessionStart:session-task-registry.py failure=open
 SessionStart:hook-version-parity-check.py failure=open
 
-# PreInvocation (6) — flat handler list (maps to Claude UserPromptSubmit; first hook drains PostToolUse advisories)
+# PreInvocation (5) — flat handler list (maps to Claude UserPromptSubmit; first hook drains PostToolUse advisories)
 PreInvocation:review-false-positive-capture.py failure=open
 PreInvocation:prompt-capture.py failure=open
 PreInvocation:routing-outcome-finalizer.py failure=open
-PreInvocation:pipeline-context-detector.py failure=open
 PreInvocation:jev-route-injector-userprompt.py failure=open
 PreInvocation:gemini-turn-gate-userprompt.py failure=open
 
@@ -74,12 +73,11 @@ PostToolUse:posttool-bash-injection-scan.py matcher=run_command failure=open
 PostToolUse:posttool-rename-sweep.py matcher=run_command failure=open
 PostToolUse:posttool-session-reads.py matcher=run_command failure=open
 
-# PostToolUse edit_file|write_file -> Edit|Write observers (8)
+# PostToolUse edit_file|write_file -> Edit|Write observers (6)
 PostToolUse:adr-enforcement.py matcher=edit_file|write_file failure=open
 PostToolUse:posttool-skill-frontmatter-check.py matcher=edit_file|write_file failure=open
 PostToolUse:posttooluse-joy-check-warn.py matcher=edit_file|write_file failure=open
 PostToolUse:posttooluse-sync-skill-index.py matcher=edit_file|write_file failure=open
-PostToolUse:posttooluse-sync-agent-index.py matcher=edit_file|write_file failure=open
 PostToolUse:posttool-docs-drift-alert.py matcher=edit_file|write_file failure=open
 PostToolUse:security-review-hook.py matcher=edit_file|write_file failure=open
 
