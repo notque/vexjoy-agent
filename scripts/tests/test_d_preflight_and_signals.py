@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -38,9 +40,24 @@ def test_new_hook_reports_the_adr_gate(monkeypatch) -> None:
     assert any("ADR gate" in c and "brand-new-gate" in c for c in costs)
 
 
-def test_existing_file_edit_has_no_creation_cost(monkeypatch) -> None:
-    monkeypatch.chdir(REPO)
-    assert preflight.preflight(["skills/meta/d/SKILL.md"], REPO)["paths"][0]["costs"] == []
+def test_existing_file_edit_has_no_creation_cost(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    (repo / "skills" / "meta" / "d").mkdir(parents=True)
+    (repo / "skills" / "meta" / "d" / "SKILL.md").write_text("---\nname: d\n---\n", encoding="utf-8")
+    (repo / "hooks").mkdir(parents=True)
+    shutil.copytree(REPO / "hooks" / "lib", repo / "hooks" / "lib")
+    for name in (
+        "pretool-unified-gate.py",
+        "pretool-adr-creation-gate.py",
+        "pretool-synthesis-gate.py",
+        "pretool-private-name-leak-gate.py",
+    ):
+        shutil.copy2(REPO / "hooks" / name, repo / "hooks" / name)
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    monkeypatch.chdir(repo)
+    report = preflight.preflight(["skills/meta/d/SKILL.md"], repo)
+    assert all(report["gates_loaded"].values())
+    assert report["paths"][0]["costs"] == []
 
 
 def test_key_shaped_string_is_reported_redacted(tmp_path: Path) -> None:

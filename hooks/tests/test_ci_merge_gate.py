@@ -456,3 +456,93 @@ def test_old_blocked_still_blocked(command: str, flag: str, tmp_path) -> None:
     out = json.loads(r.stdout.strip().split("\n")[-1])
     assert out["hookSpecificOutput"]["permissionDecision"] == "deny", f"Expected deny for {flag!r} in: {command}"
     assert flag in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+def _load_merge_gate_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("ci_merge_gate_mod", HOOK)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TestPrePushHardeningRegressions:
+    """Regressions for chained merges, recursive bash -c parse errors, Windows cd, and lazy shlex."""
+
+    def test_chained_merge_checks_every_invocation_and_denies_second_failing(self, tmp_path):
+        """PR #10 passing and PR #11 failing must still deny on PR #11."""
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        gh_path = bin_dir / "gh"
+        gh_path.write_text(
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "args = sys.argv[1:]\n"
+            "if args[:2] == ['pr', 'checks']:\n"
+            "    pr = args[2].lstrip('#')\n"
+            "    if pr == '10':\n"
+            '        print(\'[{"name": "ci", "state": "SUCCESS", "bucket": "pass"}]\')\n'
+            "        sys.exit(0)\n"
+            "    if pr == '11':\n"
+            '        print(\'[{"name": "unit", "state": "FAILURE", "bucket": "fail"}]\')\n'
+            "        sys.exit(0)\n"
+            "sys.exit(2)\n",
+            encoding="utf-8",
+        )
+        os.chmod(gh_path, os.stat(gh_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+
+        env = os.environ.copy()
+        env.pop("ALLOW_ADMIN_MERGE", None)
+        env.pop("ALLOW_FORCE_MERGE", None)
+        env["PATH"] = str(bin_dir) + os.pathsep + env.get("PATH", "")
+        event = json.dumps({"tool_name": "Bash", "tool_input": {"command": "gh pr merge 10 && gh pr merge 11"}})
+        r = subprocess.run([sys.executable, HOOK], input=event, capture_output=True, text=True, timeout=15, env=env)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        reason = out["hookSpecificOutput"]["permissionDecisionReason"]
+        assert "#11" in reason
+        assert "unit" in reason
+
+    def test_bash_c_unbalanced_inner_quote_with_admin_denied(self, tmp_path):
+        """Unbalanced quote inside `bash -c` merge command must propagate ValueError and fail safe."""
+        r = run_hook('''bash -c "gh pr merge 42 --admin # don't"''', tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "--admin" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_windows_cd_preserves_backslashes_and_normalizes_msys(self, monkeypatch):
+        """Windows `cd C:\\Users\\dev\\repo && gh pr merge` preserves backslashes in parsed cwd."""
+        mod = _load_merge_gate_module()
+        invocations = mod._parse_merge_invocations(r"cd C:\Users\dev\repo && gh pr merge 42")
+        assert len(invocations) == 1
+        assert invocations[0]["cwd"] == r"C:\Users\dev\repo"
+        assert invocations[0]["args"] == ["42"]
+
+        import git_cmd
+
+        with monkeypatch.context() as m:
+            m.setattr(git_cmd.os, "name", "nt")
+            msys_invocations = mod._parse_merge_invocations("cd /c/Users/dev/repo && gh pr merge 42")
+        assert len(msys_invocations) == 1
+        assert msys_invocations[0]["cwd"] == "C:/Users/dev/repo"
+
+    def test_fast_path_non_merge_does_not_import_shlex(self, tmp_path):
+        """Non-merge Bash commands must return on the fast path without loading shlex."""
+        probe = (
+            "import io, json, runpy, sys\n"
+            "sys.stdin = io.StringIO(json.dumps({'tool_name': 'Bash', 'tool_input': {'command': 'git status'}}))\n"
+            "before = 'shlex' in sys.modules\n"
+            "try:\n"
+            f"    runpy.run_path({str(Path(HOOK).resolve())!r}, run_name='__main__')\n"
+            "except SystemExit:\n"
+            "    pass\n"
+            "print(json.dumps({'shlex_added': ('shlex' in sys.modules) and not before}), file=sys.stderr)\n"
+        )
+        r = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, timeout=15)
+        assert r.returncode == 0
+        report = json.loads(r.stderr.strip().splitlines()[-1])
+        assert report == {"shlex_added": False}

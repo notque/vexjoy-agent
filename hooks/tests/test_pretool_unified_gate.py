@@ -2646,3 +2646,51 @@ class TestLazyStartup:
             assert "no_such_attribute_xyz" in str(e)
         else:
             raise AssertionError("an unknown attribute must raise AttributeError")
+
+
+class TestGuardIntegrityPathNormalization:
+    """check_guard_integrity must normalize ~, relative paths with event cwd, and MSYS paths."""
+
+    def test_tilde_path_to_live_hook_blocked(self, tmp_path):
+        live = tmp_path / ".claude" / "hooks"
+        live.mkdir(parents=True)
+        (live / "pretool-unified-gate.py").write_text("# hook\n", encoding="utf-8")
+        payload = _make_write_event("~/.claude/hooks/pretool-unified-gate.py")
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch.object(mod, "_is_worktree_on_feature_branch", return_value=False),
+        ):
+            assert _run_main(payload, env={"HOME": str(tmp_path), "USERPROFILE": str(tmp_path)}) == 2
+
+    def test_relative_path_with_event_cwd_differs_from_process_cwd_blocked(self, tmp_path, monkeypatch):
+        other_dir = tmp_path / "other"
+        other_dir.mkdir()
+        monkeypatch.chdir(other_dir)
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "settings.json").write_text("{}\n", encoding="utf-8")
+
+        write_payload = _make_write_event("settings.json", cwd=str(claude_dir))
+        edit_payload = json.dumps(
+            {"tool_name": "Edit", "tool_input": {"file_path": "settings.json"}, "cwd": str(claude_dir)}
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch.object(mod, "_is_worktree_on_feature_branch", return_value=False),
+        ):
+            assert _run_main(write_payload, env={"HOME": str(tmp_path)}) == 2
+            assert _run_main(edit_payload, env={"HOME": str(tmp_path)}) == 2
+
+    def test_msys_path_normalized_before_guard_integrity_check(self, tmp_path):
+        live = tmp_path / ".claude" / "hooks"
+        live.mkdir(parents=True)
+        target = live / "gate.py"
+        target.write_text("# hook\n", encoding="utf-8")
+        msys_input = "/c/fake-msys/.claude/hooks/gate.py"
+
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch.object(mod, "normalize_bash_path", return_value=str(target)),
+            patch.object(mod, "_is_worktree_on_feature_branch", return_value=False),
+        ):
+            assert _run_main(_make_write_event(msys_input), env={"HOME": str(tmp_path)}) == 2

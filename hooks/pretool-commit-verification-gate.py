@@ -108,7 +108,21 @@ def _split_shell_segments(command: str) -> list[list[str]]:
 
     from git_cmd import _WIN_PATH_RE
 
-    escaped = _WIN_PATH_RE.sub(lambda m: m.group(0).replace("\\", "\\\\"), command)
+    # Replace `"$(cat <<'EOF'\n...\nEOF\n)"` heredocs with opaque placeholders
+    # before shlex tokenization so inner quotes and shell operators (`;&|\n`)
+    # inside commit messages never split segments or cause unbalanced-quote errors.
+    placeholders: list[tuple[str, str]] = []
+    sentinel = "__VEXJOY_HEREDOC_"
+    while sentinel in command:
+        sentinel += "_"
+
+    def _stash_heredoc(m: re.Match[str]) -> str:
+        token = f"{sentinel}{len(placeholders)}__"
+        placeholders.append((token, m.group(3)))
+        return token
+
+    stashed = _CAT_HEREDOC_RE.sub(_stash_heredoc, command)
+    escaped = _WIN_PATH_RE.sub(lambda m: m.group(0).replace("\\", "\\\\"), stashed)
     lex = shlex.shlex(escaped, posix=True, punctuation_chars=";&|\n")
     lex.whitespace = " \t\r"
     lex.whitespace_split = True
@@ -124,6 +138,14 @@ def _split_shell_segments(command: str) -> list[list[str]]:
             current.append(tok)
     if current:
         segments.append(current)
+    if placeholders:
+        for seg in segments:
+            for idx, tok in enumerate(seg):
+                if sentinel in tok:
+                    for ph, body in placeholders:
+                        if ph in tok:
+                            tok = tok.replace(ph, body)
+                    seg[idx] = tok
     return segments
 
 

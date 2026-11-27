@@ -485,3 +485,31 @@ def test_record_main_thread_route_uses_jev_session_id_fallback(monkeypatch: pyte
     ok = bd.record_main_thread_route("[do-route] agent=main skill=programming exec=main", _decision())
     assert ok is True
     assert captured["event"]["session_id"] == "jev-fallback-sess"
+
+
+def test_receipt_dir_falls_back_when_os_getuid_is_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(d_gate.RECEIPT_DIR_ENV, raising=False)
+    monkeypatch.delattr(d_gate.os, "getuid", raising=False)
+    monkeypatch.setenv("USERNAME", "win dev")
+    p = d_gate.receipt_dir()
+    assert "vexjoy-d-receipts-win_dev" in p.parts
+
+    monkeypatch.delenv("USERNAME", raising=False)
+    monkeypatch.delenv("USER", raising=False)
+    p_default = d_gate.receipt_dir()
+    assert "vexjoy-d-receipts-user" in p_default.parts
+
+
+def test_measure_scope_skips_git_dir_by_path_parts_not_slashes(tmp_path: Path) -> None:
+    git_objs = tmp_path / ".git" / "objects" / "ab"
+    git_objs.mkdir(parents=True)
+    for i in range(15):
+        (git_objs / f"obj{i}").write_text("x" * 1024, encoding="utf-8")
+    github_dir = tmp_path / ".github" / "workflows"
+    github_dir.mkdir(parents=True)
+    (github_dir / "ci.yml").write_text("name: CI\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text("hello", encoding="utf-8")
+
+    count, size = d_gate.measure_scope(["."], tmp_path)
+    assert count == 2
+    assert size == len("name: CI\n") + len("hello")

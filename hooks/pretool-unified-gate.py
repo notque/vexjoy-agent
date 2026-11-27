@@ -2228,14 +2228,15 @@ def _live_hooks_dir() -> Path | None:
         return None
 
 
-def check_guard_integrity(file_path: str) -> None:
+def check_guard_integrity(file_path: str, cwd: str = "") -> None:
     """Deny Write/Edit to live enforcement files except on a feature branch."""
     if os.environ.get(_GUARD_INTEGRITY_BYPASS_ENV) == "1":
         return
+    _, fs_path = _normalize_path_for_gate(file_path, cwd=cwd)
     try:
-        resolved = Path(file_path).resolve()
+        resolved = Path(fs_path).resolve()
     except OSError:
-        resolved = Path(file_path)
+        resolved = Path(fs_path)
     live = _live_hooks_dir()
     in_live_hooks = live is not None and (resolved == live or live in resolved.parents)
     if not in_live_hooks and live is not None:
@@ -3787,7 +3788,7 @@ def main() -> None:
             return
         cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
         check_creation_gate(file_path, cwd=cwd)
-        check_guard_integrity(file_path)
+        check_guard_integrity(file_path, cwd=cwd)
         check_sensitive_file(file_path, cwd=cwd)
 
     elif tool in ("Edit", "MultiEdit"):
@@ -3804,7 +3805,7 @@ def main() -> None:
                         paths.append(ep)
         cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
         for fp in paths:
-            check_guard_integrity(fp)
+            check_guard_integrity(fp, cwd=cwd)
             check_sensitive_file(fp, cwd=cwd)
 
     elif tool == "Read":

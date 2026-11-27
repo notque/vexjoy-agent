@@ -29,7 +29,6 @@ if sys.version_info < (3, 10):  # vexjoy-pyguard gate
 import json
 import os
 import re
-import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -38,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import deny_tool_use, record_governance
 from stdin_timeout import read_stdin
 
-_MERGE_RE = re.compile(r"\bgh\b(?:\s+[^\s;&|]+)*\s+pr\s+merge\b")
+_MERGE_RE = re.compile(r"\bgh(?:\.exe)?\b(?:\s+[^\s;&|]+)*\s+pr\s+merge\b", re.IGNORECASE)
 # Tokens that end a simple command segment.
 _SEGMENT_END = frozenset({"&&", "||", ";", "|", "&", "\n", "(", ")"})
 # Merge flags that take a value; the value is never the PR number or another flag.
@@ -84,7 +83,12 @@ def _split_segments(command: str) -> list[list[str]]:
 
     Raises ValueError on unbalanced quotes so callers can fall back safely.
     """
-    lex = shlex.shlex(command, posix=True, punctuation_chars=True)
+    import shlex
+
+    from git_cmd import _WIN_PATH_RE
+
+    escaped = _WIN_PATH_RE.sub(lambda m: m.group(0).replace("\\", "\\\\"), command)
+    lex = shlex.shlex(escaped, posix=True, punctuation_chars=True)
     lex.whitespace = " \t\r"
     lex.whitespace_split = True
     lex.commenters = ""  # `#55` is a PR selector, not a comment
@@ -133,7 +137,9 @@ def _resolve_cwd(base: str | None, target: str) -> str | None:
     """Resolve a `cd <target>` against *base*, ignoring unresolvable expansions."""
     if not target or "$" in target or "`" in target:
         return base
-    expanded = os.path.expanduser(target)
+    from git_cmd import normalize_bash_path
+
+    expanded = normalize_bash_path(os.path.expanduser(target))
     if os.path.isabs(expanded) or re.match(r"^[A-Za-z]:[/\\]", expanded):
         return expanded
     if base:
@@ -169,10 +175,12 @@ def _parse_merge_invocations(command: str, base_cwd: str | None = None) -> list[
                     tok in ("-c", "--command")
                     or (tok.startswith("-") and not tok.startswith("--") and tok.endswith("c"))
                 ) and idx + 1 < len(seg):
+                    inner = seg[idx + 1]
                     try:
-                        invocations.extend(_parse_merge_invocations(seg[idx + 1], base_cwd=current_cwd))
+                        invocations.extend(_parse_merge_invocations(inner, base_cwd=current_cwd))
                     except ValueError:
-                        pass
+                        if _MERGE_RE.search(inner):
+                            raise
                     break
             continue
 
@@ -320,7 +328,7 @@ def _merge_segment_flags(command: str) -> set[str]:
     backticks, ``eval``, variable expansions), falls back to ``command.split()``
     so that every currently blocked case stays blocked.
     """
-    fallback = {t for t in command.split() if t.startswith("--")}
+    fallback = {t.rstrip("\"'") for t in command.split() if t.startswith("--")}
     try:
         invocations = _parse_merge_invocations(command)
     except ValueError:
@@ -351,6 +359,9 @@ def main() -> None:
 
     command = data.get("tool_input", {}).get("command", "")
     if not command:
+        return
+    cmd_lower = command.lower()
+    if "gh" not in cmd_lower or "merge" not in cmd_lower:
         return
 
     base_cwd = data.get("cwd") if isinstance(data.get("cwd"), str) else None
@@ -385,122 +396,118 @@ def main() -> None:
             deny_tool_use("PreToolUse", "Use of --force bypasses merge safeguards. Remove --force and merge normally.")
             sys.exit(0)
 
-    # PR number, target repo, and effective cwd come from the merge invocation.
-    pr_number: str | None = None
-    repo: str | None = None
-    effective_cwd: str | None = base_cwd
-    if invocations:
-        first = invocations[0]
-        pr_number, repo, _ = _parse_merge_args(first["args"], first["pre_repo"])  # type: ignore[arg-type]
-        effective_cwd = first["cwd"]  # type: ignore[assignment]
+    # Verify CI status for every merge invocation (or a single fallback entry on parse failure).
+    targets = invocations or [{"pre_repo": None, "args": [], "cwd": base_cwd}]
+    for inv in targets:
+        pr_number, repo, _ = _parse_merge_args(inv["args"], inv["pre_repo"])  # type: ignore[arg-type]
+        effective_cwd: str | None = inv["cwd"]  # type: ignore[assignment]
+        run_cwd = effective_cwd if (effective_cwd and os.path.isdir(effective_cwd)) else None
+        repo_args = ["-R", repo] if repo else []
 
-    run_cwd = effective_cwd if (effective_cwd and os.path.isdir(effective_cwd)) else None
-    repo_args = ["-R", repo] if repo else []
+        if not pr_number:
+            # No PR number found — might be merging current branch PR
+            # Try to get it from current branch
+            try:
+                result = subprocess.run(
+                    ["gh", "pr", "view", "--json", "number", "--jq", ".number", *repo_args],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    cwd=run_cwd,
+                    timeout=10,
+                )
+                if result.returncode == 0 and result.stdout.strip().isdigit():
+                    pr_number = result.stdout.strip()
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
 
-    if not pr_number:
-        # No PR number found — might be merging current branch PR
-        # Try to get it from current branch
+        if not pr_number:
+            # Can't determine PR number — let this invocation through with a warning
+            print("[ci-merge-gate] WARNING: Could not determine PR number. Skipping CI check.", file=sys.stderr)
+            continue
+
+        # Check CI status
         try:
             result = subprocess.run(
-                ["gh", "pr", "view", "--json", "number", "--jq", ".number", *repo_args],
+                ["gh", "pr", "checks", pr_number, "--json", "name,state,bucket", *repo_args],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
                 cwd=run_cwd,
-                timeout=10,
+                timeout=15,
             )
-            if result.returncode == 0 and result.stdout.strip().isdigit():
-                pr_number = result.stdout.strip()
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
+            print(
+                "[ci-merge-gate] WARNING: Could not check CI status (gh not available or timeout).",
+                file=sys.stderr,
+            )
+            continue
 
-    if not pr_number:
-        # Can't determine PR number — let it through with a warning
-        print("[ci-merge-gate] WARNING: Could not determine PR number. Skipping CI check.", file=sys.stderr)
-        return
+        if result.returncode != 0:
+            # gh pr checks failed — might be no checks configured
+            if "no checks" in result.stderr.lower():
+                continue
+            print(
+                f"[ci-merge-gate] WARNING: Could not fetch CI checks: {result.stderr.strip()}",
+                file=sys.stderr,
+            )
+            continue
 
-    # Check CI status
-    try:
-        result = subprocess.run(
-            ["gh", "pr", "checks", pr_number, "--json", "name,state,bucket", *repo_args],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            cwd=run_cwd,
-            timeout=15,
-        )
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        print(
-            "[ci-merge-gate] WARNING: Could not check CI status (gh not available or timeout).",
-            file=sys.stderr,
-        )
-        return
+        try:
+            checks = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            print("[ci-merge-gate] WARNING: Could not parse CI check results.", file=sys.stderr)
+            continue
 
-    if result.returncode != 0:
-        # gh pr checks failed — might be no checks configured
-        if "no checks" in result.stderr.lower():
-            return
-        print(
-            f"[ci-merge-gate] WARNING: Could not fetch CI checks: {result.stderr.strip()}",
-            file=sys.stderr,
-        )
-        return
+        # bucket field values: pass, fail, pending, skipping, cancel
+        failing = [c for c in checks if c.get("bucket") == "fail"]
+        pending = [c for c in checks if c.get("bucket") == "pending"]
 
-    try:
-        checks = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        print("[ci-merge-gate] WARNING: Could not parse CI check results.", file=sys.stderr)
-        return
+        if failing:
+            names = ", ".join(c["name"] for c in failing)
+            print(f"[ci-merge-gate] BLOCKED: CI checks failing: {names}", file=sys.stderr)
+            print(f"[ci-merge-gate] Fix the failing checks before merging PR #{pr_number}.", file=sys.stderr)
+            record_governance(
+                "approval_requested",
+                hook_name="ci-merge-gate",
+                tool_name="Bash",
+                hook_phase="pre",
+                severity="medium",
+                blocked=True,
+                command=command,
+            )
+            deny_tool_use(
+                "PreToolUse",
+                f"CI checks are failing for PR #{pr_number}: {names}. Fix the failing checks before merging.",
+            )
+            sys.exit(0)
 
-    # bucket field values: pass, fail, pending, skipping, cancel
-    failing = [c for c in checks if c.get("bucket") == "fail"]
-    pending = [c for c in checks if c.get("bucket") == "pending"]
+        if pending:
+            names = ", ".join(c["name"] for c in pending)
+            print(f"[ci-merge-gate] BLOCKED: CI checks still running: {names}", file=sys.stderr)
+            print(f"[ci-merge-gate] Wait for checks to complete before merging PR #{pr_number}.", file=sys.stderr)
+            record_governance(
+                "approval_requested",
+                hook_name="ci-merge-gate",
+                tool_name="Bash",
+                hook_phase="pre",
+                severity="medium",
+                blocked=True,
+                command=command,
+            )
+            deny_tool_use(
+                "PreToolUse",
+                f"CI checks are still running for PR #{pr_number}: {names}. "
+                "Wait for all checks to complete before merging.",
+            )
+            sys.exit(0)
 
-    if failing:
-        names = ", ".join(c["name"] for c in failing)
-        print(f"[ci-merge-gate] BLOCKED: CI checks failing: {names}", file=sys.stderr)
-        print(f"[ci-merge-gate] Fix the failing checks before merging PR #{pr_number}.", file=sys.stderr)
-        record_governance(
-            "approval_requested",
-            hook_name="ci-merge-gate",
-            tool_name="Bash",
-            hook_phase="pre",
-            severity="medium",
-            blocked=True,
-            command=command,
-        )
-        deny_tool_use(
-            "PreToolUse",
-            f"CI checks are failing for PR #{pr_number}: {names}. Fix the failing checks before merging.",
-        )
-        sys.exit(0)
-
-    if pending:
-        names = ", ".join(c["name"] for c in pending)
-        print(f"[ci-merge-gate] BLOCKED: CI checks still running: {names}", file=sys.stderr)
-        print(f"[ci-merge-gate] Wait for checks to complete before merging PR #{pr_number}.", file=sys.stderr)
-        record_governance(
-            "approval_requested",
-            hook_name="ci-merge-gate",
-            tool_name="Bash",
-            hook_phase="pre",
-            severity="medium",
-            blocked=True,
-            command=command,
-        )
-        deny_tool_use(
-            "PreToolUse",
-            f"CI checks are still running for PR #{pr_number}: {names}. "
-            "Wait for all checks to complete before merging.",
-        )
-        sys.exit(0)
-
-    # All checks passed
-    # PreToolUse stdout is protocol-only. Human-readable diagnostics must use
-    # stderr or Codex's adapter will reject an otherwise allowed invocation.
-    print(f"[ci-merge-gate] CI checks passed for PR #{pr_number}. Merge allowed.", file=sys.stderr)
+        # All checks passed
+        # PreToolUse stdout is protocol-only. Human-readable diagnostics must use
+        # stderr or Codex's adapter will reject an otherwise allowed invocation.
+        print(f"[ci-merge-gate] CI checks passed for PR #{pr_number}. Merge allowed.", file=sys.stderr)
 
 
 if __name__ == "__main__":

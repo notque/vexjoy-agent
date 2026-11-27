@@ -161,6 +161,23 @@ def test_heredoc_missing_trailer(tmp_path: Path) -> None:
     assert len(logs) == 1
 
 
+def test_heredoc_with_inner_quotes_and_shell_ops_passes(tmp_path: Path) -> None:
+    """Heredoc bodies containing inner double quotes and `;&|\\n` must not split mid-message."""
+    cmd = 'git commit -m "$(cat <<\'EOF\'\nfix "a | b"; don\'t & split\n\nVerified-By: tests\nEOF\n)"'
+    result = _run(cmd, mode="enforce", tmp_path=tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_heredoc_with_inner_quotes_and_shell_ops_missing_trailer_denied(tmp_path: Path) -> None:
+    """Heredoc bodies with inner quotes/operators still deny when Verified-By is absent."""
+    cmd = 'git commit -m "$(cat <<\'EOF\'\nfix "a | b"; don\'t & split\nEOF\n)"'
+    result = _run(cmd, mode="enforce", session_id="s-heredoc-ops", tmp_path=tmp_path)
+    assert result.returncode == 0
+    out = json.loads(result.stdout)
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
 # --- Multi-line -m ---
 
 

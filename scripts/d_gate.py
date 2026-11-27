@@ -120,9 +120,17 @@ def text_hash(value: str | None) -> str:
     return hashlib.sha256((value or "").strip().encode("utf-8")).hexdigest()[:16]
 
 
+def _user_tag() -> str:
+    getuid = getattr(os, "getuid", None)
+    if callable(getuid):
+        return str(getuid())
+    raw = os.environ.get("USERNAME") or os.environ.get("USER") or "user"
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", raw)[:40] or "user"
+
+
 def receipt_dir() -> Path:
     override = os.environ.get(RECEIPT_DIR_ENV)
-    base = Path(override) if override else Path(tempfile.gettempdir()) / f"vexjoy-d-receipts-{os.getuid()}"
+    base = Path(override) if override else Path(tempfile.gettempdir()) / f"vexjoy-d-receipts-{_user_tag()}"
     return base / re.sub(r"[^A-Za-z0-9_.-]", "_", session_id())[:80]
 
 
@@ -351,7 +359,7 @@ def measure_scope(raw: object, base: Path) -> tuple[int, int]:
                     if not target.is_file():
                         continue
                     real = target.resolve()
-                    if real in seen or "/.git/" in str(real) or not _inside(real, root):
+                    if real in seen or ".git" in real.parts or not _inside(real, root):
                         continue
                     seen.add(real)
                     size += real.stat().st_size
