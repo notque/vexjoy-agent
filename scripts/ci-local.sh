@@ -5,6 +5,7 @@
 # Usage:
 #   bash scripts/ci-local.sh            # lint job only
 #   bash scripts/ci-local.sh --tests    # lint job, then the fast pytest tier
+#   bash scripts/ci-local.sh --all      # lint, routing checks, node tests, then fast pytest
 #
 # Exit: 0 when every step passes, 1 on the first failure.
 # tests/test_ci_local_script.py fails when this list and the workflow differ.
@@ -14,13 +15,16 @@ cd "$(git rev-parse --show-toplevel)"
 PY="${PYTHON:-$(command -v python || command -v python3)}"
 
 RUN_TESTS=0
+RUN_ALL=0
 if [[ $# -gt 0 ]]; then
     case "$1" in
         --tests) RUN_TESTS=1 ;;
+        --all) RUN_ALL=1; RUN_TESTS=1 ;;
         *)
             echo "Usage:"
             echo "  bash scripts/ci-local.sh            # lint job only"
             echo "  bash scripts/ci-local.sh --tests    # lint job, then the fast pytest tier"
+            echo "  bash scripts/ci-local.sh --all      # lint, routing checks, node tests, then fast pytest"
             exit 2
             ;;
     esac
@@ -86,6 +90,18 @@ step '"$PY" scripts/validate-doc-commands.py'
 step '"$PY" scripts/validate-doc-commands.py --scope toolkit'
 step '"$PY" scripts/validate_component_models.py'
 step '"$PY" scripts/validate-workflow-conformance.py'
+
+# --- optional: routing checks and node tests (--all) ---
+if [[ "$RUN_ALL" -eq 1 ]]; then
+    step '"$PY" scripts/routing-benchmark.py --verbose'
+    step '"$PY" scripts/check-routing-drift.py --verbose'
+    step '"$PY" scripts/router-self-audit.py'
+    if command -v node >/dev/null 2>&1; then
+        step 'node --test plugins/jev-auto-compact/tests/*.test.mjs'
+    else
+        echo "warning: node not installed; skipping plugin node tests" >&2
+    fi
+fi
 
 # --- optional: fast pytest tier ---
 if [[ "$RUN_TESTS" -eq 1 ]]; then

@@ -19,8 +19,8 @@ from typing import Dict, List, Optional, Tuple
 try:
     from github import Github, GithubException
 except ImportError:
-    print("Error: PyGithub not installed. Run: pip install PyGithub")
-    sys.exit(1)
+    Github = None  # type: ignore[assignment]
+    GithubException = Exception  # type: ignore[assignment,misc]
 
 
 # Imperative keywords that indicate coding standards
@@ -49,10 +49,28 @@ IMPERATIVE_KEYWORDS = [
 ]
 
 
+def _comment_user_login(comment) -> Optional[str]:
+    """Safely extract user login from a PyGithub comment or dict (handles deleted users)."""
+    if isinstance(comment, dict):
+        return (comment.get("user") or {}).get("login")
+    user = getattr(comment, "user", None)
+    return getattr(user, "login", None) if user is not None else None
+
+
+def _comment_body(comment) -> str:
+    """Safely extract body text from a PyGithub comment or dict."""
+    if isinstance(comment, dict):
+        return comment.get("body") or ""
+    return getattr(comment, "body", None) or ""
+
+
 class PRMiner:
     """Mines GitHub PRs for tribal knowledge"""
 
     def __init__(self, github_token: str):
+        if Github is None:
+            print("Error: PyGithub not installed. Run: pip install PyGithub")
+            sys.exit(1)
         self.github = Github(github_token)
         self.interactions = []
         self.stats = {"prs_analyzed": 0, "comments_found": 0, "interactions_extracted": 0, "api_calls": 0}
@@ -103,11 +121,11 @@ class PRMiner:
                     self.stats["comments_found"] += 1
 
                     # Reviewer filter
-                    if reviewer_filter and comment.user.login != reviewer_filter:
+                    if reviewer_filter and _comment_user_login(comment) != reviewer_filter:
                         continue
 
                     # Check for imperative keywords (skip if all_comments flag is set)
-                    if not all_comments and not self._has_imperative(comment.body):
+                    if not all_comments and not self._has_imperative(_comment_body(comment)):
                         continue
 
                     # Extract interaction
@@ -128,9 +146,9 @@ class PRMiner:
 
         print(f"\n✓ {repo_name}: Analyzed {self.stats['prs_analyzed']} PRs")
 
-    def _has_imperative(self, text: str) -> bool:
+    def _has_imperative(self, text: Optional[str]) -> bool:
         """Check if comment contains imperative keywords"""
-        text_lower = text.lower()
+        text_lower = (text or "").lower()
         return any(keyword in text_lower for keyword in IMPERATIVE_KEYWORDS)
 
     def _extract_interaction(self, pr, comment) -> Optional[Dict]:
@@ -147,11 +165,11 @@ class PRMiner:
                 "pr_number": pr.number,
                 "pr_title": pr.title,
                 "pr_url": pr.html_url,
-                "author": pr.user.login,
-                "reviewer": comment.user.login,
+                "author": _comment_user_login(pr) or "ghost",
+                "reviewer": _comment_user_login(comment) or "ghost",
                 "file": comment.path,
                 "line": comment.original_line or comment.line,
-                "comment_text": comment.body,
+                "comment_text": _comment_body(comment),
                 "diff_hunk": comment.diff_hunk,
                 "code_before": code_before,
                 "code_after": code_after,
@@ -270,7 +288,7 @@ class PRMiner:
         # Keyword frequency
         keyword_counts = {}
         for interaction in self.interactions:
-            text = interaction["comment_text"].lower()
+            text = (interaction.get("comment_text") or "").lower()
             for keyword in IMPERATIVE_KEYWORDS:
                 if keyword in text:
                     keyword_counts[keyword] = keyword_counts.get(keyword, 0) + 1
@@ -309,8 +327,8 @@ Examples:
         """,
     )
 
-    parser.add_argument("repos", help="Repository name(s) (owner/repo or repo1,repo2)")
-    parser.add_argument("output", help="Output JSON file")
+    parser.add_argument("repos", nargs="?", help="Repository name(s) (owner/repo or repo1,repo2)")
+    parser.add_argument("output", nargs="?", help="Output JSON file")
     parser.add_argument("--limit", type=int, default=50, help="Max PRs per repo (default: 50)")
     parser.add_argument("--since", help="Only PRs updated since date (YYYY-MM-DD)")
     parser.add_argument("--reviewer", help="Filter by specific reviewer")
@@ -319,6 +337,9 @@ Examples:
     parser.add_argument("--check-auth", action="store_true", help="Check GitHub authentication")
 
     args = parser.parse_args()
+
+    if not args.check_auth and (not args.repos or not args.output):
+        parser.error("repos and output are required unless --check-auth is specified")
 
     # Get GitHub token
     token = get_github_token()
@@ -329,6 +350,9 @@ Examples:
 
     # Check authentication
     if args.check_auth:
+        if Github is None:
+            print("Error: PyGithub not installed. Run: pip install PyGithub")
+            sys.exit(1)
         try:
             g = Github(token)
             user = g.get_user()

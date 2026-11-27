@@ -15,36 +15,50 @@ export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 LOG_DIR="$REPO_DIR/cron-logs/kb-compile"
-LOCKFILE="/tmp/kb-compile.lock"
+LOCKFILE="$LOG_DIR/.kb-compile.lock"
 MAX_BUDGET="${MAX_BUDGET_USD:-3.00}"
 SPECIFIC_TOPIC=""
 
-# Cleanup function: release lock FD and remove lockfile on any exit
+# Cleanup function: release lock FD on any exit (never unlink a flock file)
 cleanup() {
-    exec 9>&- 2>/dev/null
-    rm -f "$LOCKFILE"
+    exec 9>&- 2>/dev/null || true
 }
 
 # Parse args
-for arg in "$@"; do
-    case "$arg" in
+while [[ $# -gt 0 ]]; do
+    case "$1" in
         --topic)
-            shift
-            SPECIFIC_TOPIC="${1:-}"
-            shift
+            if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                echo "ERROR: --topic requires a topic name" >&2
+                exit 1
+            fi
+            SPECIFIC_TOPIC="$2"
+            shift 2
             ;;
         --topic=*)
-            SPECIFIC_TOPIC="${arg#--topic=}"
+            SPECIFIC_TOPIC="${1#--topic=}"
+            if [[ -z "$SPECIFIC_TOPIC" ]]; then
+                echo "ERROR: --topic requires a topic name" >&2
+                exit 1
+            fi
+            shift
             ;;
         *)
-            echo "Unknown arg: $arg" >&2
+            echo "Unknown arg: $1" >&2
             echo "Usage: $0 [--topic TOPIC]" >&2
             exit 1
             ;;
     esac
 done
+
+if [[ -n "$SPECIFIC_TOPIC" ]]; then
+    if [[ ! "$SPECIFIC_TOPIC" =~ ^[A-Za-z0-9._-]+$ || "$SPECIFIC_TOPIC" == "." || "$SPECIFIC_TOPIC" == ".." ]]; then
+        echo "ERROR: Invalid topic name '$SPECIFIC_TOPIC'" >&2
+        exit 1
+    fi
+fi
 
 # Create log directory
 mkdir -p "$LOG_DIR"

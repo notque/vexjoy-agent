@@ -51,9 +51,20 @@ def list_templates() -> list[str]:
     return names
 
 
+def _resolve_saved_path(name: str, suffix: str) -> Path:
+    """Resolve a saved template file inside SAVED_DIR, rejecting path traversal."""
+    if not name or "/" in name or "\\" in name or ".." in Path(name).parts:
+        _fail(f"invalid template name '{name}' (must stay inside {SAVED_DIR})", 2)
+    base = SAVED_DIR.resolve()
+    target = (base / f"{name}{suffix}").resolve()
+    if not target.is_relative_to(base) or target == base:
+        _fail(f"invalid template name '{name}' (escapes {SAVED_DIR})", 2)
+    return target
+
+
 def load_manifest(name: str) -> dict:
     """Load and return the slot manifest for a template."""
-    manifest_path = SAVED_DIR / f"{name}.slots.json"
+    manifest_path = _resolve_saved_path(name, ".slots.json")
     if not manifest_path.exists():
         _fail(f"no slot manifest for template '{name}' at {manifest_path}", 2)
     try:
@@ -77,7 +88,7 @@ def fill_template(name: str, values: dict[str, str]) -> str:
 
     Exits (non-zero) on any slot validation failure.
     """
-    html_path = SAVED_DIR / f"{name}.html"
+    html_path = _resolve_saved_path(name, ".html")
     if not html_path.exists():
         _fail(f"template '{name}' not found at {html_path}", 2)
 

@@ -82,9 +82,13 @@ def main():
 
     # Check skill files
     print("\nChecking skill files:")
-    check_file(skill_dir / "SKILL.md", "SKILL.md")
-    check_file(skill_dir / "scripts" / "miner.py", "miner.py")
-    check_file(skill_dir / "references", "references directory")
+    for path, desc in (
+        (skill_dir / "SKILL.md", "SKILL.md"),
+        (skill_dir / "scripts" / "miner.py", "miner.py"),
+        (skill_dir / "references", "references directory"),
+    ):
+        if not check_file(path, desc):
+            all_good = False
 
     # Summary
     print("\n" + "=" * 70)

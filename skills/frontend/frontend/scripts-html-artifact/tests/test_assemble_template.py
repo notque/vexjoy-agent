@@ -74,7 +74,12 @@ class TestAssembleTemplateDirect:
 
     def test_html_entities_in_title(self) -> None:
         html = assemble_template("spec", "A & B <comparison>")
-        assert "<title>A & B <comparison></title>" in html
+        assert "<title>A &amp; B &lt;comparison&gt;</title>" in html
+
+    def test_title_escapes_script_tag_breakout(self) -> None:
+        html = assemble_template("spec", "</title><script>alert(1)</script>")
+        assert "</title><script>alert(1)</script>" not in html
+        assert "&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;" in html
 
     # --- New shape tests ---
 

@@ -190,6 +190,9 @@ export function validateAgentName(name, label = "agentType") {
   if (typeof name !== "string") {
     throw new TypeError(`${label}: agent name must be a string.`);
   }
+  if (BUILTIN_AGENTS.has(name)) {
+    return name;
+  }
   if (!NAME_RE.test(name)) {
     throw new TypeError(`${label}: invalid agent name ${JSON.stringify(name)}.`);
   }

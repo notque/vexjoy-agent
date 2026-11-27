@@ -286,7 +286,8 @@ def main() -> int:
         return 1
 
     data = build_data(workspace)
-    html = read_text_safe(template).replace("__DATA_PLACEHOLDER__", json.dumps(data, indent=2))
+    safe_json = json.dumps(data, indent=2).replace("<", r"\u003c")
+    html = read_text_safe(template).replace("__DATA_PLACEHOLDER__", safe_json)
     output.write_text(html, encoding="utf-8")
 
     print(f"Report: {output}")

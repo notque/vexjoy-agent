@@ -604,3 +604,126 @@ def test_fake_or_mismatched_execution_not_detected(tmp_path, body):
 
     result = _run(repo)
     assert result.returncode == 1, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize(
+    "assertion",
+    [
+        "assert result.returncode > 0",
+        "assert 0 < result.returncode",
+        "assert result.returncode >= 1",
+        "assert 1 <= result.returncode",
+    ],
+)
+def test_returncode_gt_zero_and_gte_one_detected(tmp_path, assertion):
+    repo = tmp_path / "repo"
+    _make_workflow(repo, [{"run": "python scripts/validate-gt.py"}])
+    _make_allowlist(repo)
+    _make_test_file(
+        repo / "scripts" / "tests",
+        "validate-gt.py",
+        f"""\
+        import subprocess, sys
+        def test_rejects():
+            result = subprocess.run([sys.executable, "x.py"], capture_output=True)
+            {assertion}
+        """,
+    )
+
+    result = _run(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize(
+    "assertion",
+    [
+        "assert result.returncode >= 0",
+        "assert result.returncode > -1",
+        "assert 0 <= result.returncode",
+    ],
+)
+def test_returncode_gte_zero_not_detected(tmp_path, assertion):
+    """Comparisons that still allow returncode == 0 are not negative controls."""
+    repo = tmp_path / "repo"
+    _make_workflow(repo, [{"run": "python scripts/validate-nonneg.py"}])
+    _make_allowlist(repo)
+    _make_test_file(
+        repo / "scripts" / "tests",
+        "validate-nonneg.py",
+        f"""\
+        import subprocess, sys
+        def test_allows_zero():
+            result = subprocess.run([sys.executable, "x.py"], capture_output=True)
+            {assertion}
+        """,
+    )
+
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        """\
+        import subprocess, sys
+        from pathlib import Path
+        SCRIPT = Path("scripts/validate-helper.py")
+        def _run_target():
+            return subprocess.run([sys.executable, str(SCRIPT)], capture_output=True)
+        def test_rejects():
+            result = _run_target()
+            assert result.returncode != 0
+        """,
+        """\
+        import subprocess, sys
+        from pathlib import Path
+        SCRIPT = Path("scripts/validate-helper.py")
+        VALIDATOR = SCRIPT
+        def _run_json():
+            proc = subprocess.run([sys.executable, str(VALIDATOR)], capture_output=True)
+            return proc.returncode, {}
+        def test_rejects():
+            rc, _ = _run_json()
+            assert rc > 0
+        """,
+        """\
+        import subprocess, sys
+        from pathlib import Path
+        def _run_local(repo: Path):
+            script = repo / "scripts" / "validate-helper.py"
+            return subprocess.run([sys.executable, str(script)], capture_output=True)
+        def test_rejects(tmp_path):
+            assert _run_local(tmp_path).returncode == 1
+        """,
+    ],
+)
+def test_single_hop_helper_detected(tmp_path, body):
+    repo = tmp_path / "repo"
+    _make_workflow(repo, [{"run": "python scripts/validate-helper.py"}])
+    _make_allowlist(repo)
+    _make_test_file(repo / "scripts" / "tests", "validate-helper.py", body)
+
+    result = _run(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_single_hop_helper_running_wrong_script_not_detected(tmp_path):
+    repo = tmp_path / "repo"
+    _make_workflow(repo, [{"run": "python scripts/validate-right.py"}])
+    _make_allowlist(repo)
+    _make_test_file(
+        repo / "scripts" / "tests",
+        "validate-right.py",
+        """\
+        import subprocess, sys
+        def _run_other():
+            return subprocess.run([sys.executable, "scripts/validate-wrong.py"], capture_output=True)
+        def test_wrong():
+            result = _run_other()
+            assert result.returncode == 1
+        """,
+    )
+
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr

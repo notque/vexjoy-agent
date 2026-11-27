@@ -113,11 +113,14 @@ def aggregate(workspace: Path, skill_name: str) -> dict:
         # (eval dirs may contain only one grading.json; paired data comes from timing files)
         without_pass_rate = None
         paired_grading_path = eval_dir / "grading_without.json"
-        if paired_grading_path.exists():
+        if config == "with_skill" and paired_grading_path.exists():
             try:
                 paired = json.loads(paired_grading_path.read_text())
                 without_pass_rate = float(paired.get("pass_rate", 0.0))
-            except (json.JSONDecodeError, OSError):
+                without_skill_pass_rates.append(without_pass_rate)
+                without_skill_tokens.append(float(without_timing.get("tokens_total", 0)))
+                without_skill_durations.append(float(without_timing.get("duration_seconds", 0)))
+            except (json.JSONDecodeError, OSError, TypeError, ValueError):
                 pass
 
         eval_results.append(

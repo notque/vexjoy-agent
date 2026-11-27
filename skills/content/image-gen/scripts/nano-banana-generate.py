@@ -34,23 +34,38 @@ Requires: pip install google-genai pillow
 Env: GEMINI_API_KEY (or GOOGLE_API_KEY for auto-detection)
 """
 
+from __future__ import annotations
+
 import argparse
+import io
 import json
 import os
 import sys
 import time
 from pathlib import Path
 
-try:
-    import io
+genai = None
+types = None
+Image = None
 
-    from google import genai
-    from google.genai import types
-    from PIL import Image
-except ImportError as e:
-    print(f"Missing dependency: {e}")
-    print("Install with: pip install google-genai pillow")
-    sys.exit(1)
+
+def _ensure_deps() -> None:
+    """Import google-genai and Pillow on demand so --help works without them."""
+    global genai, types, Image
+    if genai is not None and types is not None and Image is not None:
+        return
+    try:
+        from google import genai as _genai
+        from google.genai import types as _types
+        from PIL import Image as _Image
+    except ImportError as e:
+        print(f"Missing dependency: {e}")
+        print("Install with: pip install google-genai pillow")
+        sys.exit(1)
+    genai = _genai
+    types = _types
+    Image = _Image
+
 
 VALID_MODELS = {
     "flash": "gemini-2.5-flash-image",
@@ -60,8 +75,20 @@ VALID_MODELS = {
 VALID_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
 
 
+def _safe_batch_path(base_dir: Path, filename: str) -> Path | None:
+    """Resolve *filename* inside *base_dir*, returning None if it escapes."""
+    if not filename or "/" in filename or "\\" in filename or ".." in Path(filename).parts:
+        return None
+    base_resolved = base_dir.resolve()
+    target = (base_resolved / filename).resolve()
+    if not target.is_relative_to(base_resolved) or target == base_resolved:
+        return None
+    return target
+
+
 def get_client() -> genai.Client:
     """Create Gemini client, preferring GEMINI_API_KEY."""
+    _ensure_deps()
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         print("ERROR: Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable")
@@ -144,7 +171,9 @@ def generate_single(
         return False
 
     # Extract image from response
-    for part in candidate.content.parts:
+    content = getattr(candidate, "content", None)
+    parts = (getattr(content, "parts", None) or []) if content is not None else []
+    for part in parts:
         if part.inline_data is not None:
             image_data = part.inline_data.data
             try:
@@ -281,12 +310,23 @@ def cmd_batch(args: argparse.Namespace) -> int:
             continue
 
         item_id = item["id"]
+        if not isinstance(item_id, str) or not item_id or _safe_batch_path(output_dir, f"{item_id}.png") is None:
+            print(f"ERROR: Unsafe manifest item id {item_id!r} (escapes output directory)")
+            failed += args.variants
+            failed_ids.append(str(item_id))
+            continue
+
         prompt = item["prompt"]
         reference = Path(item["reference"]) if item.get("reference") else None
 
         for v in range(1, args.variants + 1):
             suffix = f"_v{v}" if args.variants > 1 else ""
-            out_path = output_dir / f"{item_id}{suffix}.png"
+            out_path = _safe_batch_path(output_dir, f"{item_id}{suffix}.png")
+            if out_path is None:
+                print(f"ERROR: Unsafe output path for item id {item_id!r}")
+                failed += 1
+                failed_ids.append(f"{item_id}{suffix}")
+                continue
 
             if args.skip_existing and out_path.exists():
                 skipped += 1
@@ -295,7 +335,12 @@ def cmd_batch(args: argparse.Namespace) -> int:
 
             original_path = None
             if originals_dir:
-                original_path = originals_dir / f"{item_id}{suffix}_original.png"
+                original_path = _safe_batch_path(originals_dir, f"{item_id}{suffix}_original.png")
+                if original_path is None:
+                    print(f"ERROR: Unsafe originals path for item id {item_id!r}")
+                    failed += 1
+                    failed_ids.append(f"{item_id}{suffix}")
+                    continue
 
             success = generate_single(
                 client,

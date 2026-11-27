@@ -143,5 +143,18 @@ def test_bad_slots_json_exits_2() -> None:
     assert r.returncode == 2
 
 
+@pytest.mark.parametrize("bad_name", ["../outside", "../../etc/passwd", "sub/name", r"..\outside"])
+def test_path_traversal_template_name_rejected(tmp_path: Path, bad_name: str) -> None:
+    slots = tmp_path / "slots.json"
+    slots.write_text("{}", encoding="utf-8")
+    r = subprocess.run(
+        [sys.executable, str(SCRIPT), "--template", bad_name, "--slots", str(slots)],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 2
+    assert "invalid template name" in r.stderr
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))

@@ -160,7 +160,7 @@ Use the pr-review-toolkit plugin agents (they're already available):
 - Launch all agents simultaneously via Agent tool
 - Faster for comprehensive review
 
-Each review agent writes its findings to a file (e.g., `pr-review-findings.md`) before returning, so context compaction cannot lose review output.
+Each review agent writes its findings to `/tmp/pr-review-findings-<name>.md` (outside the repo, so findings never land in the working tree) before returning, so context compaction cannot lose review output.
 
 ### Phase 5: Aggregate Results
 

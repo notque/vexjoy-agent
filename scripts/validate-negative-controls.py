@@ -117,30 +117,55 @@ def _has_negative_test(test_path: Path, script_name: str) -> bool:
 
     target_names = _target_path_names(tree, script_name)
     target_modules = _target_module_names(tree, script_name)
+    target_helpers = _target_helper_returns(tree, script_name, target_names, target_modules)
 
     for test in (n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))):
         if not test.name.startswith("test_") or _is_skipped_test(test):
             continue
+        local_targets = _local_target_path_names(test, script_name, target_names)
         executed: set[str] = set()
         for node in ast.walk(test):
             if isinstance(node, (ast.Assign, ast.AnnAssign)):
                 value = node.value
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                 target_call = value if isinstance(value, ast.Call) else None
-                if (
+                is_attr_rc = (
                     isinstance(value, ast.Attribute)
                     and value.attr == "returncode"
                     and isinstance(value.value, ast.Call)
-                ):
+                )
+                if is_attr_rc:
                     target_call = value.value
                 if target_call is not None and _call_executes_target(
-                    target_call, script_name, target_names, target_modules
+                    target_call, script_name, local_targets, target_modules
                 ):
-                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                     executed.update(t.id for t in targets if isinstance(t, ast.Name))
+                elif (
+                    target_call is not None
+                    and isinstance(target_call.func, ast.Name)
+                    and target_call.func.id in target_helpers
+                ):
+                    kind = target_helpers[target_call.func.id]
+                    if kind in {"proc", "rc"} or (is_attr_rc and kind == "proc"):
+                        executed.update(t.id for t in targets if isinstance(t, ast.Name))
+                    elif isinstance(kind, tuple) and not is_attr_rc:
+                        _, idx = kind
+                        for t in targets:
+                            if isinstance(t, (ast.Tuple, ast.List)) and idx < len(t.elts):
+                                elem = t.elts[idx]
+                                if isinstance(elem, ast.Name):
+                                    executed.add(elem.id)
 
         for node in ast.walk(test):
             if isinstance(node, ast.Assert) and isinstance(node.test, ast.Compare):
-                if _is_negative_returncode_compare(node.test, executed):
+                if _is_negative_returncode_compare(
+                    node.test,
+                    executed,
+                    script_name=script_name,
+                    target_names=local_targets,
+                    target_modules=target_modules,
+                    target_helpers=target_helpers,
+                ):
                     return True
 
             if isinstance(node, ast.With):
@@ -151,7 +176,10 @@ def _has_negative_test(test_path: Path, script_name: str) -> bool:
                         continue
                     if any(
                         isinstance(child, ast.Call)
-                        and _call_executes_target(child, script_name, target_names, target_modules)
+                        and (
+                            _call_executes_target(child, script_name, local_targets, target_modules)
+                            or (isinstance(child.func, ast.Name) and child.func.id in target_helpers)
+                        )
                         for stmt in node.body
                         for child in ast.walk(stmt)
                     ):
@@ -175,18 +203,135 @@ def _is_skipped_test(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     )
 
 
-def _target_path_names(tree: ast.AST, script_name: str) -> set[str]:
-    """Return variables statically assigned a path to the exact target script."""
-    names: set[str] = set()
-    for node in getattr(tree, "body", []):
+def _collect_target_path_names(stmts: list[ast.stmt], script_name: str, seed: set[str] | None = None) -> set[str]:
+    """Return variables assigned a static path (or alias) to the exact target script."""
+    names: set[str] = set(seed) if seed else set()
+    aliases: list[tuple[str, str]] = []
+    for node in stmts:
         if not isinstance(node, (ast.Assign, ast.AnnAssign)):
             continue
         value = node.value
-        if _static_path_tail(value) != script_name:
+        if value is None:
             continue
         targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        names.update(target.id for target in targets if isinstance(target, ast.Name))
+        target_ids = [target.id for target in targets if isinstance(target, ast.Name)]
+        if not target_ids:
+            continue
+        if _static_path_tail(value) == script_name:
+            names.update(target_ids)
+        elif isinstance(value, ast.Name):
+            for tid in target_ids:
+                aliases.append((tid, value.id))
+
+    changed = True
+    while changed:
+        changed = False
+        for tid, src in aliases:
+            if src in names and tid not in names:
+                names.add(tid)
+                changed = True
     return names
+
+
+def _target_path_names(tree: ast.AST, script_name: str) -> set[str]:
+    """Return module-level variables statically assigned a path to the exact target script."""
+    return _collect_target_path_names(list(getattr(tree, "body", [])), script_name)
+
+
+def _local_target_path_names(
+    func: ast.FunctionDef | ast.AsyncFunctionDef,
+    script_name: str,
+    module_names: set[str],
+) -> set[str]:
+    """Return module and function-local variables bound to the target script path."""
+    return _collect_target_path_names(list(func.body), script_name, seed=module_names)
+
+
+def _helper_expr_kind(
+    expr: ast.AST,
+    script_name: str,
+    local_targets: set[str],
+    target_modules: set[str],
+    proc_vars: set[str],
+    rc_vars: set[str],
+) -> str | None:
+    """Classify a return expression inside a helper as returning a proc or returncode."""
+    if isinstance(expr, ast.Call) and _call_executes_target(expr, script_name, local_targets, target_modules):
+        return "proc"
+    if isinstance(expr, ast.Name):
+        if expr.id in proc_vars:
+            return "proc"
+        if expr.id in rc_vars:
+            return "rc"
+    if isinstance(expr, ast.Attribute) and expr.attr == "returncode":
+        if (
+            isinstance(expr.value, ast.Call)
+            and _call_executes_target(expr.value, script_name, local_targets, target_modules)
+        ) or (isinstance(expr.value, ast.Name) and expr.value.id in proc_vars):
+            return "rc"
+    return None
+
+
+def _target_helper_returns(
+    tree: ast.AST,
+    script_name: str,
+    target_names: set[str],
+    target_modules: set[str],
+) -> dict[str, str | tuple[str, int]]:
+    """Find single-hop module-local helper functions that execute the target script.
+
+    Returns a mapping from helper function name to its return shape:
+      - ``"proc"``: returns the ``subprocess.CompletedProcess`` from executing the target
+      - ``"rc"``: returns ``.returncode`` directly
+      - ``("tuple_rc", idx)``: returns a tuple whose element ``idx`` is ``.returncode``
+      - ``("tuple_proc", idx)``: returns a tuple whose element ``idx`` is the process result
+    """
+    helpers: dict[str, str | tuple[str, int]] = {}
+    for node in getattr(tree, "body", []):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if node.name.startswith("test_"):
+            continue
+        local_targets = _local_target_path_names(node, script_name, target_names)
+        proc_vars: set[str] = set()
+        rc_vars: set[str] = set()
+
+        for stmt in ast.walk(node):
+            if isinstance(stmt, (ast.Assign, ast.AnnAssign)) and stmt.value is not None:
+                val = stmt.value
+                targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
+                target_ids = [t.id for t in targets if isinstance(t, ast.Name)]
+                if not target_ids:
+                    continue
+                if isinstance(val, ast.Call) and _call_executes_target(val, script_name, local_targets, target_modules):
+                    proc_vars.update(target_ids)
+                elif isinstance(val, ast.Attribute) and val.attr == "returncode":
+                    if (
+                        isinstance(val.value, ast.Call)
+                        and _call_executes_target(val.value, script_name, local_targets, target_modules)
+                    ) or (isinstance(val.value, ast.Name) and val.value.id in proc_vars):
+                        rc_vars.update(target_ids)
+
+        for stmt in ast.walk(node):
+            if not isinstance(stmt, ast.Return) or stmt.value is None:
+                continue
+            direct = _helper_expr_kind(stmt.value, script_name, local_targets, target_modules, proc_vars, rc_vars)
+            if direct is not None:
+                helpers[node.name] = direct
+                break
+            if isinstance(stmt.value, ast.Tuple):
+                for idx, elt in enumerate(stmt.value.elts):
+                    ek = _helper_expr_kind(elt, script_name, local_targets, target_modules, proc_vars, rc_vars)
+                    if ek == "rc":
+                        helpers[node.name] = ("tuple_rc", idx)
+                        break
+                    if ek == "proc":
+                        helpers[node.name] = ("tuple_proc", idx)
+                        break
+                if node.name in helpers:
+                    break
+
+    return helpers
 
 
 def _static_path_tail(node: ast.AST) -> str | None:
@@ -295,53 +440,124 @@ def _is_pytest_raises_nonzero_systemexit(node: ast.Call) -> bool:
     return False
 
 
-def _is_negative_returncode_compare(node: ast.Compare, executed: set[str]) -> bool:
+def _is_negative_returncode_compare(
+    node: ast.Compare,
+    executed: set[str],
+    *,
+    script_name: str = "",
+    target_names: set[str] | None = None,
+    target_modules: set[str] | None = None,
+    target_helpers: dict[str, str | tuple[str, int]] | None = None,
+) -> bool:
     """Check if a Compare node asserts a non-zero exit code.
 
     Matches:
       - <expr>.returncode == 1  (or any non-zero int)
       - <expr>.returncode != 0
-      - rc == 1 / rc != 0 (where rc is a simple name)
-      - result.returncode == 1
+      - <expr>.returncode > 0 / >= 1
+      - rc == 1 / rc != 0 / rc > 0 (where rc is bound to an executed target)
     """
     # We check left and comparators for returncode-shaped expressions.
     left = node.left
     for op, comparator in zip(node.ops, node.comparators):
-        if _is_returncode_nonzero(left, op, comparator, executed):
+        if _is_returncode_nonzero(
+            left,
+            op,
+            comparator,
+            executed,
+            script_name=script_name,
+            target_names=target_names,
+            target_modules=target_modules,
+            target_helpers=target_helpers,
+        ):
             return True
-        # Reversed comparison: `1 == result.returncode`
-        if _is_returncode_nonzero(comparator, _flip_op(op), left, executed):
+        # Reversed comparison: `1 == result.returncode` or `0 < result.returncode`
+        if _is_returncode_nonzero(
+            comparator,
+            _flip_op(op),
+            left,
+            executed,
+            script_name=script_name,
+            target_names=target_names,
+            target_modules=target_modules,
+            target_helpers=target_helpers,
+        ):
             return True
     return False
 
 
-def _is_returncode_attr_or_rc_name(node: ast.AST, executed: set[str]) -> bool:
-    """True if node is `<something>.returncode` or a Name like `rc`."""
+def _is_returncode_attr_or_rc_name(
+    node: ast.AST,
+    executed: set[str],
+    *,
+    script_name: str = "",
+    target_names: set[str] | None = None,
+    target_modules: set[str] | None = None,
+    target_helpers: dict[str, str | tuple[str, int]] | None = None,
+) -> bool:
+    """True if node is `<executed>.returncode`, `<call>.returncode`, or an executed Name."""
     if isinstance(node, ast.Attribute) and node.attr == "returncode":
-        return isinstance(node.value, ast.Name) and node.value.id in executed
+        if isinstance(node.value, ast.Name) and node.value.id in executed:
+            return True
+        if isinstance(node.value, ast.Call):
+            if script_name and _call_executes_target(
+                node.value, script_name, target_names or set(), target_modules or set()
+            ):
+                return True
+            if (
+                target_helpers
+                and isinstance(node.value.func, ast.Name)
+                and target_helpers.get(node.value.func.id) == "proc"
+            ):
+                return True
+        return False
     if isinstance(node, ast.Name) and node.id in executed:
+        return True
+    if (
+        isinstance(node, ast.Call)
+        and target_helpers
+        and isinstance(node.func, ast.Name)
+        and target_helpers.get(node.func.id) == "rc"
+    ):
         return True
     return False
 
 
-def _is_returncode_nonzero(left: ast.AST, op: ast.cmpop, right: ast.AST, executed: set[str]) -> bool:
+def _is_returncode_nonzero(
+    left: ast.AST,
+    op: ast.cmpop,
+    right: ast.AST,
+    executed: set[str],
+    *,
+    script_name: str = "",
+    target_names: set[str] | None = None,
+    target_modules: set[str] | None = None,
+    target_helpers: dict[str, str | tuple[str, int]] | None = None,
+) -> bool:
     """True if `left <op> right` asserts a non-zero exit code."""
-    if not _is_returncode_attr_or_rc_name(left, executed):
+    if not _is_returncode_attr_or_rc_name(
+        left,
+        executed,
+        script_name=script_name,
+        target_names=target_names,
+        target_modules=target_modules,
+        target_helpers=target_helpers,
+    ):
         return False
 
-    if not isinstance(right, ast.Constant) or not isinstance(right.value, int):
+    if not isinstance(right, ast.Constant) or not isinstance(right.value, int) or isinstance(right.value, bool):
         return False
 
     value = right.value
 
-    # returncode == <non-zero> or returncode >= 1
+    # returncode == <non-zero>
     if isinstance(op, ast.Eq) and value != 0:
         return True
     # returncode != 0
     if isinstance(op, ast.NotEq) and value == 0:
         return True
-    # returncode > 0
-    if isinstance(op, (ast.Gt, ast.GtE)) and value >= 1:
+    # returncode > 0 or returncode >= 1
+    if (isinstance(op, ast.Gt) and value >= 0) or (isinstance(op, ast.GtE) and value >= 1):
         return True
 
     return False

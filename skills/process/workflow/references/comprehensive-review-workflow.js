@@ -189,6 +189,15 @@ const FIX_SCHEMA = {
 // --- Helpers ------------------------------------------------------------------
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+const SEVERITY_DOWNGRADE = { critical: "high", high: "medium", medium: "low", low: "low" };
+
+function dedupeKey(f) {
+  return `${f.location}::${f.title}`;
+}
+
+function downgradeSeverity(severity) {
+  return SEVERITY_DOWNGRADE[severity] ?? severity;
+}
 
 function collectFindings(waveOutputs) {
   // waveOutputs: array of (typed wave result | null from a failed barrier slot).
@@ -209,7 +218,7 @@ function dedupeFindings(findings) {
   // Same file:line + title -> keep the higher severity, merge reviewer credit.
   const byKey = new Map();
   for (const f of findings) {
-    const key = `${f.location}::${f.title}`;
+    const key = dedupeKey(f);
     const prior = byKey.get(key);
     if (!prior) {
       byKey.set(key, { ...f, reviewers: [f.reviewer].filter(Boolean) });
@@ -376,12 +385,41 @@ export default async function run({
       }),
     ),
   );
-  const dismissed = new Set(
-    verdicts
-      .filter((v) => v && v.disposition === "DISMISS")
-      .map((v) => v.finding_title),
-  );
-  const verified = findings.filter((f) => !dismissed.has(f.title));
+  const dismissed = new Set();
+  const challenged = [];
+  const verified = [];
+  for (let i = 0; i < findings.length; i++) {
+    const f = findings[i];
+    const v = verdicts[i];
+    const key = dedupeKey(f);
+    if (v && v.disposition === "DISMISS") {
+      dismissed.add(key);
+      continue;
+    }
+    if (v && v.disposition === "DOWNGRADE") {
+      verified.push({
+        ...f,
+        severity: downgradeSeverity(f.severity),
+        verification: { disposition: "DOWNGRADE", rationale: v.rationale || "" },
+      });
+      continue;
+    }
+    if (v && v.disposition === "CHALLENGE") {
+      challenged.push(key);
+      verified.push({
+        ...f,
+        challenged: true,
+        verification: { disposition: "CHALLENGE", rationale: v.rationale || "" },
+      });
+      continue;
+    }
+    verified.push(
+      v
+        ? { ...f, verification: { disposition: v.disposition, rationale: v.rationale || "" } }
+        : f,
+    );
+  }
+  verified.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
   // The fix gate: stop before any edit unless the caller passed implement: true
   // with a non-default work branch. The verified findings are the report.
@@ -393,6 +431,7 @@ export default async function run({
       verified_findings: verified.length,
       verified,
       dismissed: [...dismissed],
+      challenged,
       review_only: true,
       implement_requested: implement === true,
       fix_blocked: fixBlocked,
@@ -443,6 +482,7 @@ export default async function run({
     total_findings: findings.length,
     verified_findings: verified.length,
     dismissed: [...dismissed],
+    challenged,
     review_only: false,
     implement_requested: true,
     fix_blocked: null,

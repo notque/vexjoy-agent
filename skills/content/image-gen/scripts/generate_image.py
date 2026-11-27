@@ -151,7 +151,8 @@ def generate_image(
     retries: int = 3,
 ) -> bool:
     """Generate an image using Gemini API."""
-    client = genai.Client()
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    client = genai.Client(api_key=api_key) if api_key else genai.Client()
 
     print("Generating image...")
     print(f"  Model: {model}")
@@ -173,7 +174,8 @@ def generate_image(
                 print("  ERROR: No candidates in response")
                 return False
 
-            parts = getattr(response.candidates[0].content, "parts", None)
+            content = getattr(response.candidates[0], "content", None)
+            parts = getattr(content, "parts", None) or [] if content is not None else []
             if not parts:
                 print("  ERROR: No parts in response")
                 return False
@@ -344,9 +346,9 @@ Models:
     _check_imports()
 
     # Validate API key
-    if not os.environ.get("GEMINI_API_KEY"):
-        print("ERROR: GEMINI_API_KEY environment variable not set")
-        print("Set with: export GEMINI_API_KEY='your-api-key'")
+    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
+        print("ERROR: GEMINI_API_KEY or GOOGLE_API_KEY environment variable not set")
+        print("Set GEMINI_API_KEY or GOOGLE_API_KEY in your environment before running.")
         sys.exit(1)
 
     # Parse background color

@@ -49,6 +49,7 @@ import sprite_generate
 import sprite_process
 import sprite_prompt
 from sprite_verify import (
+    verifier_verdict_from_passed,
     verify_anchor_consistency,
     verify_frames_distinct,
     verify_frames_have_content,
@@ -89,8 +90,10 @@ def _emit_verifier_result(
 
     Returns ``VERIFIER_EXIT_CODE`` (2) when failures is non-empty; else 0.
     """
+    passed = len(failures) == 0
     payload = {
-        "passed": len(failures) == 0,
+        "passed": passed,
+        "verifier_verdict": verifier_verdict_from_passed(passed),
         "gates_run": gates_run,
         "failures": failures,
         "backends_available": _detect_backends_available(),

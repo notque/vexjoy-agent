@@ -116,19 +116,30 @@ def parse_env_vars(env_list: list[str]) -> dict[str, str]:
     for item in env_list:
         if "=" not in item:
             print(
-                f"ERROR: --env value must be KEY=VALUE format, got: {item!r}",
+                "ERROR: --env value must be KEY=VALUE format",
                 file=sys.stderr,
             )
             sys.exit(1)
         key, _, value = item.partition("=")
         if not key:
             print(
-                f"ERROR: --env key cannot be empty, got: {item!r}",
+                "ERROR: --env key cannot be empty (expected KEY=VALUE)",
                 file=sys.stderr,
             )
             sys.exit(1)
         result[key] = value
     return result
+
+
+def redact_entry(entry: dict) -> dict:
+    """Return a copy of an MCP server entry with all env values redacted."""
+    if not isinstance(entry, dict):
+        return entry
+    redacted = dict(entry)
+    env = redacted.get("env")
+    if isinstance(env, dict):
+        redacted["env"] = {k: "<REDACTED>" for k in env}
+    return redacted
 
 
 def build_server_entry(
@@ -160,7 +171,7 @@ def write_config_atomic(config_path: Path, config: dict) -> None:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
             f.write("\n")  # Trailing newline
-        os.rename(tmp_path, config_path)
+        os.replace(tmp_path, config_path)
     except Exception:
         # Clean up temp file on error
         try:
@@ -171,8 +182,8 @@ def write_config_atomic(config_path: Path, config: dict) -> None:
 
 
 def format_snippet(name: str, entry: dict) -> str:
-    """Format a printable snippet showing the new entry in context."""
-    snippet = {"mcpServers": {name: entry}}
+    """Format a printable snippet showing the new entry with redacted env values."""
+    snippet = {"mcpServers": {name: redact_entry(entry)}}
     return json.dumps(snippet, indent=2)
 
 
@@ -217,7 +228,7 @@ def main() -> None:
         )
         print("\nExisting entry:", file=sys.stderr)
         print(
-            json.dumps({args.name: config["mcpServers"][args.name]}, indent=2),
+            json.dumps({args.name: redact_entry(config["mcpServers"][args.name])}, indent=2),
             file=sys.stderr,
         )
         print(
