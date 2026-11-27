@@ -501,7 +501,9 @@ def check_reference_sizes(
 
     agent_files = collect_agent_reference_files(agents_dir)
     agent_over = {
-        str(f.relative_to(agents_dir)): _line_count(f) for f in agent_files if _line_count(f) > REFERENCE_LINE_LIMIT
+        f.relative_to(agents_dir).as_posix(): _line_count(f)
+        for f in agent_files
+        if _line_count(f) > REFERENCE_LINE_LIMIT
     }
     for ref_id, lines in sorted(agent_over.items()):
         if ref_id not in agent_register:
@@ -514,7 +516,7 @@ def check_reference_sizes(
             failures.append(f"{f}: resolves outside its agent dir to {f.resolve()}")
 
     skill_over = {
-        str(f.relative_to(skills_dir)): _line_count(f)
+        f.relative_to(skills_dir).as_posix(): _line_count(f)
         for f in collect_skill_reference_files(skills_dir)
         if _line_count(f) > REFERENCE_LINE_LIMIT
     }
@@ -531,7 +533,7 @@ def check_reference_sizes(
 
     for skill_dir in collect_skills_with_references(skills_dir):
         if not any((skill_dir / "references").rglob("*.md")):
-            failures.append(f"skills/{skill_dir.relative_to(skills_dir)}/references/ has no .md files")
+            failures.append(f"skills/{skill_dir.relative_to(skills_dir).as_posix()}/references/ has no .md files")
     return failures
 
 

@@ -66,6 +66,7 @@ def input_paths(scripts_dir: Path) -> list[Path]:
         base / "scripts" / "routing_index_merge.py",
         base / "skills" / "INDEX.json",
         base / "skills" / "INDEX.local.json",
+        base / "skills" / "workflow" / "references" / "pipeline-index.json",
         base / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
         index_dir / "skills.json",
     ]

@@ -674,3 +674,17 @@ def test_bypass_still_allows_with_a_stale_plan(project: Path) -> None:
     )
 
     _assert_allowed(result)
+
+
+def test_absolute_target_in_git_repo_uses_repo_plan_when_cwd_outside_repo(project: Path, tmp_path: Path) -> None:
+    outside = tmp_path / "no-workspace"
+    outside.mkdir()
+    target = project / "skills" / "example" / "SKILL.md"
+
+    denied = _run_hook(str(target), event_cwd=str(outside), project_dir=None)
+    _assert_denied(denied)
+    assert "Create task_plan.md" in json.loads(denied.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+
+    (project / "task_plan.md").write_text("# Plan\n", encoding="utf-8")
+    allowed = _run_hook(str(target), event_cwd=str(outside), project_dir=None)
+    _assert_allowed(allowed)

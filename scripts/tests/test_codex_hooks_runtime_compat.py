@@ -83,8 +83,6 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("UserPromptSubmit", "state:learning-topic:review-false-positive", "review-false-positive-capture.py")
     add("UserPromptSubmit", "state:learning-topic:voice-sample", "prompt-capture.py")
     add("UserPromptSubmit", "state:routing-requeue", "routing-outcome-finalizer.py")
-    add("UserPromptSubmit", "context:[pipeline-creator]", "pipeline-context-detector.py")
-    add("UserPromptSubmit", "context:[codex-auto-review]", "codex-auto-review.py")
     add("UserPromptSubmit", "noaction:no-d-invocation", "jev-route-injector-userprompt.py")
     add(
         "PreToolUse",
@@ -116,13 +114,11 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     # Installer spec 7.3: the index hooks never write into a repo; with no
     # engine target in the sandbox HOME they are silent no-ops.
     add("PostToolUse", "noaction:no-engine-target", "posttooluse-sync-skill-index.py")
-    add("PostToolUse", "noaction:no-engine-target", "posttooluse-sync-agent-index.py")
     add("PostToolUse", "context:[docs-drift] WARNING", "posttool-docs-drift-alert.py")
     add("PostToolUse", "context:[security-review]", "security-review-hook.py")
     add("PostToolUse", "state:session-reads", "posttool-session-reads.py")
     add("PreCompact", "context:ACTIVE PIPELINE SESSION", "precompact-archive.py")
     add("SubagentStop", "state:routing-requeue", "routing-outcome-recorder.py")
-    add("SubagentStop", "deny:READ-ONLY", "subagent-completion-guard.py")
     add("SubagentStop", "noaction:herdr-absent", "herdr-state-reporter.py")
     add("SubagentStop", "state:subagent-registry", "subagent-state-tracker.py")
     add("SubagentStop", "state:task-registry", "session-task-registry.py")
@@ -624,11 +620,11 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    # 63 entries for 62 Claude registrations: the unified gate runs on Bash and apply_patch.
-    assert len(REGISTRATIONS) == 63, "runtime matrix must execute every supported registration"
-    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 63
+    # 59 entries for 58 Claude registrations: the unified gate runs on Bash and apply_patch.
+    assert len(REGISTRATIONS) == 59, "runtime matrix must execute every supported registration"
+    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 59
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 62
+    assert len(registrations) == 58
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 

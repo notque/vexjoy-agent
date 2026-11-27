@@ -12,8 +12,8 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   78 registrations = 64 mirrored here + 14 unsupported.
-#   64 entries = 33 native + 31 adapted: pretool-unified-gate.py has one Claude
+#   70 registrations = 58 mirrored here + 12 unsupported.
+#   59 entries = 33 native + 26 adapted: pretool-unified-gate.py has one Claude
 #   registration (Bash|Write|Edit|Read) and two entries here, Bash and apply_patch.
 
 # Native SessionStart (15)
@@ -42,9 +42,7 @@ UserPromptSubmit:review-false-positive-capture.py class=native mode=native failu
 UserPromptSubmit:prompt-capture.py class=native mode=native failure=open
 UserPromptSubmit:routing-outcome-finalizer.py class=native mode=native failure=open
 
-# Adapted UserPromptSubmit: top-level prompt/userMessage normalization (3)
-UserPromptSubmit:pipeline-context-detector.py class=adapted mode=prompt failure=open
-UserPromptSubmit:codex-auto-review.py class=adapted mode=prompt failure=open
+# Adapted UserPromptSubmit: top-level prompt/userMessage normalization (1)
 UserPromptSubmit:jev-route-injector-userprompt.py class=adapted mode=prompt failure=open
 
 # Native PreToolUse Bash enforcement (8)
@@ -75,12 +73,11 @@ PostToolUse:posttool-bash-injection-scan.py matcher=Bash class=native mode=nativ
 PostToolUse:posttool-rename-sweep.py matcher=Bash class=native mode=native failure=open
 PostToolUse:posttool-session-reads.py matcher=Bash class=native mode=native failure=open
 
-# Adapted PostToolUse apply_patch/Edit|Write observers (8)
+# Adapted PostToolUse apply_patch/Edit|Write observers (6)
 PostToolUse:adr-enforcement.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttool-skill-frontmatter-check.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttooluse-joy-check-warn.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttooluse-sync-skill-index.py matcher=Edit|Write class=adapted mode=patch failure=open
-PostToolUse:posttooluse-sync-agent-index.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttool-docs-drift-alert.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:security-review-hook.py matcher=Edit|Write class=adapted mode=patch failure=open
 
@@ -90,9 +87,8 @@ PreCompact:precompact-archive.py matcher=manual|auto class=adapted mode=precompa
 # SubagentStart (1 native)
 SubagentStart:subagent-start-warmstart.py matcher=* class=native mode=native failure=open
 
-# SubagentStop (2 native, 3 adapted)
+# SubagentStop (2 native, 2 adapted)
 SubagentStop:routing-outcome-recorder.py matcher=* class=native mode=native failure=open
-SubagentStop:subagent-completion-guard.py matcher=* class=adapted mode=subagent-stop failure=open
 SubagentStop:herdr-state-reporter.py matcher=* class=native mode=native failure=open
 SubagentStop:subagent-state-tracker.py matcher=* class=adapted mode=subagent-stop failure=open
 SubagentStop:session-task-registry.py matcher=* class=adapted mode=subagent-stop failure=open

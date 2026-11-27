@@ -42,10 +42,10 @@ fi
 # cache inputs.
 if [ -n "$REQUEST_FILE" ] && {
   grep -qs '"overlay:' "$IDX/skills.json" || [ -e "$RBASE/skills/INDEX.local.json" ] ||
-    grep -qs '"file"' "$IDX/agents.json" "$RBASE/agents/INDEX.json" || [ -e "$RBASE/agents/INDEX.local.json" ]
+    grep -qs '"file"' "$IDX/agents.json" || [ -e "$RBASE/agents/INDEX.local.json" ]
 }; then
   python3 "$SDIR/routing-manifest.py" --request-file "$REQUEST_FILE"
-elif [ -s "$CACHE" ] && [ -s "$CHASH" ] && [ "$(cat "$SDIR/routing-manifest.py" "$SDIR/routing_index_merge.py" "$RBASE/skills/INDEX.json" "$RBASE/skills/INDEX.local.json" "$RBASE/skills/process/workflow/references/pipeline-index.json" "$IDX/skills.json" 2>/dev/null | sha256sum | cut -d' ' -f1)" = "$(cat "$CHASH")" ]; then
+elif [ -s "$CACHE" ] && [ -s "$CHASH" ] && [ "$(cat "$SDIR/routing-manifest.py" "$SDIR/routing_index_merge.py" "$RBASE/skills/INDEX.json" "$RBASE/skills/INDEX.local.json" "$RBASE/skills/workflow/references/pipeline-index.json" "$RBASE/skills/process/workflow/references/pipeline-index.json" "$IDX/skills.json" 2>/dev/null | sha256sum | cut -d' ' -f1)" = "$(cat "$CHASH")" ]; then
   cat "$CACHE"    # cache hit: manifest read from disk, no Python start
 else
   python3 "$SDIR/routing-manifest.py"

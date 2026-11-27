@@ -47,8 +47,22 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-# Matches skills/**/SKILL.md (flat and nested category layouts)
+# Matches skills/**/SKILL.md (flat and nested category layouts) or flat agents/*.md
 SKILL_FILE_RE = re.compile(r"skills/(?:[^/]+/)+SKILL\.md$")
+AGENT_FILE_RE = re.compile(r"(?:^|/)agents/[^/]+\.md$")
+_AGENT_EXCLUDE = {"INDEX.md", "README.md"}
+
+
+def _is_indexed_target(file_path: str) -> str | None:
+    """Return target label when file_path is a SKILL.md or flat agents/*.md, else None."""
+    if not file_path:
+        return None
+    norm = file_path.replace("\\", "/")
+    if SKILL_FILE_RE.search(norm):
+        return f"{Path(norm).parent.name}/SKILL.md"
+    if AGENT_FILE_RE.search(norm) and Path(norm).name not in _AGENT_EXCLUDE:
+        return Path(norm).name
+    return None
 
 
 def _refresh_manifest_cache() -> None:
@@ -85,17 +99,15 @@ def main() -> None:
             return
         event = json.loads(event_data)
         file_path = (event.get("tool_input") or {}).get("file_path", "")
-        if not file_path or not SKILL_FILE_RE.search(file_path):
+        target_label = _is_indexed_target(file_path)
+        if not target_label:
             return
 
         from installed_index import refresh_installed_indexes
 
         refreshed, errors = refresh_installed_indexes()
         if refreshed:
-            skill_name = Path(file_path).parent.name
-            print(
-                f"[sync-skill-index] installed index refreshed ({', '.join(refreshed)}) after {skill_name}/SKILL.md edit"
-            )
+            print(f"[sync-skill-index] installed index refreshed ({', '.join(refreshed)}) after {target_label} edit")
             _refresh_manifest_cache()
         for err in errors:
             print(f"[sync-skill-index] {err}", file=sys.stderr)

@@ -239,6 +239,23 @@ def _git_root(start: Path, *, reject_nested: bool) -> Path | None:
     return repository_roots[0]
 
 
+def _target_git_root(file_path: str) -> Path | None:
+    """Resolve a real git repository root from an absolute target path when cwd is outside any repo."""
+    raw = _input_path(file_path)
+    if not raw.is_absolute():
+        return None
+    candidate = raw.parent
+    while not candidate.exists():
+        parent = candidate.parent
+        if parent == candidate:
+            return None
+        candidate = parent
+    resolved_dir = _existing_directory(str(candidate))
+    if resolved_dir is None:
+        return None
+    return _git_root(resolved_dir, reject_nested=True)
+
+
 def _project_root(event_cwd: object, *, require_repository: bool) -> Path | None:
     """Resolve the project root from the hook contract, then Git metadata."""
     project_dir = _existing_directory(os.environ.get(_PROJECT_DIR_ENV))
@@ -394,6 +411,8 @@ def main() -> None:
 
     require_repository = not _input_path(file_path).is_absolute() or "codex_tool_name" in event
     root = _project_root(event.get("cwd"), require_repository=require_repository)
+    if root is None and not require_repository:
+        root = _target_git_root(file_path)
     if root is None:
         if _input_path(file_path).is_absolute() and not _mentions_gated_directory(file_path):
             sys.exit(0)
