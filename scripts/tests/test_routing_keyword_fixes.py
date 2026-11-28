@@ -2,7 +2,7 @@
 
 - Trigger matching: the last word of a multi-word trigger takes a plain
   inflection only, so "write post" no longer matches PostToolUse or Postgres.
-- "review my changes" routes to `review`; security phrasings stay on `security`.
+- "review my changes" falls through to semantic routing (never hijacked by `security`); security phrasings stay on `security`.
 - "ship it" force-routes alone but only suggests inside "before I ship it".
 - Private (overlay) entries are candidates only when the request names their
   domain. Synthetic `acmebrand-*` names stand in for real private skills.
@@ -88,10 +88,10 @@ def test_posttooluse_request_is_not_a_writing_route(entries) -> None:
 
 
 @pytest.mark.parametrize("request_text", ["review my changes", "please review my changes to the parser"])
-def test_plain_review_my_changes_routes_to_review(entries, request_text: str) -> None:
+def test_plain_review_my_changes_does_not_force_route_to_security(entries, request_text: str) -> None:
     result = pre_route.route(request_text, entries=entries)
-    assert result["matched"] is True
-    assert result["skill"] == "review"
+    assert result["matched"] is False
+    assert result["skill"] != "security"
 
 
 @pytest.mark.parametrize(
