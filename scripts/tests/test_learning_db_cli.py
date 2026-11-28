@@ -190,3 +190,26 @@ class TestPruneCommand:
             assert conn.execute("SELECT COUNT(*) FROM evidence_route_decisions").fetchone()[0] == 1
         finally:
             conn.close()
+
+
+class TestResolveCohort:
+    def test_four_digit_year_matches_recorded_at_not_git_sha(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("learning_db_cli_mod", CLI_PATH)
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        where_year, params_year = mod._resolve_cohort(None, "2026", None)
+        assert "recorded_at LIKE ?" in where_year
+        assert "git_sha LIKE ?" not in where_year
+        assert params_year == ["2026%"]
+
+        where_sha, params_sha = mod._resolve_cohort(None, "dead", None)
+        assert "git_sha LIKE ?" in where_sha
+        assert params_sha == ["dead%"]
+
+        where_sha5, params_sha5 = mod._resolve_cohort(None, "2026a", None)
+        assert "git_sha LIKE ?" in where_sha5
+        assert params_sha5 == ["2026a%"]

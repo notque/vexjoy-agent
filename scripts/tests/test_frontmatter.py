@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scripts.lib.frontmatter import extract_frontmatter_block, parse_frontmatter
+from scripts.lib.frontmatter import extract_frontmatter_block, load_yaml_mapping, parse_frontmatter
 
 
 class TestExtractFrontmatterBlock:
@@ -90,3 +90,16 @@ class TestParseFrontmatter:
         fm, body = parse_frontmatter(text)
         assert fm is None
         assert body == text
+
+
+class TestLoadYamlMapping:
+    def test_block_scalar_without_trailing_newline_preserves_last_line(self) -> None:
+        block = extract_frontmatter_block("---\nname: foo\ndescription: |\n  Line one.\n  Line two.\n---\n")
+        assert block is not None
+        fm = load_yaml_mapping(block)
+        assert fm == {"name": "foo", "description": "Line one.\nLine two.\n"}
+
+    def test_rejects_non_mapping_yaml(self) -> None:
+        assert load_yaml_mapping("- a\n- b") is None
+        assert load_yaml_mapping("just a scalar") is None
+        assert load_yaml_mapping("") is None

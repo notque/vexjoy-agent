@@ -9,7 +9,7 @@ __version__ = "1.0.0"
 import argparse
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -36,7 +36,7 @@ class ReportGenerator:
         # Header
         lines.append("# Documentation Sync Report")
         lines.append("")
-        lines.append(f"**Generated**: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        lines.append(f"**Generated**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
 
         if scan_results:
             lines.append(f"**Repository**: {scan_results.get('repo_root', 'N/A')}")
@@ -68,11 +68,12 @@ class ReportGenerator:
         lines.append(f"- **Stale Entries**: {summary.get('stale_entries', 0)} MEDIUM priority")
 
         if total_issues > 0 and scan_results:
-            total_tools = scan_results.get("summary", {}).get("total_tools", 1)
-            sync_score = ((total_tools - total_issues) / total_tools) * 100
-            lines.append(
-                f"- **Sync Score**: {sync_score:.0f}% ({total_tools - total_issues}/{total_tools} tools properly documented)"
-            )
+            total_tools = scan_results.get("summary", {}).get("total_tools", 0)
+            if total_tools > 0:
+                sync_score = ((total_tools - total_issues) / total_tools) * 100
+                lines.append(
+                    f"- **Sync Score**: {sync_score:.0f}% ({total_tools - total_issues}/{total_tools} tools properly documented)"
+                )
 
         lines.append("")
         lines.append("---")
@@ -192,7 +193,7 @@ class ReportGenerator:
         Generate machine-readable JSON report.
         """
         report = {
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "summary": issues_data.get("summary", {}),
             "issues": issues_data.get("issues", {}),
             "report_version": __version__,

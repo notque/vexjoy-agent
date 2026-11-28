@@ -216,3 +216,20 @@ def test_check_skill_calls_exits_nonzero_on_unknown_skill_and_missing_tool(tmp_p
     assert result.returncode == 1, result.stdout + result.stderr
     assert "allowed-tools lacks Skill" in result.stdout
     assert "phantom-skill" in result.stdout
+
+
+def test_validate_reference_file_outside_repo_falls_back_cleanly(tmp_path: Path) -> None:
+    """validate_reference_file must not raise ValueError for paths outside agents_dir and REPO_ROOT."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("validate_references_mod", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    ext = tmp_path / "external_ref.md"
+    ext.write_text("No headings here.\n", encoding="utf-8")
+    issues = mod.validate_reference_file(ext)
+    assert len(issues) == 1
+    assert issues[0].kind == "no-headings"
+    assert issues[0].path == str(ext)

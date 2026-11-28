@@ -171,3 +171,24 @@ def test_indexed_successor_resolves(tmp_path: Path) -> None:
     )
     _make_skill(tmp_path, "meta", "husk", promoted_to="private-umbrella", user_invocable=False)
     assert check(tmp_path) == []
+
+
+def test_cli_exits_one_on_phantom_successor(tmp_path: Path) -> None:
+    """CLI negative control: phantom promoted_to successor exits 1 under --repo-root."""
+    import os
+    import subprocess
+    import sys
+
+    script = Path(__file__).resolve().parent.parent / "validate-promoted-successors.py"
+    repo = tmp_path / "repo"
+    _make_skill(repo, "meta", "broken-husk", promoted_to="nonexistent-successor-xyz", user_invocable=False)
+    env = {**os.environ, "HOME": str(tmp_path / "empty-home")}
+
+    result = subprocess.run(
+        [sys.executable, str(script), "--repo-root", str(repo)],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "P1 PHANTOM-SUCCESSOR" in result.stdout

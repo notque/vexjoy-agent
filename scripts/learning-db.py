@@ -273,7 +273,8 @@ def _resolve_cohort(conn, ref: str, key: str | None) -> str:
     """
     clauses = ["topic = 'routing'"]
     params: list[str] = []
-    is_sha = len(ref) >= 4 and all(c in "0123456789abcdefABCDEF" for c in ref)
+    is_year = bool(re.fullmatch(r"20\d{2}", ref))
+    is_sha = (not is_year) and len(ref) >= 4 and all(c in "0123456789abcdefABCDEF" for c in ref)
     if is_sha:
         clauses.append("git_sha LIKE ?")
         params.append(ref + "%")

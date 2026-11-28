@@ -546,3 +546,71 @@ class TestPrePushHardeningRegressions:
         assert r.returncode == 0
         report = json.loads(r.stderr.strip().splitlines()[-1])
         assert report == {"shlex_added": False}
+
+
+class TestTrackAMergeGateRegressions:
+    """Regressions for eval unwrapping, --admin=/--force= boolean values, and cancelled CI checks."""
+
+    @pytest.mark.parametrize(
+        ("command", "flag"),
+        [
+            ('eval "gh pr merge 123 --admin"', "--admin"),
+            ('eval "gh pr merge 123 --force"', "--force"),
+            ("gh pr merge 55 --admin=true", "--admin"),
+            ("gh pr merge 55 --admin=1", "--admin"),
+            ("gh pr merge 55 --force=true", "--force"),
+            ("gh pr merge 55 --force=TRUE", "--force"),
+        ],
+    )
+    def test_eval_and_equals_flags_denied(self, command, flag, tmp_path):
+        r = run_hook(command, tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert flag in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "gh pr merge 55 --admin=false",
+            "gh pr merge 55 --admin=0",
+            "gh pr merge 55 --force=false",
+            "gh pr merge 55 --force=0",
+        ],
+    )
+    def test_explicit_false_bool_flags_allowed_when_ci_passes(self, command, tmp_path):
+        r = run_hook(command, tmp_path=tmp_path)
+        assert r.returncode == 0
+        assert _last_decision(r.stdout) is None
+
+    def test_eval_wrapped_merge_checks_ci_and_blocks_on_failure(self, tmp_path):
+        failing = '[{"name": "unit", "state": "FAILURE", "bucket": "fail"}]'
+        r = run_hook('eval "gh pr merge 123 --squash"', gh_checks_json=failing, tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "#123" in out["hookSpecificOutput"]["permissionDecisionReason"]
+        assert "unit" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_cancelled_ci_check_denies_merge(self, tmp_path):
+        cancelled = (
+            '[{"name": "lint", "state": "SUCCESS", "bucket": "pass"},'
+            ' {"name": "e2e", "state": "CANCELLED", "bucket": "cancel"}]'
+        )
+        r = run_hook("gh pr merge 77 --squash", gh_checks_json=cancelled, tmp_path=tmp_path)
+        assert r.returncode == 0
+        out = json.loads(r.stdout.strip().split("\n")[-1])
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        reason = out["hookSpecificOutput"]["permissionDecisionReason"]
+        assert "cancelled" in reason.lower()
+        assert "e2e" in reason
+        assert "#77" in reason
+
+    def test_skipping_ci_check_remains_allowed(self, tmp_path):
+        skipped = (
+            '[{"name": "ci", "state": "SUCCESS", "bucket": "pass"},'
+            ' {"name": "docs", "state": "SKIPPED", "bucket": "skipping"}]'
+        )
+        r = run_hook("gh pr merge 77 --squash", gh_checks_json=skipped, tmp_path=tmp_path)
+        assert r.returncode == 0
+        assert _last_decision(r.stdout) is None

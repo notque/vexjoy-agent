@@ -345,7 +345,8 @@ def carry_node_modules(old: Path, new: Path, guard: Guard, log: CarryLog) -> Non
         src, dst = package / NODE_MODULES, into / NODE_MODULES
         if not _inside(into, new) or not os.path.isfile(into / "package.json") or os.path.lexists(dst):
             continue
-        if _lock_digest(package) != _lock_digest(into):
+        old_lock = _lock_digest(package)
+        if old_lock is None or old_lock != _lock_digest(into):
             log.warnings.append(f"{dst} not carried over: package-lock.json changed; run ./install.sh (old one: {src})")
             continue
         try:

@@ -155,13 +155,12 @@ def _battery_problems(questions: dict[str, Any]) -> list[str]:
                 problems.append(f"{qid}: choice criteria must map each option to {{what, not_for, examples}}")
             else:
                 report_choices = q.get("report_choices")
-                if report_choices is not None:
-                    if not isinstance(report_choices, list) or not all(isinstance(c, str) for c in report_choices):
-                        problems.append(f"{qid}: choice report_choices must be a list of criteria keys")
-                    else:
-                        unknown = [c for c in report_choices if c not in criteria]
-                        if unknown:
-                            problems.append(f"{qid}: report_choices {unknown} absent from criteria {sorted(criteria)}")
+                if not isinstance(report_choices, list) or not all(isinstance(c, str) for c in report_choices):
+                    problems.append(f"{qid}: choice needs report_choices as a list of criteria keys")
+                else:
+                    unknown = [c for c in report_choices if c not in criteria]
+                    if unknown:
+                        problems.append(f"{qid}: report_choices {unknown} absent from criteria {sorted(criteria)}")
     return problems
 
 
@@ -496,7 +495,13 @@ MAX_FAILED_CALLS = 40
 TOO_MANY_FAILURES = "too_many_failures"
 
 _BATCH_FATAL = frozenset(
-    {jev_transport.REQUEST_TOO_LARGE, jev_transport.IMAGES_UNSUPPORTED, jev_transport.INVALID_IMAGE}
+    {
+        jev_transport.REQUEST_TOO_LARGE,
+        jev_transport.IMAGES_UNSUPPORTED,
+        jev_transport.INVALID_IMAGE,
+        jev_transport.RUN_BUDGET,
+        "unavailable",
+    }
 )
 
 
@@ -551,7 +556,7 @@ def _run_battery(
         try:
             reply = jev_transport.evaluate(batch_state, wire_qs, timeout=timeout, images=batch_images)
         except jev_transport.JevTransportError as exc:
-            if exc.source in _BATCH_FATAL:
+            if exc.source in _BATCH_FATAL or jev_transport._budget_refused(exc):
                 raise
             failures["total"] += 1
             if failures["total"] >= MAX_FAILED_CALLS:
@@ -584,7 +589,11 @@ def _run_battery(
         try:
             send({qid: questions[qid] for qid in batch})
         except (RequestTooLarge, jev_transport.JevTransportError) as exc:
-            if isinstance(exc, jev_transport.JevTransportError) and exc.source not in _BATCH_FATAL:
+            is_fatal = isinstance(exc, RequestTooLarge) or (
+                isinstance(exc, jev_transport.JevTransportError)
+                and (exc.source in _BATCH_FATAL or jev_transport._budget_refused(exc))
+            )
+            if not is_fatal:
                 exc.partial_answers = all_answers  # type: ignore[attr-defined]  # outage: main reports what was paid for
                 raise
             # Keep every answer already paid for; list what did not run and why.
@@ -982,7 +991,14 @@ def main() -> None:
 
     if args.output_json:
         print(json.dumps({"questions": questions, "answers": answers}, indent=2))
-        sys.exit(2 if any("error" in a for a in answers.values()) else 0)
+        if any("error" in a for a in answers.values()):
+            sys.exit(2)
+        has_findings = any(
+            _is_high_signal(qdef, answers.get(qid, {}), args.threshold)
+            for qid, qdef in questions.items()
+            if answers.get(qid) and "error" not in answers.get(qid, {})
+        )
+        sys.exit(1 if has_findings else 0)
 
     exit_code = _print_report(answers, questions, args.mode, args.threshold, generated)
     sys.exit(exit_code)

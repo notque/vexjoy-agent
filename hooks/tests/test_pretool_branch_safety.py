@@ -84,18 +84,12 @@ def test_commit_on_a_protected_branch_is_denied(tmp_path: Path, branch: str) -> 
     "template",
     [
         "cd {repo} && git commit -am wip",
-        pytest.param(
-            'git -C "{repo}" commit -m wip',
-            marks=pytest.mark.xfail(
-                strict=False,
-                reason=(
-                    "known gap, left for a gate-behavior change: the 'git commit' substring "
-                    "pre-check exits before _extract_effective_cwd() handles git -C <path>"
-                ),
-            ),
-        ),
+        'git -C "{repo}" commit -m wip',
+        "echo prep && cd '{repo}' && git commit -m wip",
+        "git.exe -C '{repo}' commit -m wip",
+        'GIT.EXE -C "{repo}" commit -m wip',
     ],
-    ids=["cd-prefix", "git-C"],
+    ids=["cd-prefix", "git-C", "chained-single-quoted-cd", "git-exe-C", "GIT-EXE-C"],
 )
 def test_commit_aimed_at_a_protected_repo_from_elsewhere_is_denied(tmp_path: Path, template: str) -> None:
     repo = _repo(tmp_path, "main")
@@ -104,6 +98,55 @@ def test_commit_aimed_at_a_protected_repo_from_elsewhere_is_denied(tmp_path: Pat
 
     result = _run(template.format(repo=repo), cwd=elsewhere, event_cwd=elsewhere)
 
+    assert (_decision(result) or {}).get("permissionDecision") == "deny"
+
+
+def test_relative_cd_and_git_c_chain_resolved_against_default_cwd(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "main")
+    # Relative cd from tmp_path into `repo`
+    r1 = _run("echo ok && cd repo && git commit -m wip", cwd=tmp_path, event_cwd=tmp_path)
+    assert (_decision(r1) or {}).get("permissionDecision") == "deny"
+
+    # Relative `git -C repo commit` from tmp_path
+    r2 = _run("git -C repo commit -m wip", cwd=tmp_path, event_cwd=tmp_path)
+    assert (_decision(r2) or {}).get("permissionDecision") == "deny"
+
+    # Single-quoted path with spaces
+    spaced = tmp_path / "my repo"
+    spaced.mkdir()
+    subprocess.run(["git", "init", "-q", str(spaced)], check=True, capture_output=True, env=_git_env(), timeout=30)
+    subprocess.run(
+        ["git", "symbolic-ref", "HEAD", "refs/heads/main"],
+        cwd=spaced,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+        timeout=30,
+    )
+    r3 = _run("cd 'my repo' && git commit -m wip", cwd=tmp_path, event_cwd=tmp_path)
+    assert (_decision(r3) or {}).get("permissionDecision") == "deny"
+
+    # Preceding `git -C <other> status` does not override cwd for the later `git commit`
+    feat = tmp_path / "feat"
+    feat.mkdir()
+    subprocess.run(["git", "init", "-q", str(feat)], check=True, capture_output=True, env=_git_env(), timeout=30)
+    subprocess.run(
+        ["git", "symbolic-ref", "HEAD", "refs/heads/feature/safe"],
+        cwd=feat,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+        timeout=30,
+    )
+    r4 = _run(f'git -C "{repo}" status && git commit -m wip', cwd=feat, event_cwd=feat)
+    assert r4.returncode == 0
+    assert r4.stdout == ""
+
+
+def test_git_exe_commit_on_protected_branch_is_denied(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "main")
+    result = _run('git.exe commit -m "wip"', cwd=tmp_path, event_cwd=repo)
+    assert result.returncode == 0
     assert (_decision(result) or {}).get("permissionDecision") == "deny"
 
 

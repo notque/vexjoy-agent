@@ -559,12 +559,14 @@ def _ingest_antigravity(con: sqlite3.Connection, ag_brain: Path, cutoff_epoch: f
 def _read_hook_health(learning_dir: Path, cutoff_iso: str, cutoff_local_iso: str | None = None) -> dict[str, Any]:
     out: dict[str, Any] = {"governance_blocks": {}, "hook_crashes": {}}
     ldb = learning_dir / "learning.db"
-    gov_cutoff = cutoff_local_iso or cutoff_iso
+    # Match learning_db_v2.query_governance_events: compare UTC cutoff via julianday()
+    # so both legacy naive rows and UTC +00:00 rows evaluate consistently across timezones.
+    gov_cutoff = cutoff_iso or cutoff_local_iso or datetime.now(timezone.utc).isoformat()
     if ldb.is_file():
         try:
             src = sqlite3.connect(f"file:{ldb}?mode=ro", uri=True)
             for hook, payload_s, cnt in src.execute(
-                "SELECT event_type, payload, COUNT(*) FROM governance_events WHERE blocked=1 AND created_at >= ? GROUP BY event_type, payload",
+                "SELECT event_type, payload, COUNT(*) FROM governance_events WHERE blocked=1 AND julianday(created_at) >= julianday(?) GROUP BY event_type, payload",
                 (gov_cutoff,),
             ).fetchall():
                 key = str(hook)
@@ -691,8 +693,7 @@ def build_report(
     con.close()
 
     default_learning = Path(os.environ.get("CLAUDE_LEARNING_DIR") or (Path.home() / ".claude" / "learning"))
-    cutoff_local_iso = (datetime.now() - timedelta(days=days)).isoformat(timespec="seconds")
-    health = _read_hook_health(learning_dir or default_learning, cutoff_iso, cutoff_local_iso)
+    health = _read_hook_health(learning_dir or default_learning, cutoff_iso)
     return {
         "window_days": days,
         "since_utc": cutoff_iso,

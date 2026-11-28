@@ -153,7 +153,7 @@ class TestDefaultModel:
             for line in path.read_text().splitlines()
             if "--model" in line and not line.lstrip().startswith("#")
         ]
-        assert len(models) == 6
+        assert len(models) == 4
         assert [m for m in models if m[1] != "opus"] == []
 
 

@@ -10,8 +10,34 @@ import argparse
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+if (_REPO_ROOT / "scripts" / "lib" / "frontmatter.py").is_file() and str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+try:
+    from scripts.lib.frontmatter import parse_frontmatter as _parse_frontmatter
+except ImportError:
+    import yaml
+
+    _FM_RE = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
+
+    def _parse_frontmatter(text: str) -> tuple[dict[str, Any] | None, str]:
+        match = _FM_RE.match(text)
+        if not match:
+            return None, text
+        body = text[match.end() :]
+        if body.startswith("\n"):
+            body = body[1:]
+        try:
+            data = yaml.safe_load(match.group(1) + "\n")
+        except yaml.YAMLError:
+            return None, body
+        return (data if isinstance(data, dict) else None), body
+
 
 # YAML block scalar indicators: `|`, `>`, with optional chomping/indent markers.
 _BLOCK_SCALAR = re.compile(r"^[|>][+-]?[0-9]?$")
@@ -45,35 +71,26 @@ class ToolScanner:
                 self.log(f"No YAML frontmatter in {file_path}")
                 return None
 
-            # Extract frontmatter
-            parts = content.split("---", 2)
-            if len(parts) < 3:
+            parsed, _body = _parse_frontmatter(content)
+            if not isinstance(parsed, dict):
                 self.log(f"Malformed YAML frontmatter in {file_path}")
                 return None
 
-            frontmatter = parts[1].strip()
-
-            # Parse YAML fields (simple regex-based parsing)
-            yaml_data = {}
-            for line in frontmatter.split("\n"):
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                # Match "key: value" pattern
-                match = re.match(r"^(\w+):\s*(.+)$", line)
-                if match:
-                    key, value = match.groups()
-                    yaml_data[key] = value.strip()
-
             # Validate required fields
-            required_fields = ["name", "description"]
-            for field in required_fields:
-                if field not in yaml_data:
+            yaml_data: Dict[str, str] = {}
+            for field in ("name", "description"):
+                val = parsed.get(field)
+                if not isinstance(val, str) or not val.strip():
                     error = f"Missing required field '{field}' in {file_path}"
                     self.log(error)
                     self.errors.append(error)
                     return None
+                yaml_data[field] = val.strip()
+
+            if parsed.get("version") is not None:
+                yaml_data["version"] = str(parsed["version"]).strip()
+            if parsed.get("promoted_to"):
+                yaml_data["promoted_to"] = str(parsed["promoted_to"]).strip()
 
             return yaml_data
 
@@ -294,13 +311,11 @@ class ToolScanner:
         Returns:
             Dict with scan results and metadata.
         """
-        from datetime import datetime
-
         if types is None:
             types = ["skills", "agents", "commands"]
 
         results = {
-            "scan_timestamp": datetime.utcnow().isoformat() + "Z",
+            "scan_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "repo_root": str(self.repo_root),
             "scan_version": __version__,
         }

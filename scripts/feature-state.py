@@ -46,11 +46,22 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # type: ignore[assignment]
+
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None  # type: ignore[assignment]
 
 # Constants
 PHASES = ["design", "plan", "implement", "validate", "release"]
@@ -113,12 +124,41 @@ def find_project_root() -> Path:
     return Path.cwd()
 
 
+@contextmanager
+def _feature_lock(feature_dir: Path, feature: str) -> Iterator[None]:
+    """Cross-platform per-feature advisory file lock around state read-modify-write."""
+    state_dir = feature_dir / "state"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = state_dir / f".{feature}.lock"
+    with open(lock_path, "a+b") as lock_file:
+        if fcntl is not None:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        elif msvcrt is not None:
+            lock_file.seek(0, os.SEEK_END)
+            if lock_file.tell() == 0:
+                lock_file.write(b"\0")
+                lock_file.flush()
+            lock_file.seek(0)
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            yield
+
+
 def load_state(feature_dir: Path, feature: str) -> FeatureState | None:
     """Load feature state from state file."""
     state_file = feature_dir / "state" / f"{feature}.json"
     if not state_file.exists():
         return None
-    with open(state_file) as f:
+    with open(state_file, encoding="utf-8") as f:
         data = json.load(f)
     return FeatureState(**data)
 
@@ -133,7 +173,7 @@ def save_state(feature_dir: Path, state: FeatureState) -> None:
     # leaves the previous state readable instead of a truncated file.
     fd, tmp_name = tempfile.mkstemp(dir=state_dir, prefix=f".{state.name}.", suffix=".tmp")
     try:
-        with os.fdopen(fd, "w") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(asdict(state), f, indent=2)
         os.replace(tmp_name, state_file)
     except BaseException:
@@ -309,7 +349,8 @@ def cmd_init(args: argparse.Namespace) -> int:
             f"State artifacts: .feature/state/<phase>/\n"
             f"Knowledge: .feature/context/ (what we know) + .feature/meta/ (how we work)\n\n"
             f"## Active Features\n\n"
-            f"- {feature_name}: design phase\n"
+            f"- {feature_name}: design phase\n",
+            encoding="utf-8",
         )
 
     # Create L1 context summaries
@@ -320,7 +361,8 @@ def cmd_init(args: argparse.Namespace) -> int:
                 f"# {phase.title()} Context\n\n"
                 f"Summary of {phase} knowledge for this project.\n\n"
                 f"## Conventions\n\n(populated by retro loop)\n\n"
-                f"## Decisions\n\n(populated by retro loop)\n"
+                f"## Decisions\n\n(populated by retro loop)\n",
+                encoding="utf-8",
             )
 
     # Create initial state
@@ -408,11 +450,12 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
     checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
 
     if content:
-        checkpoint_file.write_text(content)
+        checkpoint_file.write_text(content, encoding="utf-8")
     else:
         # Create empty checkpoint marker
         checkpoint_file.write_text(
-            f"# {phase.title()} Checkpoint: {feature}\n\n**Date**: {today}\n**Status**: completed\n"
+            f"# {phase.title()} Checkpoint: {feature}\n\n**Date**: {today}\n**Status**: completed\n",
+            encoding="utf-8",
         )
 
     output_json(
@@ -435,30 +478,30 @@ def cmd_advance(args: argparse.Namespace) -> int:
     if not feature:
         return 1
 
-    state = load_state(feature_dir, feature)
-    if not state:
-        output_error(f"Feature '{feature}' not found")
-        return 1
+    with _feature_lock(feature_dir, feature):
+        state = load_state(feature_dir, feature)
+        if not state:
+            output_error(f"Feature '{feature}' not found")
+            return 1
 
-    current_idx = PHASES.index(state.current_phase)
-    if current_idx >= len(PHASES) - 1:
-        output_error(f"Feature '{feature}' is already in final phase (release)")
-        return 1
+        current_idx = PHASES.index(state.current_phase)
+        if current_idx >= len(PHASES) - 1:
+            output_error(f"Feature '{feature}' is already in final phase (release)")
+            return 1
 
-    # Check that checkpoint exists for current phase
-    today = date.today().isoformat()
-    checkpoint_dir = feature_dir / "state" / state.current_phase
-    checkpoints = list(checkpoint_dir.glob(f"*-{feature}.md"))
-    if not checkpoints:
-        output_error(
-            f"No checkpoint found for phase '{state.current_phase}'. "
-            f"Run 'checkpoint {feature} {state.current_phase}' first."
-        )
-        return 1
+        # Check that checkpoint exists for current phase
+        checkpoint_dir = feature_dir / "state" / state.current_phase
+        checkpoints = list(checkpoint_dir.glob(f"*-{feature}.md"))
+        if not checkpoints:
+            output_error(
+                f"No checkpoint found for phase '{state.current_phase}'. "
+                f"Run 'checkpoint {feature} {state.current_phase}' first."
+            )
+            return 1
 
-    state.phases_completed.append(state.current_phase)
-    state.current_phase = PHASES[current_idx + 1]
-    save_state(feature_dir, state)
+        state.phases_completed.append(state.current_phase)
+        state.current_phase = PHASES[current_idx + 1]
+        save_state(feature_dir, state)
 
     output_json(
         {
@@ -556,7 +599,7 @@ def _log_gate_switch(
     print(f"feature-state: gate switch {line}", file=sys.stderr)
     log_dir = feature_dir / "state"
     log_dir.mkdir(parents=True, exist_ok=True)
-    with open(log_dir / "gate-switches.jsonl", "a") as f:
+    with open(log_dir / "gate-switches.jsonl", "a", encoding="utf-8") as f:
         f.write(line + "\n")
 
 
@@ -602,61 +645,57 @@ def cmd_retro_record(args: argparse.Namespace) -> int:
         output_error(key_err)
         return 1
 
-    state = load_state(feature_dir, feature)
-    if not state:
-        output_error(f"Feature '{feature}' not found")
-        return 1
-
-    if state.current_phase not in PHASES:
-        output_error(f"Invalid phase: {state.current_phase}. Must be one of: {', '.join(PHASES)}")
-        return 1
-
     value = args.value
     confidence = getattr(args, "confidence", "low")
 
-    # Reload fresh state to avoid overwriting concurrent changes (e.g., advance)
-    fresh_state = load_state(feature_dir, feature)
-    if fresh_state:
-        state = fresh_state
+    with _feature_lock(feature_dir, feature):
+        state = load_state(feature_dir, feature)
+        if not state:
+            output_error(f"Feature '{feature}' not found")
+            return 1
 
-    # Observation tracking + frequency-gated auto-promotion
-    existing_record = state.retro_records.get(key)
-    observations = 1
-    auto_promoted = False
-    if existing_record:
-        observations = existing_record.get("observations", 1) + 1
-        # Keep the highest confidence seen
-        prev_conf = existing_record.get("confidence", "low")
-        conf_rank = {"low": 0, "medium": 1, "high": 2}
-        if conf_rank.get(prev_conf, 0) > conf_rank.get(confidence, 0):
-            confidence = prev_conf
-        # Frequency-gated auto-promotion (LOW→MEDIUM at 3, MEDIUM→HIGH at 6)
-        if confidence == "low" and observations >= 3:
-            confidence = "medium"
-            auto_promoted = True
-        elif confidence == "medium" and observations >= 6:
-            confidence = "high"
-            auto_promoted = True
+        if state.current_phase not in PHASES:
+            output_error(f"Invalid phase: {state.current_phase}. Must be one of: {', '.join(PHASES)}")
+            return 1
 
-    state.retro_records[key] = {
-        "value": value,
-        "confidence": confidence,
-        "observations": observations,
-        "recorded": datetime.now().isoformat(),
-        "phase": state.current_phase,
-    }
-    save_state(feature_dir, state)
+        # Observation tracking + frequency-gated auto-promotion
+        existing_record = state.retro_records.get(key)
+        observations = 1
+        auto_promoted = False
+        if existing_record:
+            observations = existing_record.get("observations", 1) + 1
+            # Keep the highest confidence seen
+            prev_conf = existing_record.get("confidence", "low")
+            conf_rank = {"low": 0, "medium": 1, "high": 2}
+            if conf_rank.get(prev_conf, 0) > conf_rank.get(confidence, 0):
+                confidence = prev_conf
+            # Frequency-gated auto-promotion (LOW→MEDIUM at 3, MEDIUM→HIGH at 6)
+            if confidence == "low" and observations >= 3:
+                confidence = "medium"
+                auto_promoted = True
+            elif confidence == "medium" and observations >= 6:
+                confidence = "high"
+                auto_promoted = True
 
-    # Write L3 record file
-    meta_dir = feature_dir / "meta" / state.current_phase
-    meta_dir.mkdir(parents=True, exist_ok=True)
-    record_file = meta_dir / f"{key}.md"
+        state.retro_records[key] = {
+            "value": value,
+            "confidence": confidence,
+            "observations": observations,
+            "recorded": datetime.now().isoformat(),
+            "phase": state.current_phase,
+        }
+        save_state(feature_dir, state)
 
-    # Append or create (include observation count)
-    count_tag = f" ({observations}x)" if observations > 1 else ""
-    entry = f"\n## {key} [{confidence.upper()}]{count_tag}\n\n{value}\n\n*Recorded: {datetime.now().isoformat()}*\n"
-    with open(record_file, "a") as f:
-        f.write(entry)
+        # Write L3 record file
+        meta_dir = feature_dir / "meta" / state.current_phase
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        record_file = meta_dir / f"{key}.md"
+
+        # Append or create (include observation count)
+        count_tag = f" ({observations}x)" if observations > 1 else ""
+        entry = f"\n## {key} [{confidence.upper()}]{count_tag}\n\n{value}\n\n*Recorded: {datetime.now().isoformat()}*\n"
+        with open(record_file, "a", encoding="utf-8") as f:
+            f.write(entry)
 
     output_json(
         {
@@ -688,9 +727,12 @@ def _load_learning_db() -> Any:
     """
     home_lib = str(Path.home() / ".claude" / "hooks" / "lib")
     repo_lib = str(Path(__file__).resolve().parent.parent / "hooks" / "lib")
-    for lib in (home_lib, repo_lib):
-        if Path(lib).is_dir() and lib not in sys.path:
-            sys.path.insert(0, lib)
+    if Path(home_lib).is_dir() and home_lib not in sys.path:
+        sys.path.append(home_lib)
+    if Path(repo_lib).is_dir():
+        if repo_lib in sys.path:
+            sys.path.remove(repo_lib)
+        sys.path.insert(0, repo_lib)
     import learning_db_v2
 
     return learning_db_v2
@@ -846,15 +888,15 @@ def cmd_retro_promote(args: argparse.Namespace) -> int:
     context_file = context_dir / f"{key}.md"
 
     content = f"# {key.replace('-', ' ').title()}\n\n{record['value']}\n\n*Promoted from retro [{confidence}]*\n"
-    context_file.write_text(content)
+    context_file.write_text(content, encoding="utf-8")
 
     # Update L1 summary
     l1_file = feature_dir / "context" / f"{phase.upper()}.md"
     if l1_file.exists():
-        l1_content = l1_file.read_text()
+        l1_content = l1_file.read_text(encoding="utf-8")
         if key not in l1_content:
             l1_content += f"\n- **{key}**: {record['value'][:80]}... (see {phase}/{key}.md)\n"
-            l1_file.write_text(l1_content)
+            l1_file.write_text(l1_content, encoding="utf-8")
 
     output_json(
         {
@@ -884,14 +926,14 @@ def cmd_context_read(args: argparse.Namespace) -> int:
 
     if level == "L0":
         l0_file = feature_dir / "FEATURE.md"
-        content = l0_file.read_text() if l0_file.exists() else "(no L0 file)"
+        content = l0_file.read_text(encoding="utf-8") if l0_file.exists() else "(no L0 file)"
     elif level == "L1":
         phase = (args.phase or "design").lower()
         if phase not in PHASES:
             output_error(f"Invalid phase: {phase}. Must be one of: {', '.join(PHASES)}")
             return 1
         l1_file = feature_dir / "context" / f"{phase.upper()}.md"
-        content = l1_file.read_text() if l1_file.exists() else f"(no L1 for {phase})"
+        content = l1_file.read_text(encoding="utf-8") if l1_file.exists() else f"(no L1 for {phase})"
     elif level == "L2":
         phase = (args.phase or "design").lower()
         if phase not in PHASES:
@@ -900,7 +942,9 @@ def cmd_context_read(args: argparse.Namespace) -> int:
         l2_dir = feature_dir / "context" / phase
         if l2_dir.exists():
             files = sorted(l2_dir.glob("*.md"))
-            content = "\n---\n".join(f.read_text() for f in files) if files else f"(no L2 files for {phase})"
+            content = (
+                "\n---\n".join(f.read_text(encoding="utf-8") for f in files) if files else f"(no L2 files for {phase})"
+            )
         else:
             content = f"(no L2 directory for {phase})"
     else:
@@ -920,73 +964,74 @@ def cmd_worktree(args: argparse.Namespace) -> int:
         return 1
     action = args.action
 
-    state = load_state(feature_dir, feature)
-    if not state:
-        output_error(f"Feature '{feature}' not found")
-        return 1
-
-    if action == "create":
-        worktree_path = root / FEATURE_DIR / "worktrees" / feature
-        branch = f"feature/{feature}"
-
-        # Create branch if it doesn't exist
-        result = subprocess.run(
-            ["git", "branch", "--list", branch],
-            capture_output=True,
-            text=True,
-            cwd=str(root),
-        )
-        if not result.stdout.strip():
-            branch_result = subprocess.run(
-                ["git", "branch", branch],
-                capture_output=True,
-                text=True,
-                cwd=str(root),
-            )
-            if branch_result.returncode != 0:
-                output_error(f"Failed to create branch '{branch}': {branch_result.stderr.strip()}")
-                return 1
-
-        # Create worktree
-        worktree_path.parent.mkdir(parents=True, exist_ok=True)
-        result = subprocess.run(
-            ["git", "worktree", "add", str(worktree_path), branch],
-            capture_output=True,
-            text=True,
-            cwd=str(root),
-        )
-        if result.returncode != 0:
-            output_error(f"Failed to create worktree: {result.stderr}")
+    with _feature_lock(feature_dir, feature):
+        state = load_state(feature_dir, feature)
+        if not state:
+            output_error(f"Feature '{feature}' not found")
             return 1
 
-        state.worktree_path = str(worktree_path)
-        save_state(feature_dir, state)
+        if action == "create":
+            worktree_path = root / FEATURE_DIR / "worktrees" / feature
+            branch = f"feature/{feature}"
 
-        output_json(
-            {"action": "worktree-create", "path": str(worktree_path), "branch": branch},
-            args,
-        )
-
-    elif action == "path":
-        output_json(
-            {"action": "worktree-path", "path": state.worktree_path or "(none)"},
-            args,
-        )
-
-    elif action == "cleanup":
-        if state.worktree_path and Path(state.worktree_path).exists():
-            rm_result = subprocess.run(
-                ["git", "worktree", "remove", state.worktree_path, "--force"],
+            # Create branch if it doesn't exist
+            result = subprocess.run(
+                ["git", "branch", "--list", branch],
                 capture_output=True,
                 text=True,
                 cwd=str(root),
             )
-            if rm_result.returncode != 0:
-                output_error(f"Failed to remove worktree '{state.worktree_path}': {rm_result.stderr.strip()}")
+            if not result.stdout.strip():
+                branch_result = subprocess.run(
+                    ["git", "branch", branch],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(root),
+                )
+                if branch_result.returncode != 0:
+                    output_error(f"Failed to create branch '{branch}': {branch_result.stderr.strip()}")
+                    return 1
+
+            # Create worktree
+            worktree_path.parent.mkdir(parents=True, exist_ok=True)
+            result = subprocess.run(
+                ["git", "worktree", "add", str(worktree_path), branch],
+                capture_output=True,
+                text=True,
+                cwd=str(root),
+            )
+            if result.returncode != 0:
+                output_error(f"Failed to create worktree: {result.stderr}")
                 return 1
-        state.worktree_path = ""
-        save_state(feature_dir, state)
-        output_json({"action": "worktree-cleanup", "feature": feature}, args)
+
+            state.worktree_path = str(worktree_path)
+            save_state(feature_dir, state)
+
+            output_json(
+                {"action": "worktree-create", "path": str(worktree_path), "branch": branch},
+                args,
+            )
+
+        elif action == "path":
+            output_json(
+                {"action": "worktree-path", "path": state.worktree_path or "(none)"},
+                args,
+            )
+
+        elif action == "cleanup":
+            if state.worktree_path and Path(state.worktree_path).exists():
+                rm_result = subprocess.run(
+                    ["git", "worktree", "remove", state.worktree_path, "--force"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(root),
+                )
+                if rm_result.returncode != 0:
+                    output_error(f"Failed to remove worktree '{state.worktree_path}': {rm_result.stderr.strip()}")
+                    return 1
+            state.worktree_path = ""
+            save_state(feature_dir, state)
+            output_json({"action": "worktree-cleanup", "feature": feature}, args)
 
     return 0
 
@@ -1013,18 +1058,8 @@ def cmd_complete(args: argparse.Namespace) -> int:
         output_error(f"complete aborted, {err}")
         return 1
 
-    # Move state to completed. A concurrent complete may have moved it already.
-    completed_dir = feature_dir / "state" / "completed"
-    completed_dir.mkdir(parents=True, exist_ok=True)
-    state_file = feature_dir / "state" / f"{feature}.json"
-    dest = completed_dir / f"{date.today().isoformat()}-{feature}.json"
-    try:
-        state_file.rename(dest)
-        state_moved = True
-    except FileNotFoundError:
-        state_moved = False
-
-    # Cleanup worktree
+    # Cleanup worktree BEFORE archiving state so a failed removal leaves state
+    # intact for retry.
     if state.worktree_path and Path(state.worktree_path).exists():
         rm_result = subprocess.run(
             ["git", "worktree", "remove", state.worktree_path, "--force"],
@@ -1035,6 +1070,17 @@ def cmd_complete(args: argparse.Namespace) -> int:
         if rm_result.returncode != 0:
             output_error(f"Failed to remove worktree '{state.worktree_path}': {rm_result.stderr.strip()}")
             return 1
+
+    # Move state to completed. A concurrent complete may have moved it already.
+    completed_dir = feature_dir / "state" / "completed"
+    completed_dir.mkdir(parents=True, exist_ok=True)
+    state_file = feature_dir / "state" / f"{feature}.json"
+    dest = completed_dir / f"{date.today().isoformat()}-{feature}.json"
+    try:
+        os.replace(state_file, dest)
+        state_moved = True
+    except FileNotFoundError:
+        state_moved = False
 
     output_json(
         {
@@ -1078,9 +1124,9 @@ def _detect_languages(feature_dir: Path, feature: str) -> list[str]:
     if not state_dir.is_dir():
         return ["*"]
 
-    for md_file in state_dir.rglob("*.md"):
+    for md_file in state_dir.rglob(f"*-{feature}.md"):
         try:
-            content = md_file.read_text()
+            content = md_file.read_text(encoding="utf-8")
             for pattern, lang in extension_map.items():
                 if re.search(pattern, content):
                     languages.add(lang)
@@ -1144,7 +1190,7 @@ def _archive_retro_knowledge(root: Path, feature_dir: Path, state: FeatureState)
             continue
         for path in sorted(context_dir.glob("*.md")):
             try:
-                content = path.read_text().strip()
+                content = path.read_text(encoding="utf-8").strip()
             except OSError:
                 continue
             if content and "(populated by retro loop)" not in content and path.stem not in entries:
@@ -1205,7 +1251,7 @@ def cmd_retro_audit(args: argparse.Namespace) -> int:
 
     for f in l2_files:
         try:
-            content = f.read_text()
+            content = f.read_text(encoding="utf-8")
         except OSError:
             issues.append({"file": f.name, "type": "unreadable", "severity": "high"})
             continue
@@ -1293,7 +1339,7 @@ def cmd_retro_candidates(args: argparse.Namespace) -> int:
 
     for f in sorted(l2_dir.glob("*.md")):
         try:
-            content = f.read_text()
+            content = f.read_text(encoding="utf-8")
         except OSError:
             continue
 
@@ -1334,7 +1380,7 @@ def cmd_retro_candidates(args: argparse.Namespace) -> int:
     if agents_dir.is_dir():
         for agent_file in sorted(agents_dir.glob("*.md")):
             try:
-                agent_content = agent_file.read_text()
+                agent_content = agent_file.read_text(encoding="utf-8")
             except OSError:
                 continue
 
@@ -1386,15 +1432,8 @@ def cmd_abandon(args: argparse.Namespace) -> int:
         output_error(f"Feature '{feature}' not found")
         return 1
 
-    # Move state to abandoned
-    abandoned_dir = feature_dir / "state" / "abandoned"
-    abandoned_dir.mkdir(parents=True, exist_ok=True)
-    state_file = feature_dir / "state" / f"{feature}.json"
-    if state_file.exists():
-        dest = abandoned_dir / f"{date.today().isoformat()}-{feature}.json"
-        state_file.rename(dest)
-
-    # Cleanup worktree
+    # Cleanup worktree BEFORE archiving state so a failed removal leaves state
+    # intact for retry.
     if state.worktree_path and Path(state.worktree_path).exists():
         rm_result = subprocess.run(
             ["git", "worktree", "remove", state.worktree_path, "--force"],
@@ -1405,6 +1444,17 @@ def cmd_abandon(args: argparse.Namespace) -> int:
         if rm_result.returncode != 0:
             output_error(f"Failed to remove worktree '{state.worktree_path}': {rm_result.stderr.strip()}")
             return 1
+
+    # Move state to abandoned
+    abandoned_dir = feature_dir / "state" / "abandoned"
+    abandoned_dir.mkdir(parents=True, exist_ok=True)
+    state_file = feature_dir / "state" / f"{feature}.json"
+    if state_file.exists():
+        dest = abandoned_dir / f"{date.today().isoformat()}-{feature}.json"
+        try:
+            os.replace(state_file, dest)
+        except FileNotFoundError:
+            pass
 
     reason = args.reason or "No reason given"
     output_json({"action": "abandon", "feature": feature, "reason": reason}, args)

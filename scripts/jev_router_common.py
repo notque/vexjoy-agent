@@ -20,12 +20,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
 import random
 import sqlite3
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -34,6 +36,7 @@ import uuid
 from collections.abc import Mapping
 from email.message import Message
 from pathlib import Path
+from typing import Any
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -124,24 +127,34 @@ def _breaker_ttl() -> float:
 
 
 def _write_breaker(status: int) -> None:
-    """Write breaker state to disk. Best-effort; never raises."""
+    """Write breaker state to disk atomically. Best-effort; never raises."""
+    tmp_name: str | None = None
     try:
         bp = _breaker_path()
         bp.parent.mkdir(parents=True, exist_ok=True)
-        bp.write_text(json.dumps({"status": status, "ts": time.time()}), encoding="utf-8")
-        os.chmod(bp, 0o600)
+        fd, tmp_name = tempfile.mkstemp(dir=bp.parent, prefix=".jev-breaker.", suffix=".tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump({"status": status, "ts": time.time()}, f)
+        try:
+            os.chmod(tmp_name, 0o600)
+        except OSError:
+            pass
+        os.replace(tmp_name, bp)
+        tmp_name = None
     except OSError:
-        pass
+        if tmp_name is not None:
+            Path(tmp_name).unlink(missing_ok=True)
 
 
 def _clear_breaker() -> None:
     """Remove the breaker file and in-process flag."""
     global _jev_down
-    _jev_down = None
-    try:
-        _breaker_path().unlink(missing_ok=True)
-    except OSError:
-        pass
+    with _BREAKER_LOCK:
+        _jev_down = None
+        try:
+            _breaker_path().unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _check_breaker() -> int | None:
@@ -150,31 +163,33 @@ def _check_breaker() -> int | None:
     ttl = _breaker_ttl()
     if ttl <= 0:
         return None
-    # In-process check first (fast path).
-    if _jev_down is not None:
-        status, ts = _jev_down
-        if (time.monotonic() - ts) < ttl:
-            return status
-        _jev_down = None
-    # Cross-process file check.
-    try:
-        raw = json.loads(_breaker_path().read_text(encoding="utf-8"))
-        file_ts = float(raw.get("ts", 0))
-        if (time.time() - file_ts) < ttl:
-            file_status = int(raw["status"])
-            # Keep the file's trip time, so reading it does not restart the TTL.
-            _jev_down = (file_status, time.monotonic() - (time.time() - file_ts))
-            return file_status
-    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
-        pass
-    return None
+    with _BREAKER_LOCK:
+        # In-process check first (fast path).
+        if _jev_down is not None:
+            status, ts = _jev_down
+            if (time.monotonic() - ts) < ttl:
+                return status
+            _jev_down = None
+        # Cross-process file check.
+        try:
+            raw = json.loads(_breaker_path().read_text(encoding="utf-8"))
+            file_ts = float(raw.get("ts", 0))
+            if (time.time() - file_ts) < ttl:
+                file_status = int(raw["status"])
+                # Keep the file's trip time, so reading it does not restart the TTL.
+                _jev_down = (file_status, time.monotonic() - (time.time() - file_ts))
+                return file_status
+        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            pass
+        return None
 
 
 def _trip_breaker(status: int) -> None:
     """Trip the breaker for the given HTTP status code."""
     global _jev_down
-    _jev_down = (status, time.monotonic())
-    _write_breaker(status)
+    with _BREAKER_LOCK:
+        _jev_down = (status, time.monotonic())
+        _write_breaker(status)
 
 
 # ---------------------------------------------------------------------------
@@ -288,7 +303,7 @@ def _cache_store(phash: str, answers: dict, model: str | None = None) -> None:
 
 _inflight_lock = threading.Lock()
 _inflight: dict[str, threading.Event] = {}
-_inflight_results: dict[str, tuple[dict, float]] = {}
+_inflight_results: dict[tuple[str, threading.Event], tuple[dict, float]] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -595,7 +610,8 @@ def call_jev(
     if image_parts:
         # A redaction pass can rewrite a reference that sits next to a sensitive-looking key;
         # the API rejects an unreferenced asset, so fail here with a clear cause.
-        text = json.dumps(payload)
+        # Inspect state and questions only — payload["assets"] always contains the asset keys.
+        text = json.dumps({"state": payload.get("state"), "questions": payload.get("questions")})
         lost = [name for name, ref in _asset_refs(payload).items() if ref not in text]
         if lost:
             raise RuntimeError("image reference lost in redaction; rename the state key that holds it")
@@ -657,10 +673,12 @@ def call_jev(
     if not owner:
         # Wait for the in-flight request to complete.
         event.wait(timeout=timeout + 5.0)
-        # Read with get: every waiter needs the result; the owner's cleanup thread removes it.
-        result = _inflight_results.get(phash)
+        # Read under lock keyed by (phash, event) and return a deep copy so waiters cannot alias mutations.
+        with _inflight_lock:
+            result = _inflight_results.get((phash, event))
         if result is not None:
-            data, latency_ms = result
+            data = copy.deepcopy(result[0])
+            latency_ms = result[1]
             _count_call(
                 ok=True,
                 latency_ms=0,
@@ -686,139 +704,139 @@ def call_jev(
     request = urllib.request.Request(TYPESAFE_URL, data=body, method="POST", headers=headers)
     start = time.monotonic()
     attempt = 0
+    owner_result: tuple[dict, float] | None = None
     try:
-        # Inside the try: a refused budget still releases the in-flight slot below.
-        questions = payload.get("questions") if isinstance(payload.get("questions"), dict) else {}
-        note_run_tokens(
-            jev_limits.request_tokens(payload.get("state"), questions)["total"], has_images=bool(image_parts)
-        )
-        while True:
+        try:
+            # Inside the try: a refused budget still releases the in-flight slot below.
+            questions = payload.get("questions") if isinstance(payload.get("questions"), dict) else {}
+            note_run_tokens(
+                jev_limits.request_tokens(payload.get("state"), questions)["total"], has_images=bool(image_parts)
+            )
+            while True:
+                try:
+                    with _open_url(request, timeout=timeout) as response:
+                        raw = response.read()
+                    break
+                except urllib.error.HTTPError as exc:
+                    delay = _retry_delay(exc, attempt)
+                    if delay is None:
+                        raise
+                    # Close retried response stream before sleeping so sockets do not leak.
+                    try:
+                        exc.close()
+                    except Exception:
+                        pass
+                    # One log row per refused attempt, so the call log stays truthful.
+                    _count_call(
+                        ok=False,
+                        latency_ms=(time.monotonic() - start) * 1000.0,
+                        data=None,
+                        n_questions=n_questions,
+                        n_redacted=n_redacted,
+                        error=f"HTTP {exc.code} (retrying)",
+                        payload_hash=phash,
+                        script_name=script_name,
+                    )
+                    time.sleep(delay)
+                    attempt += 1
+                    start = time.monotonic()
+        except urllib.error.HTTPError as exc:
+            latency_ms = (time.monotonic() - start) * 1000.0
+            # Trip breaker on auth/billing errors.
+            if exc.code in _BREAKER_CODES:
+                _trip_breaker(exc.code)
+            _count_call(
+                ok=False,
+                latency_ms=latency_ms,
+                data=None,
+                n_questions=n_questions,
+                n_redacted=n_redacted,
+                error=f"HTTP {exc.code}",
+                payload_hash=phash,
+                script_name=script_name,
+            )
+            kind = _error_kind(exc)
             try:
-                with _open_url(request, timeout=timeout) as response:
-                    raw = response.read()
-                break
-            except urllib.error.HTTPError as exc:
-                delay = _retry_delay(exc, attempt)
-                if delay is None:
-                    raise
-                # One log row per refused attempt, so the call log stays truthful.
-                _count_call(
-                    ok=False,
-                    latency_ms=(time.monotonic() - start) * 1000.0,
-                    data=None,
-                    n_questions=n_questions,
-                    n_redacted=n_redacted,
-                    error=f"HTTP {exc.code} (retrying)",
-                    payload_hash=phash,
-                    script_name=script_name,
-                )
-                time.sleep(delay)
-                attempt += 1
-                start = time.monotonic()
-    except urllib.error.HTTPError as exc:
+                exc.close()
+            except Exception:
+                pass
+            # Status only: an error body can echo part of the request.
+            raise RuntimeError(f"HTTP {exc.code}{kind}") from exc
+        except Exception as exc:
+            latency_ms = (time.monotonic() - start) * 1000.0
+            _count_call(
+                ok=False,
+                latency_ms=latency_ms,
+                data=None,
+                n_questions=n_questions,
+                n_redacted=n_redacted,
+                error=type(exc).__name__,
+                payload_hash=phash,
+                script_name=script_name,
+            )
+            raise
+
         latency_ms = (time.monotonic() - start) * 1000.0
-        # Trip breaker on auth/billing errors.
-        if exc.code in _BREAKER_CODES:
-            _trip_breaker(exc.code)
+        try:
+            data = json.loads(raw.decode("utf-8"))
+            problem = None if isinstance(data, dict) and "answers" in data else "missing answers"
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            data, problem = None, "not JSON"
+        if problem is not None:
+            _count_call(
+                ok=False,
+                latency_ms=latency_ms,
+                data=None,
+                n_questions=n_questions,
+                n_redacted=n_redacted,
+                error=problem,
+                payload_hash=phash,
+                script_name=script_name,
+            )
+            if problem == "not JSON":
+                raise ValueError("Jev response is not JSON")
+            raise ValueError("Jev response missing 'answers' key")
+
+        # Success: clear breaker, cache, record, and release waiters.
+        _clear_breaker()
+        answers = data.get("answers", {})
+        # Cache only an answer that passes validation, so a malformed reply is
+        # never served again for the cache lifetime.
+        if validate_jev_response(data)[0]:
+            _cache_store(phash, answers, data.get("model"))
+        aj = _answers_json(data)
         _count_call(
-            ok=False,
+            ok=True,
             latency_ms=latency_ms,
-            data=None,
+            data=data,
             n_questions=n_questions,
             n_redacted=n_redacted,
-            error=f"HTTP {exc.code}",
+            error=None,
             payload_hash=phash,
+            answers_json=aj,
+            cached=False,
             script_name=script_name,
         )
-        if owner:
+        owner_result = (data, latency_ms)
+        return data, latency_ms
+    finally:
+        if owner and event is not None:
+            result_key = (phash, event)
             with _inflight_lock:
-                _inflight.pop(phash, None)
+                if owner_result is not None:
+                    _inflight_results[result_key] = (copy.deepcopy(owner_result[0]), owner_result[1])
+                if _inflight.get(phash) is event:
+                    _inflight.pop(phash, None)
             event.set()
-        # Status only: an error body can echo part of the request.
-        raise RuntimeError(f"HTTP {exc.code}{_error_kind(exc)}") from exc
-    except Exception as exc:
-        latency_ms = (time.monotonic() - start) * 1000.0
-        _count_call(
-            ok=False,
-            latency_ms=latency_ms,
-            data=None,
-            n_questions=n_questions,
-            n_redacted=n_redacted,
-            error=type(exc).__name__,
-            payload_hash=phash,
-            script_name=script_name,
-        )
-        if owner:
-            with _inflight_lock:
-                _inflight.pop(phash, None)
-            event.set()
-        raise
+            if owner_result is not None:
+                # Schedule cleanup so non-owner threads have time to read the result.
+                # 10s is generous; if no one consumes it by then, discard it.
+                def _cleanup(k=result_key):
+                    time.sleep(10)
+                    with _inflight_lock:
+                        _inflight_results.pop(k, None)
 
-    latency_ms = (time.monotonic() - start) * 1000.0
-    # Parse inside a try: an exception here must still release the in-flight
-    # slot, or every later identical call waits on an event nobody sets.
-    try:
-        data = json.loads(raw.decode("utf-8"))
-        problem = None if isinstance(data, dict) and "answers" in data else "missing answers"
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        data, problem = None, "not JSON"
-    if problem is not None:
-        _count_call(
-            ok=False,
-            latency_ms=latency_ms,
-            data=None,
-            n_questions=n_questions,
-            n_redacted=n_redacted,
-            error=problem,
-            payload_hash=phash,
-            script_name=script_name,
-        )
-        if owner:
-            with _inflight_lock:
-                _inflight.pop(phash, None)
-            event.set()
-        if problem == "not JSON":
-            raise ValueError("Jev response is not JSON")
-        raise ValueError("Jev response missing 'answers' key")
-
-    # Success: clear breaker, cache, record, and release waiters.
-    _clear_breaker()
-    answers = data.get("answers", {})
-    # Cache only an answer that passes validation, so a malformed reply is
-    # never served again for the cache lifetime.
-    if validate_jev_response(data)[0]:
-        _cache_store(phash, answers, data.get("model"))
-    aj = _answers_json(data)
-    _count_call(
-        ok=True,
-        latency_ms=latency_ms,
-        data=data,
-        n_questions=n_questions,
-        n_redacted=n_redacted,
-        error=None,
-        payload_hash=phash,
-        answers_json=aj,
-        cached=False,
-        script_name=script_name,
-    )
-    if owner:
-        _inflight_results[phash] = (data, latency_ms)
-        with _inflight_lock:
-            _inflight.pop(phash, None)
-        event.set()
-
-        # Schedule cleanup so non-owner threads have time to pop the result.
-        # 10s is generous; if no one consumes it by then, discard it.
-        def _cleanup(h=phash):
-            import time as _t
-
-            _t.sleep(10)
-            _inflight_results.pop(h, None)
-
-        import threading as _thr
-
-        _thr.Thread(target=_cleanup, daemon=True).start()
-    return data, latency_ms
+                threading.Thread(target=_cleanup, daemon=True).start()
 
 
 def validate_jev_response(data: dict) -> tuple[bool, list[str]]:
@@ -875,8 +893,15 @@ def validate_jev_response(data: dict) -> tuple[bool, list[str]]:
                 if isinstance(val, bool) or not isinstance(val, (int, float)):
                     errors.append(f"{key}: score is not numeric ({type(val).__name__})")
 
+            # Box
+            if "box" in answer:
+                has_type = True
+                val = answer["box"]
+                if val is not None and not isinstance(val, dict):
+                    errors.append(f"{key}: box is not a dict or null ({type(val).__name__})")
+
             if not has_type:
-                errors.append(f"{key}: no recognized type field (noul/choice/score)")
+                errors.append(f"{key}: no recognized type field (noul/choice/score/box)")
 
             # Probabilities (optional, present on Choice answers)
             probs = answer.get("probabilities")
@@ -916,6 +941,8 @@ def validated_call_jev(
     timeout: float,
     *,
     script_name: str | None = None,
+    extra_headers: dict[str, str] | None = None,
+    image_parts: dict[str, tuple[bytes, str]] | None = None,
 ) -> tuple[dict, float]:
     """Call Jev and validate the response (fail-closed).
 
@@ -926,7 +953,12 @@ def validated_call_jev(
 
     Returns ``(response_json, latency_ms)`` — same as ``call_jev``.
     """
-    data, latency_ms = call_jev(payload, api_key, timeout, script_name=script_name)
+    call_kwargs: dict[str, Any] = {"script_name": script_name}
+    if extra_headers is not None:
+        call_kwargs["extra_headers"] = extra_headers
+    if image_parts is not None:
+        call_kwargs["image_parts"] = image_parts
+    data, latency_ms = call_jev(payload, api_key, timeout, **call_kwargs)
     is_valid, errors = validate_jev_response(data)
     if not is_valid:
         for err in errors[:5]:

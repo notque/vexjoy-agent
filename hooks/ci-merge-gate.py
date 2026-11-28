@@ -107,7 +107,7 @@ def _split_segments(command: str) -> list[list[str]]:
 
 
 def _strip_wrappers(seg: list[str]) -> list[str]:
-    """Strip leading env assignments and trivial wrappers (`env`, `command`, `builtin`, `eval`)."""
+    """Strip leading env assignments and trivial wrappers (`env`, `command`, `builtin`)."""
     i = 0
     while i < len(seg):
         tok = seg[i]
@@ -120,9 +120,6 @@ def _strip_wrappers(seg: list[str]) -> list[str]:
             i += 1
             while i < len(seg) and (seg[i].startswith("-") or ("=" in seg[i] and not seg[i].startswith("="))):
                 i += 1
-            continue
-        if tok == "eval":
-            i += 1
             continue
         if "=" in tok and not tok.startswith(("=", "-")):
             key = tok.split("=", 1)[0]
@@ -147,13 +144,15 @@ def _resolve_cwd(base: str | None, target: str) -> str | None:
     return expanded
 
 
-def _parse_merge_invocations(command: str, base_cwd: str | None = None) -> list[dict[str, object]]:
+def _parse_merge_invocations(command: str, base_cwd: str | None = None, *, _depth: int = 0) -> list[dict[str, object]]:
     """Return parsed `gh ... pr merge` invocations with repo, args, and effective cwd.
 
     Handles optional flags before `pr` or `merge` (e.g. `gh -R owner/repo pr merge`),
-    tabs/multiple spaces, chained `cd <dir> &&`, and `sh -c` / `bash -c` wrappers.
+    tabs/multiple spaces, chained `cd <dir> &&`, and `sh -c` / `bash -c` / `eval` wrappers.
     Raises ValueError if shlex cannot tokenize *command*.
     """
+    if _depth > 4:
+        return []
     segments = _split_segments(command)
     current_cwd = base_cwd or None
     invocations: list[dict[str, object]] = []
@@ -163,13 +162,25 @@ def _parse_merge_invocations(command: str, base_cwd: str | None = None) -> list[
         if not seg:
             continue
         cmd_name = seg[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+        cmd_base = cmd_name.removesuffix(".exe")
 
-        if cmd_name == "cd" and len(seg) >= 2:
+        if cmd_base == "cd" and len(seg) >= 2:
             current_cwd = _resolve_cwd(current_cwd, seg[1])
             continue
 
+        # Unwrap `eval "..."` / `eval gh pr merge ...` payloads recursively.
+        if cmd_base == "eval":
+            inner = " ".join(seg[1:]).strip()
+            if inner:
+                try:
+                    invocations.extend(_parse_merge_invocations(inner, base_cwd=current_cwd, _depth=_depth + 1))
+                except ValueError:
+                    if _MERGE_RE.search(inner):
+                        raise
+            continue
+
         # Unwrap `bash -c "..."` / `sh -c "..."` / `zsh -c "..."`.
-        if cmd_name in ("bash", "sh", "zsh", "dash"):
+        if cmd_base in ("bash", "sh", "zsh", "dash"):
             for idx, tok in enumerate(seg[1:], start=1):
                 if (
                     tok in ("-c", "--command")
@@ -177,14 +188,14 @@ def _parse_merge_invocations(command: str, base_cwd: str | None = None) -> list[
                 ) and idx + 1 < len(seg):
                     inner = seg[idx + 1]
                     try:
-                        invocations.extend(_parse_merge_invocations(inner, base_cwd=current_cwd))
+                        invocations.extend(_parse_merge_invocations(inner, base_cwd=current_cwd, _depth=_depth + 1))
                     except ValueError:
                         if _MERGE_RE.search(inner):
                             raise
                     break
             continue
 
-        if cmd_name not in ("gh", "gh.exe"):
+        if cmd_base != "gh":
             continue
 
         # Match `gh [flags] pr [flags] merge [args...]`.
@@ -346,6 +357,22 @@ def _merge_segment_flags(command: str) -> set[str]:
     return flags
 
 
+_FALSE_BOOL_VALUES = frozenset({"false", "0", "f", "no", "off"})
+
+
+def _is_bool_flag_enabled(flags: set[str], flag: str) -> bool:
+    """True if *flag* is present bare (`--admin`) or with a non-false `=value` (`--admin=true`)."""
+    if flag in flags:
+        return True
+    prefix = f"{flag}="
+    for tok in flags:
+        if tok.startswith(prefix):
+            val = tok[len(prefix) :].strip().lower()
+            if val not in _FALSE_BOOL_VALUES:
+                return True
+    return False
+
+
 def main() -> None:
     if os.environ.get(_BYPASS_ENV) == "1":
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
@@ -379,7 +406,7 @@ def main() -> None:
     merge_flags = _merge_segment_flags(command)
 
     # --- Block --admin before any CI check ---
-    if "--admin" in merge_flags:
+    if _is_bool_flag_enabled(merge_flags, "--admin"):
         if os.environ.get("ALLOW_ADMIN_MERGE") == "1":
             print("[ci-merge-gate] WARNING: --admin override allowed via ALLOW_ADMIN_MERGE=1", file=sys.stderr)
         else:
@@ -388,7 +415,7 @@ def main() -> None:
             sys.exit(0)
 
     # --- Block --force before any CI check ---
-    if "--force" in merge_flags:
+    if _is_bool_flag_enabled(merge_flags, "--force"):
         if os.environ.get("ALLOW_FORCE_MERGE") == "1":
             print("[ci-merge-gate] WARNING: --force override allowed via ALLOW_FORCE_MERGE=1", file=sys.stderr)
         else:
@@ -463,6 +490,7 @@ def main() -> None:
 
         # bucket field values: pass, fail, pending, skipping, cancel
         failing = [c for c in checks if c.get("bucket") == "fail"]
+        cancelled = [c for c in checks if c.get("bucket") == "cancel"]
         pending = [c for c in checks if c.get("bucket") == "pending"]
 
         if failing:
@@ -481,6 +509,26 @@ def main() -> None:
             deny_tool_use(
                 "PreToolUse",
                 f"CI checks are failing for PR #{pr_number}: {names}. Fix the failing checks before merging.",
+            )
+            sys.exit(0)
+
+        if cancelled:
+            names = ", ".join(c["name"] for c in cancelled)
+            print(f"[ci-merge-gate] BLOCKED: CI checks cancelled: {names}", file=sys.stderr)
+            print(f"[ci-merge-gate] Re-run cancelled checks before merging PR #{pr_number}.", file=sys.stderr)
+            record_governance(
+                "approval_requested",
+                hook_name="ci-merge-gate",
+                tool_name="Bash",
+                hook_phase="pre",
+                severity="medium",
+                blocked=True,
+                command=command,
+            )
+            deny_tool_use(
+                "PreToolUse",
+                f"CI checks were cancelled for PR #{pr_number}: {names}. "
+                "Re-run cancelled checks and wait for them to pass before merging.",
             )
             sys.exit(0)
 

@@ -309,10 +309,10 @@ def check_hook_denials(config: HealthConfig) -> HookDenialResult:
     if not LEARNING_DB.exists():
         return missing
 
-    # governance_events.created_at holds naive local time, compared as text (see
-    # learning_db_v2.governance_timestamp). A UTC or offset-suffixed cutoff here
-    # shifts the window by the local UTC offset.
-    now = datetime.now()
+    # Match learning_db_v2.query_governance_events: UTC cutoffs compared via
+    # SQLite julianday() so both legacy naive rows and UTC +00:00 rows evaluate
+    # consistently across timezones.
+    now = datetime.now(timezone.utc)
     cutoff_7d = (now - timedelta(days=HOOK_WINDOW_DAYS)).isoformat()
     cutoff_recent = (now - timedelta(days=HOOK_WINDOW_DAYS / 2)).isoformat()
 
@@ -321,17 +321,17 @@ def check_hook_denials(config: HealthConfig) -> HookDenialResult:
         # Read-only: the hooks own this database, and a health check never writes to it.
         conn = sqlite3.connect(f"{LEARNING_DB.absolute().as_uri()}?mode=ro", uri=True)
         denial_count = conn.execute(
-            "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ?",
+            "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND julianday(created_at) >= julianday(?)",
             (cutoff_7d,),
         ).fetchone()[0]
 
         event_count = conn.execute(
-            "SELECT COUNT(*) FROM governance_events WHERE created_at > ?",
+            "SELECT COUNT(*) FROM governance_events WHERE julianday(created_at) >= julianday(?)",
             (cutoff_7d,),
         ).fetchone()[0]
 
         recent_denials = conn.execute(
-            "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ?",
+            "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND julianday(created_at) >= julianday(?)",
             (cutoff_recent,),
         ).fetchone()[0]
     except sqlite3.OperationalError:

@@ -402,7 +402,7 @@ def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict 
     desired, not_deployed = settings_mod.drop_undeployed(desired, home, os.path.exists)
     try:
         current = settings_mod.read_settings(spath)
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         return {"skipped": f"settings.json unreadable: {exc}"}
     rule = settings_mod.OwnerRule(home=home, hooks_dir=home / ".claude" / "hooks", source_root=ctx.source_root)
     res = settings_mod.merge(current, desired, rule)

@@ -10,6 +10,7 @@ See: https://docs.github.com/en/copilot/concepts/agents/code-review
 """
 
 import json
+import os
 import re
 import shlex
 import shutil
@@ -202,11 +203,31 @@ def check_tool_available(cmd: str) -> bool:
     Returns:
         True if tool is available
     """
-    tool = cmd.split()[0]
+    parts = cmd.split() if cmd else []
+    if not parts:
+        return False
+    tool = parts[0]
     # Handle npx specially
     if tool == "npx":
         return shutil.which("npx") is not None
     return shutil.which(tool) is not None
+
+
+def _build_windows_argv(cmd_template: str, files: list[Path]) -> list[str]:
+    """Expand a command template into a Windows-safe argv list (no POSIX single quotes)."""
+    argv: list[str] = []
+    for token in shlex.split(cmd_template, posix=True):
+        if token == "{files}":
+            argv.extend(str(f) for f in files)
+        elif "{files}" in token:
+            argv.append(token.replace("{files}", " ".join(str(f) for f in files)))
+        else:
+            argv.append(token)
+    if argv:
+        resolved = shutil.which(argv[0])
+        if resolved:
+            argv[0] = resolved
+    return argv
 
 
 def run_tool(
@@ -259,17 +280,22 @@ def run_tool(
             skip_reason="No command configured",
         )
 
-    # Build command with files - quote paths to prevent shell injection
-    # SECURITY NOTE: shell=True is used because cmd_template comes from language_registry.json
-    # (a trusted, version-controlled config file). File paths are protected by shlex.quote().
-    # This is an accepted risk for the flexibility of supporting arbitrary tool commands.
-    file_str = " ".join(shlex.quote(str(f)) for f in files)
-    cmd = cmd_template.replace("{files}", file_str)
+    # Build command with files - quote paths to prevent shell injection.
+    # On Windows, POSIX shlex.quote() emits single quotes that cmd.exe treats
+    # literally, so pass an argv list with shell disabled instead.
+    # On POSIX, shell execution is kept for trusted language_registry.json
+    # templates with every file path escaped via shlex.quote().
+    use_shell = os.name != "nt"
+    if use_shell:
+        file_str = " ".join(shlex.quote(str(f)) for f in files)
+        cmd: str | list[str] = cmd_template.replace("{files}", file_str)
+    else:
+        cmd = _build_windows_argv(cmd_template, files)
 
     try:
         result = subprocess.run(
             cmd,
-            shell=True,  # Required for command templates; see security note above
+            shell=use_shell,  # security-review: ignore (trusted registry templates on POSIX; argv list on Windows)
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -489,7 +515,7 @@ def run_quality_gate(
 
     # Build summary
     total_tools = len(report.tool_results)
-    passed_tools = sum(1 for r in report.tool_results if r.passed)
+    passed_tools = sum(1 for r in report.tool_results if r.passed and not r.skipped)
     skipped_tools = sum(1 for r in report.tool_results if r.skipped)
     failed_tools = total_tools - passed_tools - skipped_tools
 

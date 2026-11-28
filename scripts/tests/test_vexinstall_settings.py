@@ -282,3 +282,45 @@ def test_merge_attribution_adds_only_when_absent() -> None:
 def test_repo_settings_ship_empty_attribution() -> None:
     root = Path(__file__).resolve().parents[2]
     assert sm.desired_attribution_from_repo(root) == {"commit": "", "pr": ""}
+
+
+def test_read_settings_rejects_non_dict_root(tmp_path: Path) -> None:
+    import pytest
+
+    spath = tmp_path / "settings.json"
+    for payload in ("[]", '"hello"', "42", "true"):
+        spath.write_text(payload, encoding="utf-8")
+        with pytest.raises(ValueError, match="JSON object"):
+            sm.read_settings(spath)
+
+
+def test_merge_coerces_non_list_event_entry(tmp_path: Path) -> None:
+    rule = sm.OwnerRule(home=tmp_path, hooks_dir=tmp_path / ".claude" / "hooks", source_root=tmp_path)
+    desired = {
+        "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": 'python3 "$HOME/.claude/hooks/h1.py"'}]}]
+    }
+    res = sm.merge({"hooks": {"Stop": {"corrupt": True}}}, desired, rule)
+    assert isinstance(res.settings["hooks"]["Stop"], list)
+    assert len(res.added) == 1
+
+
+def test_apply_and_doctor_handle_non_dict_and_unreadable_settings(world: Env, monkeypatch) -> None:
+    spath = world.home / ".claude" / "settings.json"
+    spath.parent.mkdir(parents=True, exist_ok=True)
+    spath.write_text("[1, 2, 3]\n", encoding="utf-8")
+    res = world.run("apply", "--target", "claude")
+    assert res.code == 0, res.err
+    assert "unreadable" in res.data["settings"].get("skipped", "")
+
+    doc = world.run("doctor", "--target", "claude")
+    assert doc.code == 1
+    assert any("settings-unreadable" in line for line in doc.out), doc.out
+
+    # OSError from read_settings is also handled gracefully in both apply and doctor
+    monkeypatch.setattr(sm, "read_settings", lambda _p: (_ for _ in ()).throw(PermissionError("denied")))
+    res2 = world.run("apply", "--target", "claude")
+    assert res2.code == 0, res2.err
+    assert "unreadable" in res2.data["settings"].get("skipped", "")
+    doc2 = world.run("doctor", "--target", "claude")
+    assert doc2.code == 1
+    assert any("settings-unreadable" in line for line in doc2.out), doc2.out

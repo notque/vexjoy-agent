@@ -513,3 +513,45 @@ def test_measure_scope_skips_git_dir_by_path_parts_not_slashes(tmp_path: Path) -
     count, size = d_gate.measure_scope(["."], tmp_path)
     assert count == 2
     assert size == len(b"name: CI\n") + len(b"hello")
+
+
+def test_measure_scope_prunes_git_before_walk_cap(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(d_gate, "_BUDGET_WALK_CAP", 5)
+    git_objs = tmp_path / ".git" / "objects"
+    git_objs.mkdir(parents=True)
+    for i in range(20):
+        (git_objs / f"obj{i}").write_bytes(b"g" * 100)
+    (tmp_path / "real1.py").write_bytes(b"abc")
+    (tmp_path / "real2.py").write_bytes(b"defg")
+
+    count, size = d_gate.measure_scope(["."], tmp_path)
+    assert count == 2
+    assert size == 7
+
+
+def test_check_receipt_handles_corrupt_timestamp(tmp_path: Path) -> None:
+    path = d_gate.receipt_path(REQUEST)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    for bad_ts in ("not-a-float", ["bad"], {"ts": 1}):
+        path.write_text(json.dumps({"ts": bad_ts, "phase": "proposed"}), encoding="utf-8")
+        err = d_gate.check_receipt({"request_verbatim": REQUEST, "intent": INTENT})
+        assert err is not None
+        assert "unreadable" in err
+
+
+def test_resolve_references_normalizes_windows_backslashes(tmp_path: Path) -> None:
+    refs_dir = tmp_path / "skills" / "demo" / "references"
+    refs_dir.mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("# demo\n", encoding="utf-8")
+    (refs_dir / "guide.md").write_text("# guide\n", encoding="utf-8")
+
+    paths, err = d_gate.resolve_references("demo", [r"references\guide.md"], {}, [tmp_path])
+    assert err is None
+    assert len(paths) == 1
+    assert paths[0].endswith("guide.md")
+
+
+def test_write_receipt_atomic_mkstemp_leaves_no_tmp() -> None:
+    p = d_gate.write_receipt(REQUEST, INTENT, {"alignment": "pass"}, "proposed")
+    assert p is not None and p.is_file()
+    assert list(p.parent.glob("*.tmp")) == []

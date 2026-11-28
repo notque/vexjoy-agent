@@ -30,6 +30,12 @@ from pathlib import Path
 
 import yaml
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.frontmatter import extract_frontmatter_block
+
 # Byte cap on an agent description. Every repo agent fits (largest: 233 bytes).
 AGENT_DESCRIPTION_MAX_BYTES = 300
 
@@ -64,15 +70,13 @@ def validate_skill(filepath: Path, strict: bool = False) -> list[str]:
         return [f"{display_path}: Cannot read file: {e}"]
 
     # Extract frontmatter block
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-    if not match:
+    yaml_content = extract_frontmatter_block(content)
+    if yaml_content is None:
         return [f"{display_path}: No YAML frontmatter found (missing --- delimiters)"]
-
-    yaml_content = match.group(1)
 
     # Parse YAML
     try:
-        fm = yaml.safe_load(yaml_content)
+        fm = yaml.safe_load(yaml_content if yaml_content.endswith("\n") else yaml_content + "\n")
     except yaml.YAMLError as e:
         return [f"{display_path}: YAML parse error: {e}"]
 
@@ -153,11 +157,11 @@ def validate_agent(filepath: Path) -> list[str]:
     except (OSError, UnicodeDecodeError) as e:
         return [f"{display_path}: Cannot read file: {e}"]
 
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-    if not match:
+    yaml_content = extract_frontmatter_block(content)
+    if yaml_content is None:
         return []
     try:
-        fm = yaml.safe_load(match.group(1))
+        fm = yaml.safe_load(yaml_content if yaml_content.endswith("\n") else yaml_content + "\n")
     except yaml.YAMLError as e:
         return [f"{display_path}: YAML parse error: {e}"]
     if not isinstance(fm, dict):

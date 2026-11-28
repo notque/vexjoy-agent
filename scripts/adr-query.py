@@ -140,7 +140,47 @@ def _resolve_adr(path_str: str, repo_root: Path) -> Path:
     return resolved
 
 
+def _supports_dir_fd() -> bool:
+    return (
+        os.name != "nt"
+        and os.open in getattr(os, "supports_dir_fd", set())
+        and os.unlink in getattr(os, "supports_dir_fd", set())
+    )
+
+
+def _validate_root_no_dir_fd(repo_root: Path) -> None:
+    try:
+        root_mode = repo_root.lstat().st_mode
+    except OSError as exc:
+        raise ValueError(f"repository root not accessible: {repo_root}") from exc
+    if stat.S_ISLNK(root_mode) or not stat.S_ISDIR(root_mode):
+        raise ValueError("repository root must be a real directory")
+
+
 def _session_read(repo_root: Path) -> dict:
+    if not _supports_dir_fd():
+        _validate_root_no_dir_fd(repo_root)
+        session_path = repo_root / SESSION_FILE
+        try:
+            mode = session_path.lstat().st_mode
+        except FileNotFoundError as exc:
+            raise ValueError(f"no active ADR session — {SESSION_FILE} not found in {repo_root}") from exc
+        except OSError as exc:
+            raise ValueError("ADR session registry must not be a symbolic link") from exc
+        if stat.S_ISLNK(mode):
+            raise ValueError("ADR session registry must not be a symbolic link")
+        if not stat.S_ISREG(mode):
+            raise ValueError("ADR session registry must be a regular file")
+        if session_path.resolve().parent != repo_root.resolve():
+            raise ValueError("ADR session registry must reside inside repository root")
+        try:
+            session = json.loads(session_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid JSON in {SESSION_FILE}: {exc}") from exc
+        if not isinstance(session, dict):
+            raise ValueError("ADR session registry must contain a JSON object")
+        return session
+
     directory_flags = os.O_RDONLY
     if hasattr(os, "O_DIRECTORY"):
         directory_flags |= os.O_DIRECTORY
@@ -179,6 +219,19 @@ def _session_delete(repo_root: Path) -> Path:
     Uses the same openat + O_NOFOLLOW discipline as _session_read so a symlinked
     registry cannot redirect the unlink outside the repository root.
     """
+    if not _supports_dir_fd():
+        _validate_root_no_dir_fd(repo_root)
+        session_path = repo_root / SESSION_FILE
+        try:
+            session_path.lstat()
+        except FileNotFoundError as exc:
+            raise ValueError(f"no active ADR session — {SESSION_FILE} not found in {repo_root}") from exc
+        try:
+            os.unlink(session_path)
+        except FileNotFoundError as exc:
+            raise ValueError(f"no active ADR session — {SESSION_FILE} not found in {repo_root}") from exc
+        return session_path
+
     directory_flags = os.O_RDONLY
     if hasattr(os, "O_DIRECTORY"):
         directory_flags |= os.O_DIRECTORY

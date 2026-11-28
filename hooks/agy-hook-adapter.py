@@ -49,7 +49,6 @@ import copy
 import json
 import os
 import re
-import signal
 import stat
 import subprocess
 import tempfile
@@ -57,6 +56,11 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+
+_LIB_DIR = str(Path(__file__).resolve().parent / "lib")
+if _LIB_DIR not in sys.path:
+    sys.path.insert(0, _LIB_DIR)
+from stdin_timeout import read_stdin_optional
 
 try:
     import fcntl
@@ -709,6 +713,8 @@ def run_adapter(args: argparse.Namespace, raw_input: str) -> dict[str, Any]:
             [sys.executable, str(args.hook)],
             input=json.dumps(normalized),
             text=True,
+            encoding="utf-8",
+            errors="replace",
             capture_output=True,
             cwd=cwd,
             env=compatibility_environment(normalized),
@@ -746,55 +752,21 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-class _StdinTimeout(Exception):
-    """Raised by the SIGALRM handler when stdin stays open past the bound."""
-
-
 def read_input(timeout: float) -> str | None:
-    """Read all of stdin, or return None when it is not closed within *timeout*
-    seconds. Uses setitimer/SIGALRM on POSIX and a daemon reader thread on
-    platforms without setitimer (Windows)."""
-    if timeout <= 0:
-        return sys.stdin.read()
-    if not hasattr(signal, "setitimer"):
-        import threading
-
-        box: list[str] = []
-
-        def _reader() -> None:
-            try:
-                box.append(sys.stdin.read())
-            except OSError:
-                box.append("")
-
-        thread = threading.Thread(target=_reader, daemon=True)
-        thread.start()
-        thread.join(timeout=timeout)
-        if thread.is_alive():
-            return None
-        return box[0] if box else ""
-
-    def _expired(_signum: int, _frame: object) -> None:
-        raise _StdinTimeout
-
-    try:
-        previous = signal.signal(signal.SIGALRM, _expired)
-    except ValueError:
-        return sys.stdin.read()
-    signal.setitimer(signal.ITIMER_REAL, timeout)
-    try:
-        return sys.stdin.read()
-    except _StdinTimeout:
-        return None
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous)
+    """Read all of stdin, or return None when it is not closed within *timeout* seconds."""
+    return read_stdin_optional(timeout)
 
 
 _BYPASS_ENV = "AGY_HOOK_ADAPTER_BYPASS"
 
 
 def main() -> int:
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+            except (AttributeError, ValueError, OSError):
+                pass
     if os.environ.get(_BYPASS_ENV) == "1":
         return 0
     args = _parser().parse_args()
@@ -806,7 +778,7 @@ def main() -> int:
             output = run_adapter(args, raw_input)
     except Exception as exc:
         output = failure_output(args.event, args.failure_policy, f"unexpected adapter error: {exc}")
-    print(json.dumps(output, ensure_ascii=False))
+    print(json.dumps(output))
     return 0
 
 

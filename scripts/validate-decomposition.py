@@ -109,9 +109,15 @@ def extract_tables(content: str) -> list[str]:
 
 
 def extract_headings(content: str) -> list[tuple[int, str]]:
-    """Extract all markdown headings as (level, text) tuples."""
+    """Extract all markdown headings as (level, text) tuples, ignoring fenced code blocks."""
     headings: list[tuple[int, str]] = []
+    in_fence = False
     for line in content.split("\n"):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         m = re.match(r"^(#{1,6})\s+(.+)", line)
         if m:
             level = len(m.group(1))
@@ -124,20 +130,27 @@ def extract_section_content(content: str, heading_text: str) -> str:
     """Return the body text beneath a given heading (until the next same-or-higher heading)."""
     lines = content.split("\n")
     in_section = False
+    in_fence = False
     heading_level = 0
     body: list[str] = []
 
     for line in lines:
-        m = re.match(r"^(#{1,6})\s+(.+)", line)
-        if m:
-            level = len(m.group(1))
-            text = m.group(2).strip()
-            if text == heading_text:
-                in_section = True
-                heading_level = level
-                continue
-            if in_section and level <= heading_level:
-                break
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            if in_section:
+                body.append(line)
+            continue
+        if not in_fence:
+            m = re.match(r"^(#{1,6})\s+(.+)", line)
+            if m:
+                level = len(m.group(1))
+                text = m.group(2).strip()
+                if text == heading_text:
+                    in_section = True
+                    heading_level = level
+                    continue
+                if in_section and level <= heading_level:
+                    break
         if in_section:
             body.append(line)
 

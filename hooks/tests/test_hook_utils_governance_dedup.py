@@ -14,7 +14,7 @@ import os
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -159,19 +159,19 @@ def test_real_subprocesses_dedup(gov_db: Path) -> None:
     assert len(_rows(gov_db)) == 1
 
 
-def test_governance_timestamp_is_naive_local_time() -> None:
-    before = datetime.now()
+def test_governance_timestamp_is_utc() -> None:
+    before = datetime.now(timezone.utc)
     stamp = datetime.fromisoformat(learning_db_v2.governance_timestamp())
-    after = datetime.now()
+    after = datetime.now(timezone.utc)
 
-    assert stamp.tzinfo is None
+    assert stamp.tzinfo == timezone.utc
     assert before <= stamp <= after
 
 
 def test_governance_timestamp_subtracts_age() -> None:
     cutoff = datetime.fromisoformat(learning_db_v2.governance_timestamp(timedelta(days=7)))
 
-    assert timedelta(days=7) <= datetime.now() - cutoff < timedelta(days=7, seconds=5)
+    assert timedelta(days=7) <= datetime.now(timezone.utc) - cutoff < timedelta(days=7, seconds=5)
 
 
 def test_days_filter_matches_what_the_writer_stores(gov_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:

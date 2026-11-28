@@ -145,3 +145,31 @@ def test_missing_route_entry_fails(tmp_path: Path) -> None:
     result = _run(before, after, refs)
     assert result.returncode == 1
     assert "setup.md" in result.stdout
+
+
+def test_fenced_code_comments_are_not_treated_as_headings() -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("validate_decomposition_mod", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    md = (
+        "# Top\n\n"
+        "## Real Section\n\n"
+        "Intro text.\n\n"
+        "```bash\n"
+        "# Fake Heading Inside Code\n"
+        "## Another Fake Heading\n"
+        "echo hi\n"
+        "```\n\n"
+        "Trailing text after fence.\n\n"
+        "## Next Section\n\n"
+        "Other body.\n"
+    )
+    headings = mod.extract_headings(md)
+    assert headings == [(1, "Top"), (2, "Real Section"), (2, "Next Section")]
+    section = mod.extract_section_content(md, "Real Section")
+    assert "Trailing text after fence." in section
+    assert "Other body." not in section

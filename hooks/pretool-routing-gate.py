@@ -34,7 +34,6 @@ if sys.version_info < (3, 10):  # vexjoy-pyguard gate
 import json
 import os
 import re
-import shlex
 import tempfile
 import time
 from pathlib import Path
@@ -105,6 +104,66 @@ _GIT_MUTATING_TOKENS = frozenset(
 )
 
 
+_FIND_MUTATING_FLAGS = frozenset(
+    {
+        "-delete",
+        "-exec",
+        "-execdir",
+        "-ok",
+        "-okdir",
+        "-fprint",
+        "-fprint0",
+        "-fprintf",
+        "-fls",
+    }
+)
+
+_GIT_CONFIG_READ_FLAGS = frozenset({"--get", "--list", "-l", "--get-all", "--get-regexp"})
+_GIT_CONFIG_SAFE_MODIFIERS = frozenset(
+    {
+        "--local",
+        "--global",
+        "--system",
+        "--worktree",
+        "--show-origin",
+        "--show-scope",
+        "--name-only",
+        "--null",
+        "-z",
+        "--includes",
+        "--no-includes",
+        "--bool",
+        "--int",
+        "--path",
+    }
+)
+_GIT_CONFIG_VALUE_MODIFIERS = frozenset({"-f", "--file", "--default", "--type"})
+
+
+def _is_read_only_git_config(args: list[str]) -> bool:
+    """True only when `git config` performs a read-only query without mutating flags."""
+    has_read_flag = False
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        if tok == "--":
+            break
+        if tok in _GIT_CONFIG_READ_FLAGS:
+            has_read_flag = True
+            i += 1
+            continue
+        if tok in _GIT_CONFIG_SAFE_MODIFIERS or tok.startswith(("--type=", "--default=", "--file=")):
+            i += 1
+            continue
+        if tok in _GIT_CONFIG_VALUE_MODIFIERS:
+            i += 2
+            continue
+        if tok.startswith("-"):
+            return False
+        i += 1
+    return has_read_flag
+
+
 def _state_dir() -> Path:
     env_dir = os.environ.get("VEXJOY_ROUTING_STATE_DIR")
     if env_dir:
@@ -132,16 +191,23 @@ def load_routing_state(session_id: str) -> dict:
 
 def mark_session_routed(session_id: str) -> None:
     path = _state_path(session_id)
+    tmp_path: str | None = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         data = load_routing_state(session_id)
         data["routed"] = True
         data["timestamp"] = time.time()
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(path)
+        fd, tmp_path = tempfile.mkstemp(prefix=".routing-state-", suffix=".tmp", dir=str(path.parent))
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(data, ensure_ascii=False))
+        os.replace(tmp_path, path)
+        tmp_path = None
     except OSError:
-        pass
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
 
 def is_read_only_command(cmd_str: str) -> bool:
@@ -149,8 +215,8 @@ def is_read_only_command(cmd_str: str) -> bool:
     if not cmd_str or not cmd_str.strip():
         return True
 
-    # Reject commands containing redirection operators that write files
-    if re.search(r"(?:>|>>|\|\s*tee\b)", cmd_str):
+    # Reject commands containing redirections or command/process substitutions
+    if re.search(r"(?:>|>>|\|\s*tee\b)", cmd_str) or "$(" in cmd_str or "`" in cmd_str or "<(" in cmd_str:
         return False
 
     # Check command pipelines or chains
@@ -167,7 +233,7 @@ def is_read_only_command(cmd_str: str) -> bool:
         if not tokens:
             continue
 
-        bin_name = Path(tokens[0]).name
+        bin_name = tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower().removesuffix(".exe")
 
         if bin_name == "git":
             if len(tokens) < 2:
@@ -176,6 +242,13 @@ def is_read_only_command(cmd_str: str) -> bool:
             if subcmd in _GIT_MUTATING_TOKENS:
                 return False
             if subcmd not in _GIT_READ_SUBCOMMANDS:
+                return False
+            if subcmd == "config" and not _is_read_only_git_config(tokens[2:]):
+                return False
+            continue
+
+        if bin_name == "find":
+            if any(tok in _FIND_MUTATING_FLAGS for tok in tokens[1:]):
                 return False
             continue
 
@@ -295,8 +368,8 @@ def main() -> None:
     try:
         event = json.loads(raw)
     except json.JSONDecodeError as exc:
-        hook_error(EVENT_NAME, f"invalid input JSON: {exc}")
-        return
+        hook_error("pretool-routing-gate", exc)
+        empty_output(EVENT_NAME).print_and_exit()
 
     session_id = str(event.get("session_id") or event.get("conversationId") or "default")
     tool_name = str(event.get("tool_name") or event.get("agy_tool_name") or "")
@@ -315,8 +388,7 @@ def main() -> None:
     if tool_name in ("Bash", "run_command"):
         cmd = str(tool_input.get("command") or tool_input.get("CommandLine") or "")
         if is_read_only_command(cmd):
-            empty_output(EVENT_NAME)
-            return
+            empty_output(EVENT_NAME).print_and_exit()
 
     # Here we have a mutating tool (Edit, Write, or modifying Bash command)
     state = load_routing_state(session_id)

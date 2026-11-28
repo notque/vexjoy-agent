@@ -727,3 +727,28 @@ def test_single_hop_helper_running_wrong_script_not_detected(tmp_path):
 
     result = _run(repo)
     assert result.returncode == 1, result.stdout + result.stderr
+
+
+def test_underscore_named_validator_is_audited(tmp_path):
+    """Validators named validate_*.py (underscore) must be audited just like validate-*.py."""
+    repo = tmp_path / "repo"
+    _make_workflow(repo, [{"run": "python3 scripts/validate_underscore_gate.py"}])
+    _make_allowlist(repo)
+    (repo / "scripts" / "tests").mkdir(parents=True, exist_ok=True)
+
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "validate_underscore_gate.py" in (result.stdout + result.stderr)
+
+    _make_test_file(
+        repo / "scripts" / "tests",
+        "validate_underscore_gate.py",
+        """\
+        import subprocess, sys
+        def test_fails():
+            result = subprocess.run([sys.executable, "x.py"], capture_output=True)
+            assert result.returncode == 1
+        """,
+    )
+    result_ok = _run(repo)
+    assert result_ok.returncode == 0, result_ok.stdout + result_ok.stderr

@@ -123,7 +123,7 @@ def check_do_framing_in_file(path: Path) -> list[DoFramingIssue]:
 
     issues: list[DoFramingIssue] = []
     try:
-        rel = str(path.relative_to(REPO_ROOT))
+        rel = path.relative_to(REPO_ROOT).as_posix()
     except ValueError:
         rel = str(path)
 
@@ -297,9 +297,12 @@ def validate_reference_file(ref_path: Path, agents_dir: Path = AGENTS_DIR) -> li
     issues: list[ReferenceIssue] = []
     content = ref_path.read_text(encoding="utf-8")
     try:
-        rel = str(ref_path.relative_to(agents_dir))
+        rel = ref_path.relative_to(agents_dir).as_posix()
     except ValueError:
-        rel = str(ref_path.relative_to(REPO_ROOT))
+        try:
+            rel = ref_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            rel = str(ref_path)
 
     headings = [line for line in content.splitlines() if line.startswith("## ")]
     if not headings:

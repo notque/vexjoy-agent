@@ -32,7 +32,7 @@ from hook_utils import append_hook_debug_log, ensure_owner_only_file
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 16
+_CURRENT_SCHEMA_VERSION = 17
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -101,13 +101,35 @@ def get_connection():
     ensure_owner_only_file(db_path)
     conn = sqlite3.connect(db_path, timeout=5.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA busy_timeout=5000")
     try:
         yield conn
     finally:
         conn.close()
+
+
+@contextmanager
+def _immediate_transaction(conn: sqlite3.Connection):
+    """Run a read-modify-write block inside an explicit BEGIN IMMEDIATE transaction.
+
+    Temporarily disables Python sqlite3's implicit transaction handling so
+    ``BEGIN IMMEDIATE`` never collides with an auto-started transaction across
+    Python versions, and commits/rolls back deterministically.
+    """
+    prev_isolation = conn.isolation_level
+    conn.isolation_level = None
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        yield conn
+        if conn.in_transaction:
+            conn.execute("COMMIT")
+    except BaseException:
+        if conn.in_transaction:
+            conn.execute("ROLLBACK")
+        raise
+    finally:
+        conn.isolation_level = prev_isolation
 
 
 _initialized = False
@@ -324,17 +346,24 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             "VALUES (16, 'add executing agent model and effort to intent alignment telemetry')"
         )
 
-    # Reconcile development-era v15 databases whose table predates the final
-    # receipt shape. CREATE TABLE IF NOT EXISTS cannot add missing columns.
-    intent_columns = {row[1] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)").fetchall()}
-    for column, sql_type in (
-        ("questions_version", "TEXT"),
-        ("agent_model", "TEXT"),
-        ("agent_effort", "TEXT"),
-        ("agent_runtime", "TEXT"),
-    ):
-        if column not in intent_columns:
-            conn.execute(f"ALTER TABLE jev_intent_alignments ADD COLUMN {column} {sql_type}")
+    if current < 17:
+        # v16 -> v17: Reconcile development-era v15 databases whose table predates
+        # the final receipt shape, then bump to v17 so fresh hook processes can
+        # fast-path init_db() without re-running _SCHEMA DDL or PRAGMA table_info.
+        intent_columns = {row[1] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)").fetchall()}
+        for column, sql_type in (
+            ("questions_version", "TEXT"),
+            ("agent_model", "TEXT"),
+            ("agent_effort", "TEXT"),
+            ("agent_runtime", "TEXT"),
+        ):
+            if column not in intent_columns:
+                conn.execute(f"ALTER TABLE jev_intent_alignments ADD COLUMN {column} {sql_type}")
+        conn.execute("PRAGMA user_version = 17")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (17, 'reconcile intent alignment columns and enable init_db fast path')"
+        )
 
     conn.commit()
 
@@ -343,15 +372,21 @@ def init_db():
     global _initialized
     if _initialized:
         return
+    db_path = get_db_path()
+    db_existed = db_path.exists() and db_path.stat().st_size > 0
     with get_connection() as conn:
         # Read version before migrations so _migrate_fts knows if triggers were active
         pre_migration_version = conn.execute("PRAGMA user_version").fetchone()[0]
+        if db_existed and pre_migration_version == _CURRENT_SCHEMA_VERSION:
+            _initialized = True
+            return
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(_SCHEMA)
         _run_migrations(conn)
     _migrate_fts(pre_migration_version)
     # Harden DB file permissions after creation (ADR-122)
     try:
-        os.chmod(get_db_path(), 0o600)
+        os.chmod(db_path, 0o600)
     except OSError:
         pass
     _initialized = True
@@ -883,7 +918,7 @@ def record_learning(
     keep higher confidence, update value only if new is longer.
     """
     init_db()
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     if confidence is None:
         confidence = CATEGORY_DEFAULTS.get(category, 0.5)
@@ -1014,7 +1049,7 @@ def accumulate_rightsizing(
     record_learning's longest-value merge). observation_count = reviews at tier.
     """
     init_db()
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     if confidence is None:
         confidence = CATEGORY_DEFAULTS.get("effectiveness", 0.5)
 
@@ -1604,7 +1639,8 @@ def _record_evidence_session(conn: sqlite3.Connection, session_id: str | None, p
     )
 
 
-def record_evidence_event(
+def _upsert_evidence_event(
+    conn: sqlite3.Connection,
     *,
     event_type: str,
     source: str,
@@ -1623,9 +1659,9 @@ def record_evidence_event(
     metadata: dict | list | str | None = None,
     event_id: str | None = None,
     ts: str | None = None,
-) -> dict:
-    """Record a queryable agent evidence event and return the inserted row."""
-    init_db()
+    record_session_row: bool = True,
+) -> str:
+    """Upsert an evidence_events row on an existing connection (caller commits)."""
     event_type = _bounded_text(event_type, 120) or "event"
     source = _bounded_text(source, 160) or "unknown"
     session_id = _bounded_text(session_id, 160)
@@ -1657,56 +1693,101 @@ def record_evidence_event(
         ),
         160,
     )
-
-    with get_connection() as conn:
+    if record_session_row:
         _record_evidence_session(conn, session_id, project_path)
-        conn.execute(
-            """
-            INSERT INTO evidence_events (
-                event_id, session_id, ts, event_type, source, agent, skill, tool_name,
-                route_key, action, target, target_hash, success, error, model, tokens, metadata
-            )
-            VALUES (?, ?, COALESCE(?, datetime('now')), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(event_id) DO UPDATE SET
-                session_id = excluded.session_id,
-                ts = excluded.ts,
-                event_type = excluded.event_type,
-                source = excluded.source,
-                agent = excluded.agent,
-                skill = excluded.skill,
-                tool_name = excluded.tool_name,
-                route_key = excluded.route_key,
-                action = excluded.action,
-                target = excluded.target,
-                target_hash = excluded.target_hash,
-                success = excluded.success,
-                error = excluded.error,
-                model = excluded.model,
-                tokens = excluded.tokens,
-                metadata = excluded.metadata
-            """,
-            (
-                event_id,
-                session_id,
-                ts,
-                event_type,
-                source,
-                agent,
-                skill,
-                tool_name,
-                route_key,
-                action,
-                target,
-                target_hash,
-                None if success is None else int(bool(success)),
-                error,
-                model,
-                tokens,
-                metadata_text,
-            ),
+    conn.execute(
+        """
+        INSERT INTO evidence_events (
+            event_id, session_id, ts, event_type, source, agent, skill, tool_name,
+            route_key, action, target, target_hash, success, error, model, tokens, metadata
+        )
+        VALUES (?, ?, COALESCE(?, datetime('now')), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(event_id) DO UPDATE SET
+            session_id = excluded.session_id,
+            ts = excluded.ts,
+            event_type = excluded.event_type,
+            source = excluded.source,
+            agent = excluded.agent,
+            skill = excluded.skill,
+            tool_name = excluded.tool_name,
+            route_key = excluded.route_key,
+            action = excluded.action,
+            target = excluded.target,
+            target_hash = excluded.target_hash,
+            success = excluded.success,
+            error = excluded.error,
+            model = excluded.model,
+            tokens = excluded.tokens,
+            metadata = excluded.metadata
+        """,
+        (
+            event_id,
+            session_id,
+            ts,
+            event_type,
+            source,
+            agent,
+            skill,
+            tool_name,
+            route_key,
+            action,
+            target,
+            target_hash,
+            None if success is None else int(bool(success)),
+            error,
+            model,
+            tokens,
+            metadata_text,
+        ),
+    )
+    return event_id
+
+
+def record_evidence_event(
+    *,
+    event_type: str,
+    source: str,
+    session_id: str | None = None,
+    project_path: str | None = None,
+    agent: str | None = None,
+    skill: str | None = None,
+    tool_name: str | None = None,
+    route_key: str | None = None,
+    action: str | None = None,
+    target: str | None = None,
+    success: bool | None = None,
+    error: str | None = None,
+    model: str | None = None,
+    tokens: int | None = None,
+    metadata: dict | list | str | None = None,
+    event_id: str | None = None,
+    ts: str | None = None,
+) -> dict:
+    """Record a queryable agent evidence event and return the inserted row."""
+    init_db()
+    with get_connection() as conn:
+        eid = _upsert_evidence_event(
+            conn,
+            event_type=event_type,
+            source=source,
+            session_id=session_id,
+            project_path=project_path,
+            agent=agent,
+            skill=skill,
+            tool_name=tool_name,
+            route_key=route_key,
+            action=action,
+            target=target,
+            success=success,
+            error=error,
+            model=model,
+            tokens=tokens,
+            metadata=metadata,
+            event_id=event_id,
+            ts=ts,
         )
         conn.commit()
-        row = conn.execute("SELECT * FROM evidence_events WHERE event_id = ?", (event_id,)).fetchone()
+        row = conn.execute("SELECT * FROM evidence_events WHERE event_id = ?", (eid,)).fetchone()
         return _event_row(row)
 
 
@@ -1841,40 +1922,41 @@ def record_evidence_route_decision(
     spec_params = (spec_score, spec_missing, prompt_chars)
 
     with get_connection() as conn:
-        _record_evidence_session(conn, session_id)
-        try:
-            conn.execute(_ROUTE_DECISION_UPSERT_SQL, base_params + spec_params)
-        except sqlite3.OperationalError as exc:
-            # A DB that has not run the v10 migration lacks the spec columns.
-            # Keep the decision row; drop only the three new fields.
-            if "column" not in str(exc):
-                raise
-            _debug_line(f"evidence_route_decisions lacks spec columns; wrote row without them: {exc}")
-            conn.execute(_ROUTE_DECISION_UPSERT_SQL_LEGACY, base_params)
-        conn.commit()
+        with _immediate_transaction(conn):
+            _record_evidence_session(conn, session_id)
+            try:
+                conn.execute(_ROUTE_DECISION_UPSERT_SQL, base_params + spec_params)
+            except sqlite3.OperationalError as exc:
+                # A DB that has not run the v10 migration lacks the spec columns.
+                # Keep the decision row; drop only the three new fields.
+                if "column" not in str(exc):
+                    raise
+                _debug_line(f"evidence_route_decisions lacks spec columns; wrote row without them: {exc}")
+                conn.execute(_ROUTE_DECISION_UPSERT_SQL_LEGACY, base_params)
+            _upsert_evidence_event(
+                conn,
+                event_type="route_decision",
+                source="hook:routing",
+                session_id=session_id,
+                agent=agent,
+                skill=skill,
+                route_key=route_key,
+                action=action,
+                success=None if failure is None else not bool(failure),
+                model=model,
+                metadata={
+                    "complexity": complexity,
+                    "health": health,
+                    "n": n,
+                    "gate_inputs_present": gate_inputs_present,
+                    "stack": stack,
+                    "outcome": outcome,
+                    "outcome_basis": outcome_basis,
+                },
+                event_id=f"route:{decision_id}",
+                record_session_row=False,
+            )
         row = conn.execute("SELECT * FROM evidence_route_decisions WHERE decision_id = ?", (decision_id,)).fetchone()
-
-    record_evidence_event(
-        event_type="route_decision",
-        source="hook:routing",
-        session_id=session_id,
-        agent=agent,
-        skill=skill,
-        route_key=route_key,
-        action=action,
-        success=None if failure is None else not bool(failure),
-        model=model,
-        metadata={
-            "complexity": complexity,
-            "health": health,
-            "n": n,
-            "gate_inputs_present": gate_inputs_present,
-            "stack": stack,
-            "outcome": outcome,
-            "outcome_basis": outcome_basis,
-        },
-        event_id=f"route:{decision_id}",
-    )
     data = dict(row)
     data["failure"] = _bool_or_none(data.get("failure"))
     data["gate_inputs_present"] = bool(data.get("gate_inputs_present"))
@@ -1912,7 +1994,7 @@ def update_evidence_route_outcome(
         clauses.append("session_id = ?")
         params.append(session_id)
     where = " AND ".join(clauses)
-    with get_connection() as conn:
+    with get_connection() as conn, _immediate_transaction(conn):
         row = None
         if decision_id:
             row = conn.execute(
@@ -1939,7 +2021,6 @@ def update_evidence_route_outcome(
             """,
             (_bounded_text(outcome, 80), _bounded_text(outcome_basis, 120), row["decision_id"]),
         )
-        conn.commit()
 
 
 def list_evidence_events(
@@ -2210,7 +2291,7 @@ def record_instruction_compliance_batch(
     if not records:
         return
     init_db()
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     rows = [(record[0], record[1], record[2], record[3] if len(record) > 3 else None, now) for record in records]
     with get_connection() as conn:
         conn.executemany(
@@ -2250,7 +2331,7 @@ def query_instruction_skip_rate(days: int = 30) -> list[dict]:
                    SUM(CASE WHEN directive_expected = 0 THEN 1 ELSE 0 END) as not_expected,
                    SUM(CASE WHEN directive_expected IS NULL THEN 1 ELSE 0 END) as unknown
             FROM instruction_compliance
-            WHERE timestamp > datetime('now', ?)
+            WHERE julianday(timestamp) > julianday('now', ?)
             GROUP BY instruction_id
             ORDER BY instruction_id
             """,
@@ -2278,7 +2359,7 @@ def query_instruction_skip_rate(days: int = 30) -> list[dict]:
 def boost_confidence(topic: str, key: str, delta: float = 0.10) -> float:
     """Boost confidence for an entry. Returns new confidence."""
     init_db()
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
@@ -2300,7 +2381,7 @@ def boost_confidence(topic: str, key: str, delta: float = 0.10) -> float:
 def decay_confidence(topic: str, key: str, delta: float = 0.10) -> float:
     """Decay confidence for an entry. Returns new confidence."""
     init_db()
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
@@ -2333,14 +2414,13 @@ VALID_RESOLUTIONS = {"dismissed", "false_positive", "remediated"}
 
 
 def governance_timestamp(age: timedelta | None = None) -> str:
-    """The current time, less ``age``, in the form ``governance_events.created_at`` holds.
+    """The current UTC time, less ``age``, in ISO 8601 format.
 
-    The column holds naive local time (``datetime.now().isoformat()``), and SQLite
-    compares it as text. A reader that builds its cutoff in UTC, or with an offset
-    suffix, is wrong by the local UTC offset. Build every cutoff for this column
-    here, or the same way.
+    Using UTC aligns ``governance_events.created_at`` with SQLite's
+    ``julianday('now', ...)`` used by :func:`prune_ancillary` so pruning and
+    lookback queries do not skew by the local UTC offset.
     """
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     return (now - age if age else now).isoformat()
 
 
@@ -2472,7 +2552,7 @@ def query_governance_events(
 
         if days is not None:
             cutoff = governance_timestamp(timedelta(days=days))
-            conditions.append("created_at >= ?")
+            conditions.append("julianday(created_at) >= julianday(?)")
             params.append(cutoff)
 
         if event_type:
@@ -2517,7 +2597,7 @@ def record_session(
 ) -> None:
     """Record or update session metrics."""
     init_db()
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     with get_connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
@@ -2661,10 +2741,10 @@ def prune_ancillary(
 def prune(min_confidence: float = 0.3, older_than_days: int = 90) -> int:
     """Remove low-confidence entries older than threshold."""
     init_db()
-    cutoff = (datetime.now() - timedelta(days=older_than_days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=older_than_days)).isoformat()
     with get_connection() as conn:
         result = conn.execute(
-            "DELETE FROM learnings WHERE confidence < ? AND last_seen < ? AND graduated_to IS NULL",
+            "DELETE FROM learnings WHERE confidence < ? AND julianday(last_seen) < julianday(?) AND graduated_to IS NULL",
             (min_confidence, cutoff),
         )
         conn.commit()

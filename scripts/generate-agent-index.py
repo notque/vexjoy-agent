@@ -47,7 +47,8 @@ def extract_frontmatter(content: str) -> dict | None:
 
     # Try PyYAML first
     try:
-        return yaml.safe_load(yaml_content)
+        result = yaml.safe_load(yaml_content if yaml_content.endswith("\n") else yaml_content + "\n")
+        return result if isinstance(result, dict) else None
     except yaml.YAMLError:
         pass
 

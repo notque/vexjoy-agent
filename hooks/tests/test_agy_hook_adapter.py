@@ -651,3 +651,28 @@ def test_preinvocation_exit2_and_block_decision_inject_reason(adapter):
     )
     msg_block = out_block["injectSteps"][0]["systemMessage"]["systemMessage"]
     assert "Gate rejected prompt." in msg_block
+
+
+def test_agy_adapter_decodes_utf8_child_output_cleanly(tmp_path: Path):
+    hook = tmp_path / "utf8-hook.py"
+    hook.write_text(
+        "import json, sys\n"
+        "sys.stdin.read()\n"
+        "sys.stdout.buffer.write((json.dumps({'additionalContext': 'café 🚀 ok'}, ensure_ascii=False) + '\\n').encode('utf-8'))\n",
+        encoding="utf-8",
+    )
+    env = {**os.environ, "VEXJOY_AGY_DEFERRED_DIR": str(tmp_path / "deferred")}
+    result = subprocess.run(
+        [sys.executable, str(ADAPTER_PATH), "--hook", str(hook), "--event", "SessionStart"],
+        input="{}",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=tmp_path,
+        env=env,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    msg = json.loads(result.stdout)["injectSteps"][0]["systemMessage"]["systemMessage"]
+    assert "café" in msg and "🚀" in msg

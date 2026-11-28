@@ -400,7 +400,7 @@ def test_generated_command_uses_adapter_cli_contract():
     entries = parse_allowlist(
         "PreToolUse:pretool-plan-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed\n"
     )
-    result = build_hooks_json(entries, codex_hooks_dir="/fake hooks")
+    result = build_hooks_json(entries, codex_hooks_dir="/fake hooks", windows=False)
     hook = result["hooks"]["PreToolUse"][0]["hooks"][0]
     command = hook["command"]
     assert command == (
@@ -408,6 +408,30 @@ def test_generated_command_uses_adapter_cli_contract():
         "--hook '/fake hooks/pretool-plan-gate.py' "
         "--event PreToolUse --matcher 'Edit|Write' --mode patch --failure-policy closed"
     )
+
+
+def test_windows_quoting_handles_spaces_pipes_and_trailing_backslash():
+    """windows=True uses cmd.exe double-quoting and escapes trailing backslashes."""
+    entries = parse_allowlist(
+        "PreToolUse:pretool-plan-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed\n"
+    )
+    result = build_hooks_json(entries, codex_hooks_dir=r"C:\Users\Jo Doe\.codex\hooks", windows=True)
+    command = result["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+    assert "'" not in command
+    assert r'"C:\Users\Jo Doe\.codex\hooks/codex-hook-adapter.py"' in command
+    assert '--matcher "Edit|Write"' in command
+    # Trailing backslash in a quoted argument must be doubled for CRT argv parsing.
+    assert _mod.quote_cmd("C:\\dir\\", windows=True) == '"C:\\dir\\\\"'
+
+
+@pytest.mark.parametrize("bad_dir", [r"C:\Users\%USERNAME%\hooks", r"C:\Users\!VAR!\hooks", 'C:\\"bad"', "a\nb"])
+def test_windows_quoting_rejects_cmd_metachars(bad_dir):
+    """windows=True refuses values cmd.exe would expand or split."""
+    entries = parse_allowlist(
+        "PreToolUse:pretool-plan-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed\n"
+    )
+    with pytest.raises(ValueError, match=r"cmd\.exe"):
+        build_hooks_json(entries, codex_hooks_dir=bad_dir, windows=True)
 
 
 def test_all_ten_events_build_in_canonical_order():
@@ -482,7 +506,7 @@ def test_subagent_start_warmstart_builds_a_subagent_start_block():
     """The SubagentStart warm-start hook mirrors to Codex once the owner adds this line."""
     line = "SubagentStart:subagent-start-warmstart.py matcher=* class=native mode=native failure=open"
     entries = parse_allowlist(line)
-    result = build_hooks_json(entries, codex_hooks_dir="/codex/hooks")
+    result = build_hooks_json(entries, codex_hooks_dir="/codex/hooks", windows=False)
     assert list(result["hooks"]) == ["SubagentStart"]
     block = result["hooks"]["SubagentStart"][0]
     assert block["matcher"] == "*"
@@ -526,7 +550,11 @@ def _production_unified_gate_on_bash() -> list[str]:
         if "pretool-unified-gate.py" in handler["command"]
     ]
     assert len(commands) == 1, commands
-    return shlex.split(commands[0])
+    is_posix = os.name != "nt"
+    parts = shlex.split(commands[0], posix=is_posix)
+    if not is_posix:
+        parts = [p[1:-1] if len(p) >= 2 and p[0] == '"' and p[-1] == '"' else p for p in parts]
+    return parts
 
 
 def test_production_config_runs_the_unified_gate_on_bash_failing_closed():

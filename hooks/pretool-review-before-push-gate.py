@@ -78,9 +78,9 @@ GH_TIMEOUT = 4
 DEADLINE_SECONDS = 6.0
 review_record.GIT_TIMEOUT = 2
 
-_QUICK_RE = re.compile(r"\bpush\b|\bgh\b")
+_QUICK_RE = re.compile(r"\bpush\b|\bgh(?:\.exe)?\b", re.IGNORECASE)
 # Commands this hook judges; a crash after one matches is a deny.
-_GATED_RE = re.compile(r"\bpush\b|\bgh\b[^\n;&|]*\bpr\b")
+_GATED_RE = re.compile(r"\bpush\b|\bgh(?:\.exe)?\b[^\n;&|]*\bpr\b", re.IGNORECASE)
 _PUNCT = "();&|{}"
 _SHELLS = {"sh", "bash", "zsh", "fish", "dash", "ksh"}
 # Shell words that start a segment but are not the command.
@@ -293,12 +293,17 @@ def _skip_options(argv: list[str], values: frozenset[str]) -> tuple[int, list[tu
     return i, seen
 
 
+def _exe_name(token: str) -> str:
+    """Return the lowercased executable basename without a Windows `.exe` suffix."""
+    return token.replace("\\", "/").rsplit("/", 1)[-1].lower().removesuffix(".exe")
+
+
 def _strip_prefixes(argv: list[str], where: Where) -> tuple[list[str], dict[str, str], Where]:
     """Drop shell keywords, env assignments, and wrapper commands in front of the real command."""
     assigns: dict[str, str] = {}
     while argv:
         head = argv[0]
-        name = os.path.basename(head)
+        name = _exe_name(head)
         m = _ENV_ASSIGN_RE.match(head)
         if head in _KEYWORDS or head == "$":
             argv = argv[1:]
@@ -369,7 +374,7 @@ def parse_invocations(command: str, cwd: str | None, depth: int = 0, env: dict |
             # A bare `GIT_DIR=x` sets a shell variable; treat it as effective (fail toward the right repo).
             state["env"].update({k: v for k, v in assigns.items() if k in _GIT_ENV})
             return
-        name = os.path.basename(argv[0])
+        name = _exe_name(argv[0])
         if name in _SKIP_HEADS:
             return
         if name in {"cd", "pushd"}:
@@ -404,7 +409,7 @@ def parse_invocations(command: str, cwd: str | None, depth: int = 0, env: dict |
         # Backstop: an unknown wrapper in front of `git ... push` or `gh ... pr`.
         for i in range(1, len(argv)):
             tail = argv[i:]
-            base = os.path.basename(argv[i])
+            base = _exe_name(argv[i])
             if base == "git" and "push" in tail[1:]:
                 before = len(found)
                 _parse_git(tail, where, cmd_env, found)

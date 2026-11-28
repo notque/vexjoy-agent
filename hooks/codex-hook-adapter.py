@@ -37,12 +37,17 @@ import copy
 import json
 import os
 import re
-import signal
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+_LIB_DIR = str(Path(__file__).resolve().parent / "lib")
+if _LIB_DIR not in sys.path:
+    sys.path.insert(0, _LIB_DIR)
+from stdin_timeout import read_stdin_optional
 
 EVENTS = (
     "SessionStart",
@@ -560,6 +565,8 @@ def _run_child(hook: Path, event: dict[str, Any], timeout: float) -> dict[str, A
         [sys.executable, str(hook)],
         input=json.dumps(event),
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         cwd=cwd,
         env=compatibility_environment(event),
@@ -572,6 +579,14 @@ def _run_child(hook: Path, event: dict[str, Any], timeout: float) -> dict[str, A
         print(completed.stderr, file=sys.stderr, end="")
     event_name = _string(event.get("hook_event_name"))
     return result_from_exit(event_name, completed.returncode, completed.stdout, completed.stderr)
+
+
+def _is_pretool_deny(result: dict[str, Any]) -> bool:
+    """True when a normalized PreToolUse child result denies the tool call."""
+    if result.get("decision") == "block":
+        return True
+    inner = result.get("hookSpecificOutput")
+    return isinstance(inner, dict) and inner.get("permissionDecision") == "deny"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -606,7 +621,16 @@ def run(args: argparse.Namespace, raw_input: str) -> dict[str, Any]:
 
     try:
         invocations = build_invocations(payload, mode=args.mode, matcher=args.matcher)
-        results = [_run_child(args.hook, event, args.timeout) for event in invocations]
+        deadline = time.monotonic() + args.timeout
+        results: list[dict[str, Any]] = []
+        for event in invocations:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(cmd=[sys.executable, str(args.hook)], timeout=args.timeout)
+            result = _run_child(args.hook, event, remaining)
+            results.append(result)
+            if args.event == "PreToolUse" and _is_pretool_deny(result):
+                break
         return aggregate_outputs(args.event, results)
     except subprocess.TimeoutExpired:
         return failure_output(args.event, args.failure_policy, f"child hook timed out after {args.timeout:g}s")
@@ -614,55 +638,21 @@ def run(args: argparse.Namespace, raw_input: str) -> dict[str, Any]:
         return failure_output(args.event, args.failure_policy, str(exc))
 
 
-class _StdinTimeout(Exception):
-    """Raised by the SIGALRM handler when stdin stays open past the bound."""
-
-
 def read_input(timeout: float) -> str | None:
-    """Read all of stdin, or return None when it is not closed within *timeout*
-    seconds. Uses setitimer/SIGALRM on POSIX and a daemon reader thread on
-    platforms without setitimer (Windows)."""
-    if timeout <= 0:
-        return sys.stdin.read()
-    if not hasattr(signal, "setitimer"):
-        import threading
-
-        box: list[str] = []
-
-        def _reader() -> None:
-            try:
-                box.append(sys.stdin.read())
-            except OSError:
-                box.append("")
-
-        thread = threading.Thread(target=_reader, daemon=True)
-        thread.start()
-        thread.join(timeout=timeout)
-        if thread.is_alive():
-            return None
-        return box[0] if box else ""
-
-    def _expired(_signum: int, _frame: object) -> None:
-        raise _StdinTimeout
-
-    try:
-        previous = signal.signal(signal.SIGALRM, _expired)
-    except ValueError:
-        return sys.stdin.read()
-    signal.setitimer(signal.ITIMER_REAL, timeout)
-    try:
-        return sys.stdin.read()
-    except _StdinTimeout:
-        return None
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous)
+    """Read all of stdin, or return None when it is not closed within *timeout* seconds."""
+    return read_stdin_optional(timeout)
 
 
 _BYPASS_ENV = "CODEX_HOOK_ADAPTER_BYPASS"
 
 
 def main() -> int:
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+            except (AttributeError, ValueError, OSError):
+                pass
     if os.environ.get(_BYPASS_ENV) == "1":
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print("[codex-hook-adapter] Bypassed via CODEX_HOOK_ADAPTER_BYPASS=1", file=sys.stderr)
@@ -677,7 +667,7 @@ def main() -> int:
             output = run(args, raw_input)
     except Exception as exc:  # Final containment: a hook adapter must not break Codex.
         output = failure_output(args.event, args.failure_policy, f"unexpected adapter error: {exc}")
-    print(json.dumps(output, ensure_ascii=False))
+    print(json.dumps(output))
     return 0
 
 

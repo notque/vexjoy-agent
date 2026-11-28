@@ -1,6 +1,4 @@
 # Negative-control allowlist: scripts that lack a test proving they can fail.
 # Format: script-name.py: reason
 # A stale entry (script now has a negative test, or is no longer in CI) is itself a finding.
-validate-hook-health.py: function-level negative coverage exists; collected CLI exit proof pending
-validate-pipeline-index.py: function-level negative coverage exists; collected CLI exit proof pending
-validate-promoted-successors.py: function-level negative coverage exists; collected CLI exit proof pending
+# Intentionally empty: every hard CI gate has a collected CLI negative test.

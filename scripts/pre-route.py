@@ -1087,8 +1087,20 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
     pipeline_candidates = sorted((c for c in candidates.values() if c.entry_type == "pipeline"), key=_rank)
 
     # The "top" drives matched/confidence; prefer skill/agent over pipeline
-    # when both exist, since skill matches are the established contract.
-    top = non_pipeline[0] if non_pipeline else (pipeline_candidates[0] if pipeline_candidates else None)
+    # when both exist, EXCEPT prefer a high-confidence force-routed pipeline
+    # over a low-confidence suggest-only skill so a weak skill mention never
+    # buries an explicit force-routed pipeline.
+    best_non_pipe = non_pipeline[0] if non_pipeline else None
+    best_pipe = pipeline_candidates[0] if pipeline_candidates else None
+    if (
+        best_non_pipe is not None
+        and determine_confidence(best_non_pipe, request) == "low"
+        and best_pipe is not None
+        and determine_confidence(best_pipe, request) != "low"
+    ):
+        top = best_pipe
+    else:
+        top = best_non_pipe if best_non_pipe is not None else best_pipe
     if top is None:
         # Defensive: candidates was non-empty above, so unreachable.
         top = next(iter(sorted(candidates.values(), key=lambda m: (-m.score, m.name))))
@@ -1096,7 +1108,6 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
     confidence = determine_confidence(top, request)
 
     if confidence == "low":
-        best_pipe = pipeline_candidates[0] if pipeline_candidates else None
         return {
             "matched": False,
             "agent": top.agent,

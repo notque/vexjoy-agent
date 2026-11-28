@@ -17,10 +17,16 @@ import argparse
 import json
 import os
 import re
-import shlex
 import sys
 from datetime import datetime
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.atomic_io import atomic_write_text
+from scripts.lib.quoting import quote_cmd
 
 # Events that support a matcher in Codex 0.144.1.
 EVENTS_SUPPORTING_MATCHER = {
@@ -291,11 +297,7 @@ def build_hooks_json(
             group_entries = event_groups[key]
 
             def _q(val: str) -> str:
-                if windows:
-                    if re.fullmatch(r"[A-Za-z0-9_.\-]+", val):
-                        return val
-                    return '"' + val.replace('"', '\\"') + '"'
-                return shlex.quote(val)
+                return quote_cmd(val, windows=windows)
 
             hook_entries = []
             for entry in group_entries:
@@ -409,7 +411,7 @@ def main() -> None:
 
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(output_json + "\n", encoding="utf-8")
+        atomic_write_text(output_path, output_json + "\n", encoding="utf-8")
     except OSError as exc:
         print(f"Error writing {output_path}: {exc}", file=sys.stderr)
         sys.exit(1)

@@ -426,3 +426,27 @@ def test_a_refused_link_leaves_the_copy_in_place(world: Env, monkeypatch: pytest
     assert hooks.is_dir() and not hooks.is_symlink() and (hooks / "h1.py").read_text() == OLD_H1
     assert (world.skills("claude") / "alpha" / "SKILL.md").is_file()
     assert _leftovers(hooks) == [] and _trash_records(world, hooks) == []
+
+
+def test_ephemeral_prefixes_does_not_split_single_windows_drive_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """On Windows, a single drive-letter path like C:\\temp must not split on ':'."""
+    import types
+
+    from vexinstall import common, gitutil
+
+    seen: list[str] = []
+    monkeypatch.setattr(
+        gitutil, "os", types.SimpleNamespace(name="nt", pathsep=";", environ={common.EPHEMERAL_ENV: r"C:\temp"})
+    )
+    monkeypatch.setattr(gitutil, "realpath", lambda p: (seen.append(str(p)), str(p))[1])
+
+    assert gitutil.ephemeral_prefixes() == [r"C:\temp"]
+    assert seen == [r"C:\temp"]
+
+    seen.clear()
+    monkeypatch.setattr(
+        gitutil,
+        "os",
+        types.SimpleNamespace(name="nt", pathsep=";", environ={common.EPHEMERAL_ENV: r"C:\temp;D:\ephemeral"}),
+    )
+    assert gitutil.ephemeral_prefixes() == [r"C:\temp", r"D:\ephemeral"]
