@@ -32,13 +32,6 @@ routing:
     - "statistical analysis"
     - "CSV analysis"
     - "explore dataset"
-    - "enrich references"
-    - "improve reference depth"
-    - "generate references"
-    - "add reference files"
-    - "reference enrichment"
-    - "decompose skill"
-    - "extract references"
     # from data
     - "data pipeline"
     - "ETL"
@@ -222,7 +215,7 @@ Create one reference file per sub-domain (max 500 lines) following `references/r
 
 **Do-pairing rule**: every failure mode needs a "Do instead" counterpart. No bare negative blocks.
 
-Validate: `python3 scripts/validate-references.py --agent {name}` and `--check-do-framing`. Both must exit 0. Then run `condense` on each file.
+Validate: `python3 scripts/validate-references.py --agent {name}` and `--check-do-framing`. Both must exit 0. Then run the Condense mode of `writing` (`skills/content/writing/references/condense.md`) on each file.
 
 **Gate**: Each file 80-500 lines. Both validations pass.
 

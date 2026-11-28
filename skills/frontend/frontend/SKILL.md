@@ -115,8 +115,8 @@ Classify the request into one mode before loading references.
 
 Load `references/mode-workflows.md` for full step-by-step phase checklists for DESIGN, DISTINCTIVE, HTML-ARTIFACT, and THREEJS modes. Quick entry pointers:
 
-- **DESIGN:** Load `references/design-refs/llm-design-failure-modes.md` plus the sub-mode ref (`ux-copy.md`, `design-systems.md`, `design-critique.md`, `accessibility-review.md`, `design-handoff.md`).
-- **DISTINCTIVE:** Classify surface first (Tool uses `ui-design-recipes.md`; Brand page runs Brief -> Type -> Color -> Motion -> `validate_design.py` -> core doc section 10 visual check).
+- **DESIGN:** Load `references/design-refs/llm-design-failure-modes.md`, `references/distinctive-frontend-design-refs/visual-craft-and-anti-slop.md`, plus the sub-mode ref (`ux-copy.md`, `design-systems.md`, `design-critique.md`, `accessibility-review.md`, `design-handoff.md`).
+- **DISTINCTIVE:** Classify surface first (Tool uses `ui-design-recipes.md`; Brand page loads `references/distinctive-frontend-design-refs/visual-craft-and-anti-slop.md` and runs Brief -> Type -> Color -> Motion -> `validate_design.py` -> core doc section 10 visual check).
 - **HTML-ARTIFACT:** Self-contained local `.html` (inline CSS/JS, max 500 KB, embedded `archivo-black.css`, opened locally in Chrome; use Perses for metrics dashboards). Run `fill-template.py --list` -> `detect-shape.py` -> `assemble-template.py` -> `agents/html-builder.md` -> `validate-artifact.py` -> section 10 visual check.
 - **THREEJS:** Detect paradigm first (R3F `useFrame`, WebGPU TSL, or Imperative `setAnimationLoop`) using `references/threejs-builder-refs/build-recipes.md` + paradigm ref, keep allocations outside the render loop, and finish with section 10 visual check.
 
@@ -154,6 +154,7 @@ Each file holds hard rules, workflow, and its own loading table for `references/
 
 | File | Content |
 |------|---------|
+| `references/distinctive-frontend-design-refs/visual-craft-and-anti-slop.md` | Palette beyond beige/neon, 3-size type discipline, non-split hero compositions, imagery, calibrated motion, 4-bucket visual audit |
 | `references/distinctive-frontend-design-refs/font-catalog.json` | Curated fonts by aesthetic category |
 | `references/distinctive-frontend-design-refs/color-inspirations.json` | Cultural/contextual palette sources |
 | `references/distinctive-frontend-design-refs/animation-patterns.md` | Animation choreography with CSS/React |

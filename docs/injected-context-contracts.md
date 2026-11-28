@@ -33,12 +33,6 @@ Source: `hooks/pretool-dispatch-spec-gate.py` (PreToolUse, matcher `Agent`).
 Meaning: A `[do-route]` dispatch at medium or complex complexity lacks one or more of `**Request (verbatim):**`, `**Acceptance criteria:**`, or `## Repo state`. The router hand-assembled the prompt instead of pasting `scripts/build-dispatch.py` output.
 Action: Re-run `python3 scripts/build-dispatch.py --json '<routing decision>'` and re-dispatch with its output verbatim. Warn-only by default; `DISPATCH_SPEC_GATE_MODE=deny` returns the same text as a `permissionDecision: deny` reason (promotion date 2026-09-05); `DISPATCH_SPEC_GATE_BYPASS=1` disables the gate.
 
-### `[cross-repo] N local agents`
-
-Source: `hooks/cross-repo-agents.py`.
-Meaning: Local agents are available alongside the global fleet. The header gives their directory; each row gives the name, filename, description, and triggers. Keep local entries even when their names match global agents.
-Action: Treat the local agents as available for routing decisions in this session.
-
 ### `[strategic-compact] {N} tool calls reached`
 
 Source: `hooks/suggest-compact.py` (PreToolUse).
@@ -92,29 +86,11 @@ Source: `hooks/session-context.py` (reads `~/.claude/state/dream-injection-*.md`
 Meaning: Output of the nightly memory-consolidation cycle, summarizing what it merged and pruned.
 Action: Incorporate the dream content as background context for the session. It informs skill selection and approach, not individual task decisions. Do not cite it verbatim back to the user; it is for the model's orientation.
 
-### `[sapcc-go]` plus `[auto-skill] programming`
-
-Source: `hooks/sapcc-go-detector.py`.
-Meaning: A SAP Converged Cloud Go project (a `github.com/sapcc/` or `github.com/sap-cloud-infrastructure/` module or import) was detected in the current directory.
-Action: Apply SAP CC Go conventions for the session. The `programming` skill carries them (`references/go/sapcc-conventions.md`).
-
-### `[fish-shell] Detected Fish shell user`
-
-Source: `hooks/fish-shell-detector.py` (`hooks/zsh-shell-detector.py` emits `[zsh-shell]` for Zsh).
-Meaning: The user runs Fish as their interactive shell.
-Action: When the user asks for shell config edits, prefer Fish syntax (`set -gx`, `function`, `~/.config/fish/config.fish`) over Bash/Zsh idioms. Load `deploy` only when the task involves shell configuration or deployment.
-
 ### `[adr-health-check] Active ADR session` plus `domain` and `adr` path
 
 Source: `hooks/session-adr-health-check.py`.
 Meaning: An `.adr-session.json` was detected; the listed ADR governs creation work this session.
-Action: Treat the named ADR as binding for any creation request. Read it via `adr-query.py context` before writing new agents, skills, pipelines, or hooks. The `adr-enforcement` PostToolUse hook will flag drift.
-
-### `[hook-parity] WARNING: N deployed hook(s) differ from this checkout`
-
-Source: `hooks/hook-version-parity-check.py`.
-Meaning: The `# hook-version:` headers of the named deployed hooks in `~/.claude/hooks/` do not match this checkout — merged code is not deployed, so hook telemetry may be running stale logic.
-Action: Warn-only; nothing is blocked. Surface the drift to the user and suggest the included fix command (`python3 ~/.claude/hooks/sync-to-user-claude.py`). Expected in worktree sessions on hook-touching branches. Do not treat hook telemetry gaps as code bugs while this warning is active.
+Action: Treat the named ADR as binding for any creation request. Read it via `adr-query.py context` before writing new agents, skills, pipelines, or hooks.
 
 ### `[manifest-cache] fresh|refreshed: <path>`
 

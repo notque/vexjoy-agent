@@ -66,9 +66,12 @@ class TestSpecifiedRoutes:
         assert result["skill"] == "programming"
         assert result["match_type"] == "force_route"
 
-    def test_non_go_typo_stays_quick(self, pre_route, real_entries) -> None:
+    def test_non_go_typo_falls_through(self, pre_route, real_entries) -> None:
+        """Non-Go typo edits fall through to semantic routing (quick is not force_route)."""
         result = pre_route.route("fix typo in README.md", entries=real_entries)
-        assert result["skill"] == "quick"
+        assert result["matched"] is False
+        assert result["skill"] is None
+        assert result["match_type"] == "fallthrough"
 
     @pytest.mark.parametrize(
         "operand",
@@ -84,8 +87,13 @@ class TestSpecifiedRoutes:
         ["foo.go.txt", ".golangci.yml", "example.google", "foo.gox"],
     )
     def test_go_source_operand_negative_matrix(self, pre_route, real_entries, operand: str) -> None:
-        result = pre_route.route(f"fix typo in {operand}", entries=real_entries)
-        assert result["skill"] == "quick"
+        """Non-Go operands never satisfy GO_SOURCE_OPERAND_RE or stack programming on PRs."""
+        assert pre_route.GO_SOURCE_OPERAND_RE.search(f"fix typo in {operand}") is None
+        pr_result = pre_route.route(f"create PR for {operand}", entries=real_entries)
+        assert pr_result["skill"] == "pr-workflow"
+        assert pr_result["stack"] == []
+        if operand != "foo.go.txt":
+            assert pre_route.route(f"fix typo in {operand}", entries=real_entries)["skill"] is None
 
     @pytest.mark.parametrize(
         ("query", "expected"),
@@ -135,12 +143,27 @@ class TestSpecifiedRoutes:
         assert result["matched"] is False
         assert result["match_type"] == "fallthrough"
 
-    def test_quick_fix_matches_quick(self, pre_route, real_entries) -> None:
-        """'quick fix the login page' should match quick (force-route)."""
-        result = pre_route.route("quick fix the login page", entries=real_entries)
-        assert result["matched"] is True
-        assert result["skill"] == "quick"
-        assert result["match_type"] == "force_route"
+    @pytest.mark.parametrize(
+        ("query", "pruned_skill"),
+        [
+            ("quick fix the login page", "quick"),
+            ("code review the diff", "review"),
+            ("write a blog post about caching", "writing"),
+            ("run ruff check on src", "code-quality"),
+            ("create skill for parsing", "toolkit"),
+            ("explain workflow routing", "workflow-help"),
+            ("write a jev question for this", "building-with-jev"),
+            ("grill the plan before coding", "grill-jev"),
+            ("make game levels", "game-dev"),
+            ("cut a trailer for my game", "game-trailer"),
+        ],
+    )
+    def test_pruned_non_safety_skills_do_not_force_route(
+        self, pre_route, real_entries, query: str, pruned_skill: str
+    ) -> None:
+        """Non-safety skills rely on semantic routing, not pre-route force_route."""
+        result = pre_route.route(query, entries=real_entries)
+        assert not (result["skill"] == pruned_skill and result["match_type"] == "force_route"), result
 
     def test_fish_shell_matches_deploy(self, pre_route, real_entries) -> None:
         """'configure my fish shell' should match deploy (force-route).
@@ -155,8 +178,7 @@ class TestSpecifiedRoutes:
     def test_review_code_ambiguous_falls_through(self, pre_route, real_entries) -> None:
         """'review this code' hits only non-force triggers -- falls through."""
         result = pre_route.route("review this code", entries=real_entries)
-        # review skill is force_route, so it may match depending on trigger config
-        assert result["match_type"] in ("force_route", "fallthrough")
+        assert result["match_type"] == "fallthrough"
 
     def test_non_force_triggers_never_match(self, pre_route) -> None:
         """Non-force entries fall through even on many trigger hits.
@@ -710,18 +732,28 @@ class TestSeparatorEquivalence:
     """A hyphen or underscore between trigger words counts as a space."""
 
     @pytest.mark.parametrize(
-        "query",
-        ["pr-review this", "pr_review it", "code-review the diff", "pr-review our agent"],
+        ("query", "expected_skill"),
+        [
+            ("create-pr for auth fix", "pr-workflow"),
+            ("create_pr for auth fix", "pr-workflow"),
+            ("git-push my branch", "pr-workflow"),
+            ("git_push my branch", "pr-workflow"),
+            ("codex-exec this check", "codex"),
+            ("codex_exec this check", "codex"),
+        ],
     )
-    def test_hyphen_underscore_matches_review_force_route(self, pre_route, real_entries, query: str) -> None:
+    def test_hyphen_underscore_matches_force_route(
+        self, pre_route, real_entries, query: str, expected_skill: str
+    ) -> None:
         result = pre_route.route(query, entries=real_entries)
         assert result["matched"] is True, result
-        assert result["skill"] == "review"
+        assert result["skill"] == expected_skill
         assert result["match_type"] == "force_route"
 
     def test_spaced_form_still_matches(self, pre_route, real_entries) -> None:
-        result = pre_route.route("pr review our agent", entries=real_entries)
-        assert result["skill"] == "review"
+        result = pre_route.route("create pr for auth fix", entries=real_entries)
+        assert result["skill"] == "pr-workflow"
+        assert result["match_type"] == "force_route"
 
     @pytest.mark.parametrize(
         ("query", "skill"),
@@ -733,7 +765,7 @@ class TestSeparatorEquivalence:
 
 
 class TestGameTrailerRoute:
-    """Trailer requests reach game-trailer; plain game building stays on game-dev."""
+    """game-dev and game-trailer rely on semantic routing; the make-game guard stays intact."""
 
     @pytest.mark.parametrize(
         "query",
@@ -743,22 +775,26 @@ class TestGameTrailerRoute:
             "edit the trailer for road to aew",
             "I need a trailer cut of the new build",
             "make me a trailer for my game",
+            "make a game",
+            "make game levels",
         ],
     )
-    def test_trailer_requests_route_to_game_trailer(self, pre_route, real_entries, query: str) -> None:
+    def test_game_requests_fall_through_to_semantic_routing(self, pre_route, real_entries, query: str) -> None:
         result = pre_route.route(query, entries=real_entries)
-        assert result["matched"] is True, result
-        assert result["skill"] == "game-trailer"
-        assert result["match_type"] == "force_route"
+        assert result["matched"] is False, result
+        assert result["match_type"] == "fallthrough"
 
-    @pytest.mark.parametrize("query", ["make a game", "make game levels"])
-    def test_make_game_still_routes_to_game_dev(self, pre_route, real_entries, query: str) -> None:
-        result = pre_route.route(query, entries=real_entries)
-        assert result["skill"] == "game-dev"
-        assert result["match_type"] == "force_route"
-
-    def test_make_game_guard_blocks_only_trailer_requests(self, pre_route, real_entries) -> None:
-        table = pre_route.build_match_table(real_entries)
+    def test_make_game_guard_blocks_only_trailer_requests(self, pre_route) -> None:
+        synthetic = [
+            {
+                "name": "game-dev",
+                "type": "skill",
+                "triggers": ["make game"],
+                "agent": None,
+                "force_route": True,
+            }
+        ]
+        table = pre_route.build_match_table(synthetic)
         make_game = next(e for e in table if e.name == "game-dev" and e.trigger == "make game")
         launch = "make a game launch video"
         trailer = "make a game trailer"

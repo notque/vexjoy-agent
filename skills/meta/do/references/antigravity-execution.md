@@ -194,7 +194,7 @@ When the user invokes `/do` alongside `/goal` (or requests `<afk-mode>`, "loop u
 | **`/browser`** | Phase 4.5 Stage 6 (`LIVE-VALIDATE`) | Validates web applications, UI components, and visual regressions in a live browser. |
 | **`/schedule`** (`schedule` tool) & **`/automation`** (Sidecars) | Phase 4 (Async Monitoring / Recurring Tasks) | Uses the native `schedule` tool (`DurationSeconds` or `CronExpression` + `TimerCondition`) instead of bash `sleep` polling; uses `~/.gemini/config/sidecars/<id>/sidecar.json` (`automation` skill) for standing background daemons. |
 | **`/compact`** | Phase Boundaries (Context Hygiene) | When `suggest-compact.py` or context length signals pressure between phases, checkpoints state to `task_plan.md` and brain artifacts, then recommends `/compact`. |
-| **`/learn`** | Phase 5 (Post-Task Learning & Rule Graduation) | Records routing and error learnings to `learning.db` (`rules-distill-trigger.py`) and graduates durable workflow corrections into `.agents/rules/*.md` or `GEMINI.md` (with `trigger: always_on`, `glob`, `manual`, or `model_decision`). |
+| **`/learn`** | Phase 5 (Post-Task Learning & Rule Graduation) | Records routing and error learnings to `learning.db` and graduates durable workflow corrections into `.agents/rules/*.md` or `GEMINI.md` (with `trigger: always_on`, `glob`, `manual`, or `model_decision`). |
 
 ---
 
@@ -237,5 +237,3 @@ The Antigravity SDK architecture relies on event-driven hooks to govern executio
 | **`PostToolUse`** | Tool execution finishes | Captures tool output and errors (`on_tool_error`), records diagnostics, and queues advisory context for delivery in the next model turn without breaking tool stdout format. |
 | **`PostInvocation`** | Model finishes turn before reply | Determines termination behavior (`terminate` or `force_continue`) and updates turn counters. |
 | **`Stop`** | User/agent attempts session completion | Blocks early termination if incomplete checklist items or unverified deliverables remain (`/goal` quality loop enforcement). |
-
-

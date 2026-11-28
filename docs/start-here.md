@@ -25,6 +25,18 @@ Codex CLI, Factory, Reasonix, and Antigravity CLI are optional. The installer mi
 
 If you plan to use an optional runtime, check that its CLI runs before installation (for example, `codex --version`). Claude Code has the broadest hook coverage; the other runtimes receive only the components and lifecycle events they support.
 
+### Runtime support tiers
+
+| Tier | Runtime | Hook support |
+|---|---|---|
+| **Tier 1** (Full hooks + tested adapters) | `claude` | Native (`settings.json`) |
+| **Tier 1** (Full hooks + tested adapters) | `antigravity` | `hooks/agy-hook-adapter.py` (`config/hooks.json`) |
+| **Tier 1** (Full hooks + tested adapters) | `codex` | Native + `hooks/codex-hook-adapter.py` (`hooks.json`) |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `factory` | Settings mirror (`settings.json`) |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `reasonix` | `UserPromptSubmit` + `Stop` only |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `hermes` | Skills + scripts |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `cline` | Skills only |
+
 ## Install
 
 The install reaches past `~/.claude/`, and some of its hooks block commits and pushes in every repo. Skim [What the Installer Changes](#what-the-installer-changes) and [Gates in Every Repo](#gates-in-every-repo) before you run it, or run `./install.sh --dry-run` to print the plan without writing anything.
@@ -48,7 +60,7 @@ python3 ~/.claude/scripts/install-doctor.py inventory
 
 ### Codex users
 
-Codex integration requires v0.144.1 or later. Codex runs 58 of the 70 hook registrations; 12 are unsupported. A registration is one hook file on one event. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`, so this is not full Claude Code parity.
+Codex integration requires v0.144.1 or later. Codex runs 43 of the 51 Python hook registrations; 8 are unsupported. A registration is one hook file on one event. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`, so this is not full Claude Code parity.
 
 After installation or a hook update, run `/hooks` in Codex and approve changed definitions. Codex does not run changed hook commands until they are trusted.
 

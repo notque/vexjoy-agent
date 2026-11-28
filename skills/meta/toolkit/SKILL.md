@@ -13,7 +13,6 @@ allowed-tools:
   - Task
   - Skill
 routing:
-  force_route: true
   not_for: "application code (use workflow), code review (use review)"
   triggers:
     - "create skill"
@@ -76,6 +75,13 @@ routing:
     - "coding style extraction"
     - "github conventions"
     - "programming rules"
+    - "enrich references"
+    - "improve reference depth"
+    - "generate references"
+    - "add reference files"
+    - "reference enrichment"
+    - "decompose skill"
+    - "extract references"
   category: meta-tooling
   pairs_with:
     - review

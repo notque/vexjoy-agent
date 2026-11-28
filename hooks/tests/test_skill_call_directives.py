@@ -72,21 +72,6 @@ def test_symlinked_profile_runtime_uses_only_its_filtered_index(tmp_path: Path, 
     assert module.skill_call_directive("quick") is None
 
 
-def test_session_detectors_keep_tags_and_add_exact_call() -> None:
-    fish = _load("skill_calls_fish", "fish-shell-detector.py")
-    zsh = _load("skill_calls_zsh", "zsh-shell-detector.py")
-    sapcc = _load("skill_calls_sapcc", "sapcc-go-detector.py")
-
-    assert "[fish-shell] Detected Fish shell user" in fish.get_fish_injection()
-    assert "Call the Skill tool" not in fish.get_fish_injection()
-    assert "[zsh-shell] Detected Zsh shell user" in zsh.get_zsh_injection()
-    assert "Call the Skill tool" not in zsh.get_zsh_injection()
-    assert sapcc.get_sapcc_injection("github.com/sapcc/example").splitlines()[-2:] == [
-        "[auto-skill] programming",
-        "Call the Skill tool with `programming`.",
-    ]
-
-
 def test_pipeline_context_keeps_pipeline_names_out_of_skill_inventory(public_index_dir: Path, tmp_path: Path) -> None:
     detector = _load("skill_calls_pipeline_context", "pipeline-context-detector.py")
     # The generated public index, not the gitignored working-tree copy.
@@ -107,10 +92,8 @@ def test_static_hook_directives_name_only_indexed_skills(public_index_dir: Path)
 
     assert emitted == {
         "assessment",
-        "deploy",
         "process",
         "pr-workflow",
-        "programming",
         "security",
         "toolkit",
         "workflow",

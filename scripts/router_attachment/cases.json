@@ -686,8 +686,7 @@
    "request": "Go ahead and tighten the wording in the intro of docs/PHILOSOPHY.md",
    "required": [
     [
-     "writing",
-     "condense"
+     "writing"
     ]
    ],
    "acceptable": [],

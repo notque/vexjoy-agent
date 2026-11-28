@@ -43,7 +43,7 @@ def test_empty_allowlist_produces_enabled_group():
 
 def test_flat_events_have_no_matcher_blocks():
     text = (
-        "SessionStart:session-github-briefing.py failure=open\n"
+        "SessionStart:afk-mode.py failure=open\n"
         "PreInvocation:prompt-capture.py failure=open\n"
         "PreInvocation:routing-outcome-finalizer.py failure=open\n"
         "Stop:stop-drift-guard.py failure=open\n"
@@ -58,7 +58,7 @@ def test_flat_events_have_no_matcher_blocks():
     assert isinstance(ss, list) and len(ss) == 1
     assert ss[0]["type"] == "command"
     assert "matcher" not in ss[0]
-    assert "session-github-briefing.py" in ss[0]["command"]
+    assert "afk-mode.py" in ss[0]["command"]
 
     # First PreInvocation gets --drain-deferred, second does not
     pre = group["PreInvocation"]
@@ -96,11 +96,14 @@ def test_grouped_events_group_by_matcher():
 @pytest.mark.parametrize(
     ("bad_line", "expected_substr"),
     [
-        ("SessionStart:session-github-briefing.py matcher=startup failure=open\n", "flat event"),
+        ("SessionStart:afk-mode.py matcher=startup failure=open\n", "flat event"),
         ("PreToolUse:pretool-branch-safety.py failure=closed\n", "requires matcher"),
         ("PreToolUse:pretool-branch-safety.py matcher=run_command\n", "missing required failure"),
         ("UnknownEvent:pretool-branch-safety.py failure=open\n", "unknown Antigravity event"),
-        ("Stop:session-summary.py failure=open\nStop:session-summary.py failure=open\n", "duplicate"),
+        (
+            "Stop:routing-outcome-stop-fallback.py failure=open\nStop:routing-outcome-stop-fallback.py failure=open\n",
+            "duplicate",
+        ),
     ],
 )
 def test_parse_allowlist_rejects_invalid_lines(bad_line: str, expected_substr: str):

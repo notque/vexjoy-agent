@@ -73,12 +73,6 @@ UNSUPPORTED_REGISTRATIONS = {
     ("UserPromptSubmit", "pending-advisory-injector-userprompt.py"): (
         "Drains advisories deferred by Claude Stop hooks; Codex Stop hooks report inline, so there is no queue to drain."
     ),
-    ("PreToolUse", "reference-loading-enforcer.py"): (
-        "Codex SubagentStart omits the Agent task prompt and tool input this reference injector requires."
-    ),
-    ("PreToolUse", "creation-protocol-enforcer.py"): (
-        "Codex SubagentStart does not expose the Agent task text used to detect creation requests."
-    ),
     ("PreToolUse", "pretool-section-integrity-validator.py"): (
         "Codex SubagentStart does not expose the Agent tool input whose routed sections this validator checks."
     ),
@@ -91,16 +85,12 @@ UNSUPPORTED_REGISTRATIONS = {
     ("PostToolUse", "usage-tracker.py"): (
         "Codex has no PostToolUse surface for Claude Skill or Agent tool invocations tracked here."
     ),
-    ("PostToolUse", "review-capture.py"): (
-        "Codex has no PostToolUse Agent result carrying the structured reviewer output this hook captures."
-    ),
     ("PostToolUse", "routing-decision-recorder.py"): (
         "Codex has no PostToolUse Agent or Workflow result containing the routed decision marker."
     ),
     ("PostToolUse", "session-task-registry.py"): (
         "Codex has no PostToolUse Agent result carrying the dispatch marker this hook captures."
     ),
-    ("StopFailure", "stop-failure-handler.py"): ("Codex 0.144.1 does not publish a StopFailure lifecycle event."),
     ("PostCompact", "postcompact-handler.py"): (
         "Codex PostCompact cannot inject the model-visible plan context that is this hook's core behavior."
     ),

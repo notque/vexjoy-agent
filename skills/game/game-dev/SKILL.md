@@ -12,7 +12,6 @@ allowed-tools:
   - Task
   - Skill
 routing:
-  force_route: true
   not_for: "non-game frontend (use frontend), non-game backend (use workflow)"
   triggers:
     - game design

@@ -29,6 +29,8 @@ Two flows keep their own specialized codex integration — route to them instead
 
 | Existing flow | Owns | Where |
 |---|---|---|
+| PR / code review via codex | `codex exec review`, finding triage, report synthesis | `skills/process/pr-workflow/references/codex-review.md` |
+| Second-opinion code review | Structured review framing, finding severity, multi-reviewer synthesis | `skills/review/review/SKILL.md` |
 
 ## Phase 1: DECIDE — does this task belong on GPT-5.6?
 

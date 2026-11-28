@@ -97,7 +97,6 @@ These are the events `.claude/settings.json` registers hooks on.
 | `SubagentStart` | A subagent starts | No |
 | `SubagentStop` | A subagent finishes | Yes: exit 2 or `"decision": "block"` keeps it working |
 | `Stop` | Claude finishes responding | Yes: exit 2 or `"decision": "block"` keeps it working |
-| `StopFailure` | A turn ends on an error | No |
 | `SessionEnd` | The session ends | No: resolves every routing outcome still pending |
 
 No toolkit Stop or SubagentStop hook blocks. The hooks that block, and what they block: [start-here.md](start-here.md#gates-in-every-repo).

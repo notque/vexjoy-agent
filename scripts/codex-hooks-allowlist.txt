@@ -12,30 +12,21 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   70 registrations = 58 mirrored here + 12 unsupported.
-#   59 entries = 33 native + 26 adapted: pretool-unified-gate.py has one Claude
-#   registration (Bash|Write|Edit|Read) and two entries here, Bash and apply_patch.
+#   51 Python hook registrations = 43 mirrored here + 8 unsupported.
+#   44 entries = 24 native + 20 adapted: pretool-unified-gate.py has one Claude
+#   registration (Bash|Write|Edit|MultiEdit|Read) and two entries here, Bash and apply_patch.
 
-# Native SessionStart (15)
+# Native SessionStart (7)
 SessionStart:afk-mode.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-context.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:cross-repo-agents.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:fish-shell-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:zsh-shell-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:sapcc-go-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:operator-context-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:session-github-briefing.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-adr-health-check.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:team-config-loader.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:rules-distill-injector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-manifest-cache.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-no-agent-summary-check.py matcher=startup|resume|clear|compact class=native mode=native failure=open
-SessionStart:herdr-state-reporter.py matcher=* class=native mode=native failure=open
 SessionStart:session-task-registry.py matcher=* class=native mode=native failure=open
 
-# Adapted SessionStart: path/environment normalization (2)
+# Adapted SessionStart: path/environment normalization (1)
 SessionStart:sync-to-user-claude.py matcher=startup|resume|clear|compact class=adapted mode=native failure=open
-SessionStart:hook-version-parity-check.py matcher=startup|resume|clear|compact class=adapted mode=native failure=open
 
 # Native UserPromptSubmit (3)
 UserPromptSubmit:review-false-positive-capture.py class=native mode=native failure=open
@@ -73,12 +64,10 @@ PostToolUse:posttool-bash-injection-scan.py matcher=Bash class=native mode=nativ
 PostToolUse:posttool-rename-sweep.py matcher=Bash class=native mode=native failure=open
 PostToolUse:posttool-session-reads.py matcher=Bash class=native mode=native failure=open
 
-# Adapted PostToolUse apply_patch/Edit|Write observers (6)
-PostToolUse:adr-enforcement.py matcher=Edit|Write class=adapted mode=patch failure=open
+# Adapted PostToolUse apply_patch/Edit|Write observers (4)
 PostToolUse:posttool-skill-frontmatter-check.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttooluse-joy-check-warn.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:posttooluse-sync-skill-index.py matcher=Edit|Write class=adapted mode=patch failure=open
-PostToolUse:posttool-docs-drift-alert.py matcher=Edit|Write class=adapted mode=patch failure=open
 PostToolUse:security-review-hook.py matcher=Edit|Write class=adapted mode=patch failure=open
 
 # Adapted PreCompact: Codex lacks Claude conversation_history telemetry (1)
@@ -87,20 +76,15 @@ PreCompact:precompact-archive.py matcher=manual|auto class=adapted mode=precompa
 # SubagentStart (1 native)
 SubagentStart:subagent-start-warmstart.py matcher=* class=native mode=native failure=open
 
-# SubagentStop (2 native, 2 adapted)
+# SubagentStop (1 native, 1 adapted)
 SubagentStop:routing-outcome-recorder.py matcher=* class=native mode=native failure=open
-SubagentStop:herdr-state-reporter.py matcher=* class=native mode=native failure=open
-SubagentStop:subagent-state-tracker.py matcher=* class=adapted mode=subagent-stop failure=open
 SubagentStop:session-task-registry.py matcher=* class=adapted mode=subagent-stop failure=open
 
-# Stop (0 native, 4 adapted). Codex lacks Claude session_data telemetry.
+# Stop (0 native, 2 adapted). Codex lacks Claude session_data telemetry.
 Stop:stop-drift-guard.py class=adapted mode=stop failure=open
-Stop:session-summary.py class=adapted mode=stop failure=open
-Stop:rules-distill-trigger.py class=adapted mode=stop failure=open
 Stop:routing-outcome-stop-fallback.py class=adapted mode=stop failure=open
 
-# Unsupported 14 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
-# two UserPromptSubmit; five PreToolUse (four Agent, one Antigravity routing
-# gate); four PostToolUse:Skill/Agent/Workflow; StopFailure; SessionEnd
-# (routing-outcome fallback, not mirrored; the adapted Stop entry covers Codex);
+# Unsupported 8 remain explicit in scripts/generate-codex-hooks-json.py:
+# one UserPromptSubmit; two PreToolUse:Agent; three PostToolUse:Skill/Agent/Workflow;
+# SessionEnd (routing-outcome fallback, covered by the adapted Stop entry);
 # and PostCompact model-context reinjection.

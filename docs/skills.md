@@ -16,7 +16,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 Regenerate: `python3 scripts/generate-skills-doc.py`.
 CI check: `python3 scripts/generate-skills-doc.py --check`.
 
-46 routed skills.
+43 routed skills.
 
 ---
 
@@ -41,9 +41,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 
 | Skill | Description | Invoke |
 |-------|-------------|--------|
-| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | `/code-quality` |
-| `comment-quality` | Review and fix temporal references in code comments. |  |
-| `condense` | Maximize information density: preserve all instructions, remove prose filler. | `/condense` |
+| `code-quality` | Code quality: cleanup, comment quality, linting, formatting, quality gates. | `/code-quality` |
 | `joy-check` | Validate content framing on joy-grievance spectrum. |  |
 
 ---
@@ -55,7 +53,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 | `content` | Content operations: editorial calendar, marketing, publishing, social media management. | `/content` |
 | `image-gen` | AI image generation: Gemini and Nano Banana backends; single/series/batch workflows with prompt-to-disk. |  |
 | `video-editing` | Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion. |  |
-| `writing` | Writing: voice creation and validation, prose editing, anti-AI cleanup, professional communication, translation. | `/writing` |
+| `writing` | Writing: voice creation and validation, prose editing and condensing, anti-AI cleanup, professional communication, translation. | `/writing` |
 
 ---
 
@@ -156,8 +154,7 @@ CI check: `python3 scripts/generate-skills-doc.py --check`.
 | Skill | Description | Invoke |
 |-------|-------------|--------|
 | `architecture-deepening` | Improve architecture across modules by deepening interfaces. | `/architecture-deepening` |
-| `markdown-converter` | Convert PDF, Office, HTML, data, media, ZIP to Markdown. |  |
-| `research` | Research: structured investigation, fact-checking, explanation traces. | `/research` |
+| `research` | Research: structured investigation, deep multi-agent research, fact-checking, document-to-Markdown conversion, explanation traces. | `/research` |
 
 ---
 

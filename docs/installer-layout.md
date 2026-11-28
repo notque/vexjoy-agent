@@ -84,6 +84,18 @@ Checked against [Skills](https://docs.cline.bot/customization/skills).
   - To per-entry, copy mode: the dir stays where it is, and its files become per-entry entries. A file the repo has changed since the last run is replaced. Only the disabled hooks and what the per-entry layout skips (`hooks/tests`) go to trash. A copy you edited stays as it is (`skip`), as any user-edited copy does.
   - Back to one entry: the whole-dir entry replaces the dir, and the per-entry entries go to trash inside the old dir. A user edit inside (`skip`) keeps the per-entry hooks, takeover included. A file no entry owns (`blocked`) keeps them until you move it or run `./install.sh`, which takes over.
 
+## Runtime support tiers
+
+| Tier | Runtime | Hook execution | Scope |
+|---|---|---|---|
+| **Tier 1** (Full hooks + tested adapters) | `claude` | Native (`settings.json` + `pyrun.sh`) | All lifecycle events, skills, overlay agents, commands, scripts |
+| **Tier 1** (Full hooks + tested adapters) | `antigravity` | `hooks/agy-hook-adapter.py` (`config/hooks.json`) | Curated hook allowlist (`scripts/agy-hooks-allowlist.txt`), skills, overlay agents, scripts |
+| **Tier 1** (Full hooks + tested adapters) | `codex` | Native + `hooks/codex-hook-adapter.py` (`hooks.json`) | Curated hook allowlist (`scripts/codex-hooks-allowlist.txt`), skills, overlay agents, scripts |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `factory` | Settings mirror (`settings.json`) | Repo hooks mirrored with `~/.factory/` paths, skills, droids, commands, scripts |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `reasonix` | `UserPromptSubmit` + `Stop` only (`settings.json`) | Non-tool hook allowlist (`scripts/reasonix-hooks-allowlist.txt`), skills, scripts |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `hermes` | None | Skills and scripts only |
+| **Tier 2** (Partial hooks / skills-only mirrors) | `cline` | None | Skills only (no support dirs) |
+
 ## Per-target layout
 
 "mode" means the entry follows the install mode (symlink or copy). "external" means the engine generates the whole file (`scripts/vexinstall/external.py`), writes it only when bytes change (mode 600), keeps non-`hooks` keys, drops profile-disabled hooks, and backs up the old file to `~/.claude/vexjoy/backups/<target>-<file>.<ts>`.

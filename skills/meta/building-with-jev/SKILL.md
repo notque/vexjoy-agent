@@ -3,7 +3,6 @@ name: building-with-jev
 description: "Write, compose, integrate, and improve programs that call Jev, TypeSafe's System One judgment model."
 user-invocable: false  # default -- router-dispatched, not user-typed
 routing:
-  force_route: true
   triggers:
     - jev
     - typesafe

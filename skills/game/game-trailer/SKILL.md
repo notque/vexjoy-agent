@@ -13,7 +13,6 @@ allowed-tools:
   - Task
   - Skill
 routing:
-  force_route: true
   category: game
   not_for: "cutting footage from a camera or screen recorder (use video-editing); making art or clips with an image or video model (use image-gen or image-to-video)"
   triggers:

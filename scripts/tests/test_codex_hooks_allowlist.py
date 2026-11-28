@@ -3,23 +3,19 @@
 
 ADR-182's six-hook Bash-only allowlist was correct for the older Codex hook
 surface. Codex now supports apply_patch aliases and more lifecycle events.
-These tests pin the reviewed 74-registration accounting so a new Claude hook
+These tests pin the reviewed 51-registration accounting so a new Claude hook
 cannot silently create or remove Codex coverage.
 """
 
 import importlib.util
 import json
-import os
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 ALLOWLIST_PATH = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
 GENERATOR_PATH = REPO_ROOT / "scripts" / "generate-codex-hooks-json.py"
 HOOK_HEALTH_PATH = REPO_ROOT / "scripts" / "validate-hook-health.py"
-HOOKS_DIR = REPO_ROOT / "hooks"
 CLAUDE_SETTINGS = REPO_ROOT / ".claude" / "settings.json"
 
 _COMMAND_HOOK_RE = re.compile(r"(?:^|/)hooks/([A-Za-z0-9_-]+\.py)(?:['\" ]|$)")
@@ -85,7 +81,7 @@ def test_every_current_entry_has_explicit_compatibility_metadata() -> None:
 def test_apply_patch_entries_use_patch_mode_and_alias_matcher() -> None:
     """Edit/Write guards are promoted only through deterministic patch adaptation."""
     patch_entries = [entry for entry in _entries() if entry["mode"] == "patch"]
-    assert len(patch_entries) == 16
+    assert len(patch_entries) == 14
     assert {entry["event"] for entry in patch_entries} == {"PreToolUse", "PostToolUse"}
     assert {entry["matcher"] for entry in patch_entries} <= {"Edit|Write", "Write|Edit"}
     assert all(entry["classification"] == "adapted" for entry in patch_entries)
@@ -115,21 +111,3 @@ def test_semantic_reclassifications_match_the_runtime_contracts() -> None:
     drift = entries[("Stop", "stop-drift-guard.py")]
     assert drift["classification"] == "adapted"
     assert drift["mode"] == "stop"
-
-
-def test_adr_enforcement_empty_posttool_payload_emits_valid_json() -> None:
-    """The newly promoted PostToolUse hook uses its declared event constant."""
-    env = dict(os.environ)
-    env["ADR_ENFORCEMENT"] = "1"
-    result = subprocess.run(
-        [sys.executable, str(HOOKS_DIR / "adr-enforcement.py")],
-        input="",
-        capture_output=True,
-        text=True,
-        timeout=5,
-        env=env,
-    )
-    assert result.returncode == 0
-    output = json.loads(result.stdout)
-    assert output["hookSpecificOutput"]["hookEventName"] == "PostToolUse"
-    assert "NameError" not in result.stderr

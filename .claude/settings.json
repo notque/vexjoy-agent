@@ -45,43 +45,8 @@
           },
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/cross-repo-agents.py\"",
-            "description": "Discover custom agents in working directory",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/fish-shell-detector.py\"",
-            "description": "Auto-detect Fish shell users and inject shell-config skill",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/zsh-shell-detector.py\"",
-            "description": "Auto-detect Zsh shell users and inject shell-config skill",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
-            "description": "Auto-detect SAP CC Go projects and inject go-patterns skill",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/operator-context-detector.py\"",
             "description": "Detect operator context (pipeline session, ADR session) and inject context",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/session-github-briefing.py\"",
-            "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
             "timeout": 5,
             "once": true
           },
@@ -94,37 +59,9 @@
           },
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/team-config-loader.py\"",
-            "description": "Load optional team-config.yaml into session context; silent when no config file exists",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/rules-distill-injector.py\"",
-            "description": "Inject pending rules-distillation candidates at session start (ADR-114); silent when none pending",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/hook-version-parity-check.py\"",
-            "description": "Warn-only: compare deployed ~/.claude/hooks hook-version headers against the repo checkout; silent on parity",
-            "timeout": 5,
-            "once": true
-          },
-          {
-            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/session-manifest-cache.py\"",
             "description": "Hash-gated /do routing-manifest cache: verify ~/.claude/cache/routing-manifest.txt, regenerate only when INDEX inputs changed (ADR router-improvement-program C5)",
             "timeout": 20,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
-            "description": "Report session state to herdr sidebar (no-op when herdr absent)",
-            "timeout": 5,
             "once": true
           },
           {
@@ -328,18 +265,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/reference-loading-enforcer.py\"",
-            "description": "Inject reference loading requirement into agent prompts unless already present",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/creation-protocol-enforcer.py\"",
-            "description": "Soft-warn when Agent dispatch is a creation request without a recent ADR session",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-section-integrity-validator.py\"",
             "description": "Advisory: warn when subagent_type is a skill name or unknown (ARCH-002)",
             "timeout": 10
@@ -359,12 +284,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/adr-enforcement.py\"",
-            "description": "Enforce ADR compliance after file writes during active pipeline sessions",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttool-skill-frontmatter-check.py\"",
             "description": "Validate skill YAML frontmatter after Write/Edit on SKILL.md files",
             "timeout": 5
@@ -380,12 +299,6 @@
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
             "description": "Auto-regenerate installed skill and agent indexes when SKILL.md or agents/*.md is written or edited",
             "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/posttool-docs-drift-alert.py\"",
-            "description": "Alert when INDEX.json or agents/*.md writes may leave documentation out of sync",
-            "timeout": 5
           },
           {
             "type": "command",
@@ -436,17 +349,6 @@
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/usage-tracker.py\"",
             "description": "Record Skill and Agent invocation analytics",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/review-capture.py\"",
-            "description": "Capture CRITICAL/HIGH review findings for the human-read review reports",
             "timeout": 5
           }
         ]
@@ -510,32 +412,8 @@
           },
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
-            "description": "Report subagent state to herdr sidebar (no-op when herdr absent)",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/subagent-state-tracker.py\"",
-            "description": "Track subagent lifecycle state and inject context for failed/unknown agents",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/session-task-registry.py\"",
             "description": "Update task registry status on subagent completion",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "StopFailure": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/stop-failure-handler.py\"",
-            "description": "Record session failure for pattern analysis",
             "timeout": 5
           }
         ]
@@ -558,20 +436,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/session-summary.py\"",
-            "description": "Generate session summary and save metrics",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/routing-outcome-stop-fallback.py\"",
             "description": "Score errored or stale pending routing outcomes; leave clean recent ones for the next-turn finalizer",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/rules-distill-trigger.py\"",
-            "description": "Auto-trigger rules distillation every 7 days",
             "timeout": 5
           },
           {
