@@ -7,7 +7,7 @@
 AI coding CLIs fail in three predictable ways when left on autopilot: they ignore passive skill catalogs, cut verification corners when they feel confident, and quietly rewrite what you asked for. VexJoy Agent fixes all three with a front-door router (`/do`), an optional intent-verification gate (`/d`), reusable domain skills, and hard safety hooks.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 skills, 26 pipelines, 47 hooks, 160 scripts. Works across Claude Code (`/do`), Antigravity CLI (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Hermes. Essays behind the toolkit live at [vexjoy.com](https://vexjoy.com).
+43 skills, 26 pipelines, 47 hooks, 163 scripts. Works across Claude Code (`/do`), Antigravity CLI (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Hermes. Essays behind the toolkit live at [vexjoy.com](https://vexjoy.com).
 
 ---
 
@@ -27,6 +27,7 @@ Then open Claude Code, Antigravity CLI, or Codex in any project and ask in plain
 /do debug the failing Go health-check test
 /do review my diff for security and edge cases
 /d  fix the flaky payment test without touching the billing API
+/prompt --strict-scope harden token refresh without touching auth routes
 ```
 
 You do not need to memorize skill names or slash commands. `/do` reads the live catalog, loads the matching skills and verification gates, and runs the job.
@@ -159,6 +160,12 @@ Intent-alignment receipts are stored in `learning.db` without raw prompt text. M
 python3 scripts/jev-intent-stats.py --days 30
 ```
 
+### `/prompt`: Compile underspecified requests and apply presets
+
+For rough or ambiguous requests, `/prompt` grounds itself read-only against the repo, emits a 5-line task contract (outcome, out-of-scope boundaries, verification command, owned paths, and at most one open question), and hands the ratified contract straight to `/do` or `/d`.
+
+Both `/prompt` and `/do` accept composable constraint presets (`--strict-scope`, `--spike`, `--review-only`, `--ship`, `--local-only`) that inject scope, review, and shipping rules into the task spec without rewriting boilerplate.
+
 ---
 
 ## What You Can Ask
@@ -187,6 +194,7 @@ VexJoy separates **hard hooks** (code that blocks an action with a non-zero exit
 - Pushing or creating a PR before `/pr-review` records the commit (in every repo except non-fork `github.com/notque` ones)
 - Merging a PR (`gh pr merge`) while GitHub Actions checks are failing or still running
 - Destructive commands, credential/secret writes, and skipping required pipeline phase artifacts
+- Incomplete Medium/Complex agent dispatches (`pretool-dispatch-spec-gate` blocks dispatches missing the verbatim request, acceptance criteria, or repo-state handoff block by default; set `DISPATCH_SPEC_GATE_MODE=warn` to downgrade)
 - On Antigravity: `pretool-routing-gate` blocks commands and edits until the routing banner is emitted
 
 **Skill verification gates** (anti-rationalization instructions; Stop hooks are advisory, except `stop-drift-guard` in this checkout which wakes the session on hook, doc-count, or routing drift):
@@ -256,7 +264,7 @@ A game built by Claude Code using these skills and pipelines:
 | Agents | 0 | Retired (plans/009): their domain knowledge moved into skill references. Private overlay agents still install from overlays. |
 | Skills | 43 | Domain knowledge and methodology for recurring work: idiom tables, failure mode catalogs, error-to-fix mappings. |
 | Hooks | 47 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 160 | Repeatable validation, orchestration, and plumbing. |
+| Scripts | 163 | Repeatable validation, orchestration, and plumbing. |
 
 Counts reflect active components on disk: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and Python scripts in `scripts/`.
 
@@ -290,6 +298,8 @@ Scheduled work follows the same boundary: repeatable plumbing runs in scripts, a
 
 | Need | Use |
 |---|---|
+| Diagnose prompt drift, scope expansion, and gate blocks | `python3 scripts/prompt-diagnostics.py --days 30` |
+| Run the golden prompt effectiveness eval suite | `python3 scripts/prompt-eval.py` |
 | Find stale skills to prune (report-only) | `python3 scripts/stale-skill-scan.py --top 20` (see [docs/deprecation-template.md](docs/deprecation-template.md)) |
 | Run a deterministic command on a schedule | `scripts/agent-scheduler.py` with `runner: "command"` |
 | Run agent judgment on a schedule, webhook, or file change | `scripts/agent-scheduler.py` with the default `runner: "claude"` |
