@@ -485,3 +485,96 @@ def test_permission_decision_ask_normalized_and_aggregated(adapter):
     }
     agg_deny_wins = adapter.aggregate_outputs("PreToolUse", [normalized, deny_payload])
     assert agg_deny_wins["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_codex_adapter_decodes_utf8_child_output_cleanly(tmp_path):
+    hook = _write_hook(
+        tmp_path,
+        "import json, sys\n"
+        "sys.stdin.read()\n"
+        "sys.stdout.buffer.write((json.dumps({'additionalContext': 'café 🚀 ok'}, ensure_ascii=False) + '\\n').encode('utf-8'))\n",
+    )
+    payload = _event("PostToolUse", tool_name="Bash")
+    result = _run_cli(hook, "PostToolUse", "native", "closed", payload, matcher="Bash")
+    assert result.returncode == 0, result.stderr
+    ctx = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "café" in ctx and "🚀" in ctx
+
+
+def test_patch_pretooluse_short_circuits_on_first_deny(tmp_path):
+    """Multi-file apply_patch stops invoking child hooks after the first PreToolUse deny."""
+    seen_log = tmp_path / "seen.txt"
+    hook = _write_hook(
+        tmp_path,
+        "import json, sys\n"
+        "from pathlib import Path\n"
+        "event = json.load(sys.stdin)\n"
+        "fp = event['tool_input']['file_path']\n"
+        f"with Path({str(seen_log)!r}).open('a', encoding='utf-8') as fh:\n"
+        "    fh.write(fp + '\\n')\n"
+        "if fp.endswith('first.py'):\n"
+        "    print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny', 'permissionDecisionReason': 'blocked first'}}))\n",
+    )
+    payload = _event(
+        tool_input={
+            "command": (
+                "*** Begin Patch\n"
+                "*** Add File: first.py\n+a\n"
+                "*** Add File: second.py\n+b\n"
+                "*** Add File: third.py\n+c\n"
+                "*** End Patch"
+            )
+        }
+    )
+    result = _run_cli(hook, "PreToolUse", "patch", "closed", payload)
+    assert result.returncode == 0, result.stderr
+    output = json.loads(result.stdout)
+    assert output["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert output["hookSpecificOutput"]["permissionDecisionReason"] == "blocked first"
+    invoked = seen_log.read_text(encoding="utf-8").splitlines()
+    assert len(invoked) == 1
+    assert invoked[0].endswith("first.py")
+
+
+def test_patch_shares_single_wall_clock_deadline_across_files(adapter, tmp_path, monkeypatch):
+    """Multi-file apply_patch shares one wall-clock budget instead of resetting timeout per file."""
+    import argparse
+
+    hook = _write_hook(tmp_path, "pass\n")
+    payload = _event(
+        tool_input={
+            "command": (
+                "*** Begin Patch\n*** Add File: a.py\n+1\n*** Add File: b.py\n+2\n*** Add File: c.py\n+3\n*** End Patch"
+            )
+        }
+    )
+
+    clock = {"now": 100.0}
+    seen_timeouts: list[float] = []
+
+    def fake_monotonic() -> float:
+        return clock["now"]
+
+    def fake_run_child(hook_path, event, timeout):
+        seen_timeouts.append(round(timeout, 3))
+        clock["now"] += 0.6
+        return {}
+
+    monkeypatch.setattr(adapter.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(adapter, "_run_child", fake_run_child)
+
+    args = argparse.Namespace(
+        hook=hook,
+        event="PreToolUse",
+        matcher="*",
+        mode="patch",
+        failure_policy="closed",
+        timeout=1.0,
+    )
+    output = adapter.run(args, json.dumps(payload))
+
+    # File 1 gets 1.0s (advances clock to 100.6), file 2 gets 0.4s (advances to 101.2),
+    # file 3 sees remaining <= 0 and triggers timeout before spawning!
+    assert seen_timeouts == [1.0, 0.4]
+    assert output["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert "timed out" in output["hookSpecificOutput"]["permissionDecisionReason"].lower()

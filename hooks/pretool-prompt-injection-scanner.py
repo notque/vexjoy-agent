@@ -77,9 +77,10 @@ _SELF_EXCLUDE_PATTERNS: list[re.Pattern[str]] = [
 
 def _is_context_file(file_path: str) -> bool:
     """Check if the file path targets an agent context file (excluding self)."""
-    if any(p.search(file_path) for p in _SELF_EXCLUDE_PATTERNS):
+    norm_path = file_path.replace("\\", "/")
+    if any(p.search(norm_path) for p in _SELF_EXCLUDE_PATTERNS):
         return False
-    return any(p.search(file_path) for p in _CONTEXT_PATH_PATTERNS)
+    return any(p.search(norm_path) for p in _CONTEXT_PATH_PATTERNS)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -144,27 +145,37 @@ def main() -> None:
     # this hook from spawning for non-matching tools.
     tool = event.get("tool_name") or event.get("tool", "")
     tool_input = event.get("tool_input", event.get("input", {}))
+    if not isinstance(tool_input, dict):
+        empty_output(EVENT_NAME).print_and_exit()
     file_path = tool_input.get("file_path", "")
-    if not file_path:
-        empty_output(EVENT_NAME).print_and_exit()
 
-    # Only scan agent context files
-    if not _is_context_file(file_path):
-        empty_output(EVENT_NAME).print_and_exit()
-
-    # Extract content to scan
-    content = ""
-    if tool == "Write":
-        content = tool_input.get("content", "")
-    elif tool == "Edit":
-        # Scan new_string — the content being written into the file
-        content = tool_input.get("new_string", "")
-
-    if not content:
-        empty_output(EVENT_NAME).print_and_exit()
-
-    # Scan for injection patterns
-    warnings = _scan_content(content, file_path)
+    # Extract content to scan (Write, Edit, MultiEdit)
+    warnings: list[str] = []
+    if tool == "MultiEdit":
+        edits = tool_input.get("edits", [])
+        if not isinstance(edits, list):
+            empty_output(EVENT_NAME).print_and_exit()
+        for edit in edits:
+            if not isinstance(edit, dict):
+                continue
+            edit_path = edit.get("file_path") or file_path
+            if not isinstance(edit_path, str) or not edit_path or not _is_context_file(edit_path):
+                continue
+            edit_content = edit.get("new_string", "")
+            if isinstance(edit_content, str) and edit_content:
+                warnings.extend(_scan_content(edit_content, edit_path))
+    else:
+        if not isinstance(file_path, str) or not file_path or not _is_context_file(file_path):
+            empty_output(EVENT_NAME).print_and_exit()
+        content = ""
+        if tool == "Write":
+            content = tool_input.get("content", "")
+        elif tool == "Edit":
+            # Scan new_string — the content being written into the file
+            content = tool_input.get("new_string", "")
+        if not isinstance(content, str) or not content:
+            empty_output(EVENT_NAME).print_and_exit()
+        warnings = _scan_content(content, file_path)
 
     if not warnings:
         if debug:

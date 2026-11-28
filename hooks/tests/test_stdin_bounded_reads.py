@@ -209,3 +209,46 @@ def test_agy_adapter_still_treats_empty_closed_stdin_as_an_empty_event(tmp_path:
     assert result.returncode == 0, result.stderr
     steps = json.loads(result.stdout)["injectSteps"]
     assert "ran with" in steps[0]["systemMessage"]["systemMessage"]
+
+
+def test_stdin_timeout_supports_float_timeout_and_optional_none(tmp_path: Path) -> None:
+    """read_stdin_optional supports sub-second float timeouts and returns None on hang."""
+    driver = tmp_path / "float_stdin_driver.py"
+    driver.write_text(
+        f"import json, sys\nsys.path.insert(0, {str(HOOKS / 'lib')!r})\n"
+        "from stdin_timeout import read_stdin_optional\n"
+        "res = read_stdin_optional(timeout=0.2)\n"
+        "print(json.dumps({'result': res}))\n",
+        encoding="utf-8",
+    )
+    rc, stdout, stderr, elapsed = _run_with_open_stdin([sys.executable, str(driver)], cwd=tmp_path, env=_env(tmp_path))
+    assert rc == 0, stderr
+    assert elapsed < 3.0
+    assert json.loads(stdout) == {"result": None}
+
+
+def test_stdin_timeout_enforces_max_bytes_cap(tmp_path: Path) -> None:
+    """read_stdin / read_stdin_optional cap memory at max_bytes including multi-byte UTF-8."""
+    driver = tmp_path / "max_bytes_driver.py"
+    driver.write_text(
+        f"import json, sys\nsys.path.insert(0, {str(HOOKS / 'lib')!r})\n"
+        "from stdin_timeout import read_stdin\n"
+        "data = read_stdin(timeout=2.0, max_bytes=16)\n"
+        "print(json.dumps({'len_bytes': len(data.encode('utf-8')), 'data': data}))\n",
+        encoding="utf-8",
+    )
+    res = subprocess.run(
+        [sys.executable, str(driver)],
+        input="🚀" * 20,  # 80 UTF-8 bytes
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=tmp_path,
+        env=_env(tmp_path),
+        timeout=15,
+    )
+    assert res.returncode == 0, res.stderr
+    report = json.loads(res.stdout)
+    assert report["len_bytes"] <= 16
+    assert report["data"] == "🚀" * 4

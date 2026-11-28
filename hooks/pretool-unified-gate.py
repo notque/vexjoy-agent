@@ -319,29 +319,95 @@ def _rm_destructive_target(command: str) -> str | None:
 
 # ── force-push walk (audit S2) ───────────────────────────────────
 
-_GIT_PUSH_WORD_RE = _rx(r"\bgit\s+push\b")
 _PROTECTED_REF_RE = _rx(r"\b(?:main|master)\b")
+_GIT_PUSH_VALUE_OPTIONS = frozenset({"-o", "--push-option", "--repo", "--receive-pack", "--exec"})
 
 
-def _force_push_protected(command: str) -> str | None:
+def _normalize_exe_name(token: str) -> str:
+    """Return the lowercased executable basename without a Windows `.exe` suffix."""
+    return token.replace("\\", "/").rsplit("/", 1)[-1].lower().removesuffix(".exe")
+
+
+def _force_push_protected(command: str, _depth: int = 0) -> str | None:
     """Description if any `git push` occurrence force-pushes main/master,
     else None.
 
-    Order-independent token walk: `--force`/`-f` anywhere in the push plus a
-    main/master ref anywhere blocks (`git push origin main --force` dodged the
-    old flag-before-branch regexes). A `+ref` refspec IS a force push, so
-    `+main`/`+refs/heads/main` blocks without any flag. `--force-with-lease`
-    stays allowed (safer primitive; old rules never matched it either).
+    Order-independent token walk via `_git_command_parts` so global options like
+    `git -C . push --force origin main` and Windows `git.exe` invocations are
+    caught. `--force`/`-f` anywhere in the push plus a main/master ref anywhere
+    blocks. A `+ref` refspec IS a force push, so `+main`/`+refs/heads/main`
+    blocks without any flag. `--force-with-lease` stays allowed.
     """
-    for m in _GIT_PUSH_WORD_RE.finditer(command):
-        args = command[m.end() :]
-        stop = _RM_ARGS_STOP_RE.search(args)
-        if stop:
-            args = args[: stop.start()]
-        toks = [t.strip("'\"") for t in args.split()]
-        force = any(t in {"-f", "--force"} for t in toks)
-        protected_ref = any(_PROTECTED_REF_RE.search(t) for t in toks if not t.startswith("-"))
-        plus_refspec = any(t.startswith("+") and _PROTECTED_REF_RE.search(t) for t in toks)
+    if _depth > 4:
+        return None
+
+    sq_spans = _single_quoted_spans(command)
+    substitution_spans: list[tuple[int, int]] = []
+    for sub in _SUBSTITUTION_RE.finditer(command):
+        if any(start <= sub.start() < end for start, end in sq_spans):
+            continue
+        body = sub.group("dollar") or sub.group("back") or sub.group("proc") or ""
+        substitution_spans.append(sub.span())
+        desc = _force_push_protected(body, _depth + 1)
+        if desc:
+            return desc
+    scan_command = "".join(
+        " " if any(start <= i < end for start, end in substitution_spans) else c for i, c in enumerate(command)
+    )
+
+    for segment in _split_executed_shell_segments(scan_command):
+        cmd = _command_token(segment)
+        if cmd in _SHELL_LAUNCHERS:
+            payload = _shell_c_payload(segment)
+            desc = _force_push_protected(payload, _depth + 1) if payload else None
+            if desc:
+                return desc
+            continue
+        if cmd == "eval":
+            payload = _eval_payload(segment)
+            desc = _force_push_protected(payload, _depth + 1) if payload else None
+            if desc:
+                return desc
+            continue
+        parsed = _git_command_parts(segment)
+        if not parsed or parsed[0] != "push":
+            continue
+        toks = [t.strip("'\"") for t in parsed[1]]
+        force = False
+        protected_ref = False
+        plus_refspec = False
+        past_sep = False
+        i = 0
+        while i < len(toks):
+            t = toks[i]
+            if not past_sep and _REDIRECT_TOKEN_RE.match(t):
+                break
+            if not past_sep and t == "--":
+                past_sep = True
+                i += 1
+                continue
+            if not past_sep and t.startswith("-") and t != "-":
+                if t in _GIT_PUSH_VALUE_OPTIONS:
+                    i += 2
+                    continue
+                if t in {"-f", "--force"}:
+                    force = True
+                elif not t.startswith("--"):
+                    # Check short flag clusters up to any value-taking `-o` flag (`-uf`, `-fo`).
+                    for ch in t[1:]:
+                        if ch == "o":
+                            if t.endswith("o"):
+                                i += 1
+                            break
+                        if ch == "f":
+                            force = True
+                i += 1
+                continue
+            if t.startswith("+") and _PROTECTED_REF_RE.search(t):
+                plus_refspec = True
+            if _PROTECTED_REF_RE.search(t):
+                protected_ref = True
+            i += 1
         if plus_refspec:
             return "git push +ref (force refspec) to main/master"
         if force and protected_ref:
@@ -437,7 +503,7 @@ def _git_command_parts(segment: str) -> tuple[str, list[str]] | None:
     """
     stripped = _strip_leading_prefixes(segment)
     toks = split_shell_tokens(stripped)
-    if not toks or toks[0].rsplit("/", 1)[-1].lower() != "git":
+    if not toks or _normalize_exe_name(toks[0]) != "git":
         return None
 
     i = 1
@@ -467,11 +533,11 @@ def _inline_git_alias_payload(segment: str) -> str:
     """
     stripped = _strip_leading_prefixes(segment)
     stripped_toks = split_shell_tokens(stripped)
-    if not stripped_toks or stripped_toks[0].rsplit("/", 1)[-1].lower() != "git":
+    if not stripped_toks or _normalize_exe_name(stripped_toks[0]) != "git":
         return ""
 
     toks = split_shell_tokens(segment)
-    git_indices = [i for i, tok in enumerate(toks) if tok.rsplit("/", 1)[-1].lower() == "git"]
+    git_indices = [i for i, tok in enumerate(toks) if _normalize_exe_name(tok) == "git"]
     for git_index in git_indices:
         aliases: dict[str, str] = {}
         i = git_index + 1
@@ -566,7 +632,7 @@ def _eval_payload(segment: str) -> str:
         toks = shlex.split(normalized, posix=True)
     except ValueError:
         toks = normalized.split()
-    eval_indices = [i for i, tok in enumerate(toks) if tok.rsplit("/", 1)[-1].lower() == "eval"]
+    eval_indices = [i for i, tok in enumerate(toks) if _normalize_exe_name(tok) == "eval"]
     if eval_indices:
         return " ".join(toks[eval_indices[-1] + 1 :])
     return ""
@@ -576,7 +642,7 @@ def _xargs_payload(segment: str) -> str:
     """Return the command that `xargs` executes, or an empty string."""
     stripped = _strip_leading_prefixes(segment)
     toks = split_shell_tokens(stripped)
-    if not toks or toks[0].rsplit("/", 1)[-1].lower() != "xargs":
+    if not toks or _normalize_exe_name(toks[0]) != "xargs":
         return ""
     value_options = frozenset(
         {
@@ -734,12 +800,12 @@ def _destructive_git_operation(
                 return "git clean --force (deletes untracked work)"
 
         if subcommand == "branch":
-            force_delete = any(
-                tok.startswith("-") and not tok.startswith("--") and "D" in tok[1:] for tok in option_args
-            )
-            force_delete = force_delete or ("--delete" in option_args and "--force" in option_args)
-            force_delete = force_delete or ("-d" in option_args and "-f" in option_args)
-            if force_delete:
+            short_flags = {
+                ch for tok in option_args if tok.startswith("-") and not tok.startswith("--") for ch in tok[1:]
+            }
+            has_delete = "--delete" in option_args or "d" in short_flags
+            has_force = "--force" in option_args or "f" in short_flags
+            if "D" in short_flags or (has_delete and has_force):
                 return "git branch -D (force-deletes a branch)"
 
         if subcommand == "config":
@@ -760,8 +826,19 @@ def _destructive_git_operation(
             if subcommand == "checkout" and ("-f" in option_args or "--force" in option_args):
                 return "git checkout --force (discards tracked work while switching)"
 
-        if subcommand == "switch" and "--discard-changes" in option_args:
-            return "git switch --discard-changes (discards tracked work while switching)"
+        if subcommand == "switch":
+            has_switch_force = "--discard-changes" in option_args or "--force" in option_args or "-f" in option_args
+            if not has_switch_force:
+                for tok in option_args:
+                    if tok.startswith("-") and not tok.startswith("--") and len(tok) > 1:
+                        for ch in tok[1:]:
+                            if ch in ("c", "C"):
+                                break
+                            if ch == "f":
+                                has_switch_force = True
+                                break
+            if has_switch_force:
+                return "git switch --discard-changes (discards tracked work while switching)"
 
         if subcommand not in _GIT_BUILTIN_SUBCOMMANDS:
             payload = _persistent_git_alias_payload(subcommand, segment_cwd, _alias_cache)
@@ -845,44 +922,44 @@ _SENSITIVE_BYPASS_ENV = "SENSITIVE_FILE_GUARD_BYPASS"
 
 _SENSITIVE_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     # Environment files (except .env.example)
-    (_rx(r"/\.env$"), "env", ".env"),
-    (_rx(r"/\.env\.(local|production|staging|development|dev|prod)$"), "env", ".env.*"),
+    (_rx(r"/\.env$", re.IGNORECASE), "env", ".env"),
+    (_rx(r"/\.env\.(local|production|staging|development|dev|prod)$", re.IGNORECASE), "env", ".env.*"),
     # Credential files
-    (_rx(r"/credentials\.(json|yml|yaml)$"), "credentials", "credentials file"),
-    (_rx(r"/service-account[^/]*\.json$"), "credentials", "service account JSON"),
+    (_rx(r"/credentials\.(json|yml|yaml)$", re.IGNORECASE), "credentials", "credentials file"),
+    (_rx(r"/service-account[^/]*\.json$", re.IGNORECASE), "credentials", "service account JSON"),
     # SSH keys
-    (_rx(r"/\.ssh/"), "ssh", "SSH directory"),
-    (_rx(r"/id_(rsa|ed25519|ecdsa|dsa)$"), "ssh", "SSH private key"),
+    (_rx(r"/\.ssh/", re.IGNORECASE), "ssh", "SSH directory"),
+    (_rx(r"/id_(rsa|ed25519|ecdsa|dsa)$", re.IGNORECASE), "ssh", "SSH private key"),
     # Private key / certificate files
-    (_rx(r"\.p12$"), "certificate", ".p12 certificate"),
-    (_rx(r"\.pfx$"), "certificate", ".pfx certificate"),
-    (_rx(r"\.key$"), "certificate", ".key private key"),
-    (_rx(r"\.pem$"), "certificate", ".pem private key"),
+    (_rx(r"\.p12$", re.IGNORECASE), "certificate", ".p12 certificate"),
+    (_rx(r"\.pfx$", re.IGNORECASE), "certificate", ".pfx certificate"),
+    (_rx(r"\.key$", re.IGNORECASE), "certificate", ".key private key"),
+    (_rx(r"\.pem$", re.IGNORECASE), "certificate", ".pem private key"),
     # Cloud configs
-    (_rx(r"\.aws/credentials$"), "cloud", "AWS credentials"),
-    (_rx(r"\.kube/config$"), "cloud", "kubeconfig"),
-    (_rx(r"\.gcloud/"), "cloud", "gcloud config directory"),
+    (_rx(r"\.aws/credentials$", re.IGNORECASE), "cloud", "AWS credentials"),
+    (_rx(r"\.kube/config$", re.IGNORECASE), "cloud", "kubeconfig"),
+    (_rx(r"\.gcloud/", re.IGNORECASE), "cloud", "gcloud config directory"),
     # Token files
-    (_rx(r"/token\.json$"), "token", "token.json"),
-    (_rx(r"/\.tokens$"), "token", ".tokens file"),
+    (_rx(r"/token\.json$", re.IGNORECASE), "token", "token.json"),
+    (_rx(r"/\.tokens$", re.IGNORECASE), "token", ".tokens file"),
     # Guard control plane (audit S1): .guard-whitelist/.guard-patterns configure
     # THIS gate's dangerous/sensitive checks — writing one IS the disarm act, and
     # no agent flow legitimately writes them (owner-authored config only).
-    (_rx(r"/\.guard-(?:whitelist|patterns)$"), "guard-config", ".guard-* guard config"),
+    (_rx(r"/\.guard-(?:whitelist|patterns)$", re.IGNORECASE), "guard-config", ".guard-* guard config"),
     # Credential stores the home CLAUDE.md names but the list above missed
     # (audit S4). Each holds a live credential in plaintext.
-    (_rx(r"/\.git-credentials$"), "credentials", ".git-credentials"),
-    (_rx(r"/\.netrc$"), "credentials", ".netrc"),
-    (_rx(r"/\.config/gh/hosts\.yml$"), "token", "gh CLI hosts.yml (auth token)"),
-    (_rx(r"/\.envrc$"), "env", ".envrc (direnv)"),
+    (_rx(r"/\.git-credentials$", re.IGNORECASE), "credentials", ".git-credentials"),
+    (_rx(r"/\.netrc$", re.IGNORECASE), "credentials", ".netrc"),
+    (_rx(r"/\.config/gh/hosts\.yml$", re.IGNORECASE), "token", "gh CLI hosts.yml (auth token)"),
+    (_rx(r"/\.envrc$", re.IGNORECASE), "env", ".envrc (direnv)"),
 ]
 
 # Suffix exceptions: safe ANYWHERE. These name a file that by convention holds
 # placeholders, not secrets, so their location does not change the risk.
 _SENSITIVE_EXCEPTIONS: list[re.Pattern[str]] = [
-    _rx(r"\.env\.example$"),
-    _rx(r"\.env\.sample$"),
-    _rx(r"\.env\.template$"),
+    _rx(r"\.env\.example$", re.IGNORECASE),
+    _rx(r"\.env\.sample$", re.IGNORECASE),
+    _rx(r"\.env\.template$", re.IGNORECASE),
 ]
 
 # Directory exceptions: safe ONLY inside the repo worktree (audit S4). These say
@@ -1150,7 +1227,7 @@ def _strip_leading_prefixes(segment: str) -> str:
     toks = split_shell_tokens(seg)
 
     def base(tok: str) -> str:
-        return tok.rsplit("/", 1)[-1].lower()
+        return _normalize_exe_name(tok)
 
     i = 0
     changed = True
@@ -1232,7 +1309,7 @@ def _command_token(segment: str) -> str:
     m = re.match(r"['\"]?([^\s'\"]+)", seg)
     if not m:
         return ""
-    tok = m.group(1).rsplit("/", 1)[-1].lower()
+    tok = _normalize_exe_name(m.group(1))
     # Drop a package version spec (`vite@latest`, `http-server@14`). A leading `@`
     # (scoped pkg like `@angular/cli`) is preserved by only splitting after char 0.
     at = tok.find("@", 1)
@@ -1248,7 +1325,7 @@ def _is_python_interpreter(tok: str) -> bool:
     path-qualified or not. Used to anchor `-m <module>` detection to a genuine
     interpreter command so a literal module string in an argument never matches.
     """
-    base = tok.rsplit("/", 1)[-1].lower()
+    base = _normalize_exe_name(tok)
     return base == "py" or base.startswith("python")
 
 
@@ -1421,14 +1498,25 @@ def _host_is_public(host: str) -> bool:
 # ═══════════════════════════════════════════════════════════════
 
 
-def _load_guard_whitelist() -> list[str]:
+def _resolve_cwd_path(cwd: str | Path | None = None) -> Path:
+    """Return the active working directory: explicit *cwd*, event cwd, or Path.cwd()."""
+    if cwd:
+        return Path(normalize_bash_path(os.path.expanduser(str(cwd))))
+    if isinstance(_CURRENT_EVENT, dict):
+        ev_cwd = _str_field(_CURRENT_EVENT, "cwd")
+        if ev_cwd:
+            return Path(normalize_bash_path(os.path.expanduser(ev_cwd)))
+    return Path.cwd()
+
+
+def _load_guard_whitelist(cwd: str | Path | None = None) -> list[str]:
     """Load per-project whitelist from .guard-whitelist if it exists."""
-    whitelist_path = Path.cwd() / ".guard-whitelist"
+    whitelist_path = _resolve_cwd_path(cwd) / ".guard-whitelist"
     if not whitelist_path.is_file():
         return []
     try:
         entries = []
-        for line in whitelist_path.read_text().splitlines():
+        for line in whitelist_path.read_text(encoding="utf-8", errors="replace").splitlines():
             entry = line.strip()
             if not entry or entry.startswith("#"):
                 continue
@@ -1460,7 +1548,7 @@ def _is_whitelisted(command: str, whitelist: list[str]) -> bool:
     return any(entry == cmd for entry in whitelist)
 
 
-def _load_guard_patterns() -> list[tuple[re.Pattern[str], str, str]]:
+def _load_guard_patterns(cwd: str | Path | None = None) -> list[tuple[re.Pattern[str], str, str]]:
     """Load per-project sensitive patterns from .guard-patterns.
 
     Entries are treated as glob-like patterns: ``*`` matches any sequence,
@@ -1469,12 +1557,12 @@ def _load_guard_patterns() -> list[tuple[re.Pattern[str], str, str]]:
     stderr and skipped so that a single bad line cannot disable the entire
     sensitive-file guard.
     """
-    guard_path = Path.cwd() / ".guard-patterns"
+    guard_path = _resolve_cwd_path(cwd) / ".guard-patterns"
     if not guard_path.is_file():
         return []
     extra: list[tuple[re.Pattern[str], str, str]] = []
     try:
-        for line in guard_path.read_text().splitlines():
+        for line in guard_path.read_text(encoding="utf-8", errors="replace").splitlines():
             line = line.strip()
             if line and not line.startswith("#"):
                 # Escape ALL regex metacharacters first, then selectively
@@ -1494,14 +1582,14 @@ def _load_guard_patterns() -> list[tuple[re.Pattern[str], str, str]]:
     return extra
 
 
-def _repo_worktree_root() -> Path | None:
+def _repo_worktree_root(cwd: str | Path | None = None) -> Path | None:
     """Nearest ancestor of cwd containing `.git`, or None outside a repo.
 
     Walks the filesystem instead of shelling out to git: this runs on every
     sensitive-file check and the hook has a hard latency budget.
     """
     try:
-        here = Path.cwd().resolve()
+        here = _resolve_cwd_path(cwd).resolve()
     except OSError:
         return None
     for candidate in (here, *here.parents):
@@ -1510,7 +1598,7 @@ def _repo_worktree_root() -> Path | None:
     return None
 
 
-def _is_sensitive_exception(file_path: str, *, fs_path: str | None = None) -> bool:
+def _is_sensitive_exception(file_path: str, *, fs_path: str | None = None, cwd: str | Path | None = None) -> bool:
     """Check if `file_path` matches a sensitive-file exception.
 
     Suffix exceptions (`.env.example` and friends) apply anywhere. Directory
@@ -1523,7 +1611,7 @@ def _is_sensitive_exception(file_path: str, *, fs_path: str | None = None) -> bo
         return True
     if not any(p.search(file_path) for p in _SENSITIVE_DIR_EXCEPTIONS):
         return False
-    root = _repo_worktree_root()
+    root = _repo_worktree_root(cwd)
     if root is None:
         return False
     try:
@@ -1679,7 +1767,8 @@ def check_gitignore_bypass(command: str) -> None:
         )
 
     # Fast path: no git add in command
-    if "git" not in command or "add" not in command:
+    cmd_lower = command.lower()
+    if "git" not in cmd_lower or "add" not in cmd_lower:
         return
 
     paths = _git_force_add_paths(command)
@@ -1805,7 +1894,8 @@ def check_dangerous_command(command: str) -> None:
         return
 
     # Load whitelist once before scanning rather than on each match.
-    whitelist = _load_guard_whitelist()
+    event_cwd = _str_field(_CURRENT_EVENT, "cwd") if isinstance(_CURRENT_EVENT, dict) else ""
+    whitelist = _load_guard_whitelist(event_cwd)
 
     # Functional walks (audit S2) share the regex rules' whitelist contract:
     # a full-command whitelist entry skips the rule, nothing else does.
@@ -2013,10 +2103,10 @@ def check_sensitive_file(file_path: str, *, deny: bool = True, cwd: str = "") ->
         return
 
     norm_path, fs_path = _normalize_path_for_gate(file_path, cwd=cwd)
-    if _is_sensitive_exception(norm_path, fs_path=fs_path):
+    if _is_sensitive_exception(norm_path, fs_path=fs_path, cwd=cwd):
         return
 
-    all_patterns = _SENSITIVE_PATTERNS + _load_guard_patterns()
+    all_patterns = _SENSITIVE_PATTERNS + _load_guard_patterns(cwd)
     for pattern, category, description in all_patterns:
         if pattern.search(norm_path):
             if not deny:
@@ -2126,26 +2216,23 @@ def _sensitive_bash_paths(segment: str) -> tuple[list[str], list[str]]:
     return deny_paths, args
 
 
-def _matches_sensitive(path: str) -> tuple[str, str] | None:
+def _matches_sensitive(path: str, *, cwd: str = "") -> tuple[str, str] | None:
     """Return (category, description) if `path` is sensitive, else None.
 
-    Normalizes `~` so `~/.env` matches the same anchored patterns an absolute
-    path does — the patterns are rooted at `/`, so an un-expanded `~` never
-    matched anything.
+    Normalizes `~` and relative paths against *cwd* (falling back to event cwd
+    and Path.cwd()) so `~/.env` and relative paths match the same anchored
+    patterns an absolute path does, and passes `fs_path` cleanly to
+    `_is_sensitive_exception`.
     """
     # Ignore bare single-char property tokens (e.g. `r.key`, `x.key`) without a
     # path separator that appear in inline code snippets rather than key files.
     if "/" not in path and "\\" not in path and re.fullmatch(r"[a-zA-Z]\.key", path):
         return None
-    norm = normalize_bash_path(os.path.expanduser(path)).replace("\\", "/")
-    if not norm.startswith("/") and not re.match(r"^[A-Za-z]:/", norm):
-        norm = (Path.cwd() / norm).as_posix()
-    elif re.match(r"^[A-Za-z]:/", norm):
-        norm = "/" + norm
-    if _is_sensitive_exception(norm):
+    norm_path, fs_path = _normalize_path_for_gate(path, cwd=cwd)
+    if _is_sensitive_exception(norm_path, fs_path=fs_path, cwd=cwd):
         return None
-    for pattern, category, description in _SENSITIVE_PATTERNS + _load_guard_patterns():
-        if pattern.search(norm):
+    for pattern, category, description in _SENSITIVE_PATTERNS + _load_guard_patterns(cwd):
+        if pattern.search(norm_path):
             return category, description
     return None
 
@@ -2158,13 +2245,15 @@ def check_sensitive_bash(command: str) -> None:
     if _oversized_for_segment_scan(command, "sensitive-file-guard"):
         return
 
+    event_cwd = _str_field(_CURRENT_EVENT, "cwd") if isinstance(_CURRENT_EVENT, dict) else ""
+
     for line in _non_heredoc_lines(command):
         for segment in _SEGMENT_SPLIT_RE.split(line):
             if not segment.strip():
                 continue
             deny_paths, warn_paths = _sensitive_bash_paths(segment)
             for path in deny_paths:
-                hit = _matches_sensitive(path)
+                hit = _matches_sensitive(path, cwd=event_cwd)
                 if hit:
                     category, description = hit
                     _block(
@@ -2179,7 +2268,7 @@ def check_sensitive_bash(command: str) -> None:
                         ),
                     )
             for path in warn_paths:
-                hit = _matches_sensitive(path)
+                hit = _matches_sensitive(path, cwd=event_cwd)
                 if hit:
                     category, description = hit
                     print(
@@ -3192,7 +3281,7 @@ def _git_stages_secret(seg: str) -> bool:
     # message). Consume `FOO=bar`, `sudo`/`env`/… and their option flags + values.
     w = 0
     while w < len(toks):
-        base = toks[w].rsplit("/", 1)[-1]
+        base = _normalize_exe_name(toks[w])
         if _ENV_ASSIGN_RE.match(toks[w]):
             w += 1
         elif base in {"sudo", "env", "command", "exec", "nice", "nohup", "setsid", "doas", "time", "timeout", "stdbuf"}:
@@ -3208,7 +3297,7 @@ def _git_stages_secret(seg: str) -> bool:
         else:
             break
     toks = toks[w:]
-    if len(toks) < 2 or toks[0].rsplit("/", 1)[-1] != "git":
+    if len(toks) < 2 or _normalize_exe_name(toks[0]) != "git":
         return False
     # Skip global git options before the subcommand (`git -C /tmp add …`,
     # `git -c k=v commit …`). `-C`/`-c` take a value token (codex round-6 bypass).
@@ -3218,9 +3307,9 @@ def _git_stages_secret(seg: str) -> bool:
             i += 2
         else:
             i += 1
-    if i >= len(toks) or toks[i] not in {"add", "commit"}:
+    if i >= len(toks) or toks[i].lower() not in {"add", "commit"}:
         return False
-    subcmd = toks[i]
+    subcmd = toks[i].lower()
     i += 1
     # `git add --dry-run`/`-n` stages nothing (codex round-12 FP). For `add`, a
     # dry-run flag anywhere means no secret is actually staged.
@@ -3503,8 +3592,10 @@ def _block_sysadmin(category: str, message: str) -> None:
     )
 
 
-def _check_sysadmin_segment(segment: str) -> None:
+def _check_sysadmin_segment(segment: str, _depth: int = 0, *, _unwrap_launchers: bool = True) -> None:
     """Evaluate one shell segment for per-segment sysadmin footguns."""
+    if _depth > 4:
+        return
     seg = segment.strip()
     if not seg:
         return
@@ -3519,16 +3610,26 @@ def _check_sysadmin_segment(segment: str) -> None:
         lines = [ln for ln in _non_heredoc_lines(seg) if ln.strip()]
         # `_non_heredoc_lines` is quote-aware, so a newline inside a quoted
         # argument leaves the segment intact — recursing on that identical
-        # segment would never terminate (this function has no depth guard).
+        # segment would never terminate.
         if lines != [seg]:
             for line in lines:
-                _check_sysadmin_segment(line)
+                _check_sysadmin_segment(line, _depth + 1, _unwrap_launchers=_unwrap_launchers)
             return
 
     # Drop a trailing unquoted shell comment: `true # ufw disable` ignores the
     # footgun text, so scanning it produced a false positive (codex #724 round-1).
     seg = _strip_unquoted_comment(seg)
     if not seg.strip():
+        return
+
+    # Shell launcher (`bash -c '<payload>'`, `sh -lc '…'`) or `su -c '<payload>'`:
+    # unwrap `-c` payloads per segment so chained invocations (`true && bash -c …`)
+    # are evaluated recursively.
+    seg_cmd = _command_token(seg)
+    if _unwrap_launchers and (seg_cmd in _SHELL_LAUNCHERS or seg_cmd == "su"):
+        payload = _shell_c_payload(seg)
+        if payload.strip() and payload.strip() != seg.strip():
+            check_sysadmin_security(payload, _depth + 1)
         return
 
     # A pure display/search command quoting a footgun string is data, not an
@@ -3541,7 +3642,7 @@ def _check_sysadmin_segment(segment: str) -> None:
     # not an invocation (codex round-7 FPs). The ONLY git footgun is staging a
     # secret file, handled by the token-walking _git_stages_secret below. So for a
     # git command, check ONLY that and skip every generic footgun/warn pattern.
-    if _command_token(seg) == "git":
+    if seg_cmd == "git":
         if _git_stages_secret(seg):
             _block_sysadmin("commit-secret", _SYSADMIN_GIT_SECRET_MSG)
         return
@@ -3614,7 +3715,7 @@ def _check_sysadmin_segment(segment: str) -> None:
             _warn(advice)
 
 
-def check_sysadmin_security(command: str) -> None:
+def check_sysadmin_security(command: str, _depth: int = 0) -> None:
     """Block sysadmin footguns with educational fixes; warn on context-dependent ones.
 
     Two layers:
@@ -3627,6 +3728,8 @@ def check_sysadmin_security(command: str) -> None:
     via stderr without denying. One shared bypass: SYSADMIN_GUARD_BYPASS=1.
     Fail-open / exit-0 contract preserved (raised inside the gate's try/finally).
     """
+    if _depth > 4:
+        return
     if os.environ.get(_SYSADMIN_GUARD_BYPASS_ENV) == "1":
         return
 
@@ -3674,17 +3777,19 @@ def check_sysadmin_security(command: str) -> None:
             continue  # `$(...)` inside single quotes is literal data
         body = sub.group("dollar") or sub.group("back") or sub.group("proc") or ""
         if body.strip():
-            check_sysadmin_security(body)
+            check_sysadmin_security(body, _depth + 1)
 
     # Shell launcher (`bash -c '<payload>'`, `sh -lc '…'`) OR `su -c '<payload>'`:
-    # the real command is the `-c` payload — recurse into it so a footgun wrapped in
-    # a `-c` is still caught (`bash -lc 'curl … | sh'` round-5; `su -c 'ufw disable'`
-    # round-18). Evaluated on the UN-split command: the payload's own `|`/`;` live
-    # inside the quoted token, so segment-splitting first would tear it apart.
-    if _command_token(command) in _SHELL_LAUNCHERS or _command_token(command) == "su":
-        payload = _shell_c_payload(command)
-        if payload.strip() and payload.strip() != command.strip():
-            check_sysadmin_security(payload)
+    # the real command is the `-c` payload — unwrap per quote-aware segment so
+    # chained forms (`true && bash -c "ufw disable"`, `true && bash -c "curl … | sh"`,
+    # `echo ok; su -c "ufw disable"`) are caught without tearing apart pipes inside
+    # quoted `-c` payloads.
+    for exec_seg in _split_executed_shell_segments(scan_line):
+        exec_cmd = _command_token(exec_seg)
+        if exec_cmd in _SHELL_LAUNCHERS or exec_cmd == "su":
+            payload = _shell_c_payload(exec_seg)
+            if payload.strip() and payload.strip() != command.strip():
+                check_sysadmin_security(payload, _depth + 1)
 
     # Whole-line pipe-spanning patterns. A match that lies ENTIRELY inside a single-
     # quoted span is literal data (`echo 'curl x | sh'`) and is suppressed; a match
@@ -3732,7 +3837,7 @@ def check_sysadmin_security(command: str) -> None:
         return
 
     for segment in _SEGMENT_SPLIT_RE.split(command):
-        _check_sysadmin_segment(segment)
+        _check_sysadmin_segment(segment, _depth, _unwrap_launchers=False)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -3763,59 +3868,62 @@ def main() -> None:
         return
 
     _CURRENT_EVENT = event
+    try:
+        # Field name compatibility: try new names first, fall back to old
+        tool = event.get("tool_name") or event.get("tool", "")
+        # A malformed tool_input (null, a list, a number) becomes {} instead of a crash that skips
+        # every check. A string is still checked: JSON text is parsed, and bare text is the command.
+        tool_input = get_tool_input(event)
 
-    # Field name compatibility: try new names first, fall back to old
-    tool = event.get("tool_name") or event.get("tool", "")
-    # A malformed tool_input (null, a list, a number) becomes {} instead of a crash that skips
-    # every check. A string is still checked: JSON text is parsed, and bare text is the command.
-    tool_input = get_tool_input(event)
+        if tool == "Bash":
+            command = _str_field(tool_input, "command")
+            _CURRENT_COMMAND = command
+            if not command:
+                return
+            check_gitignore_bypass(command)
+            check_git_submission(command)
+            check_dangerous_command(command)
+            check_public_dev_server(command)
+            check_sysadmin_security(command)
+            check_sensitive_bash(command)
 
-    if tool == "Bash":
-        command = _str_field(tool_input, "command")
-        _CURRENT_COMMAND = command
-        if not command:
-            return
-        check_gitignore_bypass(command)
-        check_git_submission(command)
-        check_dangerous_command(command)
-        check_public_dev_server(command)
-        check_sysadmin_security(command)
-        check_sensitive_bash(command)
+        elif tool == "Write":
+            file_path = _str_field(tool_input, "file_path")
+            if not file_path:
+                return
+            cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
+            check_creation_gate(file_path, cwd=cwd)
+            check_guard_integrity(file_path, cwd=cwd)
+            check_sensitive_file(file_path, cwd=cwd)
 
-    elif tool == "Write":
-        file_path = _str_field(tool_input, "file_path")
-        if not file_path:
-            return
-        cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
-        check_creation_gate(file_path, cwd=cwd)
-        check_guard_integrity(file_path, cwd=cwd)
-        check_sensitive_file(file_path, cwd=cwd)
+        elif tool in ("Edit", "MultiEdit"):
+            paths: list[str] = []
+            primary = _str_field(tool_input, "file_path")
+            if primary:
+                paths.append(primary)
+            edits = tool_input.get("edits")
+            if isinstance(edits, list):
+                for item in edits:
+                    if isinstance(item, dict):
+                        ep = _str_field(item, "file_path")
+                        if ep and ep not in paths:
+                            paths.append(ep)
+            cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
+            for fp in paths:
+                check_guard_integrity(fp, cwd=cwd)
+                check_sensitive_file(fp, cwd=cwd)
 
-    elif tool in ("Edit", "MultiEdit"):
-        paths: list[str] = []
-        primary = _str_field(tool_input, "file_path")
-        if primary:
-            paths.append(primary)
-        edits = tool_input.get("edits")
-        if isinstance(edits, list):
-            for item in edits:
-                if isinstance(item, dict):
-                    ep = _str_field(item, "file_path")
-                    if ep and ep not in paths:
-                        paths.append(ep)
-        cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
-        for fp in paths:
-            check_guard_integrity(fp, cwd=cwd)
-            check_sensitive_file(fp, cwd=cwd)
+        elif tool == "Read":
+            file_path = _str_field(tool_input, "file_path")
+            if not file_path:
+                return
+            cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
+            check_sensitive_file(file_path, deny=False, cwd=cwd)
 
-    elif tool == "Read":
-        file_path = _str_field(tool_input, "file_path")
-        if not file_path:
-            return
-        cwd = _str_field(event, "cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
-        check_sensitive_file(file_path, deny=False, cwd=cwd)
-
-    _emit_advisories()
+        _emit_advisories()
+    finally:
+        _CURRENT_EVENT = None
+        _CURRENT_COMMAND = ""
 
 
 if __name__ == "__main__":

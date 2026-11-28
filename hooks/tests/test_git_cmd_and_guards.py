@@ -333,3 +333,12 @@ def test_agy_and_codex_generators_propagate_hook_timeouts() -> None:
     handler = data["vexjoy-agent"]["PreToolUse"][0]["hooks"][0]
     assert "--timeout 30" in handler["command"]
     assert handler["timeout"] >= 35
+
+
+def test_git_commit_re_matches_windows_git_exe_case_insensitively() -> None:
+    sys.path.insert(0, str(HOOKS / "lib"))
+    import git_cmd
+
+    assert git_cmd.GIT_COMMIT_RE.search("git.exe commit -m wip") is not None
+    assert git_cmd.GIT_COMMIT_RE.search('GIT.EXE -C "C:\\repo" commit -m wip') is not None
+    assert git_cmd.GIT_COMMIT_RE.search("git.exe status") is None

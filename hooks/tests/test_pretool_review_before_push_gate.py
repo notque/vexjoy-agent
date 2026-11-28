@@ -704,3 +704,23 @@ class TestSubstitutions:
 
     def test_substitution_in_commit_message_is_not_a_push(self, env: Env, sapcc: Path):
         assert denied(env.run('git commit -m "explain $(date) push"', sapcc)) is None
+
+
+class TestWindowsExeNormalization:
+    """Windows .exe executable names (git.exe, gh.exe) must not bypass the review gate."""
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git.exe push origin main",
+            r"C:\Git\bin\GIT.EXE push origin main",
+            "gh.exe pr create --fill",
+            r"C:\gh\bin\GH.EXE pr create --fill",
+            "custom-wrapper git.exe push origin main",
+            "custom-wrapper gh.exe pr create --fill",
+        ],
+    )
+    def test_windows_exe_invocations_are_gated(self, env: Env, sapcc: Path, command: str):
+        assert denied(env.run(command, sapcc))
+        assert env.mark(sapcc).returncode == 0
+        assert denied(env.run(command, sapcc)) is None

@@ -11,11 +11,11 @@ from pathlib import Path
 # Git global options that may sit between `git` and the subcommand verb
 # (e.g. `git -C dir commit`, `git -c k=v commit`, `git --no-pager commit`).
 GIT_OPTS_RE_STR = (
-    r"\bgit(?:\s+(?:-[Cc]\s+(?:\"[^\"]*\"|'[^']*'|[^\s\"']\S*)"
+    r"\b(?i:git(?:\.exe)?)(?:\s+(?:-[Cc]\s+(?:\"[^\"]*\"|'[^']*'|[^\s\"']\S*)"
     r"|--(?:git-dir|work-tree|namespace|super-prefix|config-env)(?:=|\s+)(?:\"[^\"]*\"|'[^']*'|[^\s\"']\S*)"
     r"|--?[A-Za-z][\w-]*(?:=\S+)?))*\s+"
 )
-GIT_COMMIT_RE = re.compile(GIT_OPTS_RE_STR + r"commit(?:\s|$)")
+GIT_COMMIT_RE = re.compile(GIT_OPTS_RE_STR + r"commit(?:\s|$)", re.IGNORECASE)
 
 _MSYS_DRIVE_RE = re.compile(r"^/([A-Za-z])(/.*)?$")
 

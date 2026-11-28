@@ -416,3 +416,115 @@ def test_turn_gate_mandate_text_includes_multi_subagent_directive(tmp_path: Path
     assert "never collapse multiple planned subagents into a single monolithic subagent dispatch" in ctx
     assert 'Workspace="inherit"' in ctx
     assert 'Workspace="branch"' in ctx
+
+
+@pytest.mark.parametrize(
+    "mutating_cmd",
+    [
+        "echo $(rm -rf /tmp/x)",
+        "echo `touch /tmp/x`",
+        "cat <(touch /tmp/x)",
+        "find . -delete",
+        "find . -name '*.tmp' -exec rm {} +",
+        "find . -execdir sh -c 'echo hi' {} +",
+        "find . -ok rm {} ;",
+        "find . -okdir rm {} ;",
+        "git config user.name evil",
+        "git config --global alias.x '!evil'",
+        "git config --unset user.name",
+        "git config --add alias.x status",
+        "git config --replace-all user.name evil",
+        "git config -e",
+    ],
+)
+def test_routing_gate_denies_mutating_read_only_bypasses(tmp_path: Path, mutating_cmd: str):
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-ro-bypass"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / f"routing-state-{session_id}.json").write_text(
+        json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}),
+        encoding="utf-8",
+    )
+
+    res = run_hook(
+        ROUTING_GATE,
+        {"session_id": session_id, "tool_name": "Bash", "tool_input": {"command": mutating_cmd}},
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
+    )
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["hookSpecificOutput"]["permissionDecision"] == "deny", mutating_cmd
+
+
+@pytest.mark.parametrize(
+    "read_only_cmd",
+    [
+        "find . -name '*.py'",
+        "git config --get user.name",
+        "git config --list",
+        "git config -l",
+        "git config --get-all remote.origin.url",
+        "git config --get-regexp '^alias\\.'",
+        "git status",
+    ],
+)
+def test_routing_gate_allows_safe_read_only_bash_and_emits_valid_output(tmp_path: Path, read_only_cmd: str):
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-ro-safe"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / f"routing-state-{session_id}.json").write_text(
+        json.dumps({"session_id": session_id, "routed": False, "non_trivial": True}),
+        encoding="utf-8",
+    )
+
+    res = run_hook(
+        ROUTING_GATE,
+        {"session_id": session_id, "tool_name": "Bash", "tool_input": {"command": read_only_cmd}},
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
+    )
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data == {"hookSpecificOutput": {"hookEventName": "PreToolUse"}}
+
+
+def test_routing_gate_mark_session_routed_uses_unique_temp_file(tmp_path: Path):
+    state_dir = tmp_path / "routing_state"
+    session_id = "test-session-atomic"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    # Plant a directory at the old fixed `.tmp` sibling path to prove mkstemp is used.
+    (state_dir / f"routing-state-{session_id}.tmp").mkdir()
+
+    res = run_hook(
+        ROUTING_GATE,
+        {"session_id": session_id, "tool_name": "Agent", "tool_input": {"prompt": "work"}},
+        {"VEXJOY_ROUTING_STATE_DIR": str(state_dir), "HARNESS": "agy"},
+    )
+    assert res.returncode == 0
+    state_file = state_dir / f"routing-state-{session_id}.json"
+    assert state_file.is_file()
+    assert json.loads(state_file.read_text(encoding="utf-8"))["routed"] is True
+
+
+def test_routing_gate_malformed_json_logs_exception_and_exits_cleanly(tmp_path: Path):
+    env = dict(os.environ)
+    env.pop("CLAUDECODE", None)
+    env.update(
+        {
+            "HARNESS": "agy",
+            "VEXJOY_ROUTING_STATE_DIR": str(tmp_path / "state"),
+            "CLAUDE_HOOK_ERRORS_PATH": str(tmp_path / "hook-errors.jsonl"),
+        }
+    )
+    res = subprocess.run(
+        [sys.executable, str(ROUTING_GATE)],
+        input="{not valid json",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        check=False,
+    )
+    assert res.returncode == 0
+    assert "JSONDecodeError" in res.stderr
+    assert json.loads(res.stdout) == {"hookSpecificOutput": {"hookEventName": "PreToolUse"}}
