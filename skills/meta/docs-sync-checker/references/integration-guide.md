@@ -16,8 +16,6 @@ python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/i
 | `parse_docs.py` | No issues | Missing or stale entries | Error, including a missing primary doc |
 | `generate_report.py` | Report written | `--strict` and issues found | Error |
 
-`hooks/posttool-docs-drift-alert.py` runs `scan_tools.py` after edits; keep its exit-code contract stable.
-
 ## Filter by tool type
 
 ```bash

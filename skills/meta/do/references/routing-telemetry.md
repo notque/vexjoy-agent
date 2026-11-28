@@ -9,7 +9,6 @@ Hooks record routing automatically. The router records one case by hand: an obse
 | Outcome — finalize (boost/decay) | `routing-outcome-finalizer` | UserPromptSubmit |
 | Outcome — errored and stale (over 6 hours) fallback | `routing-outcome-stop-fallback` | Stop |
 | Outcome — resolve every pending entry | `routing-outcome-stop-fallback` | SessionEnd |
-| Review findings | `review-capture` | PostToolUse:Agent |
 
 These feed the route health report:
 
