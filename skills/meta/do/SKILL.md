@@ -24,24 +24,24 @@ routing:
 
 Classify the request, pick skill + pipeline + stack, then run in-thread or dispatch `general-purpose` workers (or an `AGENTS:` overlay agent). `/d` is `/do`'s Jev-gated main-loop mode sharing the exact same manifest (`get-routing-manifest.sh`), rule text (`print-route-rules.py`), `build-dispatch.py`, and `d-preflight.py`.
 
-Anthropic lane: run Trivial/Simple in-thread unless dispatch pays (fan-out, ~5+ files, worktree, Haiku gather, or overlay agent). Medium/Complex dispatch to `general-purpose`; reading ≤5 files for Task Spec is routing work (more → Explore). Deliver tested, documented work in Dense-Complete + Google DevDocs style (`build-dispatch.py` injects both).
+Run Trivial/Simple in-thread across Claude Code and Antigravity unless dispatch pays (fan-out, ~5+ files, worktree, read-only gather, or overlay agent). Medium/Complex dispatch workers (`general-purpose` on Claude Code; `self`/`research` on Antigravity); reading ≤5 files for Task Spec is routing work (more → Explore/research). Deliver tested, documented work in Dense-Complete + Google DevDocs style (`build-dispatch.py` injects both).
 
 ## Instructions
 
 ### Phase Banners
 
-Emit `/do > Phase N: PHASE_NAME — ...` each phase and the `===` routing banner after Phase 2.
+Emit `/do > Phase N: PHASE_NAME — ...` each phase and the `===` routing banner after Phase 2 (pure Q&A / zero-edit turns may use a 1-line header).
 
 ---
 
 ### Phase 1: CLASSIFY
 
-Read `CLAUDE.md` (or `GEMINI.md` on Antigravity) first.
+Read `AGENTS.md` first (`CLAUDE.md` imports it for Claude Code).
 
 | Complexity | Worker | Skill | Direct |
 |---|---|---|---|
 | Trivial | No | No | Main thread; ONLY named file path |
-| Simple | When dispatch pays | Yes | Main thread (Anthropic); else dispatch |
+| Simple | When dispatch pays | Yes | Main thread; dispatch only when it pays |
 | Medium | `general-purpose` | Required | Route |
 | Complex | 2+ `general-purpose` | 2+ | Route |
 
@@ -137,7 +137,7 @@ python3 "$SDIR/pre-route.py" --request-file "$REQUEST_FILE" --json-compact; rm -
 Invoking...
 ```
 
-Trivial: `Classification: Trivial - [reason]`, `Handling directly`. Main-thread Simple: `-> Worker: main - main thread, dispatch does not pay`.
+Trivial: `Classification: Trivial - [reason]`, `Handling directly`. Main-thread Simple: `-> Worker: main - main thread, dispatch does not pay`. Pure Q&A (no edits/mutating tools): compact 1-line route header (`ROUTING: main | <skill> - <why>`).
 
 **Gate**: Worker and skill set, banner shown. Phase 3.
 
@@ -177,7 +177,7 @@ Review overlap: real-diff row wins; fallback only without diff. Unresolved decis
 
 **Step 2: Invoke worker**
 
-- **Main thread (Anthropic Trivial; Simple when dispatch does not pay):** `build-dispatch.py` with `{"execution":"main","skill":"<skill|->","complexity":"<trivial|simple>","task_spec":{"intent":"..."}}` (no model fields; `--no-record` skips telemetry). Call printed Skill tools in-thread.
+- **Main thread (Trivial; Simple when dispatch does not pay):** `build-dispatch.py` with `{"execution":"main","skill":"<skill|->","complexity":"<trivial|simple>","task_spec":{"intent":"..."}}` (no model fields; `--no-record` skips telemetry). Load and run the printed skill in-thread.
 - **Dispatched workers:** always build `[do-route]` (sole telemetry signal), Skill-tool calls, injections, and budget via `build-dispatch.py` (`references/routing-examples.md`):
 
 ```bash
@@ -210,7 +210,7 @@ Escalate on a miss, when an objective check fails (tests, `tsc`, `ruff`, accepta
 
 Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 and 2026-11-09 orders, which win where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
-**Antigravity (`agy`) / Google AI:** if `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`, set `provider="google"` (`gemini-3.8-flash`/`gemini-4-argon`/`gemini-4-argon-high`), and dispatch Simple+ via `invoke_subagent` or `run_workflow`.
+**Antigravity (`agy`) / Google AI:** if `detect-workflow-capability.py` reports `harness="antigravity"`, load `${CLAUDE_SKILL_DIR}/references/antigravity-execution.md`, set `provider="google"` (`gemini-3.8-flash`/`gemini-4-argon`/`gemini-4-argon-high`), run Trivial/Simple in-thread unless dispatch pays, and dispatch Medium+ or parallel work via `invoke_subagent` or `run_workflow`.
 
 Marker records requested selection, not observed identity; use scripts for deterministic work; keep Codex prompts read-only/public unless required. Complex (3+ sources) matrix: `references/routing-examples.md`.
 
