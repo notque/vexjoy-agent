@@ -13,7 +13,6 @@ allowed-tools:
   - Skill
   - Task
 routing:
-  force_route: true
   triggers:
     - quick task
     - small change

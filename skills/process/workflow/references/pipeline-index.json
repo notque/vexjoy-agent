@@ -211,7 +211,7 @@
         "generate README",
         "document the API"
       ],
-      "not_for": "a docstring, an inline comment, or a one-line README tweak \u2014 that is a direct edit or comment-quality. Pick this when the deliverable is a standalone document produced from a codebase survey (RESEARCH-to-OUTPUT).",
+      "not_for": "a docstring, an inline comment, or a one-line README tweak \u2014 that is a direct edit or code-quality. Pick this when the deliverable is a standalone document produced from a codebase survey (RESEARCH-to-OUTPUT).",
       "category": "documentation",
       "user_invocable": false,
       "version": "2.0.0",

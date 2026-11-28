@@ -1,6 +1,6 @@
 ---
 name: writing
-description: "Writing: voice creation and validation, prose editing, anti-AI cleanup, professional communication, translation."
+description: "Writing: voice creation and validation, prose editing and condensing, anti-AI cleanup, professional communication, translation."
 user-invocable: true
 allowed-tools:
   - Read
@@ -13,7 +13,6 @@ allowed-tools:
   - Skill
   - Agent
 routing:
-  force_route: true
   not_for: "code comments (use code-quality), drift between existing docs and code (use docs-sync-checker), local documentation MCP servers (use programming), scheduling or calendaring content (use content), code review (use review)"
   triggers:
     - "write article"
@@ -46,6 +45,12 @@ routing:
     - "technical docs"
     - "documentation validation"
     - "integration guide"
+    - "condense"
+    - "reduce words"
+    - "clarity pass"
+    - "information density"
+    - "remove prose"
+    - "tighten"
   category: content
   pairs_with:
     - joy-check
@@ -55,7 +60,7 @@ routing:
 
 # Writing Skill
 
-Seven modes. Match the request to the correct mode and follow its section.
+Eight modes. Match the request to the correct mode and follow its section.
 
 | Request matches | Mode |
 |---|---|
@@ -66,6 +71,7 @@ Seven modes. Match the request to the correct mode and follow its section.
 | Translate or localize a document | Translation |
 | Technical explainer, opinion, or analysis article | Technical Journalism: load `references/technical-journalist-writer.md` |
 | API reference, architecture doc, runbook, integration guide | Technical Documentation: load `references/technical-documentation.md` |
+| Condense prose, cut filler, tighten markdown without losing instructions | Condense: load `references/condense.md` |
 
 ## Deep References
 
@@ -85,6 +91,7 @@ Seven modes. Match the request to the correct mode and follow its section.
 | Translation glossary | `references/tr-glossary-template.md` | Glossary format, term-preservation rules |
 | Technical journalism: explainers, opinion, analysis | `references/technical-journalist-writer.md` | Matter-of-fact voice rules, structure, sourcing; files in `references/technical-journalist-writer/` |
 | Technical documentation: API docs, runbooks, integration guides | `references/technical-documentation.md` | Source-verified docs, templates, standards; files in `references/technical-documentation/` |
+| Condense prose, reduce words, clarity pass, information density | `references/condense.md` | 3-phase prose-density workflow: SCOPE, CONDENSE, VERIFY |
 
 ---
 

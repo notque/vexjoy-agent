@@ -22,16 +22,9 @@ routing:
 
 # /d — Jev router, main loop
 
-`/d` routes a request, then does the work in this thread with the routed skill
-loaded. `pre-route.py` keeps git/PR and security work on their quality gates.
-You pick the skill, pipeline, and stack from the manifest with `/do`'s rule
-text. Jev answers the attachment questions and checks that your restated
-outcome survives the route. Scripts validate the pick and enforce the gates:
-a failed check prints what to run next.
+`/d` is `/do`'s Jev-gated main-loop mode: it shares `/do`'s exact manifest (`get-routing-manifest.sh`), rule text (`print-route-rules.py`), `build-dispatch.py`, and `d-preflight.py`, then executes in this thread with the routed skill loaded. `pre-route.py` keeps git/PR and security work on their quality gates; Jev checks attachment signals and verifies that your restated outcome matches the request; scripts validate the pick and enforce gates.
 
-Print `/d > Phase N: NAME` at each phase. Design: `${CLAUDE_SKILL_DIR}/references/jev-classifier-design.md`.
-
-`$SDIR`: `${HOME}/.claude/scripts`, else `.gemini`/`.hermes`/`.factory`/`.codex`/`.reasonix`, else the repo's `scripts/`.
+Print `/d > Phase N: NAME` at each phase. Design: `${CLAUDE_SKILL_DIR}/references/jev-classifier-design.md`. `$SDIR`: `${HOME}/.claude/scripts`, else `.gemini`/`.hermes`/`.factory`/`.codex`/`.reasonix`, else repo `scripts/`.
 
 ---
 
@@ -76,13 +69,7 @@ for `tests_requested`, `research_needed`, `comprehensive_review`,
 `local_only`, and `objective_loop_worthy` (`/do`'s Phase 3 signals);
 finalize attaches from them instead of Jev's.
 
-`stack` names the domain skill when `skill` is a methodology (Go debugging:
-`skill` workflow with `pipeline` systematic-debugging, `stack` programming). `workers` holds independent parts
-per `/do`'s FAN-OUT RULE, `[]` when one thread covers it. Add `"agent":
-"<AGENTS: name>"` only when the manifest has an `AGENTS:` section (private
-overlay agents, shown when the request names their domain) and one fits the
-request; keep `skill` too. When `JEV_RESULT.forced` is set,
-its `skill` and `pipeline` win in step 3; your `stack` and `workers` stand.
+`stack` names the domain skill when `skill` is a methodology (e.g. `programming` for Go); `workers` holds independent fan-out parts (`[]` for one thread); add `"agent": "<AGENTS: name>"` only for a matching private overlay agent (keeping `skill`). When `JEV_RESULT.forced` is set, its `skill` and `pipeline` win in Step 3 while your `stack` and `workers` stand.
 
 **Step 3 — Finalize.**
 
@@ -276,9 +263,7 @@ Escalate on a miss, when an objective check fails (tests, `tsc`, `ruff`, accepta
 
 Evidence: Anthropic's 2026-11-09 model guide and the owner's 2026-11-01 and 2026-11-09 orders, which win where they differ. Prices, effort trade-offs, mixing rules, history, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
 
-On Antigravity / Google AI (`provider="google"`), the tiers are `low-risk` = `gemini-3.8-flash`, `standard` = `gemini-4-argon`, `high-risk` = `gemini-4-argon-high`, and `max-power` = `gemini-4-argon-high` / `max` with `manual_model_override=true`; see `skills/meta/do/references/antigravity-execution.md`.
-
-Main-loop work runs on the session model; the table sets each dispatch's model.
+On Antigravity / Google AI (`provider="google"`), follow `skills/meta/do/references/antigravity-execution.md`. Main-loop work runs on the session model; the table sets each dispatch's model.
 
 ---
 

@@ -3,7 +3,6 @@ name: grill-jev
 description: "Broad Jev interrogation: generate up to 50 context-specific questions about a plan, spec, design, code artifact, or any topic — using all primitive shapes and structured forms to surface hidden problems before they ship."
 user-invocable: true
 routing:
-  force_route: true
   triggers:
     - grill
     - validate plan

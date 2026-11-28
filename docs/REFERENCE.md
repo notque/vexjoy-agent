@@ -51,7 +51,7 @@ These workflows are activated through `/do` with natural language:
 | Multi-step task planning | `/do plan the payment system` | `workflow` |
 | Go code review | `/do review this Go code` | `review` with `programming` stacked |
 | Check CI status | `/do check CI status` | `pr-workflow` |
-| Comment quality | `/do check comment quality` | `comment-quality` |
+| Comment quality | `/do check comment quality` | `code-quality` |
 
 The router decides by meaning, so the right column is the usual route, not a guarantee.
 

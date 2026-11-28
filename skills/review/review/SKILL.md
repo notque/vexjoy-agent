@@ -12,7 +12,6 @@ allowed-tools:
   - Task
   - Agent
 routing:
-  force_route: true
   not_for: "security scanning (use security), linting (use code-quality), git push/commit/PR (use pr-workflow)"
   triggers:
     - "review code"

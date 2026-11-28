@@ -1,6 +1,6 @@
 ---
 name: code-quality
-description: "Code quality: cleanup, linting, formatting, quality gates."
+description: "Code quality: cleanup, comment quality, linting, formatting, quality gates."
 user-invocable: true
 allowed-tools:
   - Read
@@ -12,7 +12,6 @@ allowed-tools:
   - Task
   - Skill
 routing:
-  force_route: true
   not_for: "code review with findings (use review), security scanning (use security)"
   triggers:
     - "code cleanup"
@@ -41,16 +40,20 @@ routing:
     - "multi-language lint"
     - "code quality check"
     - "technical debt scan"
+    - "review comments"
+    - "fix temporal references"
+    - "comment quality"
+    - "stale comments"
+    - "outdated comment"
   category: code-quality
   pairs_with:
     - review
     - testing
-    - comment-quality
 ---
 
 # Code Quality
 
-Four modes. Select by request signal:
+Five modes. Select by request signal:
 
 | Signal | Mode |
 |--------|------|
@@ -58,6 +61,7 @@ Four modes. Select by request signal:
 | Lint Python/JS/TS, run ruff, run biome, format code | Linting |
 | Python quality checks, ruff+pytest+mypy+bandit | Python Quality Gate |
 | Multi-language quality gate, general "quality check" | Universal Quality Gate |
+| Stale/temporal code comments, comment quality | Comment Quality: load `references/comment-quality.md` |
 
 Default: Python-specific requests run Python Quality Gate. General requests run Universal Quality Gate.
 
@@ -156,3 +160,4 @@ Load on demand when the signal matches.
 | Python quality tool commands | `references/python-tool-commands.md` | Detailed tool command options |
 | Python quality report | `references/python-report-template.md` | Structured report template |
 | pyproject.toml template | `references/pyproject-template.toml` | Tool configuration template |
+| Review code comments for temporal/stale language | `references/comment-quality.md` | 4-phase comment workflow (SCAN, ANALYZE, REWRITE, REPORT); sub-references in `references/comment-quality/` |

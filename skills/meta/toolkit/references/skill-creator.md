@@ -409,7 +409,7 @@ python3 scripts/validate-references.py --check-do-framing
 
 ### Post-scaffold: condense
 
-After creation and validation, maximize the new SKILL.md's information density. Call the Skill tool with `condense`. The condense skill strips prose filler while
+After creation and validation, maximize the new SKILL.md's information density. Call the Skill tool with `writing` (Condense mode, `references/condense.md`). Condense mode strips prose filler while
 preserving every instruction, rule, gate, and code block — because new skills
 tend to ship verbose and the condense pass catches what the author's eye skips.
 

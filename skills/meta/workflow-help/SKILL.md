@@ -9,7 +9,6 @@ allowed-tools:
   - Grep
   - Glob
 routing:
-  force_route: true
   triggers:
     - "how does routing work"
     - "what skills exist"
@@ -58,13 +57,13 @@ This constraint (Accuracy Over Speed) is non-negotiable. Counts and listings com
 
 | Question | Command | Output |
 |----------|---------|--------|
-| Overview / "how many skills/agents?" | `python3 scripts/list-capabilities.py summary` | Skills / Pipelines / Agents counts |
+| Overview / "how many skills/pipelines?" | `python3 scripts/list-capabilities.py summary` | Skills / Pipelines counts (plus installed private overlay agents, if any) |
 | "what skills exist [in category X]?" | `python3 scripts/list-capabilities.py skills [--category X] --brief` | Count; drop `--brief` for the full name/trigger/description table |
-| "what agents exist?" | `python3 scripts/list-capabilities.py agents --brief` | Count; drop `--brief` for the full table |
-| "tell me about <name>" | `python3 scripts/list-capabilities.py show <name>` | Type, description, triggers, category, file path for a skill/agent/pipeline |
-| Fuzzy lookup / "is there a skill for X?" | `python3 scripts/list-capabilities.py search <query>` | Ranked name/trigger/description matches across skills, pipelines, agents |
+| "what private overlay agents exist?" | `python3 scripts/list-capabilities.py agents --brief` | Public repo ships no specialist agents (domain lives in skills); lists local private overlay agents only |
+| "tell me about <name>" | `python3 scripts/list-capabilities.py show <name>` | Type, description, triggers, category, file path for a skill or pipeline |
+| Fuzzy lookup / "is there a skill for X?" | `python3 scripts/list-capabilities.py search <query>` | Ranked name/trigger/description matches across skills and pipelines |
 
-`--category X` filters skills by keyword in name or description (e.g. `voice`, `game`, `kubernetes`); agents filter by exact category field. `show <name>` exits 1 when the name is absent — fall back to `search <name>` to suggest the closest match.
+`--category X` filters skills by keyword in name or description (e.g. `voice`, `game`, `kubernetes`). `show <name>` exits 1 when the name is absent — fall back to `search <name>` to suggest the closest match.
 
 **Step 2: Read the actual file for deep questions**
 
@@ -74,9 +73,9 @@ The script gives authoritative counts, names, and one-line descriptions. For any
 - For a private overlay agent (when listed by `list-capabilities.py show`): read the file reported in its `File:` field
 - For routing overview: Check the /do router configuration
 
-Extract: name, description, version, what it CAN and CANNOT do, how to invoke it, related skills or agents.
+Extract: name, description, version, what it CAN and CANNOT do, how to invoke it, related skills or pipelines.
 
-**Staleness**: `summary`, `skills`, and `agents` exit 2 and print a stderr warning when source files are newer than the INDEX. If you see that warning, tell the user to regenerate: `python3 scripts/generate-skill-index.py` (skills) or `python3 scripts/generate-agent-index.py` (agents), then re-run.
+**Staleness**: `summary` and `skills` exit 2 and print a stderr warning when source files are newer than `skills/INDEX.json`. If you see that warning, tell the user to regenerate with `python3 scripts/generate-skill-index.py` (or `python3 scripts/generate-agent-index.py --include-private` for local overlay agents), then re-run.
 
 **Constraint (No Fabrication)**: If a skill or agent does not exist, say so rather than inventing capabilities. If a skill or agent was recently deleted or merged, search with Glob for similar names and suggest the closest match.
 
@@ -116,7 +115,7 @@ Then show key workflow:
 | Start a new feature | `/do implement [feature]` |
 | Debug a bug | `/do debug [issue]` |
 | Review code | `/do review [code]` |
-| Execute an existing plan | `skill: subagent-driven-development` |
+| Execute an existing plan | `process` (`Subagent-Driven Development` mode) |
 | Create a PR | `/pr-workflow` |
 
 **Constraint (Show Real Examples)**: Reference actual skill names, commands, and file paths from this repository. Use tables for lists when presenting available skills, agents, and commands. Include invocation syntax for each component mentioned. Apply progressive disclosure: start with overview, offer deeper detail on request. Cross-reference related skills and agents when explaining one component.
@@ -153,7 +152,7 @@ Solution:
 ### Error: "Stale INDEX"
 Cause: `scripts/list-capabilities.py` exited 2 with a stderr warning — source files are newer than the generated INDEX
 Solution:
-1. Tell the user to regenerate: `python3 scripts/generate-skill-index.py` and/or `python3 scripts/generate-agent-index.py`
+1. Tell the user to regenerate: `python3 scripts/generate-skill-index.py` (and `python3 scripts/generate-agent-index.py --include-private` if using local overlay agents)
 2. Re-run the catalog command; the counts now reflect current files
 3. For deep content, read the file fresh rather than relying on cached descriptions
 

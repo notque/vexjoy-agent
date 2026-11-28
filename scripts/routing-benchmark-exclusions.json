@@ -7,8 +7,6 @@
         "building-with-jev": "Build-procedure skill loaded when writing a Jev program; no stable deterministic trigger contract.",
         "business-ops": "Broad umbrella skill; benchmark it through its narrower business skills rather than one trigger.",
         "cli-design": "Semantic design route; no stable deterministic trigger contract.",
-        "comment-quality": "Semantic code-quality route; no stable deterministic trigger contract.",
-        "condense": "Editorial judgment route; no stable deterministic trigger contract.",
         "d": "Meta-router that classifies via Jev API, not a routing target.",
         "do": "The router itself, not a routing target. /do is the entry point that selects agents and skills; it is never the result of a routing decision.",
         "image-gen": "Image-generation route depends on visual task context and available provider.",
