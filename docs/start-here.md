@@ -134,6 +134,7 @@ The installer registers its hooks in `~/.claude/settings.json`, so they run in e
 | `pretool-private-name-leak-gate` | Commits, pushes, and PR text that name a private component; it does nothing without `~/private-skills` or when every target repo is a private GitHub repo | `PRIVATE_NAME_GATE_BYPASS` |
 | `pipeline-phase-gate` | Writes that advance a pipeline phase before the phase's artifact exists | `PIPELINE_PHASE_GATE_BYPASS` |
 | `pretool-synthesis-gate` | Writes during an ADR session that has no synthesis yet | `SYNTHESIS_GATE_BYPASS` |
+| `pretool-dispatch-spec-gate` | Medium/complex `[do-route]` Agent dispatches missing required handoff blocks (or requesting `xhigh`/`max` effort without override); set `DISPATCH_SPEC_GATE_MODE=warn` to downgrade missing-block enforcement to advisory | `DISPATCH_SPEC_GATE_BYPASS` |
 
 Turn a gate off by setting its variable to `1` in the environment that launches Claude Code, for example `BRANCH_SAFETY_BYPASS=1 claude`. Setting it inside a running session does not reach the hooks. Every hook reads such a variable; [hooks/README.md](../hooks/README.md#bypass) explains the names. To drop a hook for good, list it under `disabled.hooks` in `.local/profile.yaml` and rerun `./install.sh`.
 
@@ -150,7 +151,7 @@ Turn a gate off by setting its variable to `1` in the environment that launches 
 
 It fails open if it crashes. Its overrides are documented only in the hook source, on purpose: a deny that turns out to be a false positive should not teach anyone, or any agent, to switch the guard off.
 
-Everything else is advisory. `pretool-dispatch-spec-gate` only warns unless `DISPATCH_SPEC_GATE_MODE=deny` is set, and `pretool-routing-gate` runs only on Antigravity CLI. No Stop or SubagentStop hook blocks: `stop-drift-guard` can wake a stopped session in this checkout to report drift.
+Everything else is advisory. `pretool-dispatch-spec-gate` denies by default (`DISPATCH_SPEC_GATE_MODE=warn` downgrades missing-block checks to warn-only), and `pretool-routing-gate` runs only on Antigravity CLI. No Stop or SubagentStop hook blocks: `stop-drift-guard` can wake a stopped session in this checkout to report drift.
 
 ## Where Next
 

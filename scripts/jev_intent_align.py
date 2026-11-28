@@ -162,6 +162,16 @@ def _agent_profile() -> tuple[str | None, str | None, str | None]:
     if model or effort or runtime:
         return model, effort, runtime or "explicit"
 
+    if (
+        os.environ.get("VEXJOY_HOOK_RUNTIME", "").strip().lower() == "antigravity"
+        or os.environ.get("ANTIGRAVITY_AGENT") == "1"
+        or bool(os.environ.get("ANTIGRAVITY_SESSION_ID"))
+        or bool(os.environ.get("AGY_SESSION_ID"))
+    ):
+        agy_model = os.environ.get("ANTIGRAVITY_MODEL") or os.environ.get("GEMINI_MODEL")
+        agy_effort = os.environ.get("ANTIGRAVITY_EFFORT") or os.environ.get("GEMINI_EFFORT")
+        return agy_model, agy_effort, "antigravity"
+
     if os.environ.get("CODEX_SESSION_ID") or os.environ.get("CODEX_THREAD_ID"):
         try:
             config_text = (Path.home() / ".codex" / "config.toml").read_text(encoding="utf-8")
@@ -198,6 +208,23 @@ def _agent_profile() -> tuple[str | None, str | None, str | None]:
         model = settings["model"]
     effort = settings.get("effortLevel") if isinstance(settings.get("effortLevel"), str) else None
     return model, effort, "claude" if os.environ.get("CLAUDE_SESSION_ID") or settings else None
+
+
+def should_auto_align(
+    runtime: str | None,
+    effort: str | None,
+    complexity: str,
+    file_count: int = 0,
+) -> bool:
+    """Return whether an automatic Jev intent check pays based on drift telemetry."""
+    if (runtime or "").strip().lower() != "claude":
+        return False
+    normalized_effort = (effort or "").strip().lower()
+    if normalized_effort in ("high", "xhigh", "max"):
+        return False
+    if (complexity or "").strip().lower() in ("medium", "complex"):
+        return True
+    return file_count >= 3 and normalized_effort in ("", "low", "default")
 
 
 def _materially_differs(scores: dict[str, float]) -> bool:
@@ -280,7 +307,12 @@ def _finish_receipt(
         request_hash=_text_hash(request),
         proposed_intent_hash=_text_hash(candidate),
         latency_ms=result.get("latency_ms"),
-        session_id=os.environ.get("JEV_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID"),
+        session_id=(
+            os.environ.get("JEV_SESSION_ID")
+            or os.environ.get("CLAUDE_SESSION_ID")
+            or os.environ.get("ANTIGRAVITY_SESSION_ID")
+            or os.environ.get("AGY_SESSION_ID")
+        ),
     )
     return result
 
