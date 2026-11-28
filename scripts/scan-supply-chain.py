@@ -166,7 +166,9 @@ _REGEX_PATTERNS: list[tuple[re.Pattern, str, str, str]] = [
 ]
 
 # File extensions to scan
-_SCAN_EXTENSIONS: frozenset[str] = frozenset([".py", ".md", ".json", ".yaml", ".yml", ".sh"])
+_SCAN_EXTENSIONS: frozenset[str] = frozenset(
+    [".py", ".md", ".json", ".yaml", ".yml", ".sh", ".js", ".mjs", ".ts", ".ps1"]
+)
 
 
 # ─── Scanning ──────────────────────────────────────────────────
@@ -174,7 +176,8 @@ _SCAN_EXTENSIONS: frozenset[str] = frozenset([".py", ".md", ".json", ".yaml", ".
 
 def _scan_file(fpath: Path, excludes: set[str]) -> list[dict]:
     """Scan a single file for all detection patterns. Returns list of findings."""
-    if str(fpath) in excludes or fpath.name in excludes:
+    norm_excludes = {e.replace("\\", "/") for e in excludes}
+    if fpath.as_posix() in norm_excludes or str(fpath) in excludes or fpath.name in norm_excludes:
         return []
 
     try:
@@ -205,7 +208,7 @@ def _scan_file(fpath: Path, excludes: set[str]) -> list[dict]:
 
     # HTML comment detection: WARNING for .md files, CRITICAL elsewhere
     _html_comment_pattern = re.compile(r"<!--")
-    html_comment_severity = "WARNING" if fpath.suffix == ".md" else "CRITICAL"
+    html_comment_severity = "WARNING" if fpath.suffix.lower() == ".md" else "CRITICAL"
     for lineno, line in enumerate(lines, 1):
         if _html_comment_pattern.search(line):
             findings.append(
@@ -258,7 +261,7 @@ def scan_dirs(
         for fpath in sorted(base_dir.rglob("*")):
             if not fpath.is_file():
                 continue
-            if fpath.suffix not in _SCAN_EXTENSIONS:
+            if fpath.suffix.lower() not in _SCAN_EXTENSIONS:
                 continue
             file_findings = _scan_file(fpath, excludes)
             all_findings.extend(file_findings)
@@ -333,6 +336,8 @@ def main() -> None:
         file=sys.stderr,
     )
     print(f"[supply-chain] Written to {output_path}", file=sys.stderr)
+    if critical:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

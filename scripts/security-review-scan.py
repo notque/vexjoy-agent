@@ -834,10 +834,16 @@ def _filter_sql_concat(match: re.Match, line: str, filepath: str) -> bool:
     starts_plus = text.lstrip().startswith("+")
     ends_plus = text.rstrip().endswith("+")
     if starts_plus or ends_plus:
-        before = line[: match.start()]
-        after = line[match.end() :]
-        left_ok = (not starts_plus) or (not before.strip() or bool(_LITERAL_BEFORE_PLUS_RE.search(before)))
-        right_ok = (not ends_plus) or bool(_LITERAL_AFTER_PLUS_RE.match(after))
+        full = match.string
+        m_start, m_end = match.span()
+        before_lo = max(0, m_start - _WINDOW_CHARS)
+        after_hi = min(len(full), m_end + _WINDOW_CHARS)
+        before = full[before_lo:m_start]
+        after = full[m_end:after_hi]
+        left_ok = (not starts_plus) or (
+            (before_lo == 0 and not before.strip()) or bool(_LITERAL_BEFORE_PLUS_RE.search(before))
+        )
+        right_ok = (not ends_plus) or (after_hi == len(full) and bool(_LITERAL_AFTER_PLUS_RE.match(after)))
         if left_ok and right_ok:
             return False
     return True
@@ -888,6 +894,7 @@ _REDOS_SHAPES = [
     re.compile(r"\(\.\*[^()]*\)[+*]"),  # wildcard group: (.*)*
 ]
 _ALT_UNDER_REP = re.compile(r"\(([^()]*)\|([^()|]*)(?:\|[^()]*)*\)[+*]")
+_GROUP_PREFIX_RE = re.compile(r"^\?(?:P<[^>]*>|[a-zA-Z-]*:)")
 
 
 def _has_redos_structure(regex: str) -> bool:
@@ -897,7 +904,8 @@ def _has_redos_structure(regex: str) -> bool:
     if any(p.search(regex) for p in _REDOS_SHAPES):
         return True
     for m in _ALT_UNDER_REP.finditer(regex):
-        branches = [b for b in m.group(0).strip("()*+").split("|") if b]
+        inner = _GROUP_PREFIX_RE.sub("", m.group(0)[1:-2])
+        branches = [b for b in inner.split("|") if b]
         for i, a in enumerate(branches):
             for b in branches[i + 1 :]:
                 if a.startswith(b) or b.startswith(a):
@@ -972,6 +980,7 @@ def _validate_custom_pattern(entry: object) -> dict | None:
     substrings = entry.get("substrings") or []
     if not isinstance(substrings, list) or not all(isinstance(s, str) for s in substrings):
         substrings = []
+    substrings = [s for s in substrings if s]
     if not regex and not substrings:
         print(f"  [warn] security-patterns: skipping {name}: no regex or substrings", file=sys.stderr)
         return None

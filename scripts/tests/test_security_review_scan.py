@@ -797,3 +797,29 @@ class TestIgnoreFile:
             code, out = _run_cli(["x.js"], cwd=d)  # no .claude/security-review-ignore
             assert out["summary"]["files_scanned"] == 1
             assert out["summary"]["high"] >= 1
+
+
+class TestAuditHardening:
+    def test_sql_concat_past_window_offset_not_suppressed(self):
+        padding = "x = 1; " * 700  # > 4096 chars
+        line = padding + 'q = "SELECT * FROM users WHERE id = " + user_id'  # nosec - rule fixture
+        assert "sql-injection" in _rules_hit(line, "app.py")
+
+    def test_sql_static_literal_concat_past_window_still_suppressed(self):
+        padding = "x = 1; " * 700  # > 4096 chars
+        line = padding + 'q = "SELECT * FROM users " + "WHERE active = 1"'  # nosec - rule fixture
+        assert "sql-injection" not in _rules_hit(line, "app.py")
+
+    def test_redos_strips_group_prefixes(self):
+        assert scan._has_redos_structure(r"(?:a|ab)+") is True
+        assert scan._has_redos_structure(r"(?P<tok>a|ab)+") is True
+        assert scan._has_redos_structure(r"(?i:foo|foobar)*") is True
+        assert scan._has_redos_structure(r"(?:a|b)+") is False
+        assert scan._has_redos_structure(r"(?P<tok>foo|bar)*") is False
+
+    def test_validate_custom_pattern_filters_empty_substrings(self):
+        assert scan._validate_custom_pattern({"rule_name": "empty-only", "substrings": [""]}) is None
+        rule = scan._validate_custom_pattern({"rule_name": "mixed", "substrings": ["needle", ""]})
+        assert rule is not None
+        assert rule["pattern"].search("nothing here") is None
+        assert rule["pattern"].search("has needle here") is not None

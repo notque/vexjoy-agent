@@ -154,11 +154,18 @@ def write_receipt(request: str, intent: str, result: dict[str, Any], phase: str)
             "questions_version": result.get("questions_version"),
             "ts": time.time(),
         }
-        tmp = path.with_suffix(".tmp")
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump(body, fh)
-        os.replace(tmp, path)
+        fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                json.dump(body, fh)
+            try:
+                os.chmod(tmp_name, 0o600)
+            except OSError:
+                pass
+            os.replace(tmp_name, path)
+        except BaseException:
+            Path(tmp_name).unlink(missing_ok=True)
+            raise
         return path
     except Exception:
         return None
@@ -189,7 +196,11 @@ def check_receipt(task_spec: dict, now: float | None = None) -> str | None:
         )
     if not isinstance(receipt, dict):
         return _rerun("The intent receipt is unreadable.")
-    age = (now if now is not None else time.time()) - float(receipt.get("ts") or 0)
+    try:
+        ts = float(receipt.get("ts") or 0)
+    except (TypeError, ValueError):
+        return _rerun("The intent receipt is unreadable.")
+    age = (now if now is not None else time.time()) - ts
     if age > RECEIPT_MAX_AGE_S:
         return _rerun("The intent receipt is older than 6 hours.")
     if receipt.get("phase") != "proposed":
@@ -255,10 +266,11 @@ def resolve_references(
         )
     resolved: list[str] = []
     for name in names:
-        candidates = [name, f"references/{name}", f"references/{name}.md"]
+        norm = name.replace("\\", "/")
+        candidates = [norm, f"references/{norm}", f"references/{norm}.md"]
         hit = next((c for c in candidates if c in available), None)
         if hit is None:
-            stem_hits = [a for a in available if Path(a).stem == Path(name).stem]
+            stem_hits = [a for a in available if Path(a).stem == Path(norm).stem]
             hit = stem_hits[0] if len(stem_hits) == 1 else None
         if hit is None:
             return [], f"reference {name!r} is not a file under skill {skill!r}'s references/ directory"
@@ -350,7 +362,21 @@ def measure_scope(raw: object, base: Path) -> tuple[int, int]:
             path = (path if path.is_absolute() else root / path).resolve()
             if not _inside(path, root):
                 continue
-            targets = [path] if path.is_file() else path.rglob("*") if path.is_dir() else []
+            if path.is_file():
+                targets: list[Path] = [path]
+            elif path.is_dir():
+                targets = []
+                for dirpath, dirnames, filenames in os.walk(path):
+                    dirnames[:] = [d for d in dirnames if d != ".git"]
+                    dp = Path(dirpath)
+                    for fname in filenames:
+                        targets.append(dp / fname)
+                        if visited + len(targets) > _BUDGET_WALK_CAP:
+                            break
+                    if visited + len(targets) > _BUDGET_WALK_CAP:
+                        break
+            else:
+                targets = []
             for target in targets:
                 visited += 1
                 if visited > _BUDGET_WALK_CAP:

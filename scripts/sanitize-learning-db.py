@@ -24,7 +24,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import re
 import sqlite3
@@ -113,9 +112,11 @@ def _is_stale_external(source: str, first_seen_str: str) -> bool:
         return False
     try:
         first_seen = datetime.fromisoformat(first_seen_str.replace("Z", "+00:00"))
+        if first_seen.tzinfo is None:
+            first_seen = first_seen.replace(tzinfo=timezone.utc)
         cutoff = datetime.now(timezone.utc) - timedelta(days=_STALE_DAYS)
         return first_seen < cutoff
-    except Exception:
+    except (ValueError, TypeError):
         return False
 
 
@@ -131,14 +132,25 @@ def _flag_row(row: sqlite3.Row) -> dict | None:
     key = row["key"] or ""
     value = row["value"] or ""
     source = row["source"] or ""
+    try:
+        source_detail = row["source_detail"] or ""
+    except (IndexError, KeyError):
+        source_detail = ""
     first_seen = row["first_seen"] or ""
+
+    text_fields = (
+        ("topic", topic),
+        ("key", key),
+        ("value", value),
+        ("source_detail", source_detail),
+    )
 
     reasons: list[str] = []
     severity = "INFO"
 
-    # 1. Injection patterns in key or value
+    # 1. Injection patterns across all text columns
     for pattern, category, description in _INJECTION_PATTERNS:
-        if pattern.search(key) or pattern.search(value):
+        if any(pattern.search(text) for _, text in text_fields):
             reasons.append(f"[{category}] {description}")
             severity = "CRITICAL"
 
@@ -148,16 +160,18 @@ def _flag_row(row: sqlite3.Row) -> dict | None:
         if severity == "INFO":
             severity = "WARNING"
 
-    # 3. Invisible Unicode in value
-    if _has_invisible_unicode(value):
-        reasons.append("[invisible-unicode] zero-width or bidi Unicode in value field")
-        severity = "CRITICAL"
+    # 3. Invisible Unicode across all text columns
+    for field_name, text in text_fields:
+        if _has_invisible_unicode(text):
+            reasons.append(f"[invisible-unicode] zero-width or bidi Unicode in {field_name} field")
+            severity = "CRITICAL"
 
-    # 4. Base64 blob in value
-    if _has_base64_blob(value):
-        reasons.append("[base64-blob] potential encoded payload in value field")
-        if severity == "INFO":
-            severity = "WARNING"
+    # 4. Base64 blob across all text columns
+    for field_name, text in text_fields:
+        if _has_base64_blob(text):
+            reasons.append(f"[base64-blob] potential encoded payload in {field_name} field")
+            if severity == "INFO":
+                severity = "WARNING"
 
     # 5. Stale external entry
     if _is_stale_external(source, first_seen):
@@ -200,10 +214,9 @@ def inspect_db(db_path: Path, verbose: bool) -> tuple[int, list[dict]]:
     try:
         conn = sqlite3.connect(str(db_path), timeout=5.0)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
     except sqlite3.Error as e:
         print(f"[sanitize] ERROR: cannot open DB {db_path}: {e}", file=sys.stderr)
-        return 0, []
+        raise
 
     flagged: list[dict] = []
     total = 0
@@ -217,9 +230,15 @@ def inspect_db(db_path: Path, verbose: bool) -> tuple[int, list[dict]]:
                 flagged.append(entry)
     except sqlite3.OperationalError as e:
         # Table doesn't exist yet — empty DB
-        if verbose:
-            print(f"  [sanitize] learnings table not found: {e}", file=sys.stderr)
-        return 0, []
+        if "no such table" in str(e).lower():
+            if verbose:
+                print(f"  [sanitize] learnings table not found: {e}", file=sys.stderr)
+            return 0, []
+        print(f"[sanitize] ERROR: cannot query DB {db_path}: {e}", file=sys.stderr)
+        raise
+    except sqlite3.Error as e:
+        print(f"[sanitize] ERROR: cannot read DB {db_path}: {e}", file=sys.stderr)
+        raise
     finally:
         conn.close()
 
@@ -235,18 +254,22 @@ def purge_flagged(db_path: Path, flagged: list[dict], verbose: bool) -> int:
     if not purge_ids:
         return 0
 
+    conn: sqlite3.Connection | None = None
     try:
         conn = sqlite3.connect(str(db_path), timeout=5.0)
         conn.execute("PRAGMA journal_mode=WAL")
-        conn.executemany("DELETE FROM learnings WHERE id = ?", [(i,) for i in purge_ids])
+        cursor = conn.executemany("DELETE FROM learnings WHERE id = ?", [(i,) for i in purge_ids])
+        deleted = cursor.rowcount if cursor.rowcount >= 0 else 0
         conn.commit()
-        conn.close()
         if verbose:
-            print(f"  [sanitize] Purged {len(purge_ids)} rows", file=sys.stderr)
-        return len(purge_ids)
+            print(f"  [sanitize] Purged {deleted} rows", file=sys.stderr)
+        return deleted
     except sqlite3.Error as e:
         print(f"[sanitize] ERROR during purge: {e}", file=sys.stderr)
         return 0
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 # ─── Main ──────────────────────────────────────────────────────

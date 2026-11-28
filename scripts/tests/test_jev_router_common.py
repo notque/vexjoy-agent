@@ -993,3 +993,60 @@ class TestCallJevReleasesAndValidates:
             t.join(10)
         assert calls["n"] == 1
         assert [r["answers"]["q"]["noul"] for r in results] == [0.6, 0.6, 0.6]
+        # Waiters get independent deep copies, not aliased references.
+        assert results[0] is not results[1]
+        assert results[1] is not results[2]
+        results[0]["answers"]["q"]["noul"] = 0.0
+        assert results[1]["answers"]["q"]["noul"] == 0.6
+
+    def test_image_ref_lost_in_redaction_raises_even_when_assets_has_key(self, monkeypatch) -> None:
+        # Use a sensitive key name whose value is the asset ref so redaction strips it from state,
+        # while payload["assets"] still carries the ref as a dict key.
+        payload = {
+            "model": "m",
+            "state": {"note": "token=img_ref_shot_0001"},
+            "questions": {"q": {"type": "noul", "instructions": "check image"}},
+            "assets": {"img_ref_shot_0001": {"part": "img_0"}},
+        }
+        with pytest.raises(RuntimeError, match="image reference lost in redaction"):
+            common.call_jev(
+                payload,
+                "k",
+                5,
+                image_parts={"img_0": (b"\xff\xd8\xff", "image/jpeg")},
+            )
+
+    def test_retried_http_error_is_closed_before_sleep(self, monkeypatch) -> None:
+        import io
+        import urllib.error
+
+        monkeypatch.setenv("JEV_CACHE_TTL_S", "0")
+        monkeypatch.setattr(common.time, "sleep", lambda _s: None)
+        closed = {"flag": False}
+
+        class _TrackedHTTPError(urllib.error.HTTPError):
+            def close(self) -> None:
+                closed["flag"] = True
+                super().close()
+
+        err = _TrackedHTTPError("https://example.test", 429, "Too Many", {}, io.BytesIO(b"{}"))
+        seq: list = [err, _ok_response({"q": {"noul": 0.4}})]
+
+        def fake_open(_req, timeout=None):
+            item = seq.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        monkeypatch.setattr(common, "_open_url", fake_open)
+        data, _ = common.call_jev(self._payload("retry-close"), "k", 5)
+        assert data["answers"]["q"]["noul"] == 0.4
+        assert closed["flag"] is True
+
+    def test_atomic_breaker_write_leaves_no_temp_files(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("JEV_STATE_DIR", str(tmp_path))
+        common._clear_breaker()
+        common._trip_breaker(402)
+        assert common._check_breaker() == 402
+        assert list(tmp_path.glob("*.tmp")) == []
+        common._clear_breaker()

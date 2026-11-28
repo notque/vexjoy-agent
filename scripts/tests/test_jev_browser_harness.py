@@ -342,9 +342,9 @@ def test_agent_loop_done_with_jev_text_and_verify():
     assert r["log"][0]["text_source"] == "jev"
     assert r["usage"] == {"input_tokens": 40}
     assert not drv.closed  # injected driver is not owned
-    # The post-action observe is the next step's snapshot: one initial observe,
-    # one for step 1, then one per executed action (3). Never two per step.
-    assert sum(1 for c in drv.calls if c["cmd"] == "observe") == 5
+    # The initial observe is reused for step 1 via pending_obs, then one
+    # post-action observe per executed action (3) = 4 total. Never two per step.
+    assert sum(1 for c in drv.calls if c["cmd"] == "observe") == 4
     opened = next(c for c in drv.calls if c["cmd"] == "open")
     assert opened["headers"] == {} and opened["header_hosts"] == []
 

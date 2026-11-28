@@ -88,11 +88,13 @@ RUN_BUDGET = "run_budget"
 
 
 def _budget_refused(exc: BaseException) -> bool:
-    """True when ``jev_router_common.RunBudgetExceeded`` is anywhere in ``exc``'s cause chain."""
+    """True when ``jev_router_common.RunBudgetExceeded`` or ``source=RUN_BUDGET`` is in ``exc``'s cause chain."""
     seen: set[int] = set()
     cur: BaseException | None = exc
     while cur is not None and id(cur) not in seen:
-        if isinstance(cur, jev_router_common.RunBudgetExceeded):
+        if isinstance(cur, jev_router_common.RunBudgetExceeded) or (
+            isinstance(cur, JevTransportError) and cur.source == RUN_BUDGET
+        ):
             return True
         seen.add(id(cur))
         cur = cur.__cause__ or cur.__context__
@@ -258,9 +260,9 @@ def _direct_one(
     if assets:
         payload["assets"], extras["image_parts"] = jev_images.wire_assets(assets)
     try:
-        data, _ = jev_router_common.call_jev(
+        data, _ = jev_router_common.validated_call_jev(
             payload,
-            os.environ["TYPESAFE_API_KEY"],
+            os.environ["TYPESAFE_API_KEY"].strip(),
             timeout,
             script_name="jev_transport.py",
             **extras,
@@ -419,6 +421,9 @@ def evaluate_second_opinion(
         jev_result = evaluate_packed(state, questions, timeout=timeout, images=images)
         jev_result.setdefault("_meta", {})["is_jev"] = True
     except JevTransportError as exc:
+        if _budget_refused(exc):
+            # The run budget is a stop, not an outage: never send a second-opinion call either.
+            raise JevTransportError(str(exc), source=RUN_BUDGET, telemetry=exc.telemetry) from exc
         jev_result = {"error": str(exc)[:300], "source": exc.source}
 
     try:

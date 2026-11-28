@@ -800,3 +800,51 @@ class TestGameTrailerRoute:
         trailer = "make a game trailer"
         assert pre_route._is_semantically_guarded("game-dev", launch, "make game", make_game.pattern) is False
         assert pre_route._is_semantically_guarded("game-dev", trailer, "make game", make_game.pattern) is True
+
+
+class TestForcePipelineOverSuggestSkill:
+    def test_prefers_high_confidence_pipeline_over_suggest_only_skill(self, pre_route) -> None:
+        synthetic = [
+            {
+                "name": "weak-skill",
+                "type": "skill",
+                "triggers": ["audit notes"],
+                "agent": None,
+                "force_route": False,
+            },
+            {
+                "name": "release-pipe",
+                "type": "pipeline",
+                "triggers": ["run release pipeline"],
+                "agent": "general-purpose",
+                "force_route": True,
+            },
+        ]
+        result = pre_route.route("please audit notes and run release pipeline", entries=synthetic)
+        assert result["matched"] is True
+        assert result["pipeline"] == "release-pipe"
+        assert result["confidence"] == "high"
+        assert result["match_type"] == "force_route"
+
+    def test_high_confidence_skill_still_takes_top_alongside_pipeline(self, pre_route) -> None:
+        synthetic = [
+            {
+                "name": "strong-skill",
+                "type": "skill",
+                "triggers": ["audit notes"],
+                "agent": None,
+                "force_route": True,
+            },
+            {
+                "name": "release-pipe",
+                "type": "pipeline",
+                "triggers": ["run release pipeline"],
+                "agent": "general-purpose",
+                "force_route": True,
+            },
+        ]
+        result = pre_route.route("please audit notes and run release pipeline", entries=synthetic)
+        assert result["matched"] is True
+        assert result["skill"] == "strong-skill"
+        assert result["pipeline"] == "release-pipe"
+        assert result["confidence"] == "high"

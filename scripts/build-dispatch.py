@@ -686,18 +686,26 @@ def _trigger_claims() -> dict[str, tuple[str, ...]]:
     """
     claims: dict[str, list[str]] = {}
     try:
-        path, _ = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        for skill_name, data in (raw.get("skills") or {}).items():
-            name_lc = skill_name.strip().lower()
-            aliases = [str(t).strip().lower() for t in data.get("triggers") or []]
-            cat = (data.get("category") or "").strip().lower()
-            if cat:
-                aliases.append(cat)
-            for alias in aliases:
-                owners = claims.setdefault(alias, [])
-                if name_lc not in owners:
-                    owners.append(name_lc)
+        path, local_name = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
+        paths = [path]
+        if local_name:
+            local_path = path.parent / local_name
+            if local_path.is_file():
+                paths.append(local_path)
+        for index_file in paths:
+            raw = json.loads(index_file.read_text(encoding="utf-8"))
+            for skill_name, data in (raw.get("skills") or {}).items():
+                if not isinstance(data, dict):
+                    continue
+                name_lc = skill_name.strip().lower()
+                aliases = [str(t).strip().lower() for t in data.get("triggers") or []]
+                cat = (data.get("category") or "").strip().lower()
+                if cat:
+                    aliases.append(cat)
+                for alias in aliases:
+                    owners = claims.setdefault(alias, [])
+                    if name_lc not in owners:
+                        owners.append(name_lc)
     except (OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
         print(f"[build-dispatch] warning: could not load trigger map: {exc}", file=sys.stderr)
     return {alias: tuple(owners) for alias, owners in claims.items()}
@@ -1213,7 +1221,7 @@ def _path_candidates(files: object) -> list[str]:
         return []
     seen: list[str] = []
     for raw in re.split(r"[,\n]", str(files)):
-        token = raw.strip().strip("`").strip()
+        token = raw.strip().strip("`").strip().replace("\\", "/")
         if _EXCERPT_SEPARATOR in token:
             token = token.split(_EXCERPT_SEPARATOR, 1)[0].strip()
         token = _LINE_SUFFIX_RE.sub("", token).rstrip(".;:")
@@ -1393,6 +1401,7 @@ def build_gather_block(decision: dict, repo_root: Path | None = None) -> str:
         sections.append("\n".join(_gather_file(repo_root, token)))
         gathered += 1
     body = "\n\n".join(sections)
+    body = re.sub(r"</untrusted-content>", "", body, flags=re.IGNORECASE)
     block = f"{_GATHER_HEADING}\n\n{_GATHER_SECURITY}\n<untrusted-content>\n{body}\n</untrusted-content>"
     return _cap_block(block)
 
@@ -1521,6 +1530,7 @@ def build_subagent_dispatch(
             subagent_spec = {}
 
     preamble = build_preamble(decision, gather=gather, repo_root=repo_root)
+    resolved_model, _resolved_effort = resolve_model_selection(decision, _resolve_provider(decision))
 
     category = subagent_spec.get("category", "implementer")
     default_workspace = "inherit" if category in ("reviewer", "scout") else "branch"
@@ -1534,7 +1544,7 @@ def build_subagent_dispatch(
             "Role": subagent_spec.get("Description", agent_name),
             "Prompt": preamble,
             "Workspace": default_workspace,
-            "Model": decision.get("model", "gemini-4-argon"),
+            "Model": resolved_model or "gemini-4-argon",
         },
     }
 
@@ -1621,6 +1631,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     except json.JSONDecodeError as exc:
         print(f"build-dispatch: invalid JSON: {exc}", file=sys.stderr)
+        return 2
+
+    if not isinstance(decision, dict):
+        print("build-dispatch: routing decision must be a JSON object", file=sys.stderr)
         return 2
 
     try:

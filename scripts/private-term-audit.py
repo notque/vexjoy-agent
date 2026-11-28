@@ -23,12 +23,15 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GATE = REPO_ROOT / "hooks" / "pretool-private-name-leak-gate.py"
+_GIT_ENV_SCRUB = frozenset({"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"})
+_GIT_TIMEOUT_S = 60.0
 
 
 def load_gate():
@@ -42,11 +45,33 @@ def load_gate():
     return module
 
 
-def git(repo: Path, *args: str) -> str:
-    result = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=False)
-    # git grep exits 1 on "no match"; treat that as empty output.
-    if result.returncode not in (0, 1):
-        raise RuntimeError(result.stderr.strip() or f"git {args[0]} failed")
+def git(
+    repo: Path,
+    *args: str,
+    input_text: str | None = None,
+    allow_no_match: bool = False,
+    timeout: float = _GIT_TIMEOUT_S,
+) -> str:
+    env = {k: v for k, v in os.environ.items() if k not in _GIT_ENV_SCRUB}
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            env=env,
+            input=input_text,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"git {args[0]} timed out after {timeout}s") from exc
+    # Only git grep exits 1 on "no match"; other commands (e.g. ls-files) must exit 0.
+    allowed = (0, 1) if allow_no_match else (0,)
+    if result.returncode not in allowed:
+        raise RuntimeError(result.stderr.strip() or f"git {args[0]} failed (exit {result.returncode})")
     return result.stdout
 
 
@@ -65,11 +90,25 @@ def audit(repo: Path, gate) -> list[str]:
         if path and pattern.search(path):
             hits.setdefault(path, set()).add("path")
 
-    # Cheap fixed-string prefilter, then the exact boundary-aware pattern.
-    args = ["grep", "-I", "-i", "-l", "-z", "--fixed-strings"]
-    for term in sorted(leaves | strong):
-        args += ["-e", term]
-    for path in git(repo, *args).split("\0"):
+    # Cheap fixed-string prefilter via stdin (-f - avoids argv length limits),
+    # then the exact boundary-aware pattern.
+    terms = sorted(t for t in (leaves | strong) if t)
+    grep_out = ""
+    if terms:
+        grep_out = git(
+            repo,
+            "grep",
+            "-I",
+            "-i",
+            "-l",
+            "-z",
+            "--fixed-strings",
+            "-f",
+            "-",
+            input_text="\n".join(terms) + "\n",
+            allow_no_match=True,
+        )
+    for path in grep_out.split("\0"):
         if not path:
             continue
         try:

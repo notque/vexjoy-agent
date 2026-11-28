@@ -281,3 +281,54 @@ def test_battery_problems_rejects_report_choices_absent_from_criteria(tmp_path: 
 
     good_choice = {**bad_choice, "report_choices": ["broad", "critical"]}
     assert grill._battery_problems({"r_blast": good_choice}) == []
+
+
+def test_battery_problems_requires_report_choices_for_choice() -> None:
+    grill = _load_module()
+    missing_rc = {
+        "type": "choice",
+        "instructions": {"question": "Pick one?"},
+        "criteria": {"a": {"what": "opt a"}, "b": {"what": "opt b"}},
+    }
+    problems = grill._battery_problems({"q_choice": missing_rc})
+    assert len(problems) == 1
+    assert "report_choices" in problems[0]
+
+
+@pytest.mark.parametrize("source", ["unavailable", "run_budget"])
+def test_run_battery_aborts_fatally_without_halving_or_probing(monkeypatch, source: str) -> None:
+    grill = _load_module()
+    calls: list[list[str]] = []
+
+    def fail(_state, questions, **_kw):
+        calls.append(list(questions))
+        raise grill.jev_transport.JevTransportError(f"stopped ({source})", source=source)
+
+    monkeypatch.setattr(grill.jev_transport, "evaluate", fail)
+    questions = {"a": _noul("a?"), "b": _noul("b?"), "c": _noul("c?"), "d": _noul("d?")}
+    answers = grill._run_battery({"artifact": "x"}, questions, timeout=1)
+
+    assert len(calls) == 1  # no halving, no probe
+    assert ["probe"] not in calls
+    assert all("error" in answers[qid] for qid in questions)
+
+
+def test_json_mode_exits_1_on_high_signal_findings_and_0_when_clean(monkeypatch, tmp_path: Path, capsys) -> None:
+    import sys
+
+    grill = _load_module()
+    qfile = tmp_path / "qs.json"
+    qfile.write_text(json.dumps({"questions": {"risk_1": _noul("Is there a risk?")}}), encoding="utf-8")
+
+    monkeypatch.setattr(grill.jev_transport, "available", lambda: (True, "ok"))
+    monkeypatch.setattr(grill.jev_transport, "evaluate", lambda _s, _q, **_kw: {"answers": {"risk_1": {"noul": 0.95}}})
+    monkeypatch.setattr(sys, "argv", ["grill-jev.py", "--text", "plan", "--questions-file", str(qfile), "--json"])
+    with pytest.raises(SystemExit) as exc_info:
+        grill.main()
+    assert exc_info.value.code == 1
+    capsys.readouterr()
+
+    monkeypatch.setattr(grill.jev_transport, "evaluate", lambda _s, _q, **_kw: {"answers": {"risk_1": {"noul": 0.05}}})
+    with pytest.raises(SystemExit) as exc_info2:
+        grill.main()
+    assert exc_info2.value.code == 0

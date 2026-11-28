@@ -113,3 +113,42 @@ def test_direct_transport_sends_same_state_and_questions(monkeypatch: pytest.Mon
     result = jev_transport.evaluate(state, questions, timeout=3)
     assert seen["payload"] == {"state": state, "model": "jev-1.14.0", "questions": questions}
     assert result["_meta"]["transport"] == jev_transport.DIRECT
+
+
+def test_direct_transport_strips_api_key_and_validates_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    _clear(monkeypatch)
+    monkeypatch.setenv("JEV_TRANSPORT", "direct")
+    monkeypatch.setenv("TYPESAFE_API_KEY", "  padded-key \n")
+    seen: dict[str, object] = {}
+
+    def ok_call(payload, api_key, timeout, *, script_name):
+        seen["api_key"] = api_key
+        return {"answers": {"ok": {"type": "noul", "noul": 0.5}}}, 1.0
+
+    monkeypatch.setattr(jev_transport.jev_router_common, "call_jev", ok_call)
+    jev_transport.evaluate({"a": 1}, {"ok": {"type": "noul", "instructions": "ok?"}}, timeout=3)
+    assert seen["api_key"] == "padded-key"
+
+    def bad_call(payload, api_key, timeout, *, script_name):
+        return {"answers": {"ok": {"type": "noul", "noul": 9.9}}}, 1.0
+
+    monkeypatch.setattr(jev_transport.jev_router_common, "call_jev", bad_call)
+    with pytest.raises(jev_transport.JevTransportError, match="invalid Jev response"):
+        jev_transport.evaluate({"a": 1}, {"ok": {"type": "noul", "instructions": "ok?"}}, timeout=3)
+
+
+def test_second_opinion_reraises_run_budget_without_calling_alt_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    _clear(monkeypatch)
+    budget_err = jev_transport.JevTransportError("over cap", source=jev_transport.RUN_BUDGET)
+
+    def over_budget(*_a, **_k):
+        raise budget_err
+
+    alt_called: list[int] = []
+    monkeypatch.setattr(jev_transport, "evaluate_packed", over_budget)
+    monkeypatch.setattr(jev_transport.jev_alt_model, "answer", lambda *_a, **_k: alt_called.append(1))
+
+    with pytest.raises(jev_transport.JevTransportError) as exc_info:
+        jev_transport.evaluate_second_opinion({"a": 1}, {"q": {"type": "noul", "instructions": "ok?"}}, timeout=3)
+    assert exc_info.value.source == jev_transport.RUN_BUDGET
+    assert alt_called == []
