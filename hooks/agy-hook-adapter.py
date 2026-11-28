@@ -761,6 +761,12 @@ _BYPASS_ENV = "AGY_HOOK_ADAPTER_BYPASS"
 
 
 def main() -> int:
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+            except (AttributeError, ValueError, OSError):
+                pass
     if os.environ.get(_BYPASS_ENV) == "1":
         return 0
     args = _parser().parse_args()
@@ -772,7 +778,7 @@ def main() -> int:
             output = run_adapter(args, raw_input)
     except Exception as exc:
         output = failure_output(args.event, args.failure_policy, f"unexpected adapter error: {exc}")
-    print(json.dumps(output, ensure_ascii=False))
+    print(json.dumps(output))
     return 0
 
 

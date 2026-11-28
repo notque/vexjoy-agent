@@ -647,6 +647,12 @@ _BYPASS_ENV = "CODEX_HOOK_ADAPTER_BYPASS"
 
 
 def main() -> int:
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+            except (AttributeError, ValueError, OSError):
+                pass
     if os.environ.get(_BYPASS_ENV) == "1":
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print("[codex-hook-adapter] Bypassed via CODEX_HOOK_ADAPTER_BYPASS=1", file=sys.stderr)
@@ -661,7 +667,7 @@ def main() -> int:
             output = run(args, raw_input)
     except Exception as exc:  # Final containment: a hook adapter must not break Codex.
         output = failure_output(args.event, args.failure_policy, f"unexpected adapter error: {exc}")
-    print(json.dumps(output, ensure_ascii=False))
+    print(json.dumps(output))
     return 0
 
 
