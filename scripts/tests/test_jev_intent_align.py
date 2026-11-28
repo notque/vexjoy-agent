@@ -77,6 +77,7 @@ def test_python_310_fallback_reads_codex_agent_profile(monkeypatch: pytest.Monke
     )
     _clear_runtime_env(monkeypatch)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("CODEX_SESSION_ID", "session")
     monkeypatch.setattr(align, "tomllib", None)
 
@@ -320,6 +321,7 @@ def test_antigravity_profile_detected_even_when_claude_settings_exist(
     _clear_runtime_env(monkeypatch)
     _seed_claude_settings(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv(trigger_env, trigger_val)
     monkeypatch.setenv("GEMINI_MODEL", "gemini-4-argon")
     monkeypatch.setenv("GEMINI_EFFORT", "medium")
@@ -335,6 +337,7 @@ def test_explicit_jev_agent_env_wins_over_antigravity(monkeypatch: pytest.Monkey
     _clear_runtime_env(monkeypatch)
     _seed_claude_settings(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("ANTIGRAVITY_AGENT", "1")
     monkeypatch.setenv("ANTIGRAVITY_MODEL", "gemini-4-argon")
     monkeypatch.setenv("JEV_AGENT_MODEL", "custom-model")
@@ -350,6 +353,7 @@ def test_claude_profile_reads_settings_when_not_antigravity_or_codex(
     _clear_runtime_env(monkeypatch)
     _seed_claude_settings(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
 
     assert align._agent_profile() == ("claude-opus-5", "low", "claude")
 
@@ -364,6 +368,7 @@ def test_codex_profile_reads_config_when_not_antigravity(monkeypatch: pytest.Mon
         encoding="utf-8",
     )
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("CODEX_THREAD_ID", "thread-1")
 
     assert align._agent_profile() == ("gpt-6-astra", "medium", "codex")
@@ -404,3 +409,39 @@ def test_should_auto_align_truth_table(
     expected: bool,
 ) -> None:
     assert align.should_auto_align(runtime, effort, complexity, file_count) is expected
+
+
+def test_persist_false_skips_receipt_and_db_writes(monkeypatch: pytest.MonkeyPatch) -> None:
+    receipt_calls: list[tuple[object, ...]] = []
+    db_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(align.d_gate, "write_receipt", lambda *args, **_kwargs: receipt_calls.append(args))
+    monkeypatch.setattr(align, "_record_intent_alignment", lambda **kwargs: db_calls.append(kwargs) or True)
+
+    # Aligned path
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+    answers = {key: {"noul": 0.9} for key in align.build_payload("r", "i", _route())["questions"]}
+    for key in (
+        "intent_is_too_narrow",
+        "intent_adds_unrequested_work",
+        "route_omits_material_scope",
+        "essential_clarification_needed",
+    ):
+        answers[key] = {"noul": 0.1}
+    monkeypatch.setattr(align.jev_transport, "evaluate", lambda *_a, **_k: {"answers": answers})
+
+    aligned_res = align.evaluate_alignment("r", _route(), "i", persist=False)
+    assert aligned_res["alignment"] == "aligned"
+    assert aligned_res["aligned"] is True
+    assert "scores" in aligned_res and aligned_res["questions_version"] == align.QUESTIONS_VERSION
+    assert receipt_calls == []
+    assert db_calls == []
+
+    # Unavailable path
+    monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.delenv("JEV_TRANSPORT", raising=False)
+    unavail_res = align.evaluate_alignment("r", _route(), "i", persist=False)
+    assert unavail_res["alignment"] == "unavailable"
+    assert unavail_res["aligned"] is False
+    assert receipt_calls == []
+    assert db_calls == []

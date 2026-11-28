@@ -19,7 +19,18 @@ Reference file: skills/meta/do/references/prompt-compiler.md
 ```
 
 1. **Ground (read-only):** Inspect up to 5 relevant files or run read-only repository queries so paths and assumptions match the codebase. Make zero file edits or mutating commands.
-2. **Extract presets:** When the request includes standalone preset flags (`--strict-scope`, `--spike`, `--review-only`, `--ship`, `--local-only`), run `python3 scripts/prompt_presets.py --extract "<request>" --json` and carry their rules into the contract.
+2. **Extract presets:** When the request includes standalone preset flags (`--strict-scope`, `--spike`, `--review-only`, `--ship`, `--local-only`), write the raw request to a temp file and extract presets via `$SDIR` so shell quoting and leading flags stay safe:
+
+```bash
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
+REQUEST_FILE=$(mktemp)
+cat <<'EOF' > "$REQUEST_FILE"
+<request>
+EOF
+python3 "$SDIR/prompt_presets.py" --extract-file "$REQUEST_FILE" --json
+rm -f "$REQUEST_FILE"
+```
+
 3. **Emit the 5-line ratification card:**
    1. **Outcome:** one sentence naming the exact deliverable.
    2. **Out of scope:** explicit exclusions and boundaries.

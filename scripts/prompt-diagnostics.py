@@ -79,8 +79,13 @@ def _query_alignment_data(conn: sqlite3.Connection, window: str) -> tuple[list[d
     if not _table_exists(conn, "jev_intent_alignments"):
         return [], empty_summary
 
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)").fetchall()}
+    rt_expr = "agent_runtime" if "agent_runtime" in columns else "NULL AS agent_runtime"
+    model_expr = "agent_model" if "agent_model" in columns else "NULL AS agent_model"
+    effort_expr = "agent_effort" if "agent_effort" in columns else "NULL AS agent_effort"
+
     cohort_rows = conn.execute(
-        "SELECT agent_runtime, agent_model, agent_effort, "
+        f"SELECT {rt_expr}, {model_expr}, {effort_expr}, "
         "COUNT(*) AS judgments, "
         "COUNT(materially_differs) AS measured, "
         "SUM(CASE WHEN materially_differs = 1 THEN 1 ELSE 0 END) AS material_differences, "
@@ -89,8 +94,8 @@ def _query_alignment_data(conn: sqlite3.Connection, window: str) -> tuple[list[d
         "SUM(CASE WHEN clarification_needed = 1 THEN 1 ELSE 0 END) AS clarifications "
         "FROM jev_intent_alignments "
         "WHERE phase = 'proposed' AND julianday(ts) >= julianday('now', ?) "
-        "GROUP BY agent_runtime, agent_model, agent_effort "
-        "ORDER BY judgments DESC, agent_runtime, agent_model, agent_effort",
+        "GROUP BY 1, 2, 3 "
+        "ORDER BY judgments DESC, 1, 2, 3",
         (window,),
     ).fetchall()
 
@@ -378,6 +383,17 @@ def collect_diagnostics(db_path: Path, *, days: float = 30.0, drift_threshold: f
     try:
         cohorts, alignment_summary = _query_alignment_data(conn, window)
         handoff_health = _query_handoff_health(conn, window)
+    except sqlite3.Error:
+        return {
+            "db_path": str(db_path),
+            "db_exists": False,
+            "window_days": days,
+            "drift_threshold": drift_threshold,
+            "cohorts": [],
+            "alignment_summary": empty_alignment,
+            "handoff_health": empty_handoff,
+            "recommendations": [],
+        }
     finally:
         conn.close()
 

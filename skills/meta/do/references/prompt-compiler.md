@@ -16,7 +16,19 @@ Skip the compiler when the request already names a concrete target, clear scope 
 
 Before drafting the card, inspect up to 5 relevant files or run read-only repository checks (`git status`, `git branch`, directory listings, symbol searches) to anchor file paths and assumptions in real repository state. Make zero file edits and run zero mutating commands during compilation.
 
-If the prompt includes standalone preset flags (`--strict-scope`, `--spike`, `--review-only`, `--ship`, `--local-only`), extract them with `python3 scripts/prompt_presets.py --extract "<request>" --json` and fold their rules into the card's scope and verification lines.
+If the prompt includes standalone preset flags (`--strict-scope`, `--spike`, `--review-only`, `--ship`, `--local-only`), write the raw request to a temp file and extract them via `$SDIR` so shell quoting and leading flags stay safe:
+
+```bash
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
+REQUEST_FILE=$(mktemp)
+cat <<'EOF' > "$REQUEST_FILE"
+<request>
+EOF
+python3 "$SDIR/prompt_presets.py" --extract-file "$REQUEST_FILE" --json
+rm -f "$REQUEST_FILE"
+```
+
+Reflect the extracted presets in the card's scope and verification lines.
 
 ## Five-line ratification card
 
@@ -61,9 +73,9 @@ When the user replies `go`, `proceed`, `yes`, or sends a one-line adjustment:
 2. Map the ratified lines into `task_spec` and invoke `/do` (or `/d` if requested):
    - `task_spec.request_verbatim`: original user request, unchanged.
    - `task_spec.intent`: Line 1 (`Outcome`).
-   - `task_spec.constraints`: Line 2 (`Out of scope`) plus any resolved preset constraints.
+   - `task_spec.constraints`: Line 2 (`Out of scope`). Leave canonical preset rules to `prompt_presets` so `build-dispatch.py` injects each preset once without duplication.
    - `task_spec.acceptance`: Line 3 (`Verify with`).
    - `task_spec.files` and `task_spec.ownership`: Line 4 (`Owned paths / assumptions`).
    - `task_spec.decisions` or `task_spec.clarification`: Line 5 answer or ratified default (if present).
-   - `prompt_presets`: list of extracted preset names (if any).
+   - `prompt_presets`: list of extracted preset names (if any); `build-dispatch.py` appends their canonical constraint text automatically.
 3. Proceed straight into execution without re-asking clarifying questions.

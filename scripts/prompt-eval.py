@@ -246,6 +246,10 @@ def _evaluate_ambiguity_detection(case: dict[str, Any], candidate_text: str) -> 
             reasons.append(
                 f"prompt lacks actionable specificity ({len(matched_signals)}/{min_signals}); missing: {', '.join(missing)}"
             )
+        if not candidate_text.strip():
+            reasons.append("actionable request requires a non-empty candidate response")
+        elif asks_clarification:
+            reasons.append("actionable request does not require clarification, but candidate asked for clarification")
 
     details = {
         "specificity_signals": signals,
@@ -405,6 +409,7 @@ def _evaluate_live_jev(case: dict[str, Any], candidate_text: str, timeout: float
         route,
         candidate_text,
         timeout=timeout,
+        persist=False,
     )
     return {
         "available": bool(raw.get("available")),

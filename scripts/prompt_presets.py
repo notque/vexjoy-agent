@@ -14,6 +14,7 @@ import argparse
 import json
 import re
 import sys
+from pathlib import Path
 from typing import Any
 
 PRESETS: dict[str, dict[str, Any]] = {
@@ -169,6 +170,11 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--list", action="store_true", help="List all available prompt presets")
     group.add_argument("--extract", metavar="TEXT", help="Extract preset flags from a prompt string")
+    group.add_argument(
+        "--extract-file",
+        metavar="PATH",
+        help="Extract preset flags from a UTF-8 file, or stdin when PATH is '-'",
+    )
     parser.add_argument("--json", action="store_true", dest="json_output", help="Emit JSON output")
     args = parser.parse_args(argv)
 
@@ -181,7 +187,19 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stdout.write(f"{item['flag']}: {item['constraint']}\n")
         return 0
 
-    names, cleaned = extract_presets(args.extract)
+    if args.extract_file is not None:
+        if args.extract_file == "-":
+            raw_text = sys.stdin.read()
+        else:
+            try:
+                raw_text = Path(args.extract_file).read_text(encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"error reading {args.extract_file}: {exc}\n")
+                return 2
+    else:
+        raw_text = args.extract
+
+    names, cleaned = extract_presets(raw_text)
     resolved = resolve_presets(names)
     payload = {
         "presets": names,

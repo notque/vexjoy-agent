@@ -384,3 +384,57 @@ def test_days_window_and_custom_drift_threshold(monkeypatch: pytest.MonkeyPatch,
     assert wide["alignment_summary"]["total_judgments"] == 15
     assert wide["handoff_health"]["scored_dispatches"] == 1
     assert any(r["code"] == "high_drift_cohort" and "old-model" in r["message"] for r in wide["recommendations"])
+
+
+def test_corrupt_non_sqlite_file_exits_zero_cleanly(tmp_path: Path) -> None:
+    corrupt = tmp_path / "corrupt.db"
+    corrupt.write_bytes(b"not a valid sqlite database header\x00\xff\xfe")
+
+    res_json = _run_cli("--db", str(corrupt), "--json")
+    assert res_json.returncode == 0
+    payload = json.loads(res_json.stdout)
+    assert payload["db_exists"] is False
+    assert payload["cohorts"] == []
+    assert payload["alignment_summary"]["total_judgments"] == 0
+    assert payload["handoff_health"]["scored_dispatches"] == 0
+    assert payload["recommendations"] == []
+
+    res_human = _run_cli("--db", str(corrupt))
+    assert res_human.returncode == 0
+    assert "No learning database found" in res_human.stdout
+
+
+def test_pre_v16_alignment_table_without_agent_profile_columns_exits_zero(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "CREATE TABLE jev_intent_alignments ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "ts TEXT NOT NULL, "
+            "phase TEXT NOT NULL, "
+            "alignment TEXT NOT NULL, "
+            "materially_differs INTEGER, "
+            "route_mismatch INTEGER, "
+            "clarification_needed INTEGER, "
+            "issues_json TEXT"
+            ")"
+        )
+        conn.execute(
+            "INSERT INTO jev_intent_alignments "
+            "(ts, phase, alignment, materially_differs, route_mismatch, clarification_needed, issues_json) "
+            "VALUES (?, 'proposed', 'review', 1, 0, 0, ?)",
+            (_iso_days_ago(1), json.dumps(["proposed intent adds unrequested work"])),
+        )
+        conn.commit()
+
+    res = _run_cli("--db", str(db_path), "--json")
+    assert res.returncode == 0
+    payload = json.loads(res.stdout)
+    assert payload["db_exists"] is True
+    assert payload["alignment_summary"]["total_judgments"] == 1
+    assert payload["alignment_summary"]["signals"]["materially_differs"] == 1
+    assert len(payload["cohorts"]) == 1
+    assert payload["cohorts"][0]["runtime"] is None
+    assert payload["cohorts"][0]["agent_model"] is None
+    assert payload["cohorts"][0]["agent_effort"] is None
+    assert payload["cohorts"][0]["judgments"] == 1

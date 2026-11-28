@@ -285,3 +285,53 @@ def test_build_dispatch_rejects_unknown_preset() -> None:
     assert cli.returncode == 2
     assert cli.stdout == ""
     assert "unknown prompt preset" in cli.stderr
+
+
+def test_cli_extract_file_handles_single_flag_metachars_and_stdin(tmp_path: Path) -> None:
+    single_flag = tmp_path / "single.txt"
+    single_flag.write_text("--strict-scope", encoding="utf-8")
+    res_single = subprocess.run(
+        [sys.executable, str(PRESETS_SCRIPT), "--extract-file", str(single_flag), "--json"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert res_single.returncode == 0
+    payload_single = json.loads(res_single.stdout)
+    assert payload_single["presets"] == ["strict-scope"]
+    assert payload_single["cleaned_text"] == ""
+    assert payload_single["banner"] == "Prompt presets: --strict-scope"
+
+    meta_file = tmp_path / "meta.txt"
+    meta_file.write_text('--local-only fix "quoted" $(not_executed) `ticks`\n--review-only', encoding="utf-8")
+    res_meta = subprocess.run(
+        [sys.executable, str(PRESETS_SCRIPT), "--extract-file", str(meta_file), "--json"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert res_meta.returncode == 0
+    payload_meta = json.loads(res_meta.stdout)
+    assert payload_meta["presets"] == ["local-only", "review-only"]
+    assert payload_meta["cleaned_text"] == 'fix "quoted" $(not_executed) `ticks`'
+
+    res_stdin = subprocess.run(
+        [sys.executable, str(PRESETS_SCRIPT), "--extract-file", "-", "--json"],
+        input="--spike",
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert res_stdin.returncode == 0
+    payload_stdin = json.loads(res_stdin.stdout)
+    assert payload_stdin["presets"] == ["spike"]
+    assert payload_stdin["cleaned_text"] == ""
+
+    res_missing = subprocess.run(
+        [sys.executable, str(PRESETS_SCRIPT), "--extract-file", str(tmp_path / "missing.txt")],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert res_missing.returncode == 2
+    assert "error reading" in res_missing.stderr

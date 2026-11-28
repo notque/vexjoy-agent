@@ -244,8 +244,9 @@ def _finish_receipt(
     candidate: str,
     phase: str,
     data: dict[str, Any] | None = None,
+    persist: bool = True,
 ) -> dict[str, Any]:
-    """Normalize and persist one privacy-bounded alignment receipt."""
+    """Normalize and optionally persist one privacy-bounded alignment receipt."""
     source = str(result.get("source") or "unavailable")
     default_model = None
     if source == jev_transport.VERCEL:
@@ -270,6 +271,8 @@ def _finish_receipt(
     }
     normalized.update(result)
     result = normalized
+    if not persist:
+        return result
     # The /d execute step (build-dispatch.py "router": "d") reads this receipt.
     # Written on every path, unavailable and error included: a Jev outage
     # never blocks, it only has to be reported.
@@ -318,7 +321,12 @@ def _finish_receipt(
 
 
 def evaluate_alignment(
-    request: str, route: dict[str, Any], intent: str | None, timeout: float = DEFAULT_TIMEOUT
+    request: str,
+    route: dict[str, Any],
+    intent: str | None,
+    timeout: float = DEFAULT_TIMEOUT,
+    *,
+    persist: bool = True,
 ) -> dict[str, Any]:
     """Evaluate candidate intent through the selected Jev transport."""
     phase = "proposed" if isinstance(intent, str) and intent.strip() else "baseline"
@@ -338,6 +346,7 @@ def evaluate_alignment(
             request=request,
             candidate=candidate,
             phase=phase,
+            persist=persist,
         )
     if len(request) + len(candidate) > MAX_ALIGNMENT_STATE_CHARS:
         return _finish_receipt(
@@ -355,6 +364,7 @@ def evaluate_alignment(
             request=request,
             candidate=candidate,
             phase=phase,
+            persist=persist,
         )
     payload = build_payload(request, candidate, route)
     started = time.monotonic()
@@ -374,6 +384,7 @@ def evaluate_alignment(
             request=request,
             candidate=candidate,
             phase=phase,
+            persist=persist,
         )
     answers = data.get("answers", {}) if isinstance(data, dict) else {}
     if not _complete_answers(answers, payload["questions"]):
@@ -397,6 +408,7 @@ def evaluate_alignment(
             candidate=candidate,
             phase=phase,
             data=data,
+            persist=persist,
         )
     scores = {key: round(_prob(answers, key), 4) for key in payload["questions"]}
     intent_mismatch = _materially_differs(scores)
@@ -450,7 +462,7 @@ def evaluate_alignment(
         "usage": data.get("usage") if isinstance(data, dict) else None,
         "transport_retry": meta.get("retry") if isinstance(meta, dict) else None,
     }
-    return _finish_receipt(result, request=request, candidate=candidate, phase=phase, data=data)
+    return _finish_receipt(result, request=request, candidate=candidate, phase=phase, data=data, persist=persist)
 
 
 def main() -> int:

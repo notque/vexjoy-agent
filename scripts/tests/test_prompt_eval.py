@@ -194,8 +194,10 @@ def test_live_jev_mode_uses_monkeypatched_evaluator_without_network(
         route: dict[str, Any],
         intent: str | None,
         timeout: float = 8.0,
+        *,
+        persist: bool = True,
     ) -> dict[str, Any]:
-        calls.append({"request": request, "route": route, "intent": intent, "timeout": timeout})
+        calls.append({"request": request, "route": route, "intent": intent, "timeout": timeout, "persist": persist})
         return {
             "available": True,
             "source": "mock",
@@ -223,6 +225,7 @@ def test_live_jev_mode_uses_monkeypatched_evaluator_without_network(
     expected_live_count = sum(1 for r in payload["results"] if r["category"] in intent_categories)
     assert len(calls) == expected_live_count == 16
     assert all(c["timeout"] == 3.5 for c in calls)
+    assert all(c["persist"] is False for c in calls)
 
     for row in payload["results"]:
         if row["category"] in intent_categories:
@@ -284,3 +287,69 @@ def test_handoff_effort_override_and_positive_framing_edge_cases() -> None:
     res_clarify = harness.evaluate_case(clarifying_case)
     assert res_clarify["actual_pass"] is True
     assert res_clarify["matched"] is True
+
+
+def test_live_jev_mode_writes_nothing_to_learning_or_receipt_dirs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    if str(SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(SCRIPTS_DIR))
+    import jev_intent_align
+
+    learning_dir = tmp_path / "learning"
+    receipt_dir = tmp_path / "receipts"
+    learning_dir.mkdir()
+    receipt_dir.mkdir()
+    monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(learning_dir))
+    monkeypatch.setenv("VEXJOY_D_RECEIPT_DIR", str(receipt_dir))
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+
+    answers = {
+        key: {"noul": 0.9}
+        for key in jev_intent_align.build_payload("r", "i", {"agent": "general-purpose", "skill": "workflow"})[
+            "questions"
+        ]
+    }
+    for key in (
+        "intent_is_too_narrow",
+        "intent_adds_unrequested_work",
+        "route_omits_material_scope",
+        "essential_clarification_needed",
+    ):
+        answers[key] = {"noul": 0.1}
+    monkeypatch.setattr(jev_intent_align.jev_transport, "evaluate", lambda *_a, **_k: {"answers": answers})
+
+    harness = _load_harness_module()
+    exit_code = harness.main(["--live-jev", "--category", "scope_creep", "--json"])
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["total"] == 4
+    assert all(row["live_jev"]["alignment"] == "aligned" for row in payload["results"])
+    assert list(learning_dir.iterdir()) == []
+    assert list(receipt_dir.iterdir()) == []
+
+
+def test_ambiguity_actionable_request_fails_on_unnecessary_clarification_or_empty_candidate() -> None:
+    harness = _load_harness_module()
+    cases = json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))["cases"]
+    amb_01 = next(case for case in cases if case["id"] == "amb-01")
+
+    clarifying = {
+        **amb_01,
+        "candidate_text": "Before fixing api/orders.py, could you clarify which status code to return?",
+    }
+    res_clarify = harness.evaluate_case(clarifying)
+    assert res_clarify["actual_pass"] is False
+    assert res_clarify["matched"] is False
+    assert (
+        "actionable request does not require clarification, but candidate asked for clarification"
+        in res_clarify["reasons"]
+    )
+
+    empty_candidate = {**amb_01, "candidate_text": "   "}
+    res_empty = harness.evaluate_case(empty_candidate)
+    assert res_empty["actual_pass"] is False
+    assert res_empty["matched"] is False
+    assert res_empty["reasons"]

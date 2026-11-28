@@ -22,7 +22,7 @@ Each skeleton mirrors the 5-line contract used by `/prompt` and `scripts/build-d
 
 ```text
 1. Outcome: Reproduce and fix [bug symptom] in [path:symbol] without changing public behavior.
-2. Out of scope: Unrelated modules, schema changes, or formatting edits outside owned files (--strict-scope).
+2. Out of scope: Unrelated modules, schema changes, or formatting edits outside owned files. --strict-scope
 3. Verify with: [failing test command] fails before the fix and passes after, plus [linter command] exits 0.
 4. Owned paths / assumptions: [source file], [test file]; root cause must be confirmed from runtime output or trace before patching.
 5. Open question: None (report root cause and regression test output in the summary).
@@ -32,7 +32,7 @@ Each skeleton mirrors the 5-line contract used by `/prompt` and `scripts/build-d
 
 ```text
 1. Outcome: Extract [target behavior] from [source path] into [new:target path] while preserving all existing API contracts.
-2. Out of scope: Behavior changes, dependency upgrades, or edits outside listed callers (--strict-scope --local-only).
+2. Out of scope: Behavior changes, dependency upgrades, or edits outside listed callers. --strict-scope --local-only
 3. Verify with: [full test suite command] passes with 0 failures and [typecheck/lint command] exits 0.
 4. Owned paths / assumptions: [source path], [new:target path], [caller paths], [test path]; existing tests cover current behavior.
 5. Open question: Keep legacy wrapper re-export at [old symbol] (default: yes, remove in a follow-up PR).
@@ -41,7 +41,7 @@ Each skeleton mirrors the 5-line contract used by `/prompt` and `scripts/build-d
 ### 3. Architecture critique
 
 ```text
-1. Outcome: Review [design doc or module paths] for failure modes, coupling risks, and missing operational invariants (--review-only).
+1. Outcome: Review [design doc or module paths] for failure modes, coupling risks, and missing operational invariants. --review-only
 2. Out of scope: Editing files, writing prototype code, or proposing unrelated rewrites.
 3. Verify with: Every finding cites concrete `file:line` evidence, failure trigger, impact, and one minimal remediation.
 4. Owned paths / assumptions: Read-only access to [paths]; target deployment runs on [runtime / scale assumptions].
@@ -51,7 +51,7 @@ Each skeleton mirrors the 5-line contract used by `/prompt` and `scripts/build-d
 ### 4. Deep research synthesis
 
 ```text
-1. Outcome: Compare [option A], [option B], and [option C] for [decision] in a single decision matrix with a clear recommendation (--spike).
+1. Outcome: Compare [option A], [option B], and [option C] for [decision] in a single decision matrix with a clear recommendation. --spike
 2. Out of scope: Production code edits or committing exploratory scripts.
 3. Verify with: Cite primary docs, benchmarks, or repo file:line evidence for every claim; mark unverified claims explicitly.
 4. Owned paths / assumptions: Sources in [paths or URLs]; decision constraints are [budget, latency, OS support].
@@ -62,7 +62,7 @@ Each skeleton mirrors the 5-line contract used by `/prompt` and `scripts/build-d
 
 ```text
 1. Outcome: Write a deterministic pass/fail eval rubric and [N] representative test cases for [skill or script] at [new:eval path].
-2. Out of scope: Modifying the production skill under test during baseline rubric creation (--local-only).
+2. Out of scope: Modifying the production skill under test during baseline rubric creation. --local-only
 3. Verify with: Running [eval command] scores baseline outputs reproducibly across 2 runs with binary criteria and zero subjective scales.
 4. Owned paths / assumptions: [subject path], [new:eval path]; include at least 2 negative or edge-case prompts.
 5. Open question: Include held-out validation split (default: yes, reserve 20% of cases as held-out).
