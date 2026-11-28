@@ -167,10 +167,6 @@ def _sandbox(tmp_path: Path, session_id: str) -> tuple[Path, dict[str, str], Pat
 
 
 def _prompt(filename: str) -> str:
-    if filename == "pipeline-context-detector.py":
-        return "create a pipeline for runtime checks"
-    if filename == "codex-auto-review.py":
-        return "please review this PR"
     return "runtime compatibility probe"
 
 

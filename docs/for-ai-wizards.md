@@ -116,7 +116,7 @@ Hook output is part of the user-facing contract. `additionalContext` changes the
 
 ### Lifecycle
 
-The configured lifecycle includes `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, `SubagentStart`, `SubagentStop`, `Stop`, `StopFailure`, and `SessionEnd`. Inspect `~/.claude/settings.json` for the current hook list; registrations change more often than the execution contract.
+The configured lifecycle includes `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, `SubagentStart`, `SubagentStop`, `Stop`, and `SessionEnd`. Inspect `~/.claude/settings.json` for the current hook list; registrations change more often than the execution contract.
 
 | Event | Architectural role |
 |---|---|
@@ -126,7 +126,7 @@ The configured lifecycle includes `SessionStart`, `UserPromptSubmit`, `PreToolUs
 | `PostToolUse` | Record usage and routing evidence, run advisory checks, and update generated indexes after successful work. |
 | `PreCompact` / `PostCompact` | Preserve and restore durable session context across compression. |
 | `SubagentStart` / `SubagentStop` | Give delegated work its operating context and close its routing records. |
-| `Stop` / `StopFailure` | Record the turn's summary and failures; score errored or stale routing outcomes. |
+| `Stop` | Check for toolkit drift in this checkout; score errored or stale routing outcomes. |
 | `SessionEnd` | Resolve every routing outcome still pending when the session ends. |
 
 This split matters when adding a hook. A check that can deny an unsafe operation belongs before the tool; an observer that records what happened belongs after it. Prompt and stop hooks should not impersonate tool gates because they lack the same action boundary.

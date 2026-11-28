@@ -13,8 +13,6 @@
 
 # ----- UserPromptSubmit: prompt-time gates and recorders (no match) -----
 
-UserPromptSubmit:pipeline-context-detector.py
-UserPromptSubmit:codex-auto-review.py
 UserPromptSubmit:prompt-capture.py
 UserPromptSubmit:routing-outcome-finalizer.py
 

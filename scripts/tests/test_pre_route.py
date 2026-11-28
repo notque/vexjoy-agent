@@ -178,8 +178,7 @@ class TestSpecifiedRoutes:
     def test_review_code_ambiguous_falls_through(self, pre_route, real_entries) -> None:
         """'review this code' hits only non-force triggers -- falls through."""
         result = pre_route.route("review this code", entries=real_entries)
-        # review skill is force_route, so it may match depending on trigger config
-        assert result["match_type"] in ("force_route", "fallthrough")
+        assert result["match_type"] == "fallthrough"
 
     def test_non_force_triggers_never_match(self, pre_route) -> None:
         """Non-force entries fall through even on many trigger hits.
