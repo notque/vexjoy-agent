@@ -20,6 +20,7 @@ The primary entry point is `/do`, which routes your request to the appropriate s
 |---------|---------|---------|
 | `/do` | **Smart router** - figures out what you need | `/do debug this failing test` |
 | `/d` | Jev-validated router: picks the route with `/do`'s rules, then checks the restated intent with Jev | `/d fix the flaky payments test` |
+| `/prompt` | One-turn prompt compiler: shapes an underspecified request into a 5-line task contract before handing off to `/do` or `/d` | `/prompt --strict-scope harden auth token parsing` |
 
 ### Other Slash Commands
 These are the files in `commands/`:

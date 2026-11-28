@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # hook-version: 1.0.1
-"""PreToolUse:Agent gate — warn when a medium/complex dispatch drops a handoff block.
+"""PreToolUse:Agent gate — deny when a medium/complex dispatch drops a handoff block.
 
 Fires on every Agent dispatch. When ``tool_input.prompt`` opens with a
 ``[do-route]`` marker at ``complexity=medium`` or ``complexity=complex``, the
@@ -10,15 +10,16 @@ prompt must carry the three blocks a complete handoff needs:
 - ``**Acceptance criteria:**``
 - ``## Repo state``
 
-Missing any block emits ``additionalContext`` naming the gap and the fix:
-re-run ``scripts/build-dispatch.py`` and paste its output verbatim. No marker,
-or ``trivial``/``simple``, stays silent.
+Missing any block denies the dispatch (``permissionDecision: deny``) naming the
+gap and the fix: re-run ``scripts/build-dispatch.py`` and paste its output
+verbatim. No marker, or ``trivial``/``simple``, stays silent.
 
 Modes (env):
 
-- ``DISPATCH_SPEC_GATE_MODE=deny`` — ``permissionDecision: deny`` with the same
-  reason. Off by default. Promotion date: 2026-09-05, after a week of
-  ``spec_score`` telemetry.
+- Default (``DISPATCH_SPEC_GATE_MODE=deny``) — ``permissionDecision: deny``
+  with governance telemetry.
+- ``DISPATCH_SPEC_GATE_MODE=warn`` — downgrades missing-block enforcement to
+  advisory ``additionalContext`` with the same reason.
 - ``DISPATCH_SPEC_GATE_BYPASS=1`` — disables the gate.
 
 Budget: string checks only, no I/O, exit 0 on every path, under 50 ms on the
@@ -102,7 +103,8 @@ def emit(reason: str, *, force_deny: bool = False, event: dict | None = None, su
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
     from hook_utils import context_output, deny_tool_use, record_governance
 
-    if force_deny or os.environ.get("DISPATCH_SPEC_GATE_MODE", "").lower() == "deny":
+    mode = os.environ.get("DISPATCH_SPEC_GATE_MODE", "deny").strip().lower()
+    if force_deny or mode != "warn":
         record_governance(
             "policy_violation",
             hook_name="pretool-dispatch-spec-gate",
@@ -131,7 +133,7 @@ def _check_effort_cap(tool_input: dict, prompt: str, event: dict) -> None:
         f"[dispatch-spec-gate] Agent dispatch requested effort={effort!r}. "
         "Default worker effort is 'medium' (escalate to 'high' only after a check fails). "
         "Re-dispatch with effort='medium', or pass [effort-override: <reason>] in the prompt / "
-        f"set {_EFFORT_OVERRIDE_ENV}=1 when explicitly approved."
+        f"enable {_EFFORT_OVERRIDE_ENV} in the environment when explicitly approved."
     )
     emit(reason, force_deny=True, event=event, sub_rule="effort-cap")
     sys.exit(0)

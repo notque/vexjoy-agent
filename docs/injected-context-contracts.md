@@ -31,7 +31,7 @@ Action: Spawn that worker via the Agent tool with the problem context.
 
 Source: `hooks/pretool-dispatch-spec-gate.py` (PreToolUse, matcher `Agent`).
 Meaning: A `[do-route]` dispatch at medium or complex complexity lacks one or more of `**Request (verbatim):**`, `**Acceptance criteria:**`, or `## Repo state`. The router hand-assembled the prompt instead of pasting `scripts/build-dispatch.py` output.
-Action: Re-run `python3 scripts/build-dispatch.py --json '<routing decision>'` and re-dispatch with its output verbatim. Warn-only by default; `DISPATCH_SPEC_GATE_MODE=deny` returns the same text as a `permissionDecision: deny` reason (promotion date 2026-09-05); `DISPATCH_SPEC_GATE_BYPASS=1` disables the gate.
+Action: Re-run `python3 scripts/build-dispatch.py --json '<routing decision>'` and re-dispatch with its output verbatim. Enforces `permissionDecision: deny` by default; `DISPATCH_SPEC_GATE_MODE=warn` downgrades missing-block checks to advisory `additionalContext`; `DISPATCH_SPEC_GATE_BYPASS=1` disables the gate.
 
 ### `[strategic-compact] {N} tool calls reached`
 

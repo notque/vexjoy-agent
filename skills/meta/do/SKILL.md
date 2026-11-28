@@ -49,6 +49,8 @@ Beyond a named file = Simple+ (uncertain → UP; `references/progressive-depth.m
 
 **Creation Detection**: create/scaffold/build/"add new"/"new [component]" targeting skill/pipeline/hook/feature/plugin/workflow/voice at Simple+ → `is_creation=true`, Phase 4 Step 0 (exclude debug/review/fix/refactor/explain/audit).
 
+**Prompt shaping & presets**: `/prompt` or `--shape` → `references/prompt-compiler.md`. Standalone `--strict-scope`, `--spike`, `--review-only`, `--ship`, `--local-only` auto-inject via `build-dispatch.py` (`prompt_presets.py`).
+
 **Gate**: Complexity set. Creation → `[CREATION REQUEST DETECTED]`. Trivial: direct. Simple+: Phase 2.
 
 ---
@@ -234,5 +236,5 @@ On routing error → `${CLAUDE_SKILL_DIR}/references/error-handling.md`.
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/{interview-and-triage,routing-examples,progressive-depth,antigravity-execution}.md`
+- `${CLAUDE_SKILL_DIR}/references/{interview-and-triage,prompt-compiler,routing-examples,progressive-depth,antigravity-execution}.md`
 - `skills/INDEX.json`, `skills/process/workflow/references/pipeline-index.json`, `scripts/routing-manifest.py`

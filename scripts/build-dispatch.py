@@ -322,6 +322,10 @@ try:
     import d_gate  # /d hard rules (intent receipt, dispatch reason); inert for /do
 except ImportError:  # pragma: no cover - a profile without d_gate.py keeps /do working
     d_gate = None
+try:
+    import prompt_presets as _prompt_presets
+except ImportError:  # pragma: no cover - optional helper alongside build-dispatch.py
+    _prompt_presets = None
 _ROUTER_D = "d"
 
 _INDEX_TARGET = _rim.detect_target(__file__) if _rim is not None else "claude"
@@ -1091,6 +1095,25 @@ def build_token_line(decision: dict, settings_path: Path = SETTINGS_PATH) -> str
     return f"~{remaining} tokens available for this task; prioritize accordingly."
 
 
+def resolve_prompt_presets(decision: dict) -> list[dict[str, str]]:
+    """Resolve optional ``prompt_presets`` plus standalone flags in ``task_spec.request_verbatim``."""
+    raw = decision.get("prompt_presets")
+    if raw is not None and (isinstance(raw, (str, bytes)) or not isinstance(raw, list)):
+        raise InputError("'prompt_presets' must be a list of strings")
+    spec = decision.get("task_spec")
+    if spec is not None and not isinstance(spec, dict):
+        raise InputError("'task_spec' must be an object")
+    request_text = str(spec.get("request_verbatim") or "") if isinstance(spec, dict) else ""
+    if _prompt_presets is None:
+        if raw:
+            raise InputError("prompt_presets requires scripts/prompt_presets.py next to build-dispatch.py")
+        return []
+    try:
+        return _prompt_presets.resolve_presets(raw, request_text)
+    except ValueError as exc:
+        raise InputError(str(exc)) from None
+
+
 def build_task_spec(decision: dict) -> str:
     """Task Specification block from provided fields, or "" when none given.
 
@@ -1100,12 +1123,17 @@ def build_task_spec(decision: dict) -> str:
     spec = decision.get("task_spec") or {}
     if not isinstance(spec, dict):
         raise InputError("'task_spec' must be an object")
+    presets = resolve_prompt_presets(decision)
+    preset_constraints = _prompt_presets.format_preset_constraints(presets) if presets and _prompt_presets else ""
     lines = []
     for key, label in _TASK_SPEC_FIELDS:
-        value = spec.get(key)
-        if value is None or not str(value).strip():
+        raw_value = spec.get(key)
+        text = str(raw_value).strip() if raw_value is not None else ""
+        if key == "constraints" and preset_constraints:
+            text = f"{text} {preset_constraints}" if text else preset_constraints
+        if not text:
             continue
-        lines.append(f"**{label}:** {str(value).strip()}")
+        lines.append(f"**{label}:** {text}")
     if not lines:
         complexity = str(decision.get("complexity") or "").lower()
         if complexity in _TASK_SPEC_REQUIRED_COMPLEXITY:
@@ -1393,6 +1421,8 @@ def build_preamble(
     d_route = resolve_router(decision) == _ROUTER_D
     references = check_d_route(decision, explicit_repo_root) if d_route else []
     marker = build_marker(decision)
+    presets = resolve_prompt_presets(decision)
+    preset_banner = _prompt_presets.format_preset_banner(presets) if presets and _prompt_presets else ""
     skill_calls = render_skill_calls(decision)
     stack = _key_list(decision.get("stack") or [], "stack")
     if marker.endswith(" exec=main"):
@@ -1400,6 +1430,10 @@ def build_preamble(
         # injections) have no reader; the thread already holds that context.
         note = MAIN_THREAD_NOTE
         extra: list[str] = []
+        if presets and _prompt_presets:
+            preset_rules = _prompt_presets.format_preset_constraints(presets)
+            if preset_rules:
+                extra.append(f"**Constraints:** {preset_rules}")
         if d_route:
             # /d runs Medium and Complex work here, so the main loop gets what a
             # worker would: the reference-loading rule, the pipeline phases, and
@@ -1416,7 +1450,7 @@ def build_preamble(
             if d_verify_required(decision):
                 spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
                 extra.append(d_gate.verify_step(spec))
-        return "\n\n".join(block for block in (marker, skill_calls, note, *extra) if block) + "\n"
+        return "\n\n".join(block for block in (marker, preset_banner, skill_calls, note, *extra) if block) + "\n"
     if references:
         skill_calls += "\nRead these references before work: " + ", ".join(f"`{r}`" for r in references) + "."
     thinking = build_thinking(decision)
@@ -1425,6 +1459,7 @@ def build_preamble(
     validate_spec_paths(decision, repo_root)
     blocks = [
         marker,
+        preset_banner,
         build_model_instruction(decision),
         skill_calls,
         thinking,

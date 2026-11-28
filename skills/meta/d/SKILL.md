@@ -137,7 +137,7 @@ Intent alignment (/d):
 
 | Result | Do |
 |---|---|
-| `clarification_needed` | Ask one concise question naming the ambiguity. Stop until answered. |
+| `clarification_needed` | Ask one concise question naming the ambiguity (or emit the 5-line card from `skills/meta/do/references/prompt-compiler.md` on `--shape` or underspecified prompts). Stop until answered. |
 | `review` | Correct the intent or the route and run the validator once more. Carry remaining issues into `task_spec.gaps`. |
 | `unavailable` / `error` | Say validation was unavailable and continue. A Jev outage never becomes a rejection. |
 | `aligned` | Continue. |
@@ -217,7 +217,7 @@ that proves the work), and `task_spec.scenario` when `files` touch the
 installer, hooks, or routing scripts: a real-scenario run, not only unit tests.
 The script refuses without them and prints the closing verifier step.
 
-It prints the marker (`router=d`, recorded for telemetry), the Skill-tool
+It prints the marker (`router=d`, recorded for telemetry), any active prompt presets (`--strict-scope`, `--spike`, `--review-only`, `--ship`, `--local-only` auto-extracted from `request_verbatim` or passed via `"prompt_presets"`), the Skill-tool
 calls, the pipeline's phases, the reference-loading rule, and the local-only
 block when `local-only` is in the stack. Call the Skill tool as printed, read
 the matching references, and do the work in this thread, running every
@@ -301,5 +301,6 @@ apply `skills/shared-patterns/jev-production-lessons.md`.
 - `${CLAUDE_SKILL_DIR}/references/jev-classifier-design.md`: contract, what Jev decides, what code enforces
 - `${CLAUDE_SKILL_DIR}/references/model-task-fit.md`: model per task type, re-measure method
 - `${CLAUDE_SKILL_DIR}/SPEC.md`, `${CLAUDE_SKILL_DIR}/EVAL.md`: maintenance contract and evals (load only to change or evaluate /d)
-- Scripts: `jev-route.py`, `print-route-rules.py`, `jev-intent-align.py`, `d_gate.py`, `build-dispatch.py`, `d-preflight.py`, `router-metrics.py`
+- `skills/meta/do/references/prompt-compiler.md`: one-turn 5-line prompt compiler (`--shape` / `/prompt`)
+- Scripts: `jev-route.py`, `print-route-rules.py`, `jev-intent-align.py`, `d_gate.py`, `build-dispatch.py`, `prompt_presets.py`, `d-preflight.py`, `router-metrics.py`
 - Rule text: `skills/meta/do/SKILL.md` Phase 2, printed by `print-route-rules.py`

@@ -42,6 +42,31 @@ def test_default_intent_preserves_verbatim_request() -> None:
     assert align.build_payload(request, " intent ", _route())["state"]["user_request"] == request
 
 
+_RUNTIME_ENV_KEYS = (
+    "JEV_AGENT_MODEL",
+    "JEV_AGENT_EFFORT",
+    "JEV_AGENT_RUNTIME",
+    "VEXJOY_HOOK_RUNTIME",
+    "ANTIGRAVITY_AGENT",
+    "ANTIGRAVITY_SESSION_ID",
+    "AGY_SESSION_ID",
+    "ANTIGRAVITY_MODEL",
+    "GEMINI_MODEL",
+    "ANTIGRAVITY_EFFORT",
+    "GEMINI_EFFORT",
+    "CODEX_SESSION_ID",
+    "CODEX_THREAD_ID",
+    "CLAUDE_SESSION_ID",
+    "ANTHROPIC_MODEL",
+    "CLAUDE_MODEL",
+)
+
+
+def _clear_runtime_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key in _RUNTIME_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+
+
 def test_python_310_fallback_reads_codex_agent_profile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Optional telemetry still works when stdlib tomllib is unavailable."""
     config_dir = tmp_path / ".codex"
@@ -50,11 +75,10 @@ def test_python_310_fallback_reads_codex_agent_profile(monkeypatch: pytest.Monke
         'model = "gpt-test"\nmodel_reasoning_effort = "high"\n',
         encoding="utf-8",
     )
+    _clear_runtime_env(monkeypatch)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("CODEX_SESSION_ID", "session")
-    monkeypatch.delenv("JEV_AGENT_MODEL", raising=False)
-    monkeypatch.delenv("JEV_AGENT_EFFORT", raising=False)
-    monkeypatch.delenv("JEV_AGENT_RUNTIME", raising=False)
     monkeypatch.setattr(align, "tomllib", None)
 
     assert align._agent_profile() == ("gpt-test", "high", "codex")
@@ -268,3 +292,156 @@ def test_unavailable_and_error_runs_record_null_booleans_instead_of_false(monkey
     assert res_err["alignment"] == "error"
     assert recorded[-1]["materially_differs"] is None
     assert recorded[-1]["route_mismatch"] is None
+
+
+def _seed_claude_settings(home: Path) -> None:
+    claude_dir = home / ".claude"
+    claude_dir.mkdir(parents=True, exist_ok=True)
+    (claude_dir / "settings.json").write_text(
+        '{"model": "claude-opus-5", "effortLevel": "low"}\n',
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.parametrize(
+    ("trigger_env", "trigger_val"),
+    [
+        ("VEXJOY_HOOK_RUNTIME", "antigravity"),
+        ("ANTIGRAVITY_AGENT", "1"),
+        ("ANTIGRAVITY_SESSION_ID", "agy-sess-1"),
+        ("AGY_SESSION_ID", "agy-sess-2"),
+    ],
+)
+def test_antigravity_profile_detected_even_when_claude_settings_exist(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    trigger_env: str,
+    trigger_val: str,
+) -> None:
+    _clear_runtime_env(monkeypatch)
+    _seed_claude_settings(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.setenv(trigger_env, trigger_val)
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-4-argon")
+    monkeypatch.setenv("GEMINI_EFFORT", "medium")
+
+    assert align._agent_profile() == ("gemini-4-argon", "medium", "antigravity")
+
+    monkeypatch.setenv("ANTIGRAVITY_MODEL", "gemini-4-argon-high")
+    monkeypatch.setenv("ANTIGRAVITY_EFFORT", "high")
+    assert align._agent_profile() == ("gemini-4-argon-high", "high", "antigravity")
+
+
+def test_explicit_jev_agent_env_wins_over_antigravity(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _clear_runtime_env(monkeypatch)
+    _seed_claude_settings(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.setenv("ANTIGRAVITY_AGENT", "1")
+    monkeypatch.setenv("ANTIGRAVITY_MODEL", "gemini-4-argon")
+    monkeypatch.setenv("JEV_AGENT_MODEL", "custom-model")
+    monkeypatch.setenv("JEV_AGENT_EFFORT", "high")
+    monkeypatch.setenv("JEV_AGENT_RUNTIME", "custom")
+
+    assert align._agent_profile() == ("custom-model", "high", "custom")
+
+
+def test_claude_profile_reads_settings_when_not_antigravity_or_codex(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _clear_runtime_env(monkeypatch)
+    _seed_claude_settings(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+
+    assert align._agent_profile() == ("claude-opus-5", "low", "claude")
+
+
+def test_codex_profile_reads_config_when_not_antigravity(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _clear_runtime_env(monkeypatch)
+    _seed_claude_settings(tmp_path)
+    codex_dir = tmp_path / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text(
+        'model = "gpt-6-astra"\nmodel_reasoning_effort = "medium"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.setenv("CODEX_THREAD_ID", "thread-1")
+
+    assert align._agent_profile() == ("gpt-6-astra", "medium", "codex")
+
+
+@pytest.mark.parametrize(
+    ("runtime", "effort", "complexity", "file_count", "expected"),
+    [
+        # claude + medium/complex + low/default/medium effort -> True
+        ("claude", None, "medium", 0, True),
+        ("claude", "", "complex", 0, True),
+        ("claude", "low", "medium", 1, True),
+        ("claude", "medium", "complex", 0, True),
+        # claude + high/xhigh/max effort -> False regardless of complexity or file_count
+        ("claude", "high", "medium", 0, False),
+        ("claude", "high", "complex", 5, False),
+        ("claude", "xhigh", "complex", 5, False),
+        ("claude", "max", "complex", 5, False),
+        # claude + trivial/simple with <3 files -> False
+        ("claude", "low", "trivial", 0, False),
+        ("claude", None, "simple", 2, False),
+        # claude + low/default effort + >=3 files -> True even on simple
+        ("claude", "low", "simple", 3, True),
+        ("claude", None, "simple", 4, True),
+        ("claude", "default", "trivial", 3, True),
+        ("claude", "medium", "simple", 3, False),
+        # non-claude runtimes -> False
+        ("codex", "low", "complex", 5, False),
+        ("antigravity", "low", "complex", 5, False),
+        (None, "low", "complex", 5, False),
+    ],
+)
+def test_should_auto_align_truth_table(
+    runtime: str | None,
+    effort: str | None,
+    complexity: str,
+    file_count: int,
+    expected: bool,
+) -> None:
+    assert align.should_auto_align(runtime, effort, complexity, file_count) is expected
+
+
+def test_persist_false_skips_receipt_and_db_writes(monkeypatch: pytest.MonkeyPatch) -> None:
+    receipt_calls: list[tuple[object, ...]] = []
+    db_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(align.d_gate, "write_receipt", lambda *args, **_kwargs: receipt_calls.append(args))
+    monkeypatch.setattr(align, "_record_intent_alignment", lambda **kwargs: db_calls.append(kwargs) or True)
+
+    # Aligned path
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+    answers = {key: {"noul": 0.9} for key in align.build_payload("r", "i", _route())["questions"]}
+    for key in (
+        "intent_is_too_narrow",
+        "intent_adds_unrequested_work",
+        "route_omits_material_scope",
+        "essential_clarification_needed",
+    ):
+        answers[key] = {"noul": 0.1}
+    monkeypatch.setattr(align.jev_transport, "evaluate", lambda *_a, **_k: {"answers": answers})
+
+    aligned_res = align.evaluate_alignment("r", _route(), "i", persist=False)
+    assert aligned_res["alignment"] == "aligned"
+    assert aligned_res["aligned"] is True
+    assert "scores" in aligned_res and aligned_res["questions_version"] == align.QUESTIONS_VERSION
+    assert receipt_calls == []
+    assert db_calls == []
+
+    # Unavailable path
+    monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.delenv("JEV_TRANSPORT", raising=False)
+    unavail_res = align.evaluate_alignment("r", _route(), "i", persist=False)
+    assert unavail_res["alignment"] == "unavailable"
+    assert unavail_res["aligned"] is False
+    assert receipt_calls == []
+    assert db_calls == []

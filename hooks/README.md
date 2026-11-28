@@ -41,7 +41,7 @@ Hook filenames describe their position and purpose:
 - `precompact-*` and `postcompact-*` run around context compression.
 - `session-*` handle session startup, context, or summaries.
 - `routing-*` record and resolve request-routing outcomes.
-- `*-gate` hooks enforce a condition; advisory scanners report without blocking. `pretool-dispatch-spec-gate` is the exception: it only warns unless `DISPATCH_SPEC_GATE_MODE=deny` is set.
+- `*-gate` hooks enforce a condition; advisory scanners report without blocking. `pretool-dispatch-spec-gate` denies by default and can be downgraded to advisory warn-only with `DISPATCH_SPEC_GATE_MODE=warn`.
 - Files in [`lib/`](lib/) provide shared input handling, output formatting, telemetry, and database access.
 
 Some files remain as compatibility stubs after their behavior moved elsewhere. A stub should say so in its module documentation and should not be inferred to be active merely because the file exists. Registration in [`.claude/settings.json`](../.claude/settings.json) determines whether a hook runs.

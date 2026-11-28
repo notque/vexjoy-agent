@@ -82,6 +82,8 @@ routing:
     - "reference enrichment"
     - "decompose skill"
     - "extract references"
+    - "prompt engineering"
+    - "prompt skeletons"
   category: meta-tooling
   pairs_with:
     - review
@@ -94,9 +96,9 @@ routing:
 
 # Toolkit
 
-Thirteen modes covering the full toolkit lifecycle: creating and improving skills
+Fourteen modes covering the full toolkit lifecycle: creating and improving skills
 and agents; evaluating agents; maintaining routing tables; generating CLAUDE.md;
-composing multi-skill DAGs; running the evolution loop; governance; system upgrades; hook development; and GitHub profile rule extraction. Classify the request
+composing multi-skill DAGs; running the evolution loop; governance; system upgrades; hook development; GitHub profile rule extraction; and model-aware prompt engineering. Classify the request
 and follow the matching section.
 
 ## Mode Selection
@@ -116,6 +118,7 @@ and follow the matching section.
 | **System Upgrade** | claude update, upgrade skills, apply update, apply retro | Load `references/system-upgrade.md` |
 | **Hook Development** | create hook, PreToolUse, PostToolUse, SessionStart, hook registration | Load `references/hook-development.md` |
 | **GitHub Profile Rules** | github rules, profile analysis, coding style extraction | Load `references/github-profile-rules.md` |
+| **Prompt Engineering** | prompt engineering, prompt skeletons, model-aware prompting, framing rules | Load `references/prompt-engineering.md` |
 
 ---
 
@@ -278,6 +281,7 @@ Load when the task needs detailed schemas, templates, or methodology.
 | System Upgrade | `references/system-upgrade.md`, `references/system-upgrade/{upgrade-signal-parsing,component-audit-checklists,upgrade-failure-modes}.md` |
 | Hook Development | `references/hook-development.md`, `references/hook-development/{architecture,preferred-patterns,code-examples,telemetry-database}.md` |
 | GitHub Profile Rules | `references/github-profile-rules.md`, `references/github-profile-rules/{rule-categories,github-api-patterns}.md` |
+| Prompt Engineering | `references/prompt-engineering.md`: model-family counters, 5-line prompt skeletons, positive framing, context-packing order |
 
 ## Scripts and Agents
 
@@ -288,3 +292,4 @@ Load when the task needs detailed schemas, templates, or methodology.
 | Weak-Model Uplift | `scripts/weak_model_run.py` (repo root) | -- |
 | Routing Tables | `scripts/routing-table-updater/` | -- |
 | Agent Comparison | `scripts/agent-comparison/` | -- |
+| Prompt Engineering | `scripts/prompt_presets.py` (repo root) | -- |

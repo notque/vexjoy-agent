@@ -272,7 +272,7 @@
           {
             "type": "command",
             "command": "sh \"$HOME/.claude/hooks/lib/pyrun.sh\" \"$HOME/.claude/hooks/pretool-dispatch-spec-gate.py\"",
-            "description": "Advisory: warn when a medium/complex [do-route] dispatch drops Request (verbatim), Acceptance criteria, or Repo state (DISPATCH_SPEC_GATE_MODE=deny to block)",
+            "description": "Block medium/complex [do-route] dispatches missing Request (verbatim), Acceptance criteria, or Repo state (DISPATCH_SPEC_GATE_MODE=warn to downgrade to advisory)",
             "timeout": 10
           }
         ]

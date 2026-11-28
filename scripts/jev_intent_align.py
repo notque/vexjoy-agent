@@ -162,6 +162,16 @@ def _agent_profile() -> tuple[str | None, str | None, str | None]:
     if model or effort or runtime:
         return model, effort, runtime or "explicit"
 
+    if (
+        os.environ.get("VEXJOY_HOOK_RUNTIME", "").strip().lower() == "antigravity"
+        or os.environ.get("ANTIGRAVITY_AGENT") == "1"
+        or bool(os.environ.get("ANTIGRAVITY_SESSION_ID"))
+        or bool(os.environ.get("AGY_SESSION_ID"))
+    ):
+        agy_model = os.environ.get("ANTIGRAVITY_MODEL") or os.environ.get("GEMINI_MODEL")
+        agy_effort = os.environ.get("ANTIGRAVITY_EFFORT") or os.environ.get("GEMINI_EFFORT")
+        return agy_model, agy_effort, "antigravity"
+
     if os.environ.get("CODEX_SESSION_ID") or os.environ.get("CODEX_THREAD_ID"):
         try:
             config_text = (Path.home() / ".codex" / "config.toml").read_text(encoding="utf-8")
@@ -200,6 +210,23 @@ def _agent_profile() -> tuple[str | None, str | None, str | None]:
     return model, effort, "claude" if os.environ.get("CLAUDE_SESSION_ID") or settings else None
 
 
+def should_auto_align(
+    runtime: str | None,
+    effort: str | None,
+    complexity: str,
+    file_count: int = 0,
+) -> bool:
+    """Return whether an automatic Jev intent check pays based on drift telemetry."""
+    if (runtime or "").strip().lower() != "claude":
+        return False
+    normalized_effort = (effort or "").strip().lower()
+    if normalized_effort in ("high", "xhigh", "max"):
+        return False
+    if (complexity or "").strip().lower() in ("medium", "complex"):
+        return True
+    return file_count >= 3 and normalized_effort in ("", "low", "default")
+
+
 def _materially_differs(scores: dict[str, float]) -> bool:
     """Return whether the restatement itself changes the requested work."""
     return (
@@ -217,8 +244,9 @@ def _finish_receipt(
     candidate: str,
     phase: str,
     data: dict[str, Any] | None = None,
+    persist: bool = True,
 ) -> dict[str, Any]:
-    """Normalize and persist one privacy-bounded alignment receipt."""
+    """Normalize and optionally persist one privacy-bounded alignment receipt."""
     source = str(result.get("source") or "unavailable")
     default_model = None
     if source == jev_transport.VERCEL:
@@ -243,6 +271,8 @@ def _finish_receipt(
     }
     normalized.update(result)
     result = normalized
+    if not persist:
+        return result
     # The /d execute step (build-dispatch.py "router": "d") reads this receipt.
     # Written on every path, unavailable and error included: a Jev outage
     # never blocks, it only has to be reported.
@@ -280,13 +310,23 @@ def _finish_receipt(
         request_hash=_text_hash(request),
         proposed_intent_hash=_text_hash(candidate),
         latency_ms=result.get("latency_ms"),
-        session_id=os.environ.get("JEV_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID"),
+        session_id=(
+            os.environ.get("JEV_SESSION_ID")
+            or os.environ.get("CLAUDE_SESSION_ID")
+            or os.environ.get("ANTIGRAVITY_SESSION_ID")
+            or os.environ.get("AGY_SESSION_ID")
+        ),
     )
     return result
 
 
 def evaluate_alignment(
-    request: str, route: dict[str, Any], intent: str | None, timeout: float = DEFAULT_TIMEOUT
+    request: str,
+    route: dict[str, Any],
+    intent: str | None,
+    timeout: float = DEFAULT_TIMEOUT,
+    *,
+    persist: bool = True,
 ) -> dict[str, Any]:
     """Evaluate candidate intent through the selected Jev transport."""
     phase = "proposed" if isinstance(intent, str) and intent.strip() else "baseline"
@@ -306,6 +346,7 @@ def evaluate_alignment(
             request=request,
             candidate=candidate,
             phase=phase,
+            persist=persist,
         )
     if len(request) + len(candidate) > MAX_ALIGNMENT_STATE_CHARS:
         return _finish_receipt(
@@ -323,6 +364,7 @@ def evaluate_alignment(
             request=request,
             candidate=candidate,
             phase=phase,
+            persist=persist,
         )
     payload = build_payload(request, candidate, route)
     started = time.monotonic()
@@ -342,6 +384,7 @@ def evaluate_alignment(
             request=request,
             candidate=candidate,
             phase=phase,
+            persist=persist,
         )
     answers = data.get("answers", {}) if isinstance(data, dict) else {}
     if not _complete_answers(answers, payload["questions"]):
@@ -365,6 +408,7 @@ def evaluate_alignment(
             candidate=candidate,
             phase=phase,
             data=data,
+            persist=persist,
         )
     scores = {key: round(_prob(answers, key), 4) for key in payload["questions"]}
     intent_mismatch = _materially_differs(scores)
@@ -418,7 +462,7 @@ def evaluate_alignment(
         "usage": data.get("usage") if isinstance(data, dict) else None,
         "transport_retry": meta.get("retry") if isinstance(meta, dict) else None,
     }
-    return _finish_receipt(result, request=request, candidate=candidate, phase=phase, data=data)
+    return _finish_receipt(result, request=request, candidate=candidate, phase=phase, data=data, persist=persist)
 
 
 def main() -> int:

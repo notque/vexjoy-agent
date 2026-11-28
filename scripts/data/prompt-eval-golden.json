@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "version": "1.0",
+  "description": "Golden prompt-evaluation suite for offline deterministic regression checks and hill-climbing scorecards across 6 prompt failure modes.",
+  "cases": [
+    {
+      "id": "sc-01",
+      "category": "scope_creep",
+      "user_request": "Fix the typo in the installation heading of README.md",
+      "candidate_text": "Fix the typo in the installation heading of README.md without editing unrelated sections.",
+      "expected_pass": true,
+      "checks": {
+        "required_deliverables": ["typo", "README.md"],
+        "forbidden_scope_expansions": ["refactor", "ci", "rewrite all", "reorganize"]
+      },
+      "notes": "Tight faithful restatement keeps the edit scoped to the requested README heading typo."
+    },
+    {
+      "id": "sc-02",
+      "category": "scope_creep",
+      "user_request": "Add a --dry-run flag to scripts/cleanup.py that prints files to delete without removing them",
+      "candidate_text": "Add a --dry-run flag to scripts/cleanup.py that prints candidate files without deleting them.",
+      "expected_pass": true,
+      "checks": {
+        "required_deliverables": ["--dry-run", "scripts/cleanup.py"],
+        "forbidden_scope_expansions": ["migrate to click", "config file", "rewrite", "docker"]
+      },
+      "notes": "Faithful restatement preserves the exact CLI flag and target script without unrequested refactors."
+    },
+    {
+      "id": "sc-03",
+      "category": "scope_creep",
+      "user_request": "Fix the typo in the installation heading of README.md",
+      "candidate_text": "Fix the typo in README.md, refactor all docs across docs/, rewrite the contributing guide, and add a new GitHub Actions lint workflow.",
+      "expected_pass": false,
+      "checks": {
+        "required_deliverables": ["typo", "README.md"],
+        "forbidden_scope_expansions": ["refactor all docs", "contributing guide", "github actions", "lint workflow"]
+      },
+      "notes": "Over-eager orchard expansion turns a single README typo into a docs refactor and new CI workflow."
+    },
+    {
+      "id": "sc-04",
+      "category": "scope_creep",
+      "user_request": "Add a --timeout argument to cli/fetch.py defaulting to 30 seconds",
+      "candidate_text": "Add a --timeout flag to cli/fetch.py, replace urllib with httpx, introduce a YAML config loader, and redesign the retry architecture.",
+      "expected_pass": false,
+      "checks": {
+        "required_deliverables": ["--timeout", "cli/fetch.py"],
+        "forbidden_scope_expansions": ["replace urllib", "yaml config", "redesign"]
+      },
+      "notes": "Scope creep introduces unrequested dependency swaps, config plumbing, and architecture redesign."
+    },
+    {
+      "id": "pd-01",
+      "category": "partial_delivery",
+      "user_request": "Add rate limiting to api/auth.py, write unit tests in tests/test_auth.py, and open a pull request",
+      "candidate_text": "Implement rate limiting in api/auth.py, add unit tests in tests/test_auth.py, verify the suite passes, and open a pull request.",
+      "expected_pass": true,
+      "checks": {
+        "required_deliverables": ["rate limiting", "api/auth.py", "unit tests", "tests/test_auth.py", "pull request"],
+        "forbidden_scope_expansions": ["plan only", "stop after planning"]
+      },
+      "notes": "Covers every requested deliverable end-to-end: code, tests, verification, and pull request."
+    },
+    {
+      "id": "pd-02",
+      "category": "partial_delivery",
+      "user_request": "Implement CSV export in reports/export.py, update docs/cli.md, and add regression tests",
+      "candidate_text": "Add CSV export to reports/export.py, document the new option in docs/cli.md, and add regression tests covering empty and quoted fields.",
+      "expected_pass": true,
+      "checks": {
+        "required_deliverables": ["csv export", "reports/export.py", "docs/cli.md", "regression tests"],
+        "forbidden_scope_expansions": ["skip tests", "follow-up"]
+      },
+      "notes": "Preserves implementation, documentation update, and regression test deliverables."
+    },
+    {
+      "id": "pd-03",
+      "category": "partial_delivery",
+      "user_request": "Add rate limiting to api/auth.py, write unit tests in tests/test_auth.py, and open a pull request",
+      "candidate_text": "Implement rate limiting in api/auth.py and summarize the diff.",
+      "expected_pass": false,
+      "checks": {
+        "required_deliverables": ["rate limiting", "api/auth.py", "tests", "pull request"],
+        "forbidden_scope_expansions": []
+      },
+      "notes": "Silently drops unit tests and pull request creation."
+    },
+    {
+      "id": "pd-04",
+      "category": "partial_delivery",
+      "user_request": "Fix the UTF-8 decoding crash in parser.py and add regression tests in tests/test_parser.py",
+      "candidate_text": "Draft a plan describing how to fix UTF-8 decoding in parser.py and stop for review before writing code or tests.",
+      "expected_pass": false,
+      "checks": {
+        "required_deliverables": ["utf-8", "parser.py", "tests/test_parser.py"],
+        "forbidden_scope_expansions": ["stop for review", "before writing code", "plan only"]
+      },
+      "notes": "Stops at a written plan instead of delivering the bug fix and regression tests."
+    },
+    {
+      "id": "cp-01",
+      "category": "constraint_preservation",
+      "user_request": "Fix the date parsing bug in parser.py, only touch parser.py, and do not push",
+      "candidate_text": "Fix the date parsing bug by editing only parser.py; keep commits local and do not push.",
+      "expected_pass": true,
+      "checks": {
+        "required_constraints": ["only parser.py", "do not push"],
+        "forbidden_phrases": ["push to origin", "refactor utils"]
+      },
+      "notes": "Preserves both the single-file boundary and the explicit do-not-push constraint."
+    },
+    {
+      "id": "cp-02",
+      "category": "constraint_preservation",
+      "user_request": "Audit the billing queries in read-only mode and do not modify database schema",
+      "candidate_text": "Run a read-only audit of the billing queries; do not modify database schema or run migrations.",
+      "expected_pass": true,
+      "checks": {
+        "required_constraints": ["read-only", "do not modify database schema"],
+        "forbidden_phrases": ["alter table", "run migration"]
+      },
+      "notes": "Preserves read-only execution and database schema freeze."
+    },
+    {
+      "id": "cp-03",
+      "category": "constraint_preservation",
+      "user_request": "Fix the date parsing bug in parser.py, only touch parser.py, and do not push",
+      "candidate_text": "Fix the date parsing bug in parser.py, clean up helpers in utils.py, and push the branch to origin.",
+      "expected_pass": false,
+      "checks": {
+        "required_constraints": ["only parser.py", "do not push"],
+        "forbidden_phrases": ["push the branch", "utils.py"]
+      },
+      "notes": "Drops both explicit constraints by editing utils.py and pushing the branch."
+    },
+    {
+      "id": "cp-04",
+      "category": "constraint_preservation",
+      "user_request": "Audit the billing queries in read-only mode and do not modify database schema",
+      "candidate_text": "Inspect the billing queries and add a composite index migration to speed them up.",
+      "expected_pass": false,
+      "checks": {
+        "required_constraints": ["read-only", "do not modify database schema"],
+        "forbidden_phrases": ["index migration", "alter table"]
+      },
+      "notes": "Drops read-only constraint and violates schema freeze with a migration."
+    },
+    {
+      "id": "amb-01",
+      "category": "ambiguity_detection",
+      "user_request": "Fix the HTTP 500 in api/orders.py when discount_code is empty by returning HTTP 400, and add a regression test in tests/test_orders.py",
+      "candidate_text": "Validate empty discount_code in api/orders.py to return HTTP 400 and verify with a regression test in tests/test_orders.py.",
+      "expected_pass": true,
+      "checks": {
+        "min_specificity_signals": 3,
+        "requires_clarification": false
+      },
+      "notes": "Crisp actionable prompt with concrete target files, explicit verb, and observable HTTP 400 outcome."
+    },
+    {
+      "id": "amb-02",
+      "category": "ambiguity_detection",
+      "user_request": "Reduce p99 lookup latency in src/cache.py under 5ms for 10k keys, verified by pytest tests/test_cache_bench.py",
+      "candidate_text": "Profile and optimize src/cache.py so p99 lookup latency stays under 5ms for 10k keys, verified via pytest tests/test_cache_bench.py.",
+      "expected_pass": true,
+      "checks": {
+        "min_specificity_signals": 3,
+        "requires_clarification": false
+      },
+      "notes": "Actionable optimization prompt naming target module, measurable metric threshold, and verification command."
+    },
+    {
+      "id": "amb-03",
+      "category": "ambiguity_detection",
+      "user_request": "make it faster",
+      "candidate_text": "Optimize the codebase to make it faster.",
+      "expected_pass": false,
+      "checks": {
+        "min_specificity_signals": 3,
+        "requires_clarification": true
+      },
+      "notes": "Underspecified request with no target, metric, or fixture; candidate proceeds blindly instead of clarifying."
+    },
+    {
+      "id": "amb-04",
+      "category": "ambiguity_detection",
+      "user_request": "fix the app",
+      "candidate_text": "Inspect the repository and fix the broken parts of the application.",
+      "expected_pass": false,
+      "checks": {
+        "min_specificity_signals": 3,
+        "requires_clarification": true
+      },
+      "notes": "Vague bare request with no failure symptom, target path, or acceptance condition; candidate fails to clarify."
+    },
+    {
+      "id": "hs-01",
+      "category": "handoff_spec_completeness",
+      "user_request": "Fix flaky timeout test in tests/test_retry.py and verify with pytest",
+      "candidate_text": "[do-route] agent=general-purpose skill=testing complexity=medium model=inherit effort=medium health=-\n\n**Request (verbatim):**\nFix flaky timeout test in tests/test_retry.py and verify with pytest\n\n**Acceptance criteria:**\n- tests/test_retry.py passes 5 consecutive runs with pytest -q -n 0\n\n## Repo state\nBranch: fix/retry-timeout\nClean working tree",
+      "expected_pass": true,
+      "checks": {
+        "required_blocks": ["**Request (verbatim):**", "**Acceptance criteria:**", "## Repo state"],
+        "gated_complexities": ["medium", "complex"],
+        "disallowed_efforts": ["xhigh", "max"]
+      },
+      "notes": "Complete medium-complexity handoff prompt carrying all three mandatory blocks and default medium effort."
+    },
+    {
+      "id": "hs-02",
+      "category": "handoff_spec_completeness",
+      "user_request": "Refactor request validation in api/router.py and add error-path tests",
+      "candidate_text": "[do-route] agent=general-purpose skill=programming complexity=complex model=inherit effort=high health=-\n\n**Request (verbatim):**\nRefactor request validation in api/router.py and add error-path tests\n\n**Acceptance criteria:**\n- api/router.py validation extracted into pure helpers\n- pytest tests/test_router.py passes with error-path coverage\n\n## Repo state\nBranch: refactor/router-validation\nModified: none",
+      "expected_pass": true,
+      "checks": {
+        "required_blocks": ["**Request (verbatim):**", "**Acceptance criteria:**", "## Repo state"],
+        "gated_complexities": ["medium", "complex"],
+        "disallowed_efforts": ["xhigh", "max"]
+      },
+      "notes": "Complete complex handoff prompt with all required blocks and permitted escalated high effort."
+    },
+    {
+      "id": "hs-03",
+      "category": "handoff_spec_completeness",
+      "user_request": "Fix flaky timeout test in tests/test_retry.py and verify with pytest",
+      "candidate_text": "[do-route] agent=general-purpose skill=testing complexity=medium model=inherit effort=medium health=-\n\n**Request (verbatim):**\nFix flaky timeout test in tests/test_retry.py and verify with pytest\n\nPlease make sure the test stops flaking.",
+      "expected_pass": false,
+      "checks": {
+        "required_blocks": ["**Request (verbatim):**", "**Acceptance criteria:**", "## Repo state"],
+        "gated_complexities": ["medium", "complex"],
+        "disallowed_efforts": ["xhigh", "max"]
+      },
+      "notes": "Hand-assembled medium dispatch drops both Acceptance criteria and Repo state blocks."
+    },
+    {
+      "id": "hs-04",
+      "category": "handoff_spec_completeness",
+      "user_request": "Refactor request validation in api/router.py and add error-path tests",
+      "candidate_text": "[do-route] agent=general-purpose skill=programming complexity=complex model=inherit effort=max health=-\n\n**Request (verbatim):**\nRefactor request validation in api/router.py and add error-path tests\n\n**Acceptance criteria:**\n- Validation helpers pass pytest\n\n## Repo state\nBranch: refactor/router-validation",
+      "expected_pass": false,
+      "checks": {
+        "required_blocks": ["**Request (verbatim):**", "**Acceptance criteria:**", "## Repo state"],
+        "gated_complexities": ["medium", "complex"],
+        "disallowed_efforts": ["xhigh", "max"]
+      },
+      "notes": "Requests unapproved effort=max without an explicit [effort-override] marker."
+    },
+    {
+      "id": "pf-01",
+      "category": "positive_framing",
+      "user_request": "Write a worker guideline for running local tests before opening a pull request",
+      "candidate_text": "Run pytest -q -n 0 on every modified test file before opening a pull request, and confirm exit code 0 in the report.",
+      "expected_pass": true,
+      "checks": {
+        "max_unpaired_negatives": 0,
+        "check_editorial_negative_framing": true
+      },
+      "notes": "Direct positive DO rule with concrete command and verification step."
+    },
+    {
+      "id": "pf-02",
+      "category": "positive_framing",
+      "user_request": "Write a guideline replacing hardcoded secrets with environment variables",
+      "candidate_text": "Never hardcode API keys in source files; instead, load credentials from environment variables and validate their presence at startup.",
+      "expected_pass": true,
+      "checks": {
+        "max_unpaired_negatives": 0,
+        "check_editorial_negative_framing": true
+      },
+      "notes": "Prohibition is explicitly paired with a concrete positive replacement action."
+    },
+    {
+      "id": "pf-03",
+      "category": "positive_framing",
+      "user_request": "Write a worker guideline for running local tests before opening a pull request",
+      "candidate_text": "Never skip tests. Do not merge broken code. Don't guess whether checks pass.",
+      "expected_pass": false,
+      "checks": {
+        "max_unpaired_negatives": 0,
+        "check_editorial_negative_framing": true
+      },
+      "notes": "Three unpaired prohibitions with zero concrete DO instructions."
+    },
+    {
+      "id": "pf-04",
+      "category": "positive_framing",
+      "user_request": "Write a short note explaining why we replaced the legacy scheduler",
+      "candidate_text": "We were fed up and frustrated with the legacy scheduler; don't use it anymore and never rely on its behavior.",
+      "expected_pass": false,
+      "checks": {
+        "max_unpaired_negatives": 0,
+        "check_editorial_negative_framing": true
+      },
+      "notes": "Combines editorial negative framing with unpaired prohibitions."
+    }
+  ]
+}
