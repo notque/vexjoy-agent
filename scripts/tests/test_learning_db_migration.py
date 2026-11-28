@@ -99,7 +99,7 @@ def test_migration_from_v12(fresh_db):
         tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
         # v14 columns present on jev_calls
         cols = [c[1] for c in conn.execute("PRAGMA table_info(jev_calls)").fetchall()]
-    assert version == 16
+    assert version == fresh_db._CURRENT_SCHEMA_VERSION
     assert "harness_runs" in tables
     assert "jev_intent_alignments" in tables
     # Other tables still present
@@ -172,7 +172,7 @@ def test_migration_from_v14_adds_intent_alignment_table(fresh_db):
     with fresh_db.get_connection() as conn:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         columns = {row[1] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)")}
-    assert version == 16
+    assert version == fresh_db._CURRENT_SCHEMA_VERSION
     assert {
         "model",
         "agent_model",
@@ -196,3 +196,25 @@ def test_repairs_preliminary_v15_intent_alignment_schema(fresh_db):
     with fresh_db.get_connection() as conn:
         columns = {row[1] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)")}
     assert "questions_version" in columns
+
+
+def test_init_db_fast_path_skips_ddl_when_schema_current(fresh_db, monkeypatch):
+    """Once DB is at _CURRENT_SCHEMA_VERSION, fresh init_db() skips _SCHEMA DDL and migrations."""
+    fresh_db.init_db()
+    with fresh_db.get_connection() as conn:
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == fresh_db._CURRENT_SCHEMA_VERSION
+        assert conn.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+
+    fresh_db._initialized = False
+    ran_migrations = False
+
+    def fail_if_migrations_run(_conn):
+        nonlocal ran_migrations
+        ran_migrations = True
+        raise AssertionError("_run_migrations should not run on current schema fast path")
+
+    monkeypatch.setattr(fresh_db, "_run_migrations", fail_if_migrations_run)
+    monkeypatch.setattr(fresh_db, "_SCHEMA", "INVALID SQL THAT MUST NOT EXECUTE;")
+    fresh_db.init_db()
+    assert not ran_migrations
+    assert fresh_db._initialized is True

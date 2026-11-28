@@ -507,25 +507,95 @@ def revalidate_pending_outcomes(session_id: str, items: list[dict[str, Any]]) ->
             print(f"[routing-outcome-state] revalidate_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
 
 
-def drain_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
-    """Return and clear all pending outcomes for this session.
+def _pending_entry_token(item: dict[str, Any]) -> tuple[Any, ...]:
+    """Stable identity token for matching a peeked pending entry under lock."""
+    decision_id = item.get("decision_id")
+    if isinstance(decision_id, str) and decision_id:
+        return ("id", decision_id)
+    return ("legacy", item.get("key"), item.get("created"))
 
-    Returns a list of {"key": str, "errors": bool}. Clears the pending list
-    (keeps the seen list) so each pending outcome is applied at most once.
+
+def update_pending_outcomes(
+    session_id: str,
+    *,
+    validated: list[dict[str, Any]] | None = None,
+    missing: list[dict[str, Any]] | None = None,
+    drop_malformed: bool = True,
+) -> None:
+    """Atomically apply SubagentStop validation results without draining active entries.
+
+    Reads the live pending list under ``_state_lock`` and updates only entries
+    inspected by the caller:
+
+    - Malformed entries (non-dict or missing string ``key``) are dropped when
+      ``drop_malformed`` is True.
+    - Entries in ``missing`` have ``attempts`` incremented by 1 and are dropped
+      once ``attempts > MAX_REQUEUE_ATTEMPTS``.
+    - Entries in ``validated`` are kept in place unless older than
+      ``MAX_PENDING_AGE_SEC`` (or carrying a malformed ``created`` timestamp),
+      in which case they are pruned.
+    - Entries added concurrently after the caller's peek are preserved untouched,
+      and entries already finalized/removed concurrently are never resurrected.
     """
+    validated_tokens = {_pending_entry_token(it) for it in (validated or ()) if isinstance(it, dict)}
+    missing_tokens = {_pending_entry_token(it) for it in (missing or ()) if isinstance(it, dict)}
+    if not validated_tokens and not missing_tokens and not drop_malformed:
+        return
     try:
+        now = time.time()
         path = _state_file(session_id)
         with _state_lock(path):
             data = _load(path)
             pending = data.get("pending", [])
-            if pending:
-                data["pending"] = []
+            if not pending:
+                return
+            kept: list[dict[str, Any]] = []
+            changed = False
+            for item in pending:
+                if not isinstance(item, dict) or not isinstance(item.get("key"), str) or not item.get("key"):
+                    if drop_malformed:
+                        changed = True
+                        continue
+                    kept.append(item)
+                    continue
+                tok = _pending_entry_token(item)
+                if tok in missing_tokens:
+                    changed = True
+                    attempts = int(item.get("attempts", 0)) + 1
+                    if attempts > MAX_REQUEUE_ATTEMPTS:
+                        continue
+                    try:
+                        created = float(item.get("created", now))
+                    except (TypeError, ValueError):
+                        created = now
+                    kept.append(_pending_entry(item, attempts, created))
+                elif tok in validated_tokens:
+                    try:
+                        created = float(item.get("created", now))
+                    except (TypeError, ValueError):
+                        changed = True
+                        continue
+                    if now - created > MAX_PENDING_AGE_SEC:
+                        changed = True
+                        continue
+                    kept.append(item)
+                else:
+                    kept.append(item)
+            if changed:
+                data["pending"] = kept[-500:]
                 _atomic_write(path, data)
-        return pending
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[routing-outcome-state] drain_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
-        return []
+            print(f"[routing-outcome-state] update_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+def drain_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
+    """Return and clear all pending outcomes for this session.
+
+    Delegates to :func:`finalize_pending_outcomes` to preserve public API
+    compatibility for callers and tests without duplicating lock/write logic.
+    """
+    return finalize_pending_outcomes(session_id)
 
 
 def get_outcome_history(session_id: str) -> dict[str, str]:

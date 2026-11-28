@@ -3540,3 +3540,105 @@ class TestBackgroundRightsizing:
         _fire(B_PATH, "bgr_boom_b", _subagent_stop(last_assistant_message=f"{self.BANNER}\nroute-fit: wrong-skill"))
 
         assert _basis_counts(db_env) == {"route_fit:wrong-skill": 1}
+
+
+class TestNonAtomicValidationRaceFixed:
+    """routing-outcome-recorder uses non-destructive peek + locked update_pending_outcomes."""
+
+    def test_drain_pending_outcomes_delegates_to_finalize(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        ros.append_pending_outcome("alias-s", "agent:skill", errors=False, decision_id="d-alias")
+        calls: list[str] = []
+        real_finalize = ros.finalize_pending_outcomes
+
+        def spy(sid: str):
+            calls.append(sid)
+            return real_finalize(sid)
+
+        monkeypatch.setattr(ros, "finalize_pending_outcomes", spy)
+        drained = ros.drain_pending_outcomes("alias-s")
+        assert calls == ["alias-s"]
+        assert len(drained) == 1 and drained[0]["decision_id"] == "d-alias"
+        assert ros.peek_pending_outcomes("alias-s") == []
+
+    def test_concurrent_finalizer_sees_active_entry_and_is_not_resurrected(self, db_env, monkeypatch):
+        """While SubagentStop checks DB, entry stays visible; if finalized concurrently it is never resurrected."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as score
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        session = "race-fin"
+        key = _seed_decision("python-general-engineer:race-fin")
+        ros.append_pending_outcome(session, key, errors=False, decision_id="dec-race-1")
+
+        seen_mid_loop: list[list[dict]] = []
+        real_exists = score.decision_row_exists
+
+        def mid_loop_exists(k: str) -> bool:
+            # Concurrent UserPromptSubmit/Stop peeks/finalizes while B is inside its DB check!
+            seen_mid_loop.append(ros.peek_pending_outcomes(session))
+            ros.finalize_pending_outcomes(session)
+            # Another agent appends a brand new pending entry concurrently.
+            ros.append_pending_outcome(session, "other:skill", errors=False, decision_id="dec-new-2")
+            return real_exists(k)
+
+        monkeypatch.setattr(score, "decision_row_exists", mid_loop_exists)
+        b = _load(B_PATH, "ror_race_fin")
+        event = {"hook_event_name": "SubagentStop", "session_id": session}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            b.main()
+
+        # Entry was visible on disk mid-loop (never drained out from under concurrent readers).
+        assert len(seen_mid_loop) == 1 and [e["decision_id"] for e in seen_mid_loop[0]] == ["dec-race-1"]
+        # Finalized dec-race-1 was NOT resurrected, and concurrently added dec-new-2 survived.
+        remaining = ros.peek_pending_outcomes(session)
+        assert [e["decision_id"] for e in remaining] == ["dec-new-2"]
+
+    def test_crash_mid_loop_does_not_lose_pending_entries(self, db_env, monkeypatch):
+        """If SubagentStop crashes mid-validation, pending entries stay intact on disk."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as score
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        session = "race-crash"
+        ros.append_pending_outcome(session, "agent:one", errors=False, decision_id="dec-crash-1")
+        ros.append_pending_outcome(session, "agent:two", errors=True, decision_id="dec-crash-2")
+
+        def crash(_k: str) -> bool:
+            raise RuntimeError("sqlite exploded mid-loop")
+
+        monkeypatch.setattr(score, "decision_row_exists", crash)
+        b = _load(B_PATH, "ror_race_crash")
+        event = {"hook_event_name": "SubagentStop", "session_id": session}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            b.main()
+
+        remaining = ros.peek_pending_outcomes(session)
+        assert [e["decision_id"] for e in remaining] == ["dec-crash-1", "dec-crash-2"]
+
+    def test_malformed_pending_entry_pruned_while_valid_preserved(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        session = "race-malformed"
+        key = _seed_decision("python-general-engineer:good")
+        ros.append_pending_outcome(session, key, errors=False, decision_id="dec-good-1")
+        state_path = ros._state_file(session)
+        data = json.loads(state_path.read_text(encoding="utf-8"))
+        data["pending"].insert(0, "not-a-dict")
+        data["pending"].append({"key": "", "errors": False})
+        state_path.write_text(json.dumps(data), encoding="utf-8")
+
+        b = _load(B_PATH, "ror_race_malformed")
+        event = {"hook_event_name": "SubagentStop", "session_id": session}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            b.main()
+
+        remaining = ros.peek_pending_outcomes(session)
+        assert [e["decision_id"] for e in remaining] == ["dec-good-1"]

@@ -135,6 +135,54 @@ def test_secret_redact_covers_vendor_tokens_and_pem():
     assert secret_redact.redact_text("plain words stay as they are") == "plain words stay as they are"
 
 
+def test_secret_redact_covers_widened_authorization_schemes():
+    import secret_redact
+
+    token_val = "tok_" + "AbCdEf123456"
+    apikey_val = "ak_" + "ZzYyXx987654"
+    digest_tok = "dig_" + "0123456789ab"
+    digest_resp = "6629fae49393a05397450978507c4ef1"
+    samples = [
+        (f"Authorization: Token {token_val}", token_val),
+        (f"Authorization: ApiKey {apikey_val}", apikey_val),
+        (f"Authorization: Digest {digest_tok}", digest_tok),
+        (
+            f'Authorization: Digest username="Mufasa", realm="testrealm", response="{digest_resp}"',
+            digest_resp,
+        ),
+        (f"Authorization: Basic {'dXNlcjpwYXNz' * 2}", "dXNlcjpwYXNz" * 2),
+        (f"Authorization: Bearer {'b' * 16}", "b" * 16),
+    ]
+    for raw, secret in samples:
+        redacted = secret_redact.redact_text(raw)
+        assert secret not in redacted, raw
+        assert "<redacted:" in redacted, raw
+
+
+def test_hook_error_and_command_head_delegate_to_secret_redact(tmp_path, monkeypatch):
+    """Vendor tokens, OpenAI keys, and URL credentials never leak into hook-errors.jsonl or governance payloads."""
+    path = tmp_path / "hook-errors.jsonl"
+    monkeypatch.setenv("CLAUDE_HOOK_ERRORS_PATH", str(path))
+    openai_key = "sk-" + "XyZ987654321" * 2
+    url_pw = "superSecretUrlPass99"
+    url_with_creds = f"https://alice:{url_pw}@git.example.com/repo.git"
+
+    msg = f"failed for {GITHUB_TOKEN} {AWS_KEY} {openai_key} {url_with_creds}"
+    hook_utils.hook_error("redact-delegate-test", RuntimeError(msg))
+
+    stored = json.loads(path.read_text(encoding="utf-8"))["msg"]
+    for leaked in (GITHUB_TOKEN, AWS_KEY, openai_key, url_pw):
+        assert leaked not in stored
+    assert "<redacted:" in stored
+
+    # Command head redacts before truncating, even when a secret straddles char 80.
+    padded_cmd = "git clone " + ("a" * 62) + " " + url_with_creds
+    head = hook_utils._redact_command_head(padded_cmd, max_len=80)
+    assert len(head) <= 80
+    assert url_pw not in head
+    assert "superSecret" not in head
+
+
 # ---------------------------------------------------------------------------
 # I-05: telemetry files are created owner-only (0600) in 0700 directories
 # ---------------------------------------------------------------------------

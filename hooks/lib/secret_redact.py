@@ -48,7 +48,20 @@ def _patterns() -> list[tuple[str, re.Pattern[str], int]]:
             ("bearer", re.compile(r"(?i)\bBearer\s+(" + _VALUE_CHARS + r"{8,})"), 1),
             (
                 "authorization",
-                re.compile(r"(?i)\bAuthorization\s*[:=]\s*[\"']?(?:Basic\s+)?(" + _VALUE_CHARS + r"{8,})"),
+                re.compile(
+                    r"(?i)\bAuthorization\s*[:=]\s*[\"']?Digest\s+("
+                    r"[A-Za-z0-9_.-]+=(?:\"[^\"\r\n]*\"|" + _VALUE_CHARS + r"+)"
+                    r"(?:,\s*[A-Za-z0-9_.-]+=(?:\"[^\"\r\n]*\"|" + _VALUE_CHARS + r"+))*)"
+                ),
+                1,
+            ),
+            (
+                "authorization",
+                re.compile(
+                    r"(?i)\bAuthorization\s*[:=]\s*[\"']?(?:(?:Basic|Token|ApiKey|Digest)\s+)?("
+                    + _VALUE_CHARS
+                    + r"{8,})"
+                ),
                 1,
             ),
             ("jwt", re.compile(r"\b(eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,})"), 1),

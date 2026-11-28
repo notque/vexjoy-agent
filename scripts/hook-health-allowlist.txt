@@ -11,9 +11,3 @@
 #
 # Dispatched helpers invoked via subprocess by another hook are detected
 # automatically and do NOT need an entry here.
-
-# --- Retired hooks (unregistered from .claude/settings.json) ---
-pipeline-context-detector.py               # unregistered: retired UserPromptSubmit hook superseded by /do and /d routing
-codex-auto-review.py                       # unregistered: retired UserPromptSubmit hook superseded by pr-workflow codex-review intent
-posttooluse-sync-agent-index.py            # unregistered: agents/*.md index refresh folded into posttooluse-sync-skill-index.py
-subagent-completion-guard.py               # unregistered: retired SubagentStop guard (reviewer agents retired; SubagentStop deny ignored by Claude Code)

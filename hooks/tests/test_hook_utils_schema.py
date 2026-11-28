@@ -85,6 +85,13 @@ def test_is_tool_error_exit_code_zero():
 
 def test_is_tool_error_exit_code_nonzero():
     assert is_tool_error({"exitCode": 1}) is True
+    assert is_tool_error({"exitCode": -1}) is True
+
+
+def test_is_tool_error_exit_code_none_is_not_error():
+    assert is_tool_error({"exitCode": None}) is False
+    assert is_tool_error([{"exitCode": None}, {"exitCode": 0}]) is False
+    assert is_tool_error([{"exitCode": None}, {"exitCode": 2}]) is True
 
 
 def test_is_tool_error_neither_key():

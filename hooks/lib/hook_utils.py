@@ -551,26 +551,16 @@ def is_sensitive_path(path: str) -> bool:
     return bool(segments and _sensitive_basename_pattern().match(segments[-1]))
 
 
-# Secrets pattern used to strip sensitive values from error messages.
-_SECRETS_RE = None
-
-
-def _secrets_pattern():
-    """Lazy-compile secrets regex (avoids import-time re.compile cost)."""
-    global _SECRETS_RE
-    if _SECRETS_RE is None:
-        import re
-
-        _SECRETS_RE = re.compile(
-            r"(Bearer\s+\S+|token[=:]\S+|key[=:]\S+|password[=:]\S+|secret[=:]\S+)",
-            re.IGNORECASE,
-        )
-    return _SECRETS_RE
-
-
 def _redact_secrets(text: str) -> str:
-    """Strip obvious secret patterns from error text."""
-    return _secrets_pattern().sub("<redacted>", text)
+    """Strip secrets from error and telemetry text via ``secret_redact``."""
+    if not text:
+        return text
+    try:
+        from secret_redact import redact_text
+    except ImportError:
+        from .secret_redact import redact_text
+
+    return redact_text(text)
 
 
 def _tighten_if_owned(fd: int) -> None:
@@ -732,9 +722,8 @@ def _governance_event_id(window: int, *parts: object) -> str:
 
 
 def _redact_command_head(command: str, max_len: int = 80) -> str:
-    """First ~80 chars of a command with secrets stripped."""
-    head = command[:max_len]
-    return _redact_secrets(head)
+    """First ~80 chars of a command with secrets stripped before truncation."""
+    return _redact_secrets(command)[:max_len]
 
 
 def record_governance(
@@ -943,7 +932,8 @@ def is_tool_error(result: object) -> bool:
         return False
     if "is_error" in result:
         return bool(result["is_error"])
-    return result.get("exitCode", 0) != 0
+    code = result.get("exitCode")
+    return code is not None and code != 0
 
 
 # =============================================================================

@@ -77,9 +77,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import hook_error
 from routing_outcome_state import (
-    drain_pending_outcomes,
-    requeue_pending_outcomes,
-    revalidate_pending_outcomes,
+    peek_pending_outcomes,
+    update_pending_outcomes,
 )
 from stdin_timeout import read_stdin
 
@@ -164,11 +163,13 @@ def main() -> None:
         except Exception as e:
             hook_error("routing-outcome-recorder:route-fit", e)
 
-        pending = drain_pending_outcomes(session_id)
+        # Non-destructive read: active entries stay visible to concurrent
+        # UserPromptSubmit/Stop finalizers and survive crashes mid-loop.
+        pending = peek_pending_outcomes(session_id)
         if not pending:
             return  # nothing to validate
 
-        # Lazy import of the shared scorer so a B run that drains nothing pays no
+        # Lazy import of the shared scorer so a B run that sees nothing pays no
         # learning_db_v2 import cost.
         from learning_db_v2 import init_db
         from routing_outcome_score import decision_row_exists
@@ -179,21 +180,20 @@ def main() -> None:
 
         debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
         # HIGH (A-before-B): pending entries whose decision row is not yet
-        # visible are RE-QUEUED (attempts+1, bounded) so a late-landing row gets
-        # validated on a subsequent stop, rather than being dropped. Entries
-        # whose row IS visible are REVALIDATED — put back pending (no attempt
-        # advance) so the next-turn finalizer (UserPromptSubmit) / Stop fallback
-        # can resolve them. B does NOT apply boost/decay anymore.
+        # visible have attempts incremented (bounded by MAX_REQUEUE_ATTEMPTS)
+        # under lock so a late-landing row gets validated on a subsequent stop.
+        # Entries whose row IS visible stay pending (stale ones pruned) without
+        # ever removing active entries from state.
         to_requeue: list[dict] = []
         to_revalidate: list[dict] = []
+        has_malformed = False
         for item in pending:
-            # The drain already cleared these from state: one malformed entry
-            # (not a dict, or a key that is not a string) is dropped here and
-            # must not abort the loop and lose every entry after it.
             if not isinstance(item, dict):
+                has_malformed = True
                 continue
             key = item.get("key")
             if not isinstance(key, str) or not key:
+                has_malformed = True
                 continue
             if not decision_row_exists(key):
                 to_requeue.append(item)
@@ -212,10 +212,13 @@ def main() -> None:
                     file=sys.stderr,
                 )
 
-        if to_requeue:
-            requeue_pending_outcomes(session_id, to_requeue)
-        if to_revalidate:
-            revalidate_pending_outcomes(session_id, to_revalidate)
+        if to_requeue or to_revalidate or has_malformed:
+            update_pending_outcomes(
+                session_id,
+                validated=to_revalidate,
+                missing=to_requeue,
+                drop_malformed=has_malformed,
+            )
 
     except Exception as e:
         hook_error("routing-outcome-recorder", e)
