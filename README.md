@@ -2,24 +2,92 @@
 
 <img src="docs/repo-hero.png" alt="VexJoy Agent" width="100%">
 
-Essays and writing behind this toolkit live at [vexjoy.com](https://vexjoy.com).
+**Describe the outcome you want. VexJoy Agent picks the right skills, runs the workflow, checks its own work, and blocks unsafe actions before they land.**
 
-VexJoy Agent connects plain-English requests to domain skills, multi-phase workflows, and verification gates. You describe the outcome; `/do` or `/d` selects the skills, pipelines, and execution mode without making you learn the catalog.
+AI coding CLIs fail in three predictable ways when left on autopilot: they ignore passive skill catalogs, cut verification corners when they feel confident, and quietly rewrite what you asked for. VexJoy Agent fixes all three with a front-door router (`/do`), an optional intent-verification gate (`/d`), reusable domain skills, and hard safety hooks.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 skills, 26 pipelines, 47 hooks, 160 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. `AGENTS.md` is the canonical rule file: Antigravity CLI and Codex read it natively, and Claude Code imports it via `CLAUDE.md` (`@AGENTS.md`).
+43 skills, 26 pipelines, 47 hooks, 160 scripts. Works across Claude Code (`/do`), Antigravity CLI (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Hermes. Essays behind the toolkit live at [vexjoy.com](https://vexjoy.com).
 
-Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
+---
 
-## How the Agent Works
+## Quick Start
 
-Models do not reliably self-activate a large skill catalog on autopilot. Without an explicit router, they skip domain skills, drop multi-step procedures, and cut verification corners.
+Requires Python 3.10+, `git`, and `bash` (Linux, macOS, or Git for Windows bash) plus network access for `pip`. `npm` is optional (used for `/d`'s Vercel Jev transport; without it `/d` falls back to `/do`).
 
-`/do` routes each request before work begins. It classifies complexity, reads the live skill and pipeline manifest, and loads the matching skills and verification gates. To avoid subagent cold-start overhead, `/do` runs Trivial and Simple work directly in the main thread and answers pure Q&A turns with a one-line route note. When delegation pays — Medium or Complex tasks, parallel fan-out, long multi-file lanes, worktree isolation, or read-only gathering — it dispatches built-in workers (`general-purpose` on Claude Code, `self` or `research` on Antigravity) with the selected skill loaded.
-
-## What It Looks Like
-
+```bash
+git clone https://github.com/notque/vexjoy-agent.git ~/vexjoy-agent
+cd ~/vexjoy-agent
+./install.sh
 ```
+
+Then open Claude Code, Antigravity CLI, or Codex in any project and ask in plain English:
+
+```text
+/do debug the failing Go health-check test
+/do review my diff for security and edge cases
+/d  fix the flaky payment test without touching the billing API
+```
+
+You do not need to memorize skill names or slash commands. `/do` reads the live catalog, loads the matching skills and verification gates, and runs the job.
+
+**What `./install.sh` changes on your machine:**
+- Installs skills, hooks, and scripts into `~/.claude/` and every other detected runtime home (`~/.codex/`, `~/.gemini/`, `~/.factory/`, `~/.hermes/`, `~/.reasonix/`, and `~/.cline/` when present). Uses symlinks in a Linux/macOS git checkout (`--copy` is default on Windows) and re-syncs automatically on `git pull` and `SessionStart`.
+- Merges toolkit hook registrations and `env` defaults into `~/.claude/settings.json` (after backing up your existing file), installs `requirements.txt` with `pip`, writes `post-merge` and `pre-commit` git hooks into this checkout, and adds a managed block to `~/.bashrc`.
+- Turns on blocking safety gates across repos: no `git commit` on `main` or `master`, no `git push` or `gh pr create` before `/pr-review` records the commit (except non-fork `github.com/notque` repos), and no `gh pr merge` before CI passes.
+
+Full details, opt-outs, and how to disable any gate: [What the installer changes](docs/start-here.md#what-the-installer-changes).
+
+<details>
+<summary><b>Installer flags, partial installs, and optional add-ons</b></summary>
+
+| Flag | Effect |
+|---|---|
+| `--dry-run` | Print the plan; write nothing |
+| `--target <t>` | Limit to `claude`, `codex`, `factory`, `hermes`, `reasonix`, `antigravity`, `cline`, or `all` |
+| `--copy` / `--symlink` | Copy a stable snapshot / link to this checkout (symlink default on Linux/macOS; copy default on Windows) |
+| `--configure` | Install only selected parts of the toolkit (or copy `.local.example/profile.yaml` to `.local/profile.yaml`; see [.local.example/README.md](.local.example/README.md)) |
+| `--no-takeover` | Leave existing unowned files in place (default: move them to trash and replace) |
+| `--uninstall` / `--rollback` | Remove owned entries / undo the last install or uninstall from its trash and settings backup |
+
+Installer layout and safety rules: [docs/installer-layout.md](docs/installer-layout.md).
+
+**Jev Auto-Compact plugin** (optional Claude Code plugin, requires `TYPESAFE_API_KEY`):
+
+```bash
+claude plugin marketplace add ./plugins/jev-auto-compact
+claude plugin install jev-auto-compact@jev-auto-compact -y
+```
+
+Replaces generated compaction summaries with Jev-judged verbatim pruning after context reaches 60%. The installer enables Claude Code function hooks (`CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`). Inspect before/after savings with `python3 scripts/jev-compact-evidence.py`.
+
+**Token-saving mode** (optional):
+
+```bash
+claude --system-prompt "."
+```
+
+Strips Claude Code's default tool-use prompt so the toolkit's skills, hooks, and `CLAUDE.md` supply the guidance. Trade-off: you also drop Claude Code's built-in prompt updates and rely only on this toolkit's instructions and [gates](docs/start-here.md#gates-in-every-repo).
+
+</details>
+
+---
+
+## Why `/do` and `/d` Exist
+
+### `/do`: Make models actually use skills and run the process
+
+A flat folder of 43 skills does not activate itself. Without an explicit router, models skip domain skills, skip multi-step procedures, and claim work is done without proof.
+
+`/do` runs before work begins:
+1. **Classifies scope** so simple work stays fast and big work gets structured.
+2. **Reads the live manifest** of skills and pipelines and loads the domain knowledge + verification rules that fit your intent.
+3. **Picks the right execution mode:**
+   - **Pure Q&A / opinions** (zero edits or tools): answers directly in-thread with a one-line route note.
+   - **Trivial & Simple tasks**: runs in the main thread with the skill loaded, avoiding a ~20k-token subagent cold start.
+   - **Medium, Complex, parallel, or isolated tasks**: dispatches built-in workers (`general-purpose` on Claude Code, `self` or `research` on Antigravity) with the selected skills, task spec, and pipeline phases.
+
+```text
 $ claude
 
 > /do debug this Go test
@@ -42,11 +110,9 @@ $ claude
   RECORD: noted the cause for later sessions
 ```
 
-The router stacks the `programming` skill (Go) on the `workflow` skill's debugging pipeline, then follows the task through each phase. The output is illustrative and abridged: the banner format, skill, and phases are real; the run is an example.
+*(Illustrative run; banner format, skills, and pipeline phases are real.)*
 
-## The Pipeline
-
-```
+```text
   ROUTE        PLAN         EXECUTE      VERIFY       DELIVER      RECORD
  ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐
  │ /do  │───▶│ Task │───▶│Worker│───▶│Tests │───▶│  PR  │───▶│Route │
@@ -54,41 +120,16 @@ The router stacks the `programming` skill (Go) on the `workflow` skill's debuggi
  └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘
 ```
 
-## /d — Jev-Powered Router
+### `/d`: Stop models from silently rewriting what you asked for
 
-`/d` requires [TypeSafe's Jev](https://docs.typesafe.ai). It uses the same `/do` routing and dispatch engine, plus an independent Jev gate that checks intent before work starts.
+Models (especially Claude) frequently drift from your actual request: quietly expanding a small fix into a broad refactor ("turning an apple into an orchard"), or narrowing a full deliverable into a partial start. Asking the same model *"did you understand me?"* fails because it rationalizes its own misread.
 
-Models — especially Claude — frequently drift from what you asked, quietly expanding scope ("turning an apple into an orchard") or narrowing a full task into a partial start, and cannot reliably catch their own misread. `/d` restates your requested outcome and checks that restatement against your raw prompt through Jev, gating dispatch on a Jev receipt for that exact proposed intent. The gate is an instruction in the `/d` skill checked by `scripts/build-dispatch.py`, not a hook.
+`/d` uses [TypeSafe's Jev](https://docs.typesafe.ai) as an independent second pair of eyes on top of the exact same `/do` router and dispatch engine:
+1. Restates the exact outcome it is about to deliver.
+2. Sends your raw request and that restatement to Jev to check alignment.
+3. Gates dispatch on a Jev receipt for that exact proposed intent (checked by `scripts/build-dispatch.py`, not a hook).
 
-Choose either transport:
-
-```bash
-# Preferred: Jev through Vercel AI Gateway
-export JEV_TRANSPORT=vercel
-export AI_GATEWAY_API_KEY=...
-
-# Alternative: Jev's direct API
-export JEV_TRANSPORT=direct
-export TYPESAFE_API_KEY=...
-```
-
-`JEV_TRANSPORT=auto` is the default. It prefers Vercel when
-`AI_GATEWAY_API_KEY` is set, then uses the direct API when only
-`TYPESAFE_API_KEY` is set. An explicit transport never silently switches to
-the other one. The TypeSafe MCP plugin is not required for `/d`.
-
-Intent-alignment judgments are recorded in `learning.db` without raw request
-text. Receipts keep the Jev judge model separate from the executing agent's
-configured model and effort level. Inspect drift and proposed-intent difference
-rates across models, runtimes, judge models, and transports:
-
-```bash
-python3 scripts/jev-intent-stats.py --days 30
-```
-
-Example (illustrative):
-
-```
+```text
 > /d fix the flaky test in the payments module
 
   Intent alignment (/d):
@@ -100,127 +141,111 @@ Example (illustrative):
   Invoking...
 ```
 
-## Anti-Rationalization
+Configure either Jev transport (`JEV_TRANSPORT=auto` prefers Vercel when `AI_GATEWAY_API_KEY` is set, then direct when only `TYPESAFE_API_KEY` is set; an explicit transport never silently switches; no TypeSafe MCP plugin needed):
 
-Skills ask for evidence rather than confidence.
+```bash
+# Preferred: Jev through Vercel AI Gateway
+export JEV_TRANSPORT=vercel
+export AI_GATEWAY_API_KEY=...
 
-| Worker Says | What Happens |
+# Alternative: Jev's direct API
+export JEV_TRANSPORT=direct
+export TYPESAFE_API_KEY=...
+```
+
+Intent-alignment receipts are stored in `learning.db` without raw prompt text. Measure drift rates across models, runtimes, judge models, and transports:
+
+```bash
+python3 scripts/jev-intent-stats.py --days 30
+```
+
+---
+
+## What You Can Ask
+
+VexJoy Agent handles both software engineering and knowledge work from the same prompt bar:
+
+| Goal | Example prompt | What runs under the hood |
+|---|---|---|
+| **Debug & test** | `/do debug this Go test and add a regression check` | `workflow` (systematic debugging) + `programming` + `testing` exit gates |
+| **Ship & review PRs** | `/do review my diff, push, and merge once CI is green` | `review` + `pr-workflow` + `ci-merge-gate` (blocks merge until all checks pass) |
+| **Security & infra** | `/do audit this auth change for vulnerabilities` | `security` threat/diff review or `kubernetes` / `deploy` runbooks |
+| **Deep research & docs** | `/do compare Postgres vs SQLite WAL limits with primary sources` | `research` multi-worker protocol with inline citations, gap checks, and PDF/Office-to-Markdown conversion |
+| **Frontend & visual artifacts** | `/do build a clean dashboard / HTML deck for Q3 metrics` | `frontend` visual-craft & anti-slop guidelines, responsive checks, self-contained HTML artifacts |
+| **Writing & editing** | `/do condense this design doc without losing any rules` | `writing` (voice fidelity, condensing, 397 writing patterns, anti-AI pass) |
+
+Full catalog of all 43 skills: [docs/skills.md](docs/skills.md).
+
+---
+
+## Hard Safety Gates vs. Skill Checks
+
+VexJoy separates **hard hooks** (code that blocks an action with a non-zero exit) from **skill gates** (instructions that demand proof before marking work done):
+
+**Hooks that actually block** (coverage depends on runtime and tool path; full list in [Gates in every repo](docs/start-here.md#gates-in-every-repo)):
+- Committing directly to `main` or `master`
+- Pushing or creating a PR before `/pr-review` records the commit (in every repo except non-fork `github.com/notque` ones)
+- Merging a PR (`gh pr merge`) while GitHub Actions checks are failing or still running
+- Destructive commands, credential/secret writes, and skipping required pipeline phase artifacts
+- On Antigravity: `pretool-routing-gate` blocks commands and edits until the routing banner is emitted
+
+**Skill verification gates** (anti-rationalization instructions; Stop hooks are advisory, except `stop-drift-guard` in this checkout which wakes the session on hook, doc-count, or routing drift):
+
+| Excuse a model tries | What the skill requires instead |
 |---|---|
-| "Code looks correct, skip tests" | The skill's exit gate asks for test output before the phase ends. |
-| "Trivial change, no verification" | The skill still asks for evidence; at merge time, `ci-merge-gate` blocks `gh pr merge` until CI passes. |
-| "Similar to before" | Skill demands case-specific proof. |
-| "User is in a hurry" | Protocol overrides time pressure. |
-| "I'm confident" | The skill asks for an exit code, not an assertion. |
+| "Code looks correct, skip tests" | Run the test suite and show the output before closing the phase. |
+| "Trivial change, no verification" | Provide concrete execution proof; `ci-merge-gate` still blocks merge until CI passes. |
+| "Similar to before" | Prove the current case directly. |
+| "User is in a hurry" | Verification protocol overrides time pressure. |
+| "I'm confident" | Show an exit code, not an assertion. |
 
-These rows are skill instructions, not hooks. No hook stops a session or a subagent from finishing without evidence. The Stop hooks are advisory (in this checkout, `stop-drift-guard` can wake the session again after it stops when its changes caused hook, doc-count, or routing drift). The hooks that do block cover specific actions: commits on `main` or `master`, pushes and PR creation before `/pr-review` records the commit (in every repo except non-fork `github.com/notque` ones), merges before CI passes, destructive commands, writes to credential files, and pipeline phases written without their artifact. The full list is in [Start Here](docs/start-here.md#gates-in-every-repo). Coverage depends on the runtime and tool path.
+---
 
-## Knowledge Work Is First-Class
+## Supported CLIs
 
-The content engine researches, drafts in a calibrated voice, checks 397 writing patterns, and adapts finished pieces for each platform. `/frontend` (its HTML artifact mode) produces a self-contained report, deck, prototype, chart, or diagram.
+`AGENTS.md` is the single canonical rule file: Antigravity CLI and Codex read it natively, and Claude Code imports it through `CLAUDE.md` (`@AGENTS.md`).
 
-## It Proves Its Own Changes
-
-Toolkit changes use direct review and relevant checks. Model comparisons can settle specific uncertainties; they are not required for every edit. [PHILOSOPHY.md](docs/PHILOSOPHY.md) explains the validation policy.
-
-The automated nightly evolution loop (the `toolkit` skill's evolution flow, `skills/meta/toolkit/references/toolkit-evolution.md`; it wrote to the gitignored `evolution-reports/`) ran regularly through mid-May 2026. It is currently dormant; recent evidence has come from manual PRs instead.
-
-## Installation
-
-You need Python 3.10+, git, and bash: Linux or macOS, or Git for Windows' bash. The installer runs pip, so it needs network access. npm is optional: it installs Jev's Vercel gateway, and without it `/d` falls back to `/do`.
-
-```bash
-git clone https://github.com/notque/vexjoy-agent.git ~/vexjoy-agent
-cd ~/vexjoy-agent
-./install.sh
-```
-
-Installs into `~/.claude/`, and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, `~/.reasonix/`, `~/.gemini/` (Antigravity), and `~/.cline/` when that home directory exists. `install.sh` first creates the home of each runtime whose command is on PATH (not Cline's). `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the checkout re-syncs every runtime through the same engine, and so does the `post-merge` git hook after `git pull`. Symlinks (default in a git checkout on Linux and macOS) follow `git pull`; `--copy` gives a stable snapshot and is the default on Windows.
-
-The install also changes your machine outside those directories, and its hooks then run in every repo you open with Claude Code:
-
-- It merges the toolkit's hook registrations and its `env` settings into `~/.claude/settings.json`, after backing up the old file.
-- It installs `requirements.txt` with pip (`--break-system-packages` when pip supports it, else `--user`), writes `post-merge` and `pre-commit` hooks into this checkout's `.git/hooks`, and adds a managed block to `~/.bashrc`.
-- Several hooks block actions in any repo: `git commit` on `main` or `master`, `git push` and `gh pr create` until `/pr-review` records the commit (in every repo except non-fork `github.com/notque` ones), and `gh pr merge` before CI passes.
-
-Every change, its opt-out, and how to turn off a gate: [What the installer changes](docs/start-here.md#what-the-installer-changes).
-
-| Flag | Effect |
-|---|---|
-| `--dry-run` | Print the plan; write nothing |
-| `--target <t>` | Only `claude`, `codex`, `factory`, `hermes`, `reasonix`, `antigravity`, `cline`, or `all` |
-| `--copy` / `--symlink` | Copy entries for a stable snapshot / link them to this checkout (the default in a main git checkout on Linux and macOS; copy is the default on Windows) |
-| `--no-takeover` | Leave old unowned copies in place (default: move them to trash and replace) |
-| `--uninstall` / `--rollback` | Remove owned entries and, with no `--target` or `--target claude`, rename install.sh's post-merge hook so git skips it / undo the last install or uninstall run (its trash and settings backup) |
-
-Layout and safety rules: [docs/installer-layout.md](docs/installer-layout.md).
-
-Want only part of the toolkit? Run `./install.sh --configure`, or copy `.local.example/profile.yaml` to `.local/profile.yaml` and edit it. Without a profile, the full toolkit installs. Details: [.local.example/README.md](.local.example/README.md).
-
-| CLI | Entry Point |
-|-----|-------------|
-| Claude Code | `/do` |
-| Codex | `$do` |
-| Factory | `/do` |
-| Reasonix | `/do` |
-| Antigravity CLI | `/do` |
-
-**Jev Auto-Compact plugin** (optional, requires `TYPESAFE_API_KEY`):
-
-```bash
-claude plugin marketplace add ./plugins/jev-auto-compact
-claude plugin install jev-auto-compact@jev-auto-compact -y
-```
-
-Replaces generated compaction summaries with Jev-judged verbatim pruning after context reaches 60%. The plugin is a Claude Code function hook; the `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` setting the installer adds turns those on. Inspect recorded before/after tokens and duration with `python3 scripts/jev-compact-evidence.py`.
-
-**Full setup:** [docs/start-here.md](docs/start-here.md)
+| Tier | CLI | Entry point | Support level |
+|---|---|---|---|
+| **Tier 1** | **Claude Code** | `/do`, `/d` | Full parity: all skills, pipelines, 51 Python hook registrations, Jev plugins |
+| **Tier 1** | **Antigravity CLI** | `/do`, `/d` | Full skills + adapted hooks via `hooks/agy-hook-adapter.py` + `pretool-routing-gate` |
+| **Tier 1** | **Codex CLI** | `$do` | Full skills + 43 of 51 hook registrations via native events and `hooks/codex-hook-adapter.py` |
+| **Tier 2** | **Factory** | `/do` | Skills, droids, and rewritten hooks in `~/.factory/settings.json` |
+| **Tier 2** | **Reasonix** | `/do` | Skills, scripts, and UserPromptSubmit/Stop hooks from `scripts/reasonix-hooks-allowlist.txt` |
+| **Tier 2** | **Hermes** | skills | Skills synced into `~/.hermes/` (no hook surface) |
+| **Tier 2** | **Cline** | skills | Synced when `~/.cline/` exists |
 
 <details>
-<summary><b>Codex CLI Parity</b></summary>
+<summary><b>Runtime-specific notes (Codex, Antigravity, Factory, Reasonix)</b></summary>
 
-Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ runs **43 of the 51 hook registrations; 8 are unsupported**. A registration is one hook file on one event, so these are not unique hook files. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`; `scripts/codex-hooks-allowlist.txt` lists each one.
-
-The adapter converts `apply_patch` operations into the Write/Edit payload expected by existing guards. It cannot intercept writes through `unified_exec`, unmatched MCP tools, WebSearch, or other unsupported paths. PreCompact and Stop receive less telemetry than in Claude Code. This is expanded compatibility, not full parity.
-
-After install or any hook-definition change, run `/hooks` in Codex and review the new definitions before trusting them. Codex hash-trusts hook commands and skips changed, unreviewed definitions.
+- **Codex CLI (`~/.codex/`):** Codex v0.144.1+ runs **43 of the 51 hook registrations; 8 are unsupported** (one registration is one hook file on one event, listed in `scripts/codex-hooks-allowlist.txt`). `hooks/codex-hook-adapter.py` converts `apply_patch` into Write/Edit payloads for guards; it cannot intercept `unified_exec`, unmatched MCP tools, or WebSearch, and PreCompact/Stop carry less telemetry than Claude Code. After installing or updating hooks, run `/hooks` inside Codex to review and trust updated command hashes.
+- **Antigravity CLI (`~/.gemini/`):** Mirrors skills, hooks, and scripts into `~/.gemini/` and writes `~/.gemini/config/hooks.json` from `scripts/agy-hooks-allowlist.txt`. `hooks/agy-hook-adapter.py` maps Antigravity tool names (`run_command`, `write_file`, `edit_file`, `read_file`) to the Claude names guards expect.
+- **Factory CLI (`~/.factory/`):** Mirrors skills, droids, and hooks with paths rewritten to `~/.factory/`; replaces only the `hooks` key in `~/.factory/settings.json`.
+- **Reasonix (`~/.reasonix/`):** Mirrors skills, scripts, and the non-tool hooks in `scripts/reasonix-hooks-allowlist.txt`. MCP, model, and permissions in `~/.reasonix/config.json` stay user-owned.
 
 </details>
 
-<details>
-<summary><b>Factory CLI Support</b></summary>
+---
 
-Mirrors agents (as "droids"), skills, and hooks into `~/.factory/`. The toolkit's hooks, with paths rewritten to `~/.factory/`, replace the `hooks` key of `~/.factory/settings.json`; its other keys stay.
+## Built with the Toolkit
 
-</details>
+A game built by Claude Code using these skills and pipelines:
 
-<details>
-<summary><b>Reasonix Support</b></summary>
+<div align="center">
+<video src="https://github.com/user-attachments/assets/0e74abeb-dc7e-42ba-8239-a7a98cb1ab09" width="100%" autoplay loop muted playsinline></video>
+</div>
 
-Mirrors skills, scripts, and the hooks listed in `scripts/reasonix-hooks-allowlist.txt` into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. Only UserPromptSubmit and Stop hooks are wired, because the toolkit's tool hooks expect Claude tool names. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
+---
 
-</details>
+## Choose Your Path
 
-<details>
-<summary><b>Antigravity CLI Support</b></summary>
+- **[Start here](docs/start-here.md)**: Install, run `/do` and `/d`, see every blocking gate and how to opt out.
+- **[Knowledge workers](docs/for-knowledge-workers.md)**: Writing, deep research, data analysis, HTML artifacts. No code required.
+- **[Developers](docs/for-developers.md)**: Architecture, extension points, authoring skills and references.
+- **[AI power users](docs/for-ai-wizards.md)**: Routing tables, pipelines, hooks, `learning.db` telemetry.
+- **[AI agents](docs/for-claude-code.md)**: Dense inventory of tables, paths, and schemas.
 
-Mirrors agents, skills, hooks, and scripts into `~/.gemini/`, and writes the hooks listed in `scripts/agy-hooks-allowlist.txt` to `~/.gemini/config/hooks.json`. `hooks/agy-hook-adapter.py` maps Antigravity tool names (`run_command`, `write_file`, `edit_file`, `read_file`) to the Claude names the guards expect. One gate runs only here: `pretool-routing-gate` blocks commands and file edits until the model has printed its routing banner.
-
-</details>
-
-<details>
-<summary><b>Token-saving mode</b></summary>
-
-The toolkit supplies its own routing, domain knowledge, methodology, and enforcement. The default system prompt duplicates most of that.
-
-```bash
-claude --system-prompt "."
-```
-
-Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and CLAUDE.md provide the project-specific guidance.
-
-Know the trade-off first. The default prompt also carries Claude Code's own guidance on tool use, git, and security, and new Claude Code releases update it. With `"."` you keep only the toolkit's instructions and the hooks in [Gates in every repo](docs/start-here.md#gates-in-every-repo).
-
-</details>
+---
 
 ## Four Layers
 
@@ -233,11 +258,9 @@ Know the trade-off first. The default prompt also carries Claude Code's own guid
 | Hooks | 47 | Lifecycle checks, context injection, and telemetry. |
 | Scripts | 160 | Repeatable validation, orchestration, and plumbing. |
 
-The counts are active components: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and the Python scripts in `scripts/`.
+Counts reflect active components on disk: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and Python scripts in `scripts/`.
 
-Full skill catalog: [docs/skills.md](docs/skills.md).
-
-```
+```text
 ┌──────────────────────────────────────────────────┐
 │  SKILL.md                                        │
 │  ┌─ Frontmatter ──────────────────────────────┐  │
@@ -245,64 +268,35 @@ Full skill catalog: [docs/skills.md](docs/skills.md).
 │  │ routing: triggers, pairs_with              │  │
 │  └────────────────────────────────────────────┘  │
 │  Modes or phases, with gates                     │
-│  Reference table (which references/ to load)     │
+│  Reference table (load references/ on demand)    │
 │  Verification (evidence requirements)            │
 └──────────────────────────────────────────────────┘
 ```
 
-This is the common shape, not a schema. Every active skill declares routing triggers; most also add phases or modes, a table that loads `references/` files on demand, and a verification step.
-
-## Built with the Toolkit
-
-A game built entirely by Claude Code using these skills and pipelines:
-
-<div align="center">
-<video src="https://github.com/user-attachments/assets/0e74abeb-dc7e-42ba-8239-a7a98cb1ab09" width="100%" autoplay loop muted playsinline></video>
-</div>
-
-## Choose Your Path
-
-**[I just want to use it](docs/start-here.md)** Install, learn `/do`, done.
-
-**[I do knowledge work](docs/for-knowledge-workers.md)** Writing, research, data analysis, moderation, HTML artifacts. No code.
-
-**[I'm a developer](docs/for-developers.md)** Architecture, extension points, adding skills.
-
-**[I'm an AI power user](docs/for-ai-wizards.md)** Routing tables, pipelines, hooks, telemetry DB.
-
-**[I'm an AI agent](docs/for-claude-code.md)** Machine-dense inventory. Tables, paths, schemas.
-
 ## Philosophy
 
-- **Outcome-first operation.** Describe the result; routing selects the relevant catalog entries.
-- **Programs compute; models judge and generate.** Use deterministic code where the answer is computable.
-- **Density.** Every word carries instruction, rule, or decision. Cut everything else.
-- **Breadth over depth.** Right context ensures correctness. Unfocused context adds cost.
-- **Enforce what has earned it.** A blocking hook's exit code enforces what instructions can't, for the actions it covers. Most quality gates are skill instructions, and a new check starts advisory until it proves its value.
-- **Everything pipelines.** Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
+- **Outcome-first operation.** Describe the result; routing loads the matching catalog entries.
+- **Programs compute; models judge and generate.** Use deterministic scripts wherever the answer is computable.
+- **Density.** Every word carries an instruction, rule, or decision; cut everything else.
+- **Right context over big context.** Load only the references a task needs; keep entry points slim.
+- **Enforce what has earned it.** Hard hooks block concrete hazards; skill gates verify work; new checks prove themselves advisory first.
+- **Evidence over assertions.** Toolkit edits ship through direct review, tests, and CI checks, not guesses.
 
-Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
+Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**.
 
-## Maintenance
+## Maintenance and Scheduling
 
-One report-only script surfaces upkeep work; it prints a digest and never edits, deletes, or blocks.
-
-- `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
-
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 160 scripts.
+Scheduled work follows the same boundary: repeatable plumbing runs in scripts, and judgment invokes a model.
 
 | Need | Use |
 |---|---|
+| Find stale skills to prune (report-only) | `python3 scripts/stale-skill-scan.py --top 20` (see [docs/deprecation-template.md](docs/deprecation-template.md)) |
 | Run a deterministic command on a schedule | `scripts/agent-scheduler.py` with `runner: "command"` |
-| Run an agent judgment on a schedule, webhook, or file change | `scripts/agent-scheduler.py` with the default `runner: "claude"` |
+| Run agent judgment on a schedule, webhook, or file change | `scripts/agent-scheduler.py` with the default `runner: "claude"` |
 | Install or remove a user crontab entry safely | `scripts/crontab-manager.py` |
-| Audit shell cron reliability | the `deploy` skill's cron reference (`skills/infrastructure/deploy/references/cron-automation.md`) |
-| Keep one interactive objective moving until criteria verify | the `workflow` skill's Objective Loop mode (`skills/process/workflow/references/ol-SPEC.md`) |
+| Audit shell cron reliability | `skills/infrastructure/deploy/references/cron-automation.md` |
+| Keep an interactive objective moving until criteria verify | `skills/process/workflow/references/ol-SPEC.md` |
 
-## Contributing
+## Contributing & License
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under MIT. See [LICENSE](LICENSE).
