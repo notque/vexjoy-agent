@@ -425,3 +425,31 @@ def test_allowlist_entry_for_a_removed_hook_fails(tmp_path, monkeypatch):
     _orphan_fixture(tmp_path, monkeypatch, "gone.py  # retired stub kept for compatibility\n")
 
     assert any("hooks/gone.py" in msg for msg in health.check_allowlist_not_stale())
+
+
+def test_cli_exits_one_on_seeded_dormant_hook_under_ci(tmp_path: Path) -> None:
+    """CLI negative control: dormant hook exits 1 under --ci --no-liveness --repo-root."""
+    import sys
+
+    script = Path(__file__).resolve().parent.parent / "validate-hook-health.py"
+    repo = tmp_path / "repo"
+    (repo / "hooks").mkdir(parents=True)
+    (repo / ".claude").mkdir(parents=True)
+    (repo / "scripts").mkdir(parents=True)
+    (repo / "hooks" / "orphan.py").write_text("# dormant\n", encoding="utf-8")
+    (repo / ".claude" / "settings.json").write_text('{"hooks": {}}\n', encoding="utf-8")
+    (repo / "scripts" / "hook-health-allowlist.txt").write_text("", encoding="utf-8")
+    env = {
+        **os.environ,
+        "HOME": str(tmp_path / "empty-home"),
+        "CLAUDE_HOOK_ERRORS_PATH": str(tmp_path / "errors.jsonl"),
+    }
+
+    result = subprocess.run(
+        [sys.executable, str(script), "--ci", "--no-liveness", "--repo-root", str(repo)],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "orphan.py" in result.stderr

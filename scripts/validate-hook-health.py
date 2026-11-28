@@ -1061,10 +1061,32 @@ def run_all(
     return failures
 
 
+def configure_repo_root(root: Path) -> None:
+    """Re-point module-level paths at *root* (used by --repo-root and tests)."""
+    global REPO_ROOT, SETTINGS_PATH, HOOKS_DIR, ALLOWLIST_PATH, CODEX_MIRROR, AGY_MIRROR
+    REPO_ROOT = root.resolve()
+    SETTINGS_PATH = REPO_ROOT / ".claude" / "settings.json"
+    HOOKS_DIR = REPO_ROOT / "hooks"
+    ALLOWLIST_PATH = REPO_ROOT / "scripts" / "hook-health-allowlist.txt"
+    CODEX_MIRROR = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
+    AGY_MIRROR = REPO_ROOT / "scripts" / "agy-hooks-allowlist.txt"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Composing hook-health validator")
     parser.add_argument("--ci", action="store_true", help="Exit 1 on any failure; runs liveness too")
     parser.add_argument("--with-liveness", action="store_true", help="Also run smoke-test liveness")
+    parser.add_argument(
+        "--no-liveness",
+        action="store_true",
+        help="Skip smoke-test and matcher liveness checks (fast static checks even under --ci)",
+    )
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=None,
+        help="Repository root to validate (default: toolkit containing this script)",
+    )
     parser.add_argument(
         "--hook-error-lookback-hours",
         type=float,
@@ -1074,8 +1096,12 @@ def main() -> int:
     args = parser.parse_args()
     if args.hook_error_lookback_hours <= 0:
         parser.error("--hook-error-lookback-hours must be greater than zero")
+    if args.repo_root is not None:
+        if not args.repo_root.is_dir():
+            parser.error(f"--repo-root is not a directory: {args.repo_root}")
+        configure_repo_root(args.repo_root)
 
-    with_liveness = args.ci or args.with_liveness
+    with_liveness = (args.ci or args.with_liveness) and not args.no_liveness
     failures = run_all(
         with_liveness=with_liveness,
         hook_error_lookback_hours=args.hook_error_lookback_hours,

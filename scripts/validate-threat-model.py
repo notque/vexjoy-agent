@@ -104,13 +104,16 @@ def validate_badge(path: Path) -> list[str]:
 
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
-        return [f"audit-badge.json is invalid JSON: {e}"]
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+        return [f"audit-badge.json is unreadable or invalid JSON: {e}"]
+
+    if not isinstance(data, dict):
+        return [f"audit-badge.json must contain a JSON object, got {type(data).__name__}"]
 
     for field, expected_type in REQUIRED_BADGE_FIELDS.items():
         if field not in data:
             errors.append(f"audit-badge.json missing required field: '{field}'")
-        elif not isinstance(data[field], expected_type):
+        elif not isinstance(data[field], expected_type) or (expected_type is int and isinstance(data[field], bool)):
             actual = type(data[field]).__name__
             errors.append(
                 f"audit-badge.json field '{field}' has wrong type: expected {expected_type.__name__}, got {actual}"
@@ -121,13 +124,18 @@ def validate_badge(path: Path) -> list[str]:
 
     if "phases_completed" in data:
         phases = data["phases_completed"]
-        if isinstance(phases, int) and phases < 1:
+        if isinstance(phases, int) and not isinstance(phases, bool) and phases < 1:
             errors.append(f"audit-badge.json 'phases_completed' must be >= 1, got {phases}")
 
     if "critical_count" in data:
         cc = data["critical_count"]
-        if isinstance(cc, int) and cc < 0:
+        if isinstance(cc, int) and not isinstance(cc, bool) and cc < 0:
             errors.append(f"audit-badge.json 'critical_count' must be >= 0, got {cc}")
+
+    if "warning_count" in data:
+        wc = data["warning_count"]
+        if isinstance(wc, int) and not isinstance(wc, bool) and wc < 0:
+            errors.append(f"audit-badge.json 'warning_count' must be >= 0, got {wc}")
 
     return errors
 

@@ -90,8 +90,8 @@ class AccountPlan:
         return {
             "name": self.name,
             "config_dir": str(self.config_dir),
-            "links_add": self.links_add,
-            "problems": self.problems,
+            "links_add": list(self.links_add),
+            "problems": list(self.problems),
             "hooks_added": list(m.added) if m else [],
             "hooks_removed": list(m.removed) if m else [],
             "hooks_deduped": list(m.deduped) if m else [],
@@ -184,7 +184,7 @@ def plan_account(
         desired, plan.not_registered = settings_mod.drop_undeployed(desired, ctx.home, check)
     try:
         current = settings_mod.read_settings(plan.settings_path)
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         plan.settings_error = f"unreadable ({exc})"
         return plan
     if not isinstance(current, dict):
@@ -231,8 +231,19 @@ def apply_account(ctx: Context, plan: AccountPlan, guard: Guard) -> dict:
     """Write one profile's links and settings. Returns its report entry."""
     report = plan.to_json()
     report["backup"] = None
+    linked: list[str] = []
+    link_errors: list[str] = []
     for entry in plan.links_add:
-        atomic_symlink(plan.config_dir / entry, ctx.home / ".claude" / entry, guard)
+        try:
+            atomic_symlink(plan.config_dir / entry, ctx.home / ".claude" / entry, guard)
+            linked.append(entry)
+        except OSError as exc:
+            msg = f"symlink {entry} failed: {exc}"
+            link_errors.append(msg)
+            report["problems"].append(msg)
+    report["links_add"] = linked
+    if link_errors:
+        report["link_errors"] = link_errors
     if plan.merge is not None and plan.settings_changed:
         report["backup"] = _backup(plan, state_dir(ctx.home) / "backups", guard)
         settings_mod.write(plan.settings_path, plan.merge.settings, guard)

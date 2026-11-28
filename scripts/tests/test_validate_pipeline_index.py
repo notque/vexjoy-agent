@@ -200,3 +200,24 @@ def test_retired_map_has_no_stale_names() -> None:
 
 def test_live_index_passes() -> None:
     assert check(_mod.DEFAULT_INDEX, _mod.REPO_ROOT) == []
+
+
+def test_cli_exits_one_on_seeded_missing_file_violation(tmp_path: Path) -> None:
+    """CLI negative control: missing pipeline doc exits 1."""
+    import subprocess
+    import sys
+
+    script = Path(__file__).resolve().parent.parent / "validate-pipeline-index.py"
+    bad_index = tmp_path / "pipeline-index.json"
+    _write_index(
+        bad_index,
+        {"ghost-pipeline": {"file": "skills/process/workflow/references/does-not-exist.md", "phases": ["RUN"]}},
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(script), "--index", str(bad_index)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "P1 MISSING-FILE" in result.stdout

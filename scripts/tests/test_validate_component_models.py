@@ -356,3 +356,28 @@ def test_main_fails_when_no_dispatch_script_is_found(tmp_path: Path, monkeypatch
 
     assert _mod.main() == 2
     assert "dispatch_script" in capsys.readouterr().err
+
+
+def test_cli_exits_one_on_seeded_sonnet_violation(tmp_path: Path) -> None:
+    """CLI negative control: running the script in a synthetic repo with a sonnet pin exits 1."""
+    import shutil
+    import subprocess
+
+    repo = _make_repo(tmp_path)
+    (repo / "scripts" / "lib").mkdir(parents=True)
+    script = repo / "scripts" / "validate_component_models.py"
+    shutil.copy2(_SCRIPTS_DIR / "validate_component_models.py", script)
+    shutil.copy2(_SCRIPTS_DIR / "lib" / "frontmatter.py", repo / "scripts" / "lib" / "frontmatter.py")
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (repo / "scripts" / "lib" / "__init__.py").write_text("", encoding="utf-8")
+
+    _agent(repo, "demo-agent", "model: opus\n")
+    skill_dir = repo / "skills" / "demo" / "demo-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("---\nname: demo-skill\nmodel: sonnet\n---\n", encoding="utf-8")
+    (repo / _WORKFLOW_DIR / "demo-pipeline.md").write_text("---\nname: demo-pipeline\n---\n", encoding="utf-8")
+    _script(repo, str(_WORKFLOW_DIR / "clean.js"), 'agent({ model: modelFor("work") });\n')
+
+    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "sonnet" in result.stdout

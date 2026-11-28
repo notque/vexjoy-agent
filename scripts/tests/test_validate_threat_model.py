@@ -119,3 +119,38 @@ def test_badge_missing_field_fails(tmp_path: Path, missing_field: str) -> None:
     result = _run(threat_model=tm, badge=badge)
     assert result.returncode == 1
     assert missing_field in result.stdout
+
+
+def test_badge_rejects_non_dict_bool_ints_negative_warning_and_bad_utf8(tmp_path: Path) -> None:
+    tm = tmp_path / "threat-model.md"
+    tm.write_text(VALID_THREAT_MODEL, encoding="utf-8")
+    badge = tmp_path / "audit-badge.json"
+
+    # Non-dict JSON root
+    badge.write_text('["not", "a", "dict"]', encoding="utf-8")
+    res = _run(threat_model=tm, badge=badge)
+    assert res.returncode == 1
+    assert "JSON object" in res.stdout
+
+    # Boolean passed for int field (bool is a subclass of int in Python)
+    data = json.loads(VALID_BADGE)
+    data["critical_count"] = True
+    data["phases_completed"] = True
+    badge.write_text(json.dumps(data), encoding="utf-8")
+    res = _run(threat_model=tm, badge=badge)
+    assert res.returncode == 1
+    assert "wrong type" in res.stdout
+
+    # Negative warning_count
+    data = json.loads(VALID_BADGE)
+    data["warning_count"] = -1
+    badge.write_text(json.dumps(data), encoding="utf-8")
+    res = _run(threat_model=tm, badge=badge)
+    assert res.returncode == 1
+    assert "warning_count" in res.stdout
+
+    # Unreadable UTF-8 bytes
+    badge.write_bytes(b"\xff\xfe\x00")
+    res = _run(threat_model=tm, badge=badge)
+    assert res.returncode == 1
+    assert "unreadable" in res.stdout or "invalid JSON" in res.stdout

@@ -29,28 +29,10 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BASE_INSTRUCTIONS_REL = Path("skills") / "shared-patterns" / "base-instructions.md"
 
-# Try to use shared frontmatter parser from scripts.lib
-try:
-    from scripts.lib.frontmatter import parse_frontmatter
-except ImportError:
-    import re
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-    _FM_PATTERN = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
-
-    def parse_frontmatter(text: str) -> tuple[dict[str, Any] | None, str]:  # type: ignore[misc]
-        m = _FM_PATTERN.match(text)
-        if not m:
-            return None, text
-        import yaml
-
-        body = text[m.end() :]
-        if body.startswith("\n"):
-            body = body[1:]
-        try:
-            return yaml.safe_load(m.group(1)), body
-        except Exception:
-            return None, body
-
+from scripts.lib.frontmatter import parse_frontmatter
 
 # Skills whose work is read-only review or external research. Category comes
 # from the skill name first, then its routing category.

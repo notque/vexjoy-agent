@@ -29,21 +29,20 @@ DEFAULT_GLOBS = [
     "CHANGELOG.md",
     "docs/*.md",
     "hooks/README.md",
-    "hooks/QUICKSTART.md",
 ]
 
 SEVERITY_WEIGHTS = {"error": 3, "warning": 2, "info": 1}
 
 
 def load_patterns() -> dict:
-    with open(PATTERNS_FILE) as f:
+    with open(PATTERNS_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 
 def scan_file(filepath: Path, db: dict, min_severity: str = "info") -> list[dict]:
     """Scan a file and return list of hits."""
     try:
-        content = filepath.read_text()
+        content = filepath.read_text(encoding="utf-8")
     except Exception as e:
         return [{"error": str(e)}]
 

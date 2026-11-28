@@ -205,7 +205,7 @@ def _check_settings(ctx: Context, findings: list[Finding]) -> None:
     spath = home / ".claude" / "settings.json"
     try:
         current = settings_mod.read_settings(spath)
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         findings.append(Finding(ERROR, "settings-unreadable", "claude", str(spath), str(exc)))
         return
     rule = settings_mod.OwnerRule(home=home, hooks_dir=home / ".claude" / "hooks", source_root=ctx.source_root)

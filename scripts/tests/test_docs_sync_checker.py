@@ -189,3 +189,39 @@ def test_routing_map_without_agents_parses(fixture_repo: Path) -> None:
     path.write_text(path.read_text(encoding="utf-8").replace("## AGENTS (2)", "## Agents (2)"), encoding="utf-8")
     failed = [name for name, passed, _ in validate.validate_primary_docs_parse(fixture_repo) if not passed]
     assert failed == []
+
+
+def test_scan_tools_parses_multiline_yaml_description(tmp_path: Path) -> None:
+    """Multiline YAML block scalar descriptions must parse to real text, not '|'."""
+    _write(
+        tmp_path / "skills" / "demo" / "multi" / "SKILL.md",
+        "---\nname: multi\ndescription: |\n  Line one.\n  Line two: with colon.\nversion: 2.0\n---\n# Body\n",
+    )
+    scanner = scan_tools.ToolScanner(tmp_path)
+    skills = scanner.scan_skills()
+    assert len(skills) == 1
+    assert skills[0]["name"] == "multi"
+    assert skills[0]["description"] == "Line one.\nLine two: with colon."
+    assert skills[0]["version"] == "2.0"
+
+
+def test_generate_report_handles_zero_total_tools_without_zero_division() -> None:
+    """total_tools=0 with total_issues>0 must not raise ZeroDivisionError."""
+    gen_mod = _load("docs_sync_generate_report", "generate_report.py")
+    gen = gen_mod.ReportGenerator()
+    issues_data = {
+        "summary": {"total_issues": 1, "missing_entries": 0, "stale_entries": 1},
+        "issues": {
+            "missing_entries": [],
+            "stale_entries": [{"tool_type": "skill", "tool_name": "ghost", "documented_in": ["docs/skills.md"]}],
+        },
+    }
+    scan_results = {
+        "repo_root": "/tmp/repo",
+        "summary": {"total_tools": 0, "skills_count": 0, "agents_count": 0, "commands_count": 0},
+    }
+    md = gen.generate_markdown_report(issues_data, scan_results)
+    assert "Sync Score" not in md
+    assert "ghost" in md
+    js = json.loads(gen.generate_json_report(issues_data, scan_results))
+    assert js["generated_at"].endswith("Z")

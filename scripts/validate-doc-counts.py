@@ -246,7 +246,7 @@ def ground_truth() -> dict[str, int]:
     # banned patterns
     if BANNED_PATTERNS.is_file():
         try:
-            data = json.loads(BANNED_PATTERNS.read_text())
+            data = json.loads(BANNED_PATTERNS.read_text(encoding="utf-8"))
             categories = data.get("categories", {}) if isinstance(data, dict) else {}
             patterns = 0
             for v in categories.values():
@@ -411,14 +411,14 @@ def check_codex_claims(line: str, truth: dict[str, int], tolerance: int = 0) -> 
 def emit_hook_table() -> str:
     if not SETTINGS.is_file():
         return "(settings.json missing)"
-    data = json.loads(SETTINGS.read_text())
+    data = json.loads(SETTINGS.read_text(encoding="utf-8"))
     out = ["| Event | Hooks Registered |", "|-------|-----------------|"]
     for event in sorted(data.get("hooks", {}).keys()):
         names: list[str] = []
         for item in data["hooks"][event]:
             for h in item.get("hooks", []):
                 cmd = h.get("command", "")
-                m = re.search(r"hooks/([a-z0-9_-]+)\.py", cmd)
+                m = re.search(r"hooks/([A-Za-z0-9_.-]+)\.py", cmd)
                 if m:
                     names.append(m.group(1).replace("_", "-"))
         out.append(f"| `{event}` | {', '.join(names)} |")

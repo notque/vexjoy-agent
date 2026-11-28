@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import importlib
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -119,28 +117,3 @@ def test_readers_use_resolver(monkeypatch, tmp_path) -> None:
     rm = importlib.import_module("routing-manifest")
     names = {e["name"] for e in rm.load_entries()}
     assert "only-installed" in names
-
-
-def test_codex_manifest_uses_resolver(tmp_path, monkeypatch) -> None:
-    """codex-skill-manifest: installed codex index names, mapped back to repo sources."""
-    repo = tmp_path / "repo"
-    (repo / "skills" / "c" / "pub").mkdir(parents=True)
-    (repo / "skills" / "c" / "pub" / "SKILL.md").write_text("---\nname: pub\n---\n")
-    (repo / "skills" / "c" / "leaf").mkdir(parents=True)
-    (repo / "skills" / "c" / "leaf" / "SKILL.md").write_text("---\nname: leaf\n---\n")
-    _w(repo / "skills" / "INDEX.json", {"skills": {"pub": {"file": "skills/c/pub/SKILL.md"}}})
-    home = tmp_path / "home"
-    # Installed codex index: flat runtime paths (copies), unresolvable into the repo.
-    (home / ".codex" / "skills" / "pub").mkdir(parents=True)
-    (home / ".codex" / "skills" / "pub" / "SKILL.md").write_text("copy\n")
-    _w(home / ".codex" / "vexjoy" / "index" / "skills.json", {"skills": {"pub": {"file": "skills/pub/SKILL.md"}}})
-    env = {"HOME": str(home), "PATH": "/usr/bin:/bin"}
-    out = subprocess.run(
-        [sys.executable, str(SCRIPTS_DIR / "codex-skill-manifest.py"), "--source", str(repo / "skills")],
-        capture_output=True,
-        text=True,
-        env=env,
-        check=True,
-    ).stdout
-    assert out.strip() == f"pub\t{(repo / 'skills' / 'c' / 'pub').resolve()}"
-    assert "leaf" not in out

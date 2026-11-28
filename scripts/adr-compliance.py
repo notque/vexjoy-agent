@@ -7,8 +7,8 @@ and family names in a pipeline component file appear verbatim in authoritative s
 Usage:
     python3 scripts/adr-compliance.py check \\
         --file skills/prometheus-metrics/SKILL.md \\
-        --step-menu skills/workflow/references/pipeline-scaffolder/references/step-menu.md \\
-        --spec-format skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md
+        --step-menu skills/process/workflow/references/pipeline-scaffolder/references/step-menu.md \\
+        --spec-format skills/process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md
 """
 
 from __future__ import annotations
@@ -696,19 +696,23 @@ def cmd_check_adr(args) -> int:
     # Find ADR path
     adr_path = None
     session_parse_error = None
-    if args.adr:
+    if args.adr and args.adr.strip():
         adr_path = Path(args.adr)
     else:
         session_file = Path(".adr-session.json")
         if session_file.exists():
             try:
-                session = _json.loads(session_file.read_text())
-                adr_path = Path(session.get("adr_path", ""))
-            except (json.JSONDecodeError, OSError) as e:
+                session = _json.loads(session_file.read_text(encoding="utf-8"))
+                if not isinstance(session, dict):
+                    raise ValueError(f"expected JSON object, got {type(session).__name__}")
+                raw_adr = session.get("adr_path")
+                if isinstance(raw_adr, str) and raw_adr.strip():
+                    adr_path = Path(raw_adr)
+            except (json.JSONDecodeError, OSError, UnicodeDecodeError, ValueError) as e:
                 session_parse_error = e
                 print(f"[adr-compliance] WARNING: .adr-session.json exists but could not be read: {e}", file=sys.stderr)
 
-    if not adr_path or not adr_path.exists():
+    if not adr_path or not adr_path.is_file():
         reason = f"Session file corrupt: {session_parse_error}" if session_parse_error else "No active ADR session"
         print(_json.dumps({"verdict": "SKIP", "reason": reason}))
         return 0

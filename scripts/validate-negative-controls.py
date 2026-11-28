@@ -25,7 +25,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Validator/check scripts plus generators used as strict ``--check`` gates.
-_SCRIPT_RE = re.compile(r"\b((?:validate|check|generate)-[\w-]+\.py)\b")
+_SCRIPT_RE = re.compile(r"\b((?:validate|check|generate)[-_][\w-]+\.py)\b")
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ def _parse_workflow(workflow_path: Path) -> list[dict]:
                 continue
 
             matches = _SCRIPT_RE.findall(run_cmd)
-            matches = [m for m in matches if not m.startswith("generate-") or "--check" in run_cmd]
+            matches = [m for m in matches if not m.startswith(("generate-", "generate_")) or "--check" in run_cmd]
             if not matches:
                 continue
 

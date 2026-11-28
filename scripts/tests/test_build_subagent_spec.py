@@ -155,3 +155,19 @@ def test_cli_execution():
 
     res_none = subprocess.run([sys.executable, str(SCRIPT_PATH)], capture_output=True, text=True, check=False)
     assert res_none.returncode == 2
+
+
+def test_cli_handles_non_dict_yaml_frontmatter_cleanly(tmp_path: Path):
+    """CLI invocation must use scripts.lib.frontmatter and reject non-dict YAML safely."""
+    agent_file = tmp_path / "list-agent.md"
+    agent_file.write_text("---\n- item1\n- item2\n---\n\n# Body\nDo work.\n", encoding="utf-8")
+    res = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--agent", str(agent_file)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert res.returncode == 0, res.stderr
+    data = json.loads(res.stdout)
+    assert data["Name"] == "list-agent"
+    assert "Do work." in data["SystemPrompt"]

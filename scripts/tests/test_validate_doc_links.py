@@ -156,3 +156,11 @@ def test_backtick_path_in_subdirectory_guide_may_be_relative_to_it(tmp_path: Pat
     _write(repo, "hooks/README.md", "Notes: [`docs/legacy.md`](docs/legacy.md).\n")
     result = _run(repo)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_broken_link_into_prefix_matching_sibling_dir_does_not_crash(tmp_path: Path) -> None:
+    """A broken link resolving into `<repo>-sibling/foo.md` must not crash relative_to(REPO_ROOT)."""
+    repo = _setup_repo(tmp_path, "See [sibling](../repo-sibling/missing.md).\n")
+    result = _run(repo)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "missing.md" in result.stdout

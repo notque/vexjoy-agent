@@ -424,7 +424,10 @@ def merge(current: dict, desired_hooks: dict, rule: OwnerRule) -> MergeResult:
             new_groups.append(new_group)
         hooks[event] = new_groups
     for event, items in want.items():
-        groups = hooks.setdefault(event, [])
+        groups = hooks.get(event)
+        if not isinstance(groups, list):
+            groups = []
+            hooks[event] = groups
         present = set()
         for group in groups:
             if isinstance(group, dict) and isinstance(group.get("hooks"), list):
@@ -468,7 +471,12 @@ def read_settings(path: Path) -> dict:
         text = path.read_text(encoding="utf-8").strip()
     except FileNotFoundError:
         return {}
-    return json.loads(text) if text else {}
+    if not text:
+        return {}
+    data = json.loads(text)
+    if not isinstance(data, dict):
+        raise ValueError(f"settings.json root must be a JSON object, got {type(data).__name__}")
+    return data
 
 
 def backup(settings_path: Path, backups_dir: Path, guard: Guard) -> str | None:

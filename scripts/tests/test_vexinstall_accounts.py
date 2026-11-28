@@ -295,3 +295,35 @@ def test_backup_prunes_by_startswith_and_parse_ts_and_rejects_bad_name(tmp_path:
     assert len(remaining_acct1) == common.SETTINGS_BACKUPS_KEEP
     assert decoy.exists()
     assert other.exists()
+
+
+def test_apply_account_symlink_oserror_records_problem_and_still_merges_settings(world: Env, monkeypatch) -> None:
+    """On Windows without symlink privileges, per-link OSError must not abort settings.json merge."""
+    from vexinstall import accounts as accounts_mod
+
+    cfg = add_account(world, "winacct", {"model": "opus"})
+    # First install default ~/.claude so sources for symlinks exist
+    assert world.run("apply", "--target", "claude").code == 0
+    # Remove links from winacct and wipe its hooks so both links_add and settings_changed are active
+    for entry in accounts_mod.LINKED:
+        p = cfg / entry
+        if p.is_symlink():
+            p.unlink()
+    (cfg / "settings.json").write_text(json.dumps({"model": "opus"}), encoding="utf-8")
+
+    def fail_symlink(*_args, **_kwargs):
+        raise OSError("symlink privilege not held")
+
+    monkeypatch.setattr(accounts_mod, "atomic_symlink", fail_symlink)
+    res = world.run("apply", "--target", "claude")
+    assert res.code == 0, res.err
+    acct_reports = [r for r in res.data.get("accounts", []) if r["name"] == "winacct"]
+    assert len(acct_reports) == 1
+    report = acct_reports[0]
+    assert report["links_add"] == []
+    assert report.get("link_errors")
+    assert any("symlink" in p for p in report["problems"])
+    # Settings merge still happened!
+    merged = json.loads((cfg / "settings.json").read_text(encoding="utf-8"))
+    assert merged["model"] == "opus"
+    assert len(commands(cfg / "settings.json")) >= len(OWNED)

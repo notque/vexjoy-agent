@@ -56,8 +56,8 @@ def extract_frontmatter(content: str) -> dict | None:
         return None
 
     try:
-        result = yaml.safe_load(yaml_content)
-        return result
+        result = yaml.safe_load(yaml_content if yaml_content.endswith("\n") else yaml_content + "\n")
+        return result if isinstance(result, dict) else None
     except yaml.YAMLError as e:
         print(f"  Warning: YAML parsing failed, using regex fallback: {e}", file=sys.stderr)
 

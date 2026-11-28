@@ -245,17 +245,29 @@ def check(repo_root: Path, verbose: bool = False) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--verbose", action="store_true", help="Show every promoted skill checked")
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=None,
+        help="Repository root to validate (default: toolkit containing this script)",
+    )
     args = parser.parse_args()
 
-    # P2 reads skills/INDEX.json: regenerate a missing or stale one first.
-    try:
-        ensure_fresh_indexes(REPO_ROOT, ("skills",))
-    except RuntimeError as exc:
-        print(f"ERROR: {exc}")
-        return 1
+    if args.repo_root is not None:
+        if not args.repo_root.is_dir():
+            parser.error(f"--repo-root is not a directory: {args.repo_root}")
+        repo_root = args.repo_root.resolve()
+    else:
+        repo_root = REPO_ROOT
+        # P2 reads skills/INDEX.json: regenerate a missing or stale one first.
+        try:
+            ensure_fresh_indexes(repo_root, ("skills",))
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}")
+            return 1
 
     print("Checking promoted_to successors...")
-    failures = check(REPO_ROOT, verbose=args.verbose)
+    failures = check(repo_root, verbose=args.verbose)
 
     for msg in failures:
         print(f"FAIL: {msg}")

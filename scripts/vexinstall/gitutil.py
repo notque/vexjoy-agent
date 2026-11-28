@@ -83,7 +83,7 @@ def ephemeral_prefixes() -> list[str]:
 
             prefixes.append(tempfile.gettempdir())
         return [realpath(p) for p in prefixes if p]
-    sep = os.pathsep if os.pathsep in raw else ":"
+    sep = os.pathsep if os.name == "nt" else (os.pathsep if os.pathsep in raw else ":")
     return [realpath(p) for p in raw.split(sep) if p]
 
 

@@ -98,7 +98,7 @@ def check_link(source: Path, raw_target: str, from_repo_root: bool = False) -> t
     resolved = resolve_target(source, bare, from_repo_root=from_repo_root)
     if resolved.exists():
         return True, "ok"
-    return False, str(resolved.relative_to(REPO_ROOT) if str(resolved).startswith(str(REPO_ROOT)) else resolved)
+    return False, str(resolved.relative_to(REPO_ROOT) if resolved.is_relative_to(REPO_ROOT) else resolved)
 
 
 def main() -> int:

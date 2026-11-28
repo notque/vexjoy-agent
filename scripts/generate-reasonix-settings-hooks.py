@@ -40,6 +40,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.atomic_io import atomic_write_text
+from scripts.lib.quoting import quote_cmd
+
 # Events Reasonix supports. See DeepSeek-Reasonix src/hooks.ts: HOOK_EVENTS.
 EVENT_ORDER = ["PreToolUse", "PostToolUse", "UserPromptSubmit", "Stop"]
 
@@ -97,6 +104,9 @@ def parse_allowlist(text: str) -> list[dict]:
             known = ", ".join(sorted(ALL_KNOWN_EVENTS))
             raise ValueError(f"Line {lineno}: unknown event {event!r}. Reasonix supports: {known}.")
 
+        if not filename.endswith(".py") or filename == ".py" or "/" in filename or "\\" in filename or ".." in filename:
+            raise ValueError(f"Line {lineno}: filename must be a bare .py hook name, got {filename!r}.")
+
         if event in EVENTS_REQUIRING_MATCH and not match:
             raise ValueError(
                 f"Line {lineno}: {event} requires a match regex (e.g. 'Bash|Edit'). "
@@ -111,7 +121,7 @@ def parse_allowlist(text: str) -> list[dict]:
     return entries
 
 
-def build_hooks(entries: list[dict], reasonix_hooks_dir: str | None = None) -> dict:
+def build_hooks(entries: list[dict], reasonix_hooks_dir: str | None = None, windows: bool | None = None) -> dict:
     """Build the Reasonix `hooks` structure from parsed allowlist entries.
 
     Emits ONE flat entry per allowlist file. Reasonix iterates matching entries
@@ -127,11 +137,14 @@ def build_hooks(entries: list[dict], reasonix_hooks_dir: str | None = None) -> d
         entries: List of entry dicts from parse_allowlist().
         reasonix_hooks_dir: Directory where hooks will reside.
             Defaults to $HOME/.reasonix/hooks.
+        windows: Quote for cmd.exe instead of POSIX shell (defaults to os.name == "nt").
 
     Returns:
         Dict mapping each event to its list of hook entries (the value for the
         settings "hooks" key).
     """
+    if windows is None:
+        windows = os.name == "nt"
     if reasonix_hooks_dir is None:
         reasonix_hooks_dir = str(Path.home() / ".reasonix" / "hooks")
 
@@ -147,8 +160,9 @@ def build_hooks(entries: list[dict], reasonix_hooks_dir: str | None = None) -> d
 
         event_blocks: list[dict] = []
         for entry in event_entries:
+            hook_path = quote_cmd(f"{reasonix_hooks_dir}/{entry['filename']}", windows=windows)
             block: dict = {
-                "command": f'python3 "{reasonix_hooks_dir}/{entry["filename"]}"',
+                "command": f"python3 {hook_path}",
                 "timeout": DEFAULT_TIMEOUTS_MS[event],
             }
             if entry["match"] is not None:
@@ -170,7 +184,7 @@ def merge_settings(existing: dict, hooks_data: dict) -> dict:
     Returns:
         Updated settings dict with only the "hooks" key replaced.
     """
-    result = dict(existing)
+    result = dict(existing) if isinstance(existing, dict) else {}
     result["hooks"] = hooks_data
     return result
 
@@ -232,7 +246,14 @@ def main() -> None:
     existing: dict = {}
     if output_path.exists():
         try:
-            existing = json.loads(output_path.read_text(encoding="utf-8"))
+            loaded = json.loads(output_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                existing = loaded
+            else:
+                print(
+                    f"Warning: existing {output_path} is not a JSON object; ignoring.",
+                    file=sys.stderr,
+                )
         except (json.JSONDecodeError, OSError) as exc:
             print(f"Warning: could not read existing {output_path}: {exc}", file=sys.stderr)
 
@@ -254,13 +275,7 @@ def main() -> None:
 
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = str(output_path) + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.write(output_json)
-            f.write("\n")
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, str(output_path))
+        atomic_write_text(output_path, output_json + "\n", encoding="utf-8")
     except OSError as exc:
         print(f"Error writing {output_path}: {exc}", file=sys.stderr)
         sys.exit(1)

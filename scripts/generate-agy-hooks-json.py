@@ -19,11 +19,17 @@ import argparse
 import json
 import os
 import re
-import shlex
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.atomic_io import atomic_write_text
+from scripts.lib.quoting import quote_cmd
 
 FLAT_EVENTS = ("SessionStart", "PreInvocation", "PostInvocation", "Stop")
 GROUPED_EVENTS = ("PreToolUse", "PostToolUse")
@@ -103,32 +109,6 @@ def validate_hook_files(entries: list[dict[str, Any]], source_hooks_dir: Path) -
         raise ValueError(f"Missing Antigravity hook source files in {source_hooks_dir}: {', '.join(missing)}")
 
 
-_CMD_SAFE = re.compile(r"[A-Za-z0-9_.\-]+")
-_CMD_UNQUOTABLE = re.compile(r'["%!\r\n]')
-
-
-def quote_cmd(arg: str) -> str:
-    """Quote *arg* for cmd.exe, the shell agy runs hook commands with on Windows.
-
-    shlex.quote targets POSIX shells. cmd.exe does not treat single quotes as
-    quotes, so its output reaches python with the quote characters inside the
-    path, and a ``|`` in a matcher such as ``edit_file|write_file`` becomes a
-    pipe. Double quotes protect spaces and ``& | < > ^ ( )``, but cmd.exe still
-    expands ``%VAR%`` inside them, and ``!VAR!`` too when delayed expansion is
-    on (a registry setting this generator cannot see). A literal ``"`` would
-    need ``^`` escaping that depends on how the caller launches cmd.exe. Values
-    holding any of these are refused rather than written as a command that
-    could silently run something else.
-    """
-    if _CMD_SAFE.fullmatch(arg):
-        return arg
-    if _CMD_UNQUOTABLE.search(arg):
-        raise ValueError(f"Cannot quote {arg!r} for cmd.exe: it contains a double quote, %, ! or a line break.")
-    # The C runtime argv parser reads backslashes before the closing quote as escapes.
-    trailing = len(arg) - len(arg.rstrip("\\"))
-    return '"' + arg + "\\" * trailing + '"'
-
-
 def _claude_hook_timeouts(source_hooks_dir: Path) -> dict[str, int]:
     """Read per-hook timeout seconds from repo .claude/settings.json (max across registrations)."""
     settings_path = source_hooks_dir.parent / ".claude" / "settings.json"
@@ -165,7 +145,9 @@ def _build_command(
     windows: bool = False,
     timeout_sec: int | None = None,
 ) -> str:
-    quote = quote_cmd if windows else shlex.quote
+    def quote(val: str) -> str:
+        return quote_cmd(val, windows=windows)
+
     parts = [
         "python3",
         quote(f"{agy_hooks_dir}/agy-hook-adapter.py"),
@@ -331,7 +313,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(output_json + "\n", encoding="utf-8")
+        atomic_write_text(output_path, output_json + "\n", encoding="utf-8")
     except OSError as exc:
         print(f"Error writing {output_path}: {exc}", file=sys.stderr)
         return 1

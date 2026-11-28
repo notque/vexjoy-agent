@@ -53,6 +53,8 @@ def load_yaml_mapping(yaml_text: str) -> dict[str, Any] | None:
         The parsed dict, or None if the text fails to parse as YAML, or the
         parsed value is not a mapping (a list, scalar, or empty document).
     """
+    if yaml_text and not yaml_text.endswith("\n"):
+        yaml_text += "\n"
     try:
         data = yaml.safe_load(yaml_text)
     except yaml.YAMLError:

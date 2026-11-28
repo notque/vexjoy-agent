@@ -9,6 +9,7 @@ import re
 import secrets
 import stat
 import sys
+import tempfile
 from pathlib import Path, PurePosixPath
 
 SAFE_PATH = re.compile(
@@ -99,6 +100,97 @@ def _existing_mode(directory_fd: int, name: str) -> int | None:
     return stat.S_IMODE(info.st_mode)
 
 
+def _supports_dir_fd() -> bool:
+    return os.name != "nt" and hasattr(os, "fchmod") and os.open in getattr(os, "supports_dir_fd", set())
+
+
+def _check_real_dir_no_dir_fd(path: Path, label: str) -> None:
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise ValueError(f"{label} must contain only real directories") from exc
+    if stat.S_ISLNK(info.st_mode):
+        raise ValueError(f"{label} must contain only real directories")
+    if not stat.S_ISDIR(info.st_mode):
+        raise ValueError(f"{label} must contain only directories")
+
+
+def _atomic_write_no_dir_fd(
+    repo_root: Path,
+    clean: str,
+    path_parts: tuple[str, ...],
+    root_parts: tuple[str, ...],
+    content: bytes,
+    *,
+    mode: int = 0o600,
+) -> Path:
+    """Windows / non-dir_fd containment-validated atomic write without dir_fd or fchmod."""
+    try:
+        root_info = repo_root.lstat()
+    except OSError as exc:
+        raise ValueError("repository root must be a real directory") from exc
+    if stat.S_ISLNK(root_info.st_mode):
+        raise ValueError("repository root must be a real directory")
+    if not stat.S_ISDIR(root_info.st_mode):
+        raise ValueError("repository root must be a directory")
+
+    current = repo_root
+    for part in root_parts:
+        current = current / part
+        _check_real_dir_no_dir_fd(current, "allowed root")
+
+    for part in path_parts[len(root_parts) : -1]:
+        current = current / part
+        if not current.exists() and not current.is_symlink():
+            try:
+                os.mkdir(current, 0o700)
+            except FileExistsError:
+                pass
+        _check_real_dir_no_dir_fd(current, "artifact parent")
+
+    resolved_root = repo_root.resolve()
+    resolved_parent = current.resolve()
+    if not resolved_parent.is_relative_to(resolved_root):
+        raise ValueError("artifact path escapes repository root")
+
+    name = path_parts[-1]
+    target = current / name
+    try:
+        target_info = target.lstat()
+    except FileNotFoundError:
+        target_info = None
+    if target_info is not None:
+        if stat.S_ISLNK(target_info.st_mode):
+            raise ValueError("artifact target must not be a symbolic link")
+        if not stat.S_ISREG(target_info.st_mode):
+            raise ValueError("artifact target must be a regular file")
+
+    fd = -1
+    tmp_path: str | None = None
+    try:
+        fd, tmp_path = tempfile.mkstemp(dir=current, prefix=f".{name}.", suffix=".tmp")
+        with os.fdopen(fd, "wb") as handle:
+            fd = -1
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if target_info is not None and os.name != "nt":
+            os.chmod(tmp_path, stat.S_IMODE(target_info.st_mode))
+        elif os.name != "nt":
+            os.chmod(tmp_path, mode)
+        os.replace(tmp_path, target)
+        tmp_path = None
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        if tmp_path is not None:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+    return resolved_root / clean
+
+
 def atomic_write(
     repo_root: Path,
     relative_path: str,
@@ -117,6 +209,9 @@ def atomic_write(
             raise ValueError(f"artifact path must be below {clean_root}/")
     else:
         root_parts = ()
+
+    if not _supports_dir_fd():
+        return _atomic_write_no_dir_fd(repo_root, clean, path_parts, root_parts, content, mode=mode)
 
     root_fd = _open_root(repo_root)
     anchor_fd = parent_fd = -1
