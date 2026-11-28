@@ -10,7 +10,6 @@ from pathlib import Path
 # Tests whose file name does not follow `test_<hook_stem>*.py`. Each entry was read to confirm the test loads the hook.
 TEST_OVERRIDES: dict[str, list[str]] = {
     "adr-lifecycle-on-merge.py": ["test_adr_lifecycle_hook.py"],
-    "hook-version-parity-check.py": ["test_hook_version_parity.py"],
     "pending-advisory-injector-userprompt.py": ["test_pending_advisory.py"],
     "session-manifest-cache.py": ["test_manifest_cache.py"],
     "routing-outcome-finalizer.py": ["test_acceptance_detector.py", "test_weak_positive.py"],
@@ -21,7 +20,6 @@ TEST_OVERRIDES: dict[str, list[str]] = {
     ],
     "routing-outcome-recorder.py": ["test_routing_decision_recorder.py"],
     "routing-outcome-stop-fallback.py": ["test_routing_decision_recorder.py"],
-    "fish-shell-detector.py": [],
 }
 
 DENY_SOURCE = re.compile(

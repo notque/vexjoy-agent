@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to skills and workflows. `/do` sele
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-46 skills, 26 pipelines, 65 hooks, 160 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. When dispatch pays, the worker is Claude Code's built-in `general-purpose` agent with the skill loaded.
+43 skills, 26 pipelines, 47 hooks, 160 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. When dispatch pays, the worker is Claude Code's built-in `general-purpose` agent with the skill loaded.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
 
@@ -179,7 +179,7 @@ Replaces generated compaction summaries with Jev-judged verbatim pruning after c
 <details>
 <summary><b>Codex CLI Parity</b></summary>
 
-Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ runs **58 of the 70 hook registrations; 12 are unsupported**. A registration is one hook file on one event, so these are not unique hook files. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`; `scripts/codex-hooks-allowlist.txt` lists each one.
+Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ runs **43 of the 51 hook registrations; 8 are unsupported**. A registration is one hook file on one event, so these are not unique hook files. Some run on native Codex events and the rest through `hooks/codex-hook-adapter.py`; `scripts/codex-hooks-allowlist.txt` lists each one.
 
 The adapter converts `apply_patch` operations into the Write/Edit payload expected by existing guards. It cannot intercept writes through `unified_exec`, unmatched MCP tools, WebSearch, or other unsupported paths. PreCompact and Stop receive less telemetry than in Claude Code. This is expanded compatibility, not full parity.
 
@@ -230,8 +230,8 @@ Know the trade-off first. The default prompt also carries Claude Code's own guid
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 0 | Retired (plans/009): their domain knowledge moved into skill references. Private overlay agents still install from overlays. |
-| Skills | 46 | Domain knowledge and methodology for recurring work: idiom tables, failure mode catalogs, error-to-fix mappings. |
-| Hooks | 65 | Lifecycle checks, context injection, and telemetry. |
+| Skills | 43 | Domain knowledge and methodology for recurring work: idiom tables, failure mode catalogs, error-to-fix mappings. |
+| Hooks | 47 | Lifecycle checks, context injection, and telemetry. |
 | Scripts | 160 | Repeatable validation, orchestration, and plumbing. |
 
 The counts are active components: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and the Python scripts in `scripts/`.

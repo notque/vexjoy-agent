@@ -155,7 +155,7 @@ CREATE TABLE learnings (
     category TEXT NOT NULL,        -- error, pivot, review, design, debug, gotcha, effectiveness, misroute (8 categories)
     confidence REAL DEFAULT 0.5,
     tags TEXT,
-    source TEXT NOT NULL,           -- hook:routing-decision-recorder, hook:review-capture, hook:prompt-capture
+    source TEXT NOT NULL,           -- hook:routing-decision-recorder, hook:prompt-capture
     source_detail TEXT,             -- e.g. "Bash:golang-general-engineer"
     project_path TEXT,
     session_id TEXT,
@@ -242,7 +242,7 @@ Architectural Decision Records in `adr/` (gitignored and local-only, so a fresh 
 }
 ```
 
-At session start, `session-adr-health-check` surfaces this context. After writes, `adr-enforcement` checks that the session consulted ADR context, the written files comply, and the ADR hash remains intact. Its findings are advisory; creation gates can separately block unregistered components.
+At session start, `session-adr-health-check` surfaces this context, and `pretool-synthesis-gate` blocks direct component edits when an active ADR session lacks its required synthesis artifact.
 
 ## MCP Integration
 
