@@ -76,7 +76,7 @@ Both indexes are generated and untracked. A script that reads one calls `ensure_
 6. Execute on the main thread, or dispatch a worker with the skill loaded
 ```
 
-Trivial = reading a file the user named by exact path. In Claude Code the main thread also runs Simple work itself, and dispatches only when that pays: parallel fan-out, long lanes (about 5+ files), worktree isolation, or read-only Haiku gathering. Medium and Complex work dispatches `general-purpose` workers (or private overlay agents) with the selected skill loaded. On Antigravity CLI only Trivial work stays on the main thread. Source: `skills/meta/do/SKILL.md`.
+Trivial = reading a file the user named by exact path. Across Claude Code and Antigravity, the main thread also runs Simple work itself (and answers pure Q&A turns with a 1-line route note), dispatching workers only when delegation pays: Medium or Complex work, parallel fan-out, long lanes (about 5+ files), worktree isolation, read-only gathering (Haiku or `research`), or a private overlay agent. Dispatched workers use `general-purpose` (Claude Code) or `self`/`research` (Antigravity) with the selected skill loaded. Source: `AGENTS.md` and `skills/meta/do/SKILL.md`.
 
 ---
 
@@ -203,7 +203,7 @@ Skills carry no `model` key. `/do` picks the dispatch model from the task type (
 | settings.json | `.claude/settings.json` (repo) | Yes | Source of the toolkit's hook registrations and `env` defaults; also repo-only keys |
 | settings.json | `~/.claude/settings.json` | No | Your user settings. Install and sync merge in the toolkit's hook entries and any missing `env` variables; your other keys and entries stay. |
 | settings.local.json | `.claude/settings.local.json` | No | Repo-local overrides (MCP permissions) |
-| AGENTS.md, CLAUDE.md | Repo root | Yes | Shared rules (`AGENTS.md`) and Claude Code dispatch (`CLAUDE.md`, which imports `AGENTS.md`) |
+| AGENTS.md, CLAUDE.md | Repo root | Yes | Canonical rules and runtime dispatch (`AGENTS.md`); `CLAUDE.md` is a thin `@AGENTS.md` shim for Claude Code |
 
 ---
 
@@ -217,8 +217,8 @@ User says "fix the failing Go tests"
    (force-routed on Go test work; loads its Go testing references)
 3. Enhancements: stacked on signals (tests -> verification)
 4. Plan: task_plan.md (Simple+)
-5. Execute: Claude Code's main thread runs Simple work with the skill loaded;
-   it dispatches a general-purpose worker only when that pays
+5. Execute: the main thread runs Simple work with the skill loaded;
+   it dispatches a worker only when that pays
 6. Record: a dispatch carries a [do-route] marker, and its decision and
    outcome land in learning.db
 ```

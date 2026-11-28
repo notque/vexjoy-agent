@@ -4,14 +4,18 @@
 
 Essays and writing behind this toolkit live at [vexjoy.com](https://vexjoy.com).
 
-VexJoy Agent connects plain-English requests to skills and workflows. `/do` selects the knowledge and tools needed for your task. Hooks enforce specific checks, and scripts handle repeatable work.
-
-The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
+VexJoy Agent connects plain-English requests to domain skills, multi-phase workflows, and verification gates. You describe the outcome; `/do` or `/d` selects the skills, pipelines, and execution mode without making you learn the catalog.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 skills, 26 pipelines, 47 hooks, 160 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. When dispatch pays, the worker is Claude Code's built-in `general-purpose` agent with the skill loaded.
+43 skills, 26 pipelines, 47 hooks, 160 scripts. Skills carry domain knowledge and reusable methods, pipelines hold multi-phase work, hooks enforce selected checks, and scripts handle repeatable plumbing. `AGENTS.md` is the canonical rule file: Antigravity CLI and Codex read it natively, and Claude Code imports it via `CLAUDE.md` (`@AGENTS.md`).
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Antigravity CLI (`/do`).
+
+## How the Agent Works
+
+Models do not reliably self-activate a large skill catalog on autopilot. Without an explicit router, they skip domain skills, drop multi-step procedures, and cut verification corners.
+
+`/do` routes each request before work begins. It classifies complexity, reads the live skill and pipeline manifest, and loads the matching skills and verification gates. To avoid subagent cold-start overhead, `/do` runs Trivial and Simple work directly in the main thread and answers pure Q&A turns with a one-line route note. When delegation pays — Medium or Complex tasks, parallel fan-out, long multi-file lanes, worktree isolation, or read-only gathering — it dispatches built-in workers (`general-purpose` on Claude Code, `self` or `research` on Antigravity) with the selected skill loaded.
 
 ## What It Looks Like
 
@@ -52,14 +56,9 @@ The router stacks the `programming` skill (Go) on the `workflow` skill's debuggi
 
 ## /d — Jev-Powered Router
 
-`/d` requires [TypeSafe's Jev](https://docs.typesafe.ai). Jev classifies the
-request, checks that the selected route preserves the requested outcome, and
-then dispatches the skill and pipeline.
+`/d` requires [TypeSafe's Jev](https://docs.typesafe.ai). It uses the same `/do` routing and dispatch engine, plus an independent Jev gate that checks intent before work starts.
 
-Intent preservation is production behavior: `/d` restates the requested
-outcome and gates dispatch on a Jev receipt for that exact proposed intent,
-preventing an agent from quietly expanding an apple into an orchard. The gate
-is an instruction in the `/d` skill, not a hook.
+Models — especially Claude — frequently drift from what you asked, quietly expanding scope ("turning an apple into an orchard") or narrowing a full task into a partial start, and cannot reliably catch their own misread. `/d` restates your requested outcome and checks that restatement against your raw prompt through Jev, gating dispatch on a Jev receipt for that exact proposed intent. The gate is an instruction in the `/d` skill checked by `scripts/build-dispatch.py`, not a hook.
 
 Choose either transport:
 
@@ -80,8 +79,8 @@ the other one. The TypeSafe MCP plugin is not required for `/d`.
 
 Intent-alignment judgments are recorded in `learning.db` without raw request
 text. Receipts keep the Jev judge model separate from the executing agent's
-configured model and effort level. View proposed-intent difference rates by
-agent profile, judge model, and transport:
+configured model and effort level. Inspect drift and proposed-intent difference
+rates across models, runtimes, judge models, and transports:
 
 ```bash
 python3 scripts/jev-intent-stats.py --days 30

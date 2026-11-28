@@ -46,12 +46,13 @@ Select `model` (and optional `model_effort` or `model_policy`) in `build-dispatc
 
 ### 2.3 Execution Tier Architecture in Antigravity CLI
 
-In Antigravity CLI, all non-trivial tasks follow VexJoy's orchestrator contract: the main thread orchestrates and delegates all execution to subagents. The repo ships no specialist agents (plans/009): each worker persona is registered via `define_subagent` from its skill (`build-subagent-spec.py --skill <skill>`) before `invoke_subagent`. A user-named private overlay agent registers from its agent file (`--agent <name>`):
+In Antigravity CLI, the main thread runs Trivial and Simple work directly (loading the skill in-thread to avoid ~20k-token subagent cold start and re-reading files already in context) and dispatches workers when delegation pays: Medium/Complex work, parallel fan-out, ~5+ files, worktree isolation, read-only scouting, or a private overlay agent. Pure Q&A / conversational turns with zero edits or mutating tools answer in-thread with a concise 1-line route note. The repo ships no specialist agents (plans/009): dispatched workers use built-in `self`/`research`, register a skill persona via `define_subagent` (`build-subagent-spec.py --skill <skill>`), or register a private overlay agent (`--agent <name>`):
 
 | Complexity Tier | Execution Mode | Agent Mechanism | Skill Mechanism |
 |---|---|---|---|
 | **Trivial** | Direct in-thread | Handled directly (single user-named file typo/fix) | None |
-| **Simple / Medium** | Single subagent dispatch | Register the `<skill>-worker` persona via `define_subagent` from `build-subagent-spec.py --skill <skill>`; dispatch via `invoke_subagent` (`Workspace="inherit"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
+| **Simple** | Direct in-thread (dispatch only when it pays) | Main thread runs directly; dispatch `self`/`research` only for fan-out, ~5+ files, worktree isolation, read-only gather, or an overlay agent | Main thread reads `~/.gemini/skills/<skill>/SKILL.md` directly |
+| **Medium** | Single subagent dispatch | Register the `<skill>-worker` persona via `define_subagent` from `build-subagent-spec.py --skill <skill>` (or use built-in `self`/`research`); dispatch via `invoke_subagent` (`Workspace="inherit"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
 | **Complex / Fan-out** | Multi-worker dispatch (`/teamwork`) | Register one `<skill>-worker` persona per worker skill via `define_subagent`; dispatch via `invoke_subagent` (`Workspace="branch"` or `"share"`) | Subagent reads `~/.gemini/skills/<skill>/SKILL.md` as instructed by `build-dispatch.py` |
 
 **Context Gathering Boundary (Phase 3 Step G)**:
@@ -194,7 +195,7 @@ When the user invokes `/do` alongside `/goal` (or requests `<afk-mode>`, "loop u
 | **`/browser`** | Phase 4.5 Stage 6 (`LIVE-VALIDATE`) | Validates web applications, UI components, and visual regressions in a live browser. |
 | **`/schedule`** (`schedule` tool) & **`/automation`** (Sidecars) | Phase 4 (Async Monitoring / Recurring Tasks) | Uses the native `schedule` tool (`DurationSeconds` or `CronExpression` + `TimerCondition`) instead of bash `sleep` polling; uses `~/.gemini/config/sidecars/<id>/sidecar.json` (`automation` skill) for standing background daemons. |
 | **`/compact`** | Phase Boundaries (Context Hygiene) | When `suggest-compact.py` or context length signals pressure between phases, checkpoints state to `task_plan.md` and brain artifacts, then recommends `/compact`. |
-| **`/learn`** | Phase 5 (Post-Task Learning & Rule Graduation) | Records routing and error learnings to `learning.db` and graduates durable workflow corrections into `.agents/rules/*.md` or `GEMINI.md` (with `trigger: always_on`, `glob`, `manual`, or `model_decision`). |
+| **`/learn`** | Phase 5 (Post-Task Learning & Rule Graduation) | Records routing and error learnings to `learning.db` and graduates durable workflow corrections into `.agents/rules/*.md` or `AGENTS.md` (with `trigger: always_on`, `glob`, `manual`, or `model_decision`). |
 
 ---
 
@@ -207,7 +208,7 @@ When the user invokes `/do` alongside `/goal` (or requests `<afk-mode>`, "loop u
    - Format all file and symbol references as clickable Markdown links using `file://` (`[build-dispatch.py](file:///abs/path/scripts/build-dispatch.py#L1-L50)`).
    - Use `read_file`, `edit_file`, and `write_file` instead of shell `cat`/`sed`/`awk` for file operations so `PostToolUse` hooks (`edit_file|write_file`) and file backups trigger deterministically.
 3. **Writing Style Precedence**:
-   - Follow `CLAUDE.md` / `GEMINI.md` precedence: **Completeness floor** (never omit required technical facts or verification evidence) > **Google Developer Documentation Style** (active voice, second person, context-before-instruction) > **Dense-Complete conciseness**.
+   - Follow `AGENTS.md` precedence: **Completeness floor** (never omit required technical facts or verification evidence) > **Google Developer Documentation Style** (active voice, second person, context-before-instruction) > **Dense-Complete conciseness**.
 
 ---
 
@@ -216,7 +217,7 @@ When the user invokes `/do` alongside `/goal` (or requests `<afk-mode>`, "loop u
 Gemini models (`gemini-3.8-flash`, `gemini-4-argon`) possess an aggressive function-calling bias and may attempt tool execution before emitting conversational preamble or routing banners.
 
 1. **Turn-1 Output Invariant**:
-   - On non-trivial requests, the very first turn must output the `/do` CLASSIFY and ROUTING banner as user-facing text before invoking mutating tools.
+   - On action/tool tasks, the very first turn must output the `/do` CLASSIFY and ROUTING banner as user-facing text before invoking mutating tools. (Pure Q&A / conversational turns with zero edits or mutating tools may use a concise 1-line route note.)
    - Refrain from retroactive banner creation at the conclusion of execution.
 2. **Mechanical Enforcement**:
    - `hooks/gemini-turn-gate-userprompt.py` (`PreInvocation`) inspects incoming prompts, initializes routing state, and injects the Turn-1 mandate.
