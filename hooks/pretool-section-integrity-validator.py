@@ -73,6 +73,18 @@ BUILTIN_AGENTS = frozenset(
     }
 )
 
+# Antigravity CLI built-in subagent types (valid only under Antigravity).
+AGY_BUILTIN_AGENTS = frozenset({"self", "research", "image-generator"})
+
+
+def _is_antigravity_runtime(event: dict) -> bool:
+    """Return True when the hook is running under the Antigravity CLI runtime."""
+    return (
+        os.environ.get("VEXJOY_HOOK_RUNTIME") == "antigravity"
+        or os.environ.get("ANTIGRAVITY_AGENT") == "1"
+        or event.get("agy_tool_name") == "invoke_subagent"
+    )
+
 
 def _load_index_names(index_path: Path, key: str) -> set[str]:
     """Load names from an INDEX.json file. Returns empty set on any error."""
@@ -196,6 +208,8 @@ def main() -> None:
 
     project_root = _find_project_root(event)
     agent_names = _get_agent_names(project_root)
+    if _is_antigravity_runtime(event):
+        agent_names = agent_names | AGY_BUILTIN_AGENTS
     skill_names = _get_skill_names(project_root)
 
     if debug:

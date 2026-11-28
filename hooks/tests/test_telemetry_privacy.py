@@ -232,7 +232,6 @@ def test_learning_db_created_owner_only_before_first_write(tmp_path, monkeypatch
 
 DEBUG_WRITERS = [
     ("adr-lifecycle-on-merge.py", "DEBUG_LOG", "debug_log"),
-    ("subagent-state-tracker.py", "_DEBUG_LOG", "_debug"),
 ]
 
 

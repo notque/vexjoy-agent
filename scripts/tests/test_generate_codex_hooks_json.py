@@ -60,7 +60,7 @@ def test_comments_and_blanks_only_produces_empty():
 
 def test_single_session_start_no_matcher():
     """SessionStart entry with no matcher gets default matcher 'startup|resume'."""
-    text = "SessionStart:session-github-briefing.py matcher=startup|resume class=native mode=native failure=open\n"
+    text = "SessionStart:afk-mode.py matcher=startup|resume class=native mode=native failure=open\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/home/user/.codex/hooks")
 
@@ -72,7 +72,7 @@ def test_single_session_start_no_matcher():
     assert len(block["hooks"]) == 1
     hook = block["hooks"][0]
     assert hook["type"] == "command"
-    assert "session-github-briefing.py" in hook["command"]
+    assert "afk-mode.py" in hook["command"]
     assert hook["timeout"] == 600
 
 
@@ -84,9 +84,9 @@ def test_single_session_start_no_matcher():
 def test_multiple_session_start_entries_grouped():
     """Multiple SessionStart entries are grouped into one matcher block."""
     text = (
-        "SessionStart:session-github-briefing.py matcher=startup|resume class=native mode=native failure=open\n"
+        "SessionStart:afk-mode.py matcher=startup|resume class=native mode=native failure=open\n"
         "SessionStart:operator-context-detector.py matcher=startup|resume class=native mode=native failure=open\n"
-        "SessionStart:team-config-loader.py matcher=startup|resume class=native mode=native failure=open\n"
+        "SessionStart:session-adr-health-check.py matcher=startup|resume class=native mode=native failure=open\n"
     )
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/fake/hooks")
@@ -96,9 +96,9 @@ def test_multiple_session_start_entries_grouped():
     hook_list = blocks[0]["hooks"]
     assert len(hook_list) == 3
     names = [h["command"] for h in hook_list]
-    assert any("session-github-briefing.py" in n for n in names)
+    assert any("afk-mode.py" in n for n in names)
     assert any("operator-context-detector.py" in n for n in names)
-    assert any("team-config-loader.py" in n for n in names)
+    assert any("session-adr-health-check.py" in n for n in names)
 
 
 # ---------------------------------------------------------------------------
@@ -160,10 +160,10 @@ def test_comments_and_blank_lines_ignored():
     text = (
         "# Phase 1: safe on Codex v0.114.0+\n"
         "\n"
-        "SessionStart:session-github-briefing.py matcher=startup|resume class=native mode=native failure=open\n"
+        "SessionStart:afk-mode.py matcher=startup|resume class=native mode=native failure=open\n"
         "\n"
         "# Another comment\n"
-        "Stop:session-summary.py class=native mode=native failure=open\n"
+        "Stop:routing-outcome-stop-fallback.py class=native mode=native failure=open\n"
     )
     entries = parse_allowlist(text)
     assert len(entries) == 2
@@ -214,7 +214,7 @@ def test_user_prompt_submit_no_matcher_field():
 
 def test_stop_entry_no_matcher_field():
     """Stop entry produces a block without a 'matcher' key."""
-    text = "Stop:session-summary.py class=native mode=native failure=open\n"
+    text = "Stop:routing-outcome-stop-fallback.py class=native mode=native failure=open\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/fake/hooks")
 
@@ -243,10 +243,10 @@ def test_cli_dry_run_produces_valid_json():
     """CLI invocation with --dry-run prints valid JSON to stdout."""
     allowlist_text = (
         "# Phase 1 hooks\n"
-        "SessionStart:session-github-briefing.py matcher=startup|resume class=native mode=native failure=open\n"
+        "SessionStart:afk-mode.py matcher=startup|resume class=native mode=native failure=open\n"
         "UserPromptSubmit:prompt-capture.py class=native mode=native failure=open\n"
         "PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed\n"
-        "Stop:session-summary.py class=native mode=native failure=open\n"
+        "Stop:routing-outcome-stop-fallback.py class=native mode=native failure=open\n"
     )
     with tempfile.TemporaryDirectory() as tmpdir:
         allowlist_path = Path(tmpdir) / "allowlist.txt"
@@ -278,7 +278,7 @@ def test_cli_dry_run_produces_valid_json():
     # Verify structure depth: hooks.SessionStart[0].hooks[0].command
     session_hook = parsed["hooks"]["SessionStart"][0]["hooks"][0]
     assert session_hook["type"] == "command"
-    assert "session-github-briefing.py" in session_hook["command"]
+    assert "afk-mode.py" in session_hook["command"]
     assert session_hook["timeout"] == 600
 
 
@@ -290,9 +290,9 @@ def test_cli_dry_run_produces_valid_json():
 def test_event_ordering():
     """Present events retain their relative order from the current release."""
     text = (
-        "Stop:session-summary.py class=native mode=native failure=open\n"
+        "Stop:routing-outcome-stop-fallback.py class=native mode=native failure=open\n"
         "PostToolUse:posttool-bash-injection-scan.py matcher=Bash class=native mode=native failure=open\n"
-        "SessionStart:session-github-briefing.py matcher=startup|resume class=native mode=native failure=open\n"
+        "SessionStart:afk-mode.py matcher=startup|resume class=native mode=native failure=open\n"
         "PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed\n"
         "UserPromptSubmit:prompt-capture.py class=native mode=native failure=open\n"
     )
@@ -311,14 +311,14 @@ def test_event_ordering():
 
 def test_command_shape_uses_configured_dir():
     """Hook command uses python3 and the codex-hooks-dir path."""
-    text = "SessionStart:session-github-briefing.py matcher=startup|resume class=native mode=native failure=open\n"
+    text = "SessionStart:afk-mode.py matcher=startup|resume class=native mode=native failure=open\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/home/testuser/.codex/hooks")
 
     hook = result["hooks"]["SessionStart"][0]["hooks"][0]
     cmd = hook["command"]
     assert cmd.startswith("python3 "), f"Command should start with 'python3 ': {cmd}"
-    assert "/home/testuser/.codex/hooks/session-github-briefing.py" in cmd
+    assert "/home/testuser/.codex/hooks/afk-mode.py" in cmd
 
 
 def test_command_shape_default_dir_uses_home():
@@ -326,13 +326,13 @@ def test_command_shape_default_dir_uses_home():
     import os
 
     home = os.environ.get("HOME", "~")
-    text = "SessionStart:session-github-briefing.py matcher=startup|resume class=native mode=native failure=open\n"
+    text = "SessionStart:afk-mode.py matcher=startup|resume class=native mode=native failure=open\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries)
 
     hook = result["hooks"]["SessionStart"][0]["hooks"][0]
     cmd = hook["command"]
-    assert f"{home}/.codex/hooks/session-github-briefing.py" in cmd
+    assert f"{home}/.codex/hooks/afk-mode.py" in cmd
 
 
 # ---------------------------------------------------------------------------
@@ -376,15 +376,15 @@ def test_explicit_adapter_metadata_is_parsed():
 def test_explicit_metadata_requires_classification():
     """Current entries cannot infer native/adapted classification."""
     with pytest.raises(ValueError, match="class"):
-        parse_allowlist("Stop:session-summary.py mode=native failure=open")
+        parse_allowlist("Stop:routing-outcome-stop-fallback.py mode=native failure=open")
 
 
 @pytest.mark.parametrize(
     ("line", "expected"),
     [
-        ("Stop:session-summary.py class=native mode=bogus failure=open", "mode"),
-        ("Stop:session-summary.py class=adapted mode=stop failure=bogus", "failure"),
-        ("Stop:session-summary.py matcher=* class=adapted mode=stop failure=open", "matcher"),
+        ("Stop:routing-outcome-stop-fallback.py class=native mode=bogus failure=open", "mode"),
+        ("Stop:routing-outcome-stop-fallback.py class=adapted mode=stop failure=bogus", "failure"),
+        ("Stop:routing-outcome-stop-fallback.py matcher=* class=adapted mode=stop failure=open", "matcher"),
         ("PreCompact:precompact-archive.py matcher=manual|auto class=adapted mode=patch failure=open", "PreCompact"),
         ("PreToolUse:pretool-plan-gate.py matcher=Bash class=adapted mode=patch failure=closed", "patch"),
     ],
@@ -414,7 +414,7 @@ def test_all_ten_events_build_in_canonical_order():
     """Generated JSON keeps the release event order regardless of allowlist order."""
     text = "\n".join(
         [
-            "Stop:session-summary.py class=native mode=native failure=open",
+            "Stop:routing-outcome-stop-fallback.py class=native mode=native failure=open",
             "SubagentStop:routing-outcome-recorder.py matcher=* class=native mode=native failure=open",
             "UserPromptSubmit:prompt-capture.py class=native mode=native failure=open",
             "PostCompact:postcompact-handler.py matcher=manual|auto class=native mode=native failure=open",
@@ -422,7 +422,7 @@ def test_all_ten_events_build_in_canonical_order():
             "PostToolUse:posttool-bash-injection-scan.py matcher=Bash class=native mode=native failure=open",
             "PermissionRequest:security-review-hook.py matcher=Bash class=native mode=native failure=closed",
             "PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed",
-            "SubagentStart:team-config-loader.py matcher=* class=native mode=native failure=open",
+            "SubagentStart:session-adr-health-check.py matcher=* class=native mode=native failure=open",
             "SessionStart:session-context.py matcher=startup|resume class=native mode=native failure=open",
         ]
     )

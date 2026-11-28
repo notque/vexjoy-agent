@@ -13,7 +13,7 @@ session starts -> prompt submitted -> tool selected -> tool runs -> response sto
 
 context compaction: PreCompact -> compact -> PostCompact
 subagent lifecycle: SubagentStart -> SubagentStop
-session outcomes:   Stop | StopFailure | SessionEnd
+session outcomes:   Stop | SessionEnd
 ```
 
 The installed configuration currently uses these events:
@@ -28,8 +28,7 @@ The installed configuration currently uses these events:
 | `PostCompact` | After context compression | Restore bounded session context |
 | `SubagentStart` | Before a subagent begins | Add parent-session context |
 | `SubagentStop` | When a subagent finishes | Check completion state and record outcomes |
-| `Stop` | After a normal response cycle ends | Persist summaries and resolve pending state |
-| `StopFailure` | When a session ends because of an API error | Record failure metadata |
+| `Stop` | After a normal response cycle ends | Check toolkit drift and resolve pending state |
 | `SessionEnd` | When the session ends | Resolve every routing outcome still pending |
 
 `PreToolUse` hooks may block a tool call; advisory hooks allow it to continue. Other events have event-specific response contracts. No toolkit `Stop` or `SubagentStop` hook blocks today. [Gates in Every Repo](../docs/start-here.md#gates-in-every-repo) lists the hooks that do block and what each one blocks. Check the corresponding script and tests before changing exit behavior or output fields.
@@ -54,9 +53,9 @@ The active hook set includes four broad kinds of behavior:
 | Capability | Examples |
 | --- | --- |
 | Safety and policy | Branch protection, CI merge checks, configuration protection, ADR and implementation gates |
-| Context injection | AFK posture, operator profile, project agents, team configuration, session memory |
-| Quality checks | Security scans, prompt-injection scans, documentation drift, index synchronization |
-| Telemetry and state | Usage tracking, routing outcomes, subagent state, session summaries, failure records |
+| Context injection | AFK posture, operator profile, task registry, session memory |
+| Quality checks | Security scans, prompt-injection scans, frontmatter checks, index synchronization |
+| Telemetry and state | Usage tracking, routing outcomes, task registry, session reads |
 
 Use the registration file rather than this table when you need an exhaustive list. Historical implementation notes are retained in [`docs/legacy.md`](docs/legacy.md); they are background, not the current inventory.
 

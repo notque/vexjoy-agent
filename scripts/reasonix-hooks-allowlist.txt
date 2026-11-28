@@ -20,6 +20,4 @@ UserPromptSubmit:routing-outcome-finalizer.py
 
 # ----- Stop: session-end observers and summarizers (no match) -----
 
-Stop:session-summary.py
 Stop:routing-outcome-stop-fallback.py
-Stop:rules-distill-trigger.py

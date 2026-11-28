@@ -66,19 +66,10 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("SessionStart", "context:[operator-context]", "operator-context-detector.py")
     add("SessionStart", "context:[adr-health-check]", "session-adr-health-check.py")
     add("SessionStart", "context:RUNTIME DREAM PAYLOAD", "session-context.py")
-    add("SessionStart", "context:runtime-local-agent", "cross-repo-agents.py")
-    add("SessionStart", "context:[fish-shell]", "fish-shell-detector.py")
-    add("SessionStart", "context:[zsh-shell]", "zsh-shell-detector.py")
-    add("SessionStart", "context:[sapcc-go]", "sapcc-go-detector.py")
-    add("SessionStart", "context:<kairos-briefing>", "session-github-briefing.py")
-    add("SessionStart", "context:[team-config]", "team-config-loader.py")
-    add("SessionStart", "context:<rules-distill-candidates>", "rules-distill-injector.py")
     add("SessionStart", "context:[manifest-cache] refreshed", "session-manifest-cache.py")
     add("SessionStart", "context:agent-summary blocker", "session-no-agent-summary-check.py")
-    add("SessionStart", "noaction:herdr-absent", "herdr-state-reporter.py")
     add("SessionStart", "noaction:empty-registry", "session-task-registry.py")
     add("SessionStart", "noaction:ephemeral-worktree-guard", "sync-to-user-claude.py")
-    add("SessionStart", "context:[hook-parity] WARNING", "hook-version-parity-check.py")
     add("SubagentStart", "context:[warmstart] Parent session context for Explore", "subagent-start-warmstart.py")
     add("UserPromptSubmit", "state:learning-topic:review-false-positive", "review-false-positive-capture.py")
     add("UserPromptSubmit", "state:learning-topic:voice-sample", "prompt-capture.py")
@@ -108,23 +99,17 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("PostToolUse", "context:[adr-lifecycle]", "adr-lifecycle-on-merge.py")
     add("PostToolUse", "context:[bash-injection-scan]", "posttool-bash-injection-scan.py")
     add("PostToolUse", "context:[rename-sweep]", "posttool-rename-sweep.py")
-    add("PostToolUse", "context:[adr-enforcement] COMPLIANCE CHECK", "adr-enforcement.py")
     add("PostToolUse", "context:[skill-frontmatter]", "posttool-skill-frontmatter-check.py")
     add("PostToolUse", "context:[joy-check]", "posttooluse-joy-check-warn.py")
     # Installer spec 7.3: the index hooks never write into a repo; with no
     # engine target in the sandbox HOME they are silent no-ops.
     add("PostToolUse", "noaction:no-engine-target", "posttooluse-sync-skill-index.py")
-    add("PostToolUse", "context:[docs-drift] WARNING", "posttool-docs-drift-alert.py")
     add("PostToolUse", "context:[security-review]", "security-review-hook.py")
     add("PostToolUse", "state:session-reads", "posttool-session-reads.py")
     add("PreCompact", "context:ACTIVE PIPELINE SESSION", "precompact-archive.py")
     add("SubagentStop", "state:routing-requeue", "routing-outcome-recorder.py")
-    add("SubagentStop", "noaction:herdr-absent", "herdr-state-reporter.py")
-    add("SubagentStop", "state:subagent-registry", "subagent-state-tracker.py")
     add("SubagentStop", "state:task-registry", "session-task-registry.py")
-    add("Stop", "state:learning-db", "session-summary.py")
     add("Stop", "deny:Toolkit drift detected", "stop-drift-guard.py")
-    add("Stop", "context:[rules-distill]", "rules-distill-trigger.py")
     add("Stop", "state:routing-kept", "routing-outcome-stop-fallback.py")
     return contracts
 
@@ -280,40 +265,6 @@ def _prepare_case(
         state.mkdir(parents=True)
         project_hash = str(cwd).replace("/", "-").lstrip("-")
         (state / f"dream-injection-{project_hash}.md").write_text("RUNTIME DREAM PAYLOAD\n", encoding="utf-8")
-    elif filename == "cross-repo-agents.py":
-        agents = cwd / ".claude" / "agents"
-        agents.mkdir(parents=True)
-        (agents / "runtime-local-agent.md").write_text("# Runtime Local Agent\n", encoding="utf-8")
-    elif filename == "fish-shell-detector.py":
-        env["SHELL"] = "/usr/bin/fish"
-    elif filename == "zsh-shell-detector.py":
-        env["SHELL"] = "/usr/bin/zsh"
-    elif filename == "sapcc-go-detector.py":
-        (cwd / "go.mod").write_text("module github.com/sapcc/runtime-hook\n\ngo 1.24\n", encoding="utf-8")
-    elif filename == "session-github-briefing.py":
-        env["CLAUDE_KAIROS_ENABLED"] = "true"
-        state = home / ".claude" / "state"
-        state.mkdir(parents=True)
-        project_hash = str(cwd).replace("/", "-")
-        briefing = state / f"briefing{project_hash}-runtime.md"
-        briefing.write_text("# Runtime briefing\n\n## Action Required\nExercise the Codex hook.\n", encoding="utf-8")
-        evidence["briefing_sidecar"] = briefing.with_name(briefing.name + ".meta.json")
-    elif filename == "team-config-loader.py":
-        config = cwd / ".claude" / "team-config.yaml"
-        config.parent.mkdir(parents=True)
-        config.write_text("version: 1\nteam: runtime\ncontext: Codex hook runtime\n", encoding="utf-8")
-    elif filename == "rules-distill-injector.py":
-        pending = home / ".claude" / "learning" / "rules-distill-pending.json"
-        pending.parent.mkdir(parents=True)
-        pending.write_text(
-            json.dumps(
-                {
-                    "distilled_at": "2026-07-11T00:00:00Z",
-                    "candidates": [{"status": "pending", "principle": "Runtime principle", "confidence": 0.9}],
-                }
-            ),
-            encoding="utf-8",
-        )
     elif filename == "session-manifest-cache.py":
         scripts = home / ".codex" / "scripts"
         scripts.mkdir(parents=True)
@@ -327,14 +278,6 @@ def _prepare_case(
         for name in ("skills", "agents", "hooks"):
             (cwd / name).mkdir()
         evidence["ephemeral_checkout"] = cwd
-    elif filename == "hook-version-parity-check.py":
-        repo_hooks = cwd / "hooks"
-        deployed = home / ".claude" / "hooks"
-        repo_hooks.mkdir()
-        deployed.mkdir(parents=True)
-        (repo_hooks / "sync-to-user-claude.py").write_text("# hook-version: 2.0.0\n", encoding="utf-8")
-        (deployed / "sync-to-user-claude.py").write_text("# hook-version: 1.0.0\n", encoding="utf-8")
-        env["CLAUDE_PROJECT_DIR"] = str(cwd)
     elif filename == "review-false-positive-capture.py":
         payload["prompt"] = "That review finding is a false positive in runtime.py from reviewer-code."
     elif filename == "prompt-capture.py":
@@ -386,18 +329,7 @@ def _prepare_case(
     elif registration["event"] == "PostToolUse" and registration["mode"] == "patch":
         patch_path = "runtime.py"
         content = "print('runtime')\n"
-        if filename == "adr-enforcement.py":
-            patch_path = "hooks/runtime.py"
-            target = cwd / patch_path
-            target.parent.mkdir()
-            target.write_text("print('runtime')\n", encoding="utf-8")
-            scripts = cwd / "scripts"
-            scripts.mkdir()
-            compliance = scripts / "adr-compliance.py"
-            compliance.write_text("import json\nprint(json.dumps({'verdict': 'PASS'}))\n", encoding="utf-8")
-            evidence["workspace_component"] = target
-            env["ADR_ENFORCEMENT"] = "1"
-        elif filename == "security-review-hook.py":
+        if filename == "security-review-hook.py":
             content = "user_value = input()\neval(user_value)\n"
             (cwd / patch_path).write_text(content, encoding="utf-8")
         elif filename == "posttool-skill-frontmatter-check.py":
@@ -419,21 +351,6 @@ def _prepare_case(
                 encoding="utf-8",
             )
             evidence["absent_repo_index"] = cwd / "skills" / "INDEX.json"
-        elif filename == "posttooluse-sync-agent-index.py":
-            patch_path = "agents/runtime-agent.md"
-            target = cwd / patch_path
-            target.parent.mkdir()
-            target.write_text(
-                "---\nname: runtime-agent\ndescription: Runtime Codex hook probe.\n---\n\n# Runtime Agent\n",
-                encoding="utf-8",
-            )
-            evidence["absent_repo_index"] = cwd / "agents" / "INDEX.json"
-        elif filename == "posttool-docs-drift-alert.py":
-            patch_path = "agents/runtime-agent.md"
-            agents = cwd / "agents"
-            agents.mkdir()
-            (agents / "runtime-agent.md").write_text("# Runtime Agent\n", encoding="utf-8")
-            (agents / "INDEX.json").write_text('{"agents": {}}\n', encoding="utf-8")
         payload["tool_input"] = {"command": _single_write_patch(patch_path, content)}
     elif filename == "stop-drift-guard.py":
         hooks_dir = cwd / "hooks"
@@ -461,11 +378,6 @@ def _prepare_case(
             capture_output=True,
         )
         changed_hook.write_text("VALUE = 'after'\n", encoding="utf-8")
-    elif filename == "rules-distill-trigger.py":
-        script = home / ".claude" / "scripts" / "rules-distill.py"
-        script.parent.mkdir(parents=True)
-        script.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
-        evidence["distill_state"] = home / ".claude" / "state" / "rules-distill-state.json"
 
     return evidence
 
@@ -620,11 +532,11 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    # 59 entries for 58 Claude registrations: the unified gate runs on Bash and apply_patch.
-    assert len(REGISTRATIONS) == 59, "runtime matrix must execute every supported registration"
-    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 59
+    # 44 entries for 43 Claude registrations: the unified gate runs on Bash and apply_patch.
+    assert len(REGISTRATIONS) == 44, "runtime matrix must execute every supported registration"
+    assert len({(item["event"], item["filename"], item["matcher"]) for item in REGISTRATIONS}) == 44
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 58
+    assert len(registrations) == 43
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 
