@@ -53,10 +53,11 @@ def learning_db(tmp_path: Path) -> Path:
     return db_path
 
 
-def _insert_events(db_path: Path, *, blocked: int, total: int, age_days: float = 1.0) -> None:
-    """Insert governance events stamped the way the hooks stamp them: naive local time."""
+def _insert_events(db_path: Path, *, blocked: int, total: int, age_days: float = 1.0, naive: bool = False) -> None:
+    """Insert governance events stamped the way hooks stamp them (UTC ISO 8601, or legacy naive UTC)."""
     conn = sqlite3.connect(str(db_path))
-    ts = (datetime.now() - timedelta(days=age_days)).isoformat()
+    dt = datetime.now(timezone.utc) - timedelta(days=age_days)
+    ts = dt.replace(tzinfo=None).isoformat() if naive else dt.isoformat()
     for i in range(total):
         conn.execute(
             "INSERT INTO governance_events (blocked, created_at) VALUES (?, ?)",
@@ -227,14 +228,16 @@ class TestCheckHookDenials:
     def test_window_edge_is_right_in_any_time_zone(
         self, tz: str, default_config: th.HealthConfig, learning_db: Path
     ) -> None:
-        """created_at is naive local time. A UTC cutoff moved the window edge by the UTC offset (8 h in Los Angeles)."""
+        """UTC +00:00 and legacy naive timestamps both compare accurately via julianday() in any timezone."""
         saved = os.environ.get("TZ")
         os.environ["TZ"] = tz
         time.tzset()
         try:
-            _insert_events(learning_db, blocked=1, total=1, age_days=7 - 2 / 24)  # 2 h inside the window
-            _insert_events(learning_db, blocked=1, total=1, age_days=7 + 2 / 24)  # 2 h outside it
-            _insert_events(learning_db, blocked=1, total=1, age_days=3.5 - 2 / 24)  # 2 h inside the recent half
+            _insert_events(learning_db, blocked=1, total=1, age_days=7 - 2 / 24)  # 2 h inside the window (+00:00)
+            _insert_events(learning_db, blocked=1, total=1, age_days=7 + 2 / 24)  # 2 h outside it (+00:00)
+            _insert_events(
+                learning_db, blocked=1, total=1, age_days=3.5 - 2 / 24, naive=True
+            )  # legacy naive inside recent half
             with patch.object(th, "LEARNING_DB", learning_db):
                 result = th.check_hook_denials(default_config)
         finally:

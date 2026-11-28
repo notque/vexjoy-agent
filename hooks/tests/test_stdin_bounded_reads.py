@@ -232,11 +232,16 @@ def test_stdin_timeout_enforces_max_bytes_cap(tmp_path: Path) -> None:
     driver = tmp_path / "max_bytes_driver.py"
     driver.write_text(
         f"import json, sys\nsys.path.insert(0, {str(HOOKS / 'lib')!r})\n"
+        "if hasattr(sys.stdin, 'reconfigure'):\n"
+        "    sys.stdin.reconfigure(encoding='utf-8')\n"
         "from stdin_timeout import read_stdin\n"
         "data = read_stdin(timeout=2.0, max_bytes=16)\n"
         "print(json.dumps({'len_bytes': len(data.encode('utf-8')), 'data': data}))\n",
         encoding="utf-8",
     )
+    env = _env(tmp_path)
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
     res = subprocess.run(
         [sys.executable, str(driver)],
         input="🚀" * 20,  # 80 UTF-8 bytes
@@ -245,7 +250,7 @@ def test_stdin_timeout_enforces_max_bytes_cap(tmp_path: Path) -> None:
         encoding="utf-8",
         errors="replace",
         cwd=tmp_path,
-        env=_env(tmp_path),
+        env=env,
         timeout=15,
     )
     assert res.returncode == 0, res.stderr

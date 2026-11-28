@@ -1045,6 +1045,22 @@ class TestTrackASecurityRegressions:
     @pytest.mark.parametrize(
         ("command", "expected"),
         [
+            ("git push 2>&1 --force origin main", DENY),
+            ("git push >/dev/null +main", DENY),
+            ("git push > /dev/null --force origin main", DENY),
+            ("git push 2> /dev/null --force origin master", DENY),
+            ("git push &> /dev/null --force origin main", DENY),
+            ("git push --force origin feat > main", ALLOW),
+            ("git push --force origin feat >/tmp/main", ALLOW),
+        ],
+    )
+    def test_force_push_with_redirections_cannot_bypass(self, command, expected):
+        got = DENY if mod._force_push_protected(command) else ALLOW
+        assert got == expected
+
+    @pytest.mark.parametrize(
+        ("command", "expected"),
+        [
             ("git branch -df old-work", DENY),
             ("git branch -fd old-work", DENY),
             ("git branch -d --force old-work", DENY),

@@ -228,6 +228,35 @@ def test_agent_telemetry_report_multi_provider(tmp_path: Path) -> None:
     assert report["structural_signals"].get("standing_rule_claim") == 1
 
 
+def test_agent_telemetry_report_hook_health_julianday_utc(tmp_path: Path) -> None:
+    """_read_hook_health matches both UTC +00:00 and legacy naive timestamps using julianday()."""
+    import sqlite3
+    from datetime import datetime, timedelta, timezone
+
+    mod = _load_mod(SCRIPTS / "agent-telemetry-report.py", "agent_tel_tz_test")
+    learn = tmp_path / "learn"
+    learn.mkdir()
+    conn = sqlite3.connect(str(learn / "learning.db"))
+    conn.execute(
+        "CREATE TABLE governance_events (id INTEGER PRIMARY KEY, event_type TEXT, payload TEXT, blocked INTEGER, created_at TEXT)"
+    )
+    now = datetime.now(timezone.utc)
+    cutoff_iso = (now - timedelta(days=7)).isoformat()
+    inside_utc = (now - timedelta(days=6, hours=22)).isoformat()
+    inside_naive = (now - timedelta(days=2)).replace(tzinfo=None).isoformat()
+    outside_utc = (now - timedelta(days=7, hours=2)).isoformat()
+    for ts in (inside_utc, inside_naive, outside_utc):
+        conn.execute(
+            "INSERT INTO governance_events (event_type, payload, blocked, created_at) VALUES (?, ?, 1, ?)",
+            ("gate", json.dumps({"hook": "pretool-unified-gate"}), ts),
+        )
+    conn.commit()
+    conn.close()
+
+    health = mod._read_hook_health(learn, cutoff_iso)
+    assert health["governance_blocks"].get("pretool-unified-gate") == 2
+
+
 def test_unified_gate_blocks_windows_sensitive_paths() -> None:
     env = {"CLAUDE_OPERATOR_PROFILE": "work", "CLAUDE_GATE_BYPASS": "0"}
     for fp in (r"C:\Users\q\proj\.env", r"C:\Users\q\.ssh\id_rsa", r"C:\Users\q\.aws\credentials"):

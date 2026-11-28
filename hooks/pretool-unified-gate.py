@@ -385,7 +385,9 @@ def _force_push_protected(command: str, _depth: int = 0) -> str | None:
         while i < len(toks):
             t = toks[i]
             if not past_sep and _REDIRECT_TOKEN_RE.match(t):
-                break
+                # Skip the redirection token (and its separate target when bare, e.g. `> /dev/null`).
+                i += 2 if _BARE_REDIRECT_RE.match(t) else 1
+                continue
             if not past_sep and t == "--":
                 past_sep = True
                 i += 1
@@ -603,6 +605,12 @@ def _split_executed_shell_segments(command: str) -> list[str]:
             in_double = not in_double
             buf.append(c)
         elif not in_single and not in_double and c in ";|&\n":
+            # Keep `&` inside redirection operators (`2>&1`, `<&0`, `&>`, `&>>`)
+            # as part of the current segment rather than splitting the command.
+            if c == "&" and ((i > 0 and command[i - 1] in "><") or (i + 1 < len(command) and command[i + 1] == ">")):
+                buf.append(c)
+                i += 1
+                continue
             segment = "".join(buf).strip()
             if segment:
                 segments.append(segment)
@@ -1720,6 +1728,8 @@ def _emit_advisories() -> None:
 
 # A shell redirection token (`>`, `>>`, `2>`, `2>&1`, `&>`, `<`, `>file`).
 _REDIRECT_TOKEN_RE = _rx(r"^\d*(?:>|<|&>)")
+# Bare redirection operators whose target lives in the next shell token (`>`, `>>`, `2>`, `&>`, `1>`, `<`).
+_BARE_REDIRECT_RE = _rx(r"^(?:\d*(?:>>?|<|<>|>&|<&)|&>>?)$")
 
 
 def _git_force_add_paths(command: str) -> list[str]:
