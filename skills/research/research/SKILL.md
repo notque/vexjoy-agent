@@ -84,7 +84,7 @@ Default: Research Pipeline.
 
 ## Mode A: Research Pipeline
 
-Load `references/research-coordinator.md` and `references/deep-research-protocol.md`, then follow CLASSIFY -> PLAN -> EXECUTE -> SYNTHESIZE. Use `references/deep-research-protocol.md` for orient/budget sizing (0-2 narrow, 3-5 broad, capped at 2-3 on slow or high-thinking models), 8-12 step worker budgets, concurrent `research`/`browser` routing, straggler stall cancellation, one-pass follow-up limits, and concise artifact-first reporting. The coordinator runs in this thread and writes the report itself. Each research stream is a fresh `general-purpose` worker whose prompt starts: "Read ~/.claude/skills/research/references/research-subagent-executor.md and follow it; load every file its Reference Loading Table matches." Dispatch independent streams in one message; 20 workers maximum. Save the report to the session Artifact Directory Path when available, or `research/{topic}/report.md`, with every factual claim cited.
+Load `references/deep-research-protocol.md` and the coordinator guides in `references/research-coordinator/` (`query-classification.md`, `delegation-patterns.md`, `templates/`), then follow CLASSIFY -> PLAN -> EXECUTE -> SYNTHESIZE. Use `references/deep-research-protocol.md` for orient/budget sizing (0-2 narrow, 3-5 broad, capped at 2-3 on slow or high-thinking models), 8-12 step worker budgets, concurrent `research`/`browser` routing, straggler stall cancellation, one-pass follow-up limits, and concise artifact-first reporting. The coordinator runs in this thread and writes the report itself. Each research stream is a fresh `general-purpose` worker whose prompt starts: "Read ~/.claude/skills/research/references/research-subagent-executor/source-quality-assessment.md and follow it along with ~/.claude/skills/research/references/deep-research-protocol.md." Dispatch independent streams in one message; 20 workers maximum. Save the report to the session Artifact Directory Path when available, or `research/{topic}/report.md`, with every factual claim cited.
 
 **Gate**: Every worker returned or its gap is stated in an **Unresolved** section; the report cites source and passage for each claim.
 
@@ -202,10 +202,10 @@ Load `references/markdown-converter.md` to convert PDF, Office (`.docx`, `.pptx`
 
 | Signal | Reference | Content |
 |--------|-----------|---------|
-| Research pipeline: classify, plan, dispatch, synthesize | `references/research-coordinator.md` | Coordinator method, worker dispatch, report format; sub-files in `references/research-coordinator/` |
+| Research pipeline: classify, plan, dispatch, synthesize | `references/research-coordinator/` | Query classification, worker delegation patterns, checklists, examples, and report templates |
 | Deep research budgets, parallel tool routing, stall control, artifact output | `references/deep-research-protocol.md` | Orient/budget caps, 8-12 step worker limits, browser routing, straggler cancellation, 2-sentence summary + Unresolved format |
 | Document-to-Markdown conversion (`markitdown`, PDF/Office/OCR) | `references/markdown-converter.md` | `uvx`/`pipx` CLI usage, supported formats, flags, scanned-PDF OCR fallback |
-| Running one delegated research stream (worker) | `references/research-subagent-executor.md` | OODA loop, tool budget, source quality; sub-files in `references/research-subagent-executor/` |
+| Running one delegated research stream (worker) | `references/research-subagent-executor/` | Source quality assessment (`source-quality-assessment.md`) for delegated research workers |
 | Event field schema, health states, join rules | `references/trace-schema.md` | DECISION/OUTCOME field semantics |
 | Diagnosing thin trace data, consumer mistakes | `references/preferred-patterns.md` | Failure mode catalog for log reading |
 | Parse/read errors, missing log, unmatched outcomes | `references/error-handling.md` | Error-fix mappings for trace reading |

@@ -139,3 +139,5 @@ Answer each with yes, or fix it first:
 - Make fewer choices: one font, one accent, one radius, one spacing scale, one container style. Consistency reads as quality.
 - When two options seem equal, pick the quieter one.
 - Always do section 10. Looking at the render catches more than any checklist.
+
+Visual craft, typography scale, hero composition, and anti-slop rules incorporate patterns adapted from Google DemoLab's `gemini-frontend-design` skill (`https://github.com/google-gemini/demolab`), licensed under Apache-2.0.

@@ -1,6 +1,6 @@
 # Deep research protocol
 
-Companion protocol to `research-coordinator.md` for broad, multi-source, or open-ended web investigations. Use it to size subagent budgets, route full-page reads, stop stalled tracks, and format concise reports.
+Companion protocol to `references/research-coordinator/` for broad, multi-source, or open-ended web investigations. Use it to size subagent budgets, route full-page reads, stop stalled tracks, and format concise reports.
 
 ## Orient and budget
 
@@ -58,4 +58,4 @@ Choose the output destination by environment:
 
 ## Attribution
 
-Adapted from Google DemoLab's `deep-research` skill, licensed under Apache-2.0.
+Adapted from Google DemoLab's `deep-research` skill (`https://github.com/google-gemini/demolab`), licensed under Apache-2.0.

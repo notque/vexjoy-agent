@@ -130,4 +130,4 @@ Audit every build across four buckets before handoff:
 
 ## Attribution
 
-Adapted from Google DemoLab's `gemini-frontend-design` skill, licensed under Apache-2.0.
+Adapted from Google DemoLab's `gemini-frontend-design` skill (`https://github.com/google-gemini/demolab`), licensed under Apache-2.0.
