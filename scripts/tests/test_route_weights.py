@@ -37,9 +37,13 @@ def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     db_dir.mkdir()
     monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(db_dir))
 
-    # Make the repo hooks/lib importable and reset the init flag for this proc.
-    if _repo_hooks_lib not in sys.path:
-        sys.path.insert(0, _repo_hooks_lib)
+    # Make the repo hooks/lib win over any ~/.claude/hooks/lib and reset init state.
+    monkeypatch.syspath_prepend(_repo_hooks_lib)
+    loaded = sys.modules.get("learning_db_v2")
+    if loaded is not None:
+        loaded_file = Path(getattr(loaded, "__file__", "")).resolve()
+        if loaded_file.parent != Path(_repo_hooks_lib).resolve():
+            del sys.modules["learning_db_v2"]
     import learning_db_v2
 
     monkeypatch.setattr(learning_db_v2, "_initialized", False)

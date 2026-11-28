@@ -351,8 +351,10 @@ def _force_push_protected(command: str, _depth: int = 0) -> str | None:
         desc = _force_push_protected(body, _depth + 1)
         if desc:
             return desc
-    scan_command = "".join(
-        " " if any(start <= i < end for start, end in substitution_spans) else c for i, c in enumerate(command)
+    scan_command = (
+        "".join(" " if any(start <= i < end for start, end in substitution_spans) else c for i, c in enumerate(command))
+        if substitution_spans
+        else command
     )
 
     for segment in _split_executed_shell_segments(scan_command):
@@ -368,6 +370,8 @@ def _force_push_protected(command: str, _depth: int = 0) -> str | None:
             desc = _force_push_protected(payload, _depth + 1) if payload else None
             if desc:
                 return desc
+            continue
+        if cmd != "git":
             continue
         parsed = _git_command_parts(segment)
         if not parsed or parsed[0] != "push":
@@ -740,8 +744,10 @@ def _destructive_git_operation(
         description = _destructive_git_operation(body, _depth + 1, cwd, _alias_cache)
         if description:
             return description
-    scan_command = "".join(
-        " " if any(start <= i < end for start, end in substitution_spans) else c for i, c in enumerate(command)
+    scan_command = (
+        "".join(" " if any(start <= i < end for start, end in substitution_spans) else c for i, c in enumerate(command))
+        if substitution_spans
+        else command
     )
 
     for segment in _split_executed_shell_segments(scan_command):

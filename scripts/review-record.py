@@ -29,13 +29,18 @@ import re
 import sys
 from pathlib import Path
 
+_REPO_LIB = Path(__file__).resolve().parent.parent / "hooks" / "lib"
 for _lib in (
-    Path.home() / ".gemini" / "hooks" / "lib",
     Path.home() / ".claude" / "hooks" / "lib",
-    Path(__file__).resolve().parent.parent / "hooks" / "lib",
+    Path.home() / ".gemini" / "hooks" / "lib",
 ):
     if _lib.is_dir() and str(_lib) not in sys.path:
-        sys.path.insert(0, str(_lib))
+        sys.path.append(str(_lib))
+if _REPO_LIB.is_dir():
+    _repo_lib_str = str(_REPO_LIB)
+    if _repo_lib_str in sys.path:
+        sys.path.remove(_repo_lib_str)
+    sys.path.insert(0, _repo_lib_str)
 
 import review_record
 

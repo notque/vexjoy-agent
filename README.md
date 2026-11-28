@@ -7,7 +7,7 @@
 AI coding CLIs fail in three predictable ways when left on autopilot: they ignore passive skill catalogs, cut verification corners when they feel confident, and quietly rewrite what you asked for. VexJoy Agent fixes all three with a front-door router (`/do`), an optional intent-verification gate (`/d`), reusable domain skills, and hard safety hooks.
 
 <!-- Counts here must match the Four Layers table. Both count active components. Verify both: python3 scripts/validate-doc-counts.py -->
-43 skills, 26 pipelines, 47 hooks, 163 scripts. Works across Claude Code (`/do`), Antigravity CLI (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Hermes. Essays behind the toolkit live at [vexjoy.com](https://vexjoy.com).
+43 skills, 26 pipelines, 47 hooks, 159 scripts. Works across Claude Code (`/do`), Antigravity CLI (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`), and Hermes. Essays behind the toolkit live at [vexjoy.com](https://vexjoy.com).
 
 ---
 
@@ -264,7 +264,7 @@ A game built by Claude Code using these skills and pipelines:
 | Agents | 0 | Retired (plans/009): their domain knowledge moved into skill references. Private overlay agents still install from overlays. |
 | Skills | 43 | Domain knowledge and methodology for recurring work: idiom tables, failure mode catalogs, error-to-fix mappings. |
 | Hooks | 47 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 163 | Repeatable validation, orchestration, and plumbing. |
+| Scripts | 159 | Repeatable validation, orchestration, and plumbing. |
 
 Counts reflect active components on disk: agents with a frontmatter `name`, skills not retired with `promoted_to`, hook files registered in `.claude/settings.json`, and Python scripts in `scripts/`.
 

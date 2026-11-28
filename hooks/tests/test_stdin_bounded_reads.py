@@ -252,3 +252,24 @@ def test_stdin_timeout_enforces_max_bytes_cap(tmp_path: Path) -> None:
     report = json.loads(res.stdout)
     assert report["len_bytes"] <= 16
     assert report["data"] == "🚀" * 4
+
+
+def test_stdin_timeout_handles_mocked_stdin_read_and_multichunk_streams(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Short reads stop at EOF instead of looping on mocked sys.stdin.read, while multi-chunk streams cap cleanly."""
+    import io
+    from unittest.mock import patch
+
+    sys.path.insert(0, str(HOOKS / "lib"))
+    import stdin_timeout
+
+    payload = '{"tool_name": "Edit"}'
+    with patch("sys.stdin.read", return_value=payload) as mock_read:
+        assert stdin_timeout.read_stdin(timeout=2.0) == payload
+        assert mock_read.call_count == 1
+
+    # Multi-chunk stream (> 64 KiB) still reads across chunks up to max_bytes.
+    big_stream = io.StringIO("a" * 150_000)
+    monkeypatch.setattr(sys, "stdin", big_stream)
+    capped = stdin_timeout.read_stdin(timeout=2.0, max_bytes=100_000)
+    assert len(capped) == 100_000
+    assert capped == "a" * 100_000

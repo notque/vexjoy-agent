@@ -31,7 +31,8 @@ def _read_bounded(max_bytes: int | None) -> str:
     byte_count = 0
     while byte_count < max_bytes:
         remaining = max_bytes - byte_count
-        chunk = sys.stdin.read(min(_READ_CHUNK_SIZE, remaining))
+        requested = min(_READ_CHUNK_SIZE, remaining)
+        chunk = sys.stdin.read(requested)
         if not chunk:
             break
         encoded = chunk.encode("utf-8", errors="replace")
@@ -42,6 +43,8 @@ def _read_bounded(max_bytes: int | None) -> str:
             break
         chunks.append(chunk)
         byte_count += len(encoded)
+        if len(chunk) != requested:
+            break
     return "".join(chunks)
 
 

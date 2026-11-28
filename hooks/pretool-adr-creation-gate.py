@@ -121,9 +121,6 @@ def _derive_repo_name(base_dir: Path) -> str:
     Tries `git remote get-url origin` first; falls back to the directory
     basename if git is unavailable or no remote is configured.
 
-    NOTE: This logic is duplicated in scripts/vexjoy-adr.py (_derive_repo_name).
-    Keep both in sync when modifying.
-
     Args:
         base_dir: The resolved project root directory.
 

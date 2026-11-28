@@ -19,11 +19,10 @@ if HOOKS_LIB not in sys.path:
 @pytest.fixture()
 def fresh_db(tmp_path, monkeypatch):
     """Point learning_db_v2 at a fresh temp directory and reset module state."""
-    import importlib
-
     monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path))
+    monkeypatch.syspath_prepend(HOOKS_LIB)
 
-    # Force re-import to reset _initialized flag
+    # Force re-import from the repo hooks/lib to reset _initialized flag
     if "learning_db_v2" in sys.modules:
         del sys.modules["learning_db_v2"]
     import learning_db_v2

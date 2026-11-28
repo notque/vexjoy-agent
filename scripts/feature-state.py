@@ -727,9 +727,12 @@ def _load_learning_db() -> Any:
     """
     home_lib = str(Path.home() / ".claude" / "hooks" / "lib")
     repo_lib = str(Path(__file__).resolve().parent.parent / "hooks" / "lib")
-    for lib in (home_lib, repo_lib):
-        if Path(lib).is_dir() and lib not in sys.path:
-            sys.path.insert(0, lib)
+    if Path(home_lib).is_dir() and home_lib not in sys.path:
+        sys.path.append(home_lib)
+    if Path(repo_lib).is_dir():
+        if repo_lib in sys.path:
+            sys.path.remove(repo_lib)
+        sys.path.insert(0, repo_lib)
     import learning_db_v2
 
     return learning_db_v2
